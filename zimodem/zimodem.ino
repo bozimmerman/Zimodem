@@ -3,6 +3,7 @@
 #include <spiffs/spiffs.h>
 
 #define ZIMODEM_VERSION "0.1"
+#define null 0
 
 class ZMode
 {
@@ -25,127 +26,318 @@ bool connectWifi(const char* ssid, const char* password)
   return WiFi.status() == WL_CONNECTED;
 }
 
+class WiFiClientNode;
+static int WiFiNextClientId = 0;
+static WiFiClientNode *conns = null;
+
+class WiFiClientNode
+{
+  public:
+    bool xon = true;
+    int id=0;
+    char *host;
+    int port;
+    WiFiClient *client;
+    WiFiClientNode *next = null;
+    WiFiClientNode(char *hostIp, int newport)
+    {
+      port=newport;
+      host=new char[strlen(hostIp)+1];
+      strcpy(host,hostIp);
+      id=++WiFiNextClientId;
+      client = new WiFiClient();
+      if(!client->connect(hostIp, port))
+        client = null;
+      else
+      if(conns == null)
+        conns = this;
+      else
+      {
+        WiFiClientNode *last = conns;
+        while(last->next != null)
+          last = last->next;
+        last->next = this;
+      }
+    }
+    ~WiFiClientNode()
+    {
+        client->stop();
+        delete client;
+        delete host;
+        if(conns == this)
+          conns = next;
+        else
+        {
+          WiFiClientNode *last = conns;
+          while(last->next != this)
+            last = last->next;
+          if(last != null)
+            last->next = next;
+        }
+    }
+    bool isConnected()
+    {
+      return (client != null) && (client->connected());
+    }
+};
+
+const int MAX_COMMAND_SIZE=256;
+  
 class ZCommand : public ZMode
 {
-  const int MAX_COMMAND_SIZE=256;
+  uint8_t nbuf[MAX_COMMAND_SIZE];
+  int eon=0;
+  WiFiClientNode *current = null;
+  bool lastXON=true;
   
   public:
+    boolean echoOn=false;
+    String wifiSSI;
+    String wifiPW;
+    int baudRate=115200;
+  
+    ZCommand() : ZMode()
+    {
+      memset(nbuf,0,MAX_COMMAND_SIZE);
+    }
     void serialIncoming()
     {
-      uint8_t sbuf[MAX_COMMAND_SIZE];
-      memset(sbuf,0,MAX_COMMAND_SIZE);
-      int n = Serial.readBytesUntil('\n',sbuf, MAX_COMMAND_SIZE);
-      if((n > 0)&&(sbuf[n-1]=='\r'))
-        sbuf[--n]=0;
-      if(n > 0)
+      bool crReceived=false;
+      while(Serial.available()>0)
       {
-        if((n>1)
-        &&((sbuf[0]=='A')||(sbuf[0]=='a'))
-        &&((sbuf[1]=='T')||(sbuf[1]=='t')))
-        {
-          if(n == 2)
-            Serial.println("OK");
-          else
+          uint8_t c=Serial.read();
+          if((c>0)&&(c!='\r'))
           {
-            int index=2;
-            char lastCmd=' ';
-            int result=0;
-            int vstart=0;
-            int vlen=0;
-            while(index<n)
+            if(echoOn)
+              Serial.write(c);
+            if(c=='\n')
             {
-              lastCmd=sbuf[index++];
-              vstart=index;
-              vlen=0;
-              if(index<n)
+              crReceived=true;
+              break;
+            }
+            nbuf[eon++]=c;
+            if(eon>=MAX_COMMAND_SIZE)
+              crReceived=true;
+          }
+      }
+      if(!crReceived)
+        return;
+      int len=eon;
+      uint8_t sbuf[len];
+      memcpy(sbuf,nbuf,len);
+      memset(nbuf,0,MAX_COMMAND_SIZE);
+      eon=0;
+      if((len>1)
+      &&((sbuf[0]=='A')||(sbuf[0]=='a'))
+      &&((sbuf[1]=='T')||(sbuf[1]=='t')))
+      {
+        if(len == 2)
+          Serial.println("OK");
+        else
+        {
+          int index=2;
+          char lastCmd=' ';
+          int result=0;
+          int vstart=0;
+          int vlen=0;
+          while(index<len)
+          {
+            lastCmd=sbuf[index++];
+            vstart=index;
+            vlen=0;
+            bool isNumber=true;
+            if(index<len)
+            {
+              if(sbuf[index]=='\"')
               {
-                if(sbuf[index]=='\"')
-                {
-                  vstart++;
-                  while((++index<n)&&(sbuf[index]!='\"'))
-                    vlen++;
-                }
-                else
-                while((index<n)
-                &&(! (((sbuf[index]>='a')&&(sbuf[index]<='z'))
-                   ||((sbuf[index]>='A')&&(sbuf[index]<='Z')))))
-                {
+                isNumber=false;
+                vstart++;
+                while((++index<len)&&(sbuf[index]!='\"'))
                   vlen++;
-                  index++;
-                }
               }
-              int vval=0;
-              uint8_t vbuf[vlen+1];
-              memset(vbuf,0,vlen+1);
-              if(vlen > 0)
+              else
+              if((lastCmd=='d')||(lastCmd=='D'))
               {
-                memcpy(vbuf,sbuf+vstart,vlen);
-                vval=atoi((char *)vbuf);
+                isNumber=false;
+                vlen += len-index;
+                index=len;
               }
-              switch(lastCmd)
+              else
+              while((index<len)
+              &&(! (((sbuf[index]>='a')&&(sbuf[index]<='z'))
+                 ||((sbuf[index]>='A')&&(sbuf[index]<='Z')))))
               {
-              case 'w':
-              case 'W':
+                isNumber = (sbuf[index]>='0') && (sbuf[index]<='9') && isNumber;
+                vlen++;
+                index++;
+              }
+            }
+            int vval=0;
+            uint8_t vbuf[vlen+1];
+            memset(vbuf,0,vlen+1);
+            if((vlen > 0)&&(isNumber))
+            {
+              memcpy(vbuf,sbuf+vstart,vlen);
+              vval=atoi((char *)vbuf);
+            }
+            /*
+             * We have cmd and args, time to DO!
+             */
+            switch(lastCmd)
+            {
+            case 'z':
+            case 'Z':
+              //TODO: close all connections and reset
+              break;
+            case 'a':
+            case 'A':
+              //TODO accept a connection on a port
+              break;
+            case 'e':
+            case 'E':
+              echoOn=(vval != 0);
+              break;
+            case 'x':
+            case 'X':
+              //TODO: turns xon/xoff
+              break;
+            case 'o':
+            case 'O':
+              //TODO: return to previous or specific open connection
+              break;
+            case 'b':
+            case 'B':
+              if(vval<=0)
+                result=1;
+              else
               {
-                if((vlen==0)||(vval>0))
-                {
-                  int n = WiFi.scanNetworks();
-                  if((vval > 0)&&(vval < n))
-                    n=vval;
-                  for (int i = 0; i < n; ++i)
-                  {
-                    Serial.print(WiFi.SSID(i));
-                    Serial.print(" (");
-                    Serial.print(WiFi.RSSI(i));
-                    Serial.print(")");
-                    Serial.println((WiFi.encryptionType(i) == ENC_TYPE_NONE)?" ":"*");
-                    delay(10);
-                  }
-                }
+                  baudRate=vval;
+                  Serial.begin(baudRate);
+                  File f = SPIFFS.open("/zconfig.txt", "w");
+                  f.printf("%s,%s,%d",wifiSSI.c_str(),wifiPW.c_str(),baudRate);
+                  f.close();
+              }
+              break;
+            case 'd':
+            case 'D':
+            case 't':
+            case 'T':
+              //TODO: the terminal command
+              break;
+            case 'c':
+            case 'C':
+              if((vlen == 0)||((vval==0)&&(isNumber)))
+              {
+                if(current == null)
+                  result=1;
                 else
                 {
-                  char *x=strstr((char *)vbuf,",");
-                  if(x <= 0)
+                  result=99;
+                  if(current->isConnected())
+                    Serial.printf("NOCARRIER %d %s:%d\r\n",current->id,current->host,current->port);
+                  else
+                    Serial.printf("CONNECTED %d %s:%d\r\n",current->id,current->host,current->port);
+                }
+              }
+              if(vval > 0)
+              {
+                WiFiClientNode *c=conns;
+                while((c!=null)&&(c->id != vval))
+                  c=c->next;
+                if((c!=null)&&(c->id == vval))
+                  current=c;
+                else
+                {
+                  c=conns;
+                  while(c!=null)
+                  {
+                    if(current->isConnected())
+                      Serial.printf("NOCARRIER %d %s:%d\r\n",c->id,c->host,c->port);
+                    else
+                      Serial.printf("CONNECTED %d %s:%d\r\n",c->id,c->host,c->port);
+                    c=c->next;
+                  }
+                  result=1;
+                }
+              }
+              else
+              {
+                char *colon=strstr((char *)vbuf,":");
+                int port=23;
+                if(colon != null)
+                {
+                  *colon=0;
+                  port=atoi((char *)(++colon));
+                }
+                WiFiClientNode *c = new WiFiClientNode((char *)vbuf,port);
+                if(!c->isConnected())
+                {
+                  delete c;
+                  result=1;
+                }
+              }
+              break;
+            case 'w':
+            case 'W':
+            {
+              if((vlen==0)||(vval>0))
+              {
+                int n = WiFi.scanNetworks();
+                if((vval > 0)&&(vval < n))
+                  n=vval;
+                for (int i = 0; i < n; ++i)
+                {
+                  Serial.print(WiFi.SSID(i));
+                  Serial.print(" (");
+                  Serial.print(WiFi.RSSI(i));
+                  Serial.print(")");
+                  Serial.println((WiFi.encryptionType(i) == ENC_TYPE_NONE)?" ":"*");
+                  delay(10);
+                }
+              }
+              else
+              {
+                char *x=strstr((char *)vbuf,",");
+                if(x <= 0)
+                  result=1;
+                else
+                {
+                  *x=0;
+                  char *ssi=(char *)vbuf;
+                  char *pw=x+1;
+                  if(!connectWifi(ssi,pw))
                     result=1;
                   else
                   {
-                    *x=0;
-                    char *ssi=(char *)vbuf;
-                    char *pw=x+1;
-                    if(!connectWifi(ssi,pw))
-                      result=1;
-                    else
-                    {
-                      File f = SPIFFS.open("/zconfig.txt", "w");
-                      f.print(ssi);
-                      f.print(",");
-                      f.print(pw);
-                      f.close();
-                    }
+                    File f = SPIFFS.open("/zconfig.txt", "w");
+                    wifiSSI=ssi;
+                    wifiPW=pw;
+                    f.printf("%s,%s,%d",ssi,pw,baudRate);
+                    f.close();
                   }
                 }
-                break;
               }
-              default:
-                break;
-              }
+              break;
             }
-            switch(result)
-            {
-            case 0:
-              Serial.println("OK");
-              break;
-            case 1:
-              Serial.println("ERROR");
-              break;
             default:
               break;
             }
           }
+          switch(result)
+          {
+          case 0:
+            Serial.println("OK");
+            break;
+          case 1:
+            Serial.println("ERROR");
+            break;
+          default:
+            break;
+          }
         }
-        else
-          Serial.println("ERROR");
       }
+      else
+        Serial.println("ERROR");
     }
 
     void loop()
@@ -160,20 +352,16 @@ ZMode *currMode = &commandMode;
 
 void setup() 
 {
-  Serial.begin(115200);  //Start Serial
   delay(10);
-  Serial.print("\r\nZiModem v");
-  Serial.println(ZIMODEM_VERSION);
-  Serial.printf("sdk=%s core=%s cpu@%d\r\n",ESP.getSdkVersion(),ESP.getCoreVersion().c_str(),ESP.getCpuFreqMHz());
-  Serial.printf("flash chipid=%d size=%d rsize=%d speed=%d\r\n",ESP.getFlashChipId(),ESP.getFlashChipSize(),ESP.getFlashChipRealSize(),ESP.getFlashChipSpeed());
   SPIFFS.begin();
+  String msg;
+  String argv[10];
   if(!SPIFFS.exists("/zconfig.txt"))
   {
-    Serial.println("Initializing...");
+    msg="INITAILIZED\r\n";
     SPIFFS.format();
     File f = SPIFFS.open("/zconfig.txt", "w");
-    f.println("");
-    f.println("");
+    f.printf(",,115200");
     f.close();
   }
   else
@@ -181,22 +369,38 @@ void setup()
     File f = SPIFFS.open("/zconfig.txt", "r");
     String str=f.readString();
     f.close();
-    if((str!=0)&&(str.length()>0))
+    if((str!=null)&&(str.length()>0))
     {
-      char ssi[str.length()+1];
-      strcpy(ssi,str.c_str());
-      char *pw=strstr(ssi,",");
-      if(pw>ssi)
+      int argn=0;
+      for(int i=0;i<str.length();i++)
       {
-        *pw=0;
-        pw++;
-        if(connectWifi(ssi,pw))
-          Serial.printf("CONNECTED TO %s (%s)\r\n",ssi,WiFi.localIP().toString().c_str());
+        if((str[i]==',')&&(argn<9))
+          argn++;
         else
-          Serial.printf("ERROR ON %s\r\n",ssi);
+          argv[argn] += str[i];
       }
     }
   }
+  if(argv[2].length()>0)
+    commandMode.baudRate=atoi(argv[2].c_str());
+  if(commandMode.baudRate <= 0)
+    commandMode.baudRate=115200;
+  Serial.begin(commandMode.baudRate);  //Start Serial
+  Serial.print("\r\nZiModem v");
+  Serial.setTimeout(60000);
+  Serial.println(ZIMODEM_VERSION);
+  Serial.printf("sdk=%s core=%s cpu@%d\r\n",ESP.getSdkVersion(),ESP.getCoreVersion().c_str(),ESP.getCpuFreqMHz());
+  Serial.printf("flash chipid=%d size=%d rsize=%d speed=%d\r\n",ESP.getFlashChipId(),ESP.getFlashChipSize(),ESP.getFlashChipRealSize(),ESP.getFlashChipSpeed());
+  if(argv[0].length()>0)
+  {
+    commandMode.wifiSSI=argv[0];
+    commandMode.wifiPW=argv[1];
+    if(connectWifi(argv[0].c_str(),argv[1].c_str()))
+      msg = "CONNECTED TO " + argv[0] + " (" + WiFi.localIP().toString().c_str() + ")\r\n";
+    else
+      msg = "ERROR ON " + argv[0] + "\r\n";
+  }
+  Serial.print(msg);
   Serial.println("READY.");
 }
 
