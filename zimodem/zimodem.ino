@@ -27,16 +27,16 @@ bool connectWifi(const char* ssid, const char* password)
 }
 
 class WiFiClientNode;
-static int WiFiNextClientId = 0;
 static WiFiClientNode *conns = null;
+static int WiFiNextClientId = 0;
 
 class WiFiClientNode
 {
   public:
-    bool xon = true;
     int id=0;
     char *host;
     int port;
+    bool wasConnected=false;
     WiFiClient *client;
     WiFiClientNode *next = null;
     WiFiClientNode(char *hostIp, int newport)
@@ -49,14 +49,17 @@ class WiFiClientNode
       if(!client->connect(hostIp, port))
         client = null;
       else
-      if(conns == null)
-        conns = this;
-      else
       {
-        WiFiClientNode *last = conns;
-        while(last->next != null)
-          last = last->next;
-        last->next = this;
+        wasConnected=true;
+        if(conns == null)
+          conns = this;
+        else
+        {
+          WiFiClientNode *last = conns;
+          while(last->next != null)
+            last = last->next;
+          last->next = this;
+        }
       }
     }
     ~WiFiClientNode()
@@ -81,6 +84,25 @@ class WiFiClientNode
     }
 };
 
+byte CRC8(const byte *data, byte len) 
+{
+  byte crc = 0x00;
+  while (len--) 
+  {
+    byte extract = *data++;
+    for (byte tempI = 8; tempI; tempI--) 
+    {
+      byte sum = (crc ^ extract) & 0x01;
+      crc >>= 1;
+      if (sum) {
+        crc ^= 0x8C;
+      }
+      extract >>= 1;
+    }
+  }
+  return crc;
+}    
+
 const int MAX_COMMAND_SIZE=256;
   
 class ZCommand : public ZMode
@@ -88,7 +110,21 @@ class ZCommand : public ZMode
   uint8_t nbuf[MAX_COMMAND_SIZE];
   int eon=0;
   WiFiClientNode *current = null;
-  bool lastXON=true;
+  int XON=99999999;
+
+  private:
+    void reset()
+    {
+      while(conns != null)
+      {
+        WiFiClientNode *c=conns;
+        delete c;
+      }
+      echoOn=false;
+      eon=0;
+      XON=99999999;
+      memset(nbuf,0,MAX_COMMAND_SIZE);
+    }
   
   public:
     boolean echoOn=false;
@@ -98,11 +134,12 @@ class ZCommand : public ZMode
   
     ZCommand() : ZMode()
     {
-      memset(nbuf,0,MAX_COMMAND_SIZE);
+      reset();
     }
     void serialIncoming()
     {
       bool crReceived=false;
+      //TODO: +++ for disconnect of current socket
       while(Serial.available()>0)
       {
           uint8_t c=Serial.read();
@@ -114,6 +151,12 @@ class ZCommand : public ZMode
             {
               crReceived=true;
               break;
+            }
+            if((c==8)||(c==20))
+            {
+              if(eon>0)
+                nbuf[eon--]=0;
+              continue;
             }
             nbuf[eon++]=c;
             if(eon>=MAX_COMMAND_SIZE)
@@ -140,6 +183,7 @@ class ZCommand : public ZMode
           int result=0;
           int vstart=0;
           int vlen=0;
+          String dmodifiers="";
           while(index<len)
           {
             lastCmd=sbuf[index++];
@@ -152,13 +196,17 @@ class ZCommand : public ZMode
               {
                 isNumber=false;
                 vstart++;
-                while((++index<len)&&(sbuf[index]!='\"'))
+                while((++index<len)
+                &&((sbuf[index]!='\"')||(sbuf[index-1]=='\\')))
                   vlen++;
               }
               else
               if((lastCmd=='d')||(lastCmd=='D'))
               {
                 isNumber=false;
+                const char *DMODIFIERS="LPRCTW,lprtw";
+                while((index<len)&&(strchr(DMODIFIERS,sbuf[index])!=null))
+                  dmodifiers += sbuf[index++];
                 vlen += len-index;
                 index=len;
               }
@@ -187,8 +235,10 @@ class ZCommand : public ZMode
             {
             case 'z':
             case 'Z':
-              //TODO: close all connections and reset
+            {
+              reset();
               break;
+            }
             case 'a':
             case 'A':
               //TODO accept a connection on a port
@@ -199,11 +249,7 @@ class ZCommand : public ZMode
               break;
             case 'x':
             case 'X':
-              //TODO: turns xon/xoff
-              break;
-            case 'o':
-            case 'O':
-              //TODO: return to previous or specific open connection
+              XON=vval;
               break;
             case 'b':
             case 'B':
@@ -218,12 +264,31 @@ class ZCommand : public ZMode
                   f.close();
               }
               break;
-            case 'd':
-            case 'D':
             case 't':
             case 'T':
+              if((vlen==0)||(current==null)||(!current->isConnected()))
+                result=1;
+              else
+              if(vval>0)
+              {
+                uint8_t buf[vval];
+                int recvd = Serial.readBytes(buf,vval);
+                if(recvd == vval)
+                  current->client->write(buf,recvd);
+                else
+                  result=1;
+              }
+              else
+              {
+                current->client->write(vbuf,vlen);
+                current->client->write("\n\r",2);
+              }
+            case 'd':
+            case 'D':
               //TODO: the terminal command
               break;
+            case 'o':
+            case 'O':
             case 'c':
             case 'C':
               if((vlen == 0)||((vval==0)&&(isNumber)))
@@ -275,6 +340,8 @@ class ZCommand : public ZMode
                   delete c;
                   result=1;
                 }
+                else
+                  current=c;
               }
               break;
             case 'w':
@@ -342,8 +409,38 @@ class ZCommand : public ZMode
 
     void loop()
     {
-      
+      if(XON>0)
+      {
+        WiFiClientNode *curr=conns;
+        while((XON>0)&&(curr != null))
+        {
+          if(!curr->isConnected())
+          {
+            if(curr->wasConnected)
+            {
+              Serial.printf("NOCARRIER %d\r\n",curr->id);
+              curr->wasConnected=false;
+            }
+          }
+          else
+          if(curr->client->available()>0)
+          {
+            XON--;
+            int maxBytes=256;
+            if(curr->client->available()<maxBytes)
+              maxBytes=curr->client->available();
+            uint8_t buf[maxBytes];
+            curr->client->read(buf,maxBytes);
+            uint8_t crc=CRC8(buf,maxBytes);
+            Serial.printf("[ %d %d %d ]\r\n",curr->id,maxBytes,(int)crc);
+            Serial.write(buf,maxBytes);
+            Serial.flush();
+          }
+          curr = curr->next;
+        }
+      } //TODO: consider local buffering with XOFF, until then, trust the socket buffers.
     }
+    
 };
 
 ZCommand commandMode;
