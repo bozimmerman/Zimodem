@@ -31,7 +31,7 @@ ATD : Start a streaming connection between the current opened connection with an
 ATDP : Same as ATDn except connection input will be translated to PETSCII.
 ATDn : Where n > 0, this will start a streaming connection between the previously opened connection with an id the same as "n".  Use "+++" to exit back to Command mode.
 ATDPn : Same as ATDn except connection input will be translated to PETSCII before transmitting to the serial terminal.
-ATD"[HOSTNAME:PORT] : This opens a streaming connection between the terminal and the given host/port.  
+ATD"[HOSTNAME:PORT] : This opens a streaming connection between the terminal and the given host/port. Use "+++" to disconnect and exit back to command mode.
 ATDP"[HOSTNAME:PORT] : Same as ATDn except connection input will be translated to PETSCII.
 
 ATC : Shows information about the current network connection in the following format "[CONNECTION STATE] [CONNECTION ID] [CONNECTED TO HOST]:[CONNECTED TO PORT]"
