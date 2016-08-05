@@ -2,5 +2,53 @@ Zimodem (C)2016-2016 Bo Zimmerman
 Please read the LICENSE file for license information
 Please read the NOTICE file for credits information
 
-Instructions of some sort are forthcoming.
+Intro:
+This firmware, hereafter "Zimodem", provides an api for communication between a serial terminal and the ESP8266.  It simulates the old-style Hayes "AT" commands, so that the ESP8266 appears to the terminal as if it were a Hayes modem.  These "AT" commands may then be issued to the ESP8266 in order to force it to connect to a wireless access point, and from there to make one or more manageable connections to the internet.  It also includes a streaming serial "telnet" mode.
+
+The default baud rate that Zimodem establishes is 115200.  Be sure to use the commands below to set this to the proper baud rate for your terminal/host computer.
+
+Building:
+Zimodem was built using Arduino IDE rev1.6.10 with the  Arduino Generic ESP8266 Module installed from http://arduino.esp8266.com/stable/package_esp8266com_index.json
+
+Using:
+Upon initialization, or any time the ESP8266 is reset, Zimodem will display its version, and some information about the host hardware, and then read a configuration file from the internal SPIFFS to re-establish the previously set baud rate, and to attempt to re-connect to the previously connected wireless router.  The first time it is run, Zimodem will set a baud rate of 115200 and display INITALIZED to let you know that no previous configuration was found.  Once the serial terminal displays READY, it is ready to receive commands.
+
+The command set is as follows (not case sensitive):
+
+ATZ : closes all open connections (preserving the Access Point connection) and resets the state of the Command processor.  XON will be turned back on, and echo turned off.
+
+ATA : TODO
+
+ATE0 : Turns serial terminal echo off.
+ATE1 : Turns serial terminal echo on.
+
+ATBn : Sets a new serial Baud Rate. Not only does it take effect immediately, but it is saved, so that the baud rate is restored on reboot.  Use this command CAREFULLY!
+
+ATW : List all wireless network access points scanned within range.  The response for each entry is the SSID, following by the RSSI, followed by an * character is the connection is encrupted.
+ATWn: Where n > 0, this lists up to n wireless network access points scanned within range.  The response for each entry is the SSID, following by the RSSI, followed by an * character is the connection is encrupted.
+
+ATD : Start a streaming connection between the current opened connection with an id the same as "n".  Use "+++" to exit back to Command mode.
+ATDP : Same as ATDn except connection input will be translated to PETSCII.
+ATDn : Where n > 0, this will start a streaming connection between the previously opened connection with an id the same as "n".  Use "+++" to exit back to Command mode.
+ATDPn : Same as ATDn except connection input will be translated to PETSCII before transmitting to the serial terminal.
+ATD"[HOSTNAME:PORT] : This opens a streaming connection between the terminal and the given host/port.  
+ATDP"[HOSTNAME:PORT] : Same as ATDn except connection input will be translated to PETSCII.
+
+ATC : Shows information about the current network connection in the following format "[CONNECTION STATE] [CONNECTION ID] [CONNECTED TO HOST]:[CONNECTED TO PORT]"
+ATC0 : Lists information about all of the network connections in the following format "[CONNECTION STATE] [CONNECTION ID] [CONNECTED TO HOST]:[CONNECTED TO PORT]"
+ATCn : Where n > 0, this changes the Current connection to the one with the given ID.  If no connection exists with the given id, a list of all connections (as pet ATC0) is returned with the ERROR code.
+ATC"[HOSTNAME]:[PORT]" : Creates a new connection to the given host and port, assigning a new id if the connection is successful, and making this connection the new Current connection.  The quotes and colon are required.
+
+ATO : See ATC
+ATO0 : See ATC0
+ATOn : See ATCn
+ATO"[HOSTNAME]:[PORT]" : See ATC"[HOSTNAME]:[PORT]"
+
++++ : With a 1 second pause with no other characters afterwards, this will disconnect the current opened connection.
+
+ATT"[MESSAGE]" : Transmit the given text string, with \r\n at the end, on the current connection.
+ATTn : Where n > 0, this starts a transmit of exactly n bytes to the current connection.  The \n from entering this command must be followed by the n bytes to transmit.
+
+ATX0 : Turns XON/XOFF Transmit OFF.  No data received from open connections will be sent to the serial terminal until ATX is issued again with something other than 0.
+ATXn : Turns XON/XOFF Transmit ON.  If "n" is greater than 9, then any packets received from open connections will be sent.  If it is less than or equal to 9, then up to "n" packets from open connections will be sent to the serial terminal, after which it will be OFF again until ATXn is reissued.  For example: ATX9 will tell Zimodem to send up to 9 packets from open connections, whereas ATX99 will send inifinite packets from open connections.
 

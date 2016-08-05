@@ -26,6 +26,7 @@ bool connectWifi(const char* ssid, const char* password)
   return WiFi.status() == WL_CONNECTED;
 }
 
+void resetMode();
 class WiFiClientNode;
 static WiFiClientNode *conns = null;
 static int WiFiNextClientId = 0;
@@ -47,7 +48,9 @@ class WiFiClientNode
       id=++WiFiNextClientId;
       client = new WiFiClient();
       if(!client->connect(hostIp, port))
-        client = null;
+      {
+        // deleted when it returns and is deleted
+      }
       else
       {
         wasConnected=true;
@@ -64,9 +67,16 @@ class WiFiClientNode
     }
     ~WiFiClientNode()
     {
-        client->stop();
-        delete client;
+        if(client != null)
+        {
+          client->stop();
+          delete client;
+        }
         delete host;
+        if(conns == null)
+        {
+        }
+        else
         if(conns == this)
           conns = next;
         else
@@ -103,15 +113,108 @@ byte CRC8(const byte *data, byte len)
   return crc;
 }    
 
+static ZMode *currMode = null;
+
 const int MAX_COMMAND_SIZE=256;
   
+class ZStream : public ZMode
+{
+  WiFiClientNode *current = null;
+  unsigned long currentExpires = 0;
+  bool disconnectOnExit=true;
+  int plussesInARow=0;
+  bool echo=false;
+  bool petscii=false;
+  
+  public:
+    ZStream() : ZMode()
+    {
+    }
+    
+    void reset(WiFiClientNode *conn, bool dodisconnect, bool doPETSCII, bool doecho)
+    {
+      current = conn;
+      currentExpires = 0;
+      disconnectOnExit=dodisconnect;
+      plussesInARow=0;
+      echo=doecho;
+      petscii=doPETSCII;
+    }
+    
+    void serialIncoming()
+    {
+        while(Serial.available()>0)
+        {
+            uint8_t c=Serial.read();
+            if(c=='+')
+              plussesInARow++;
+            else
+              plussesInARow=0;
+            if(c>0)
+            {
+              if(echo)
+                Serial.write(c);
+              if(current->isConnected())
+                current->client->write(c);
+            }
+        }
+        currentExpires=0;
+        if(plussesInARow==3)
+          currentExpires=millis()+1000;
+    }
+    void loop()
+    {
+      if((current==null)||(!current->isConnected()))
+      {
+        Serial.println("NOCARRIER");
+        resetMode();
+      }
+      else
+      if((currentExpires > 0) && (millis() > currentExpires))
+      {
+        currentExpires = 0;
+        if(plussesInARow == 3)
+        {
+          plussesInARow=0;
+          if(current != 0)
+          {
+            if(disconnectOnExit)
+            {
+              Serial.printf("NOCARRIER %d %s:%d\r\n",current->id,current->host,current->port);
+              delete current;
+            }
+            Serial.println("READY.");
+            current = null;
+            resetMode();
+          }
+        }
+      }
+      else
+      {
+        while(current->client->available()>0)
+        {
+          int maxBytes=4096;
+          if(current->client->available()<maxBytes)
+            maxBytes=current->client->available();
+          uint8_t buf[maxBytes];
+          current->client->read(buf,maxBytes);
+          Serial.write(buf,maxBytes);
+          Serial.flush();
+        }
+      }
+    }
+};
+
+static ZStream  *streamMode = null;
+
 class ZCommand : public ZMode
 {
   uint8_t nbuf[MAX_COMMAND_SIZE];
   int eon=0;
   WiFiClientNode *current = null;
-  int XON=99999999;
-
+  int XON=99;
+  unsigned long currentExpires = 0;
+  
   private:
     void reset()
     {
@@ -122,7 +225,7 @@ class ZCommand : public ZMode
       }
       echoOn=false;
       eon=0;
-      XON=99999999;
+      XON=99;
       memset(nbuf,0,MAX_COMMAND_SIZE);
     }
   
@@ -139,30 +242,44 @@ class ZCommand : public ZMode
     void serialIncoming()
     {
       bool crReceived=false;
-      //TODO: +++ for disconnect of current socket
       while(Serial.available()>0)
       {
-          uint8_t c=Serial.read();
-          if((c>0)&&(c!='\r'))
+        uint8_t c=Serial.read();
+        if((c=='\r')||(c=='\n'))
+        {
+          if(eon == 0)
+            continue;
+          else
           {
             if(echoOn)
-              Serial.write(c);
-            if(c=='\n')
-            {
-              crReceived=true;
-              break;
-            }
-            if((c==8)||(c==20))
-            {
-              if(eon>0)
-                nbuf[eon--]=0;
-              continue;
-            }
-            nbuf[eon++]=c;
-            if(eon>=MAX_COMMAND_SIZE)
-              crReceived=true;
+              Serial.write("\n\r");
+            crReceived=true;
+            break;
           }
+        }
+        
+        if(c>0)
+        {
+          if(echoOn)
+            Serial.write(c);
+          if((c==8)||(c==20)||(c==127))
+          {
+            if(eon>0)
+              nbuf[--eon]=0;
+            continue;
+          }
+          nbuf[eon++]=c;
+          if(eon>=MAX_COMMAND_SIZE)
+            crReceived=true;
+        }
       }
+      if(currentExpires > 0)
+        currentExpires = 0;
+      if(strcmp((char *)nbuf,"+++")==0)
+      {
+        currentExpires = millis() + 1000;
+      }
+      
       if(!crReceived)
         return;
       int len=eon;
@@ -204,7 +321,7 @@ class ZCommand : public ZMode
               if((lastCmd=='d')||(lastCmd=='D'))
               {
                 isNumber=false;
-                const char *DMODIFIERS="LPRCTW,lprtw";
+                const char *DMODIFIERS="LPRTW,lprtw";
                 while((index<len)&&(strchr(DMODIFIERS,sbuf[index])!=null))
                   dmodifiers += sbuf[index++];
                 vlen += len-index;
@@ -223,10 +340,11 @@ class ZCommand : public ZMode
             int vval=0;
             uint8_t vbuf[vlen+1];
             memset(vbuf,0,vlen+1);
-            if((vlen > 0)&&(isNumber))
+            if(vlen>0)
             {
               memcpy(vbuf,sbuf+vstart,vlen);
-              vval=atoi((char *)vbuf);
+              if((vlen > 0)&&(isNumber))
+                vval=atoi((char *)vbuf);
             }
             /*
              * We have cmd and args, time to DO!
@@ -237,6 +355,10 @@ class ZCommand : public ZMode
             case 'Z':
             {
               reset();
+              Serial.print("\r\nZiModem v");
+              Serial.println(ZIMODEM_VERSION);
+              Serial.printf("sdk=%s core=%s cpu@%d\r\n",ESP.getSdkVersion(),ESP.getCoreVersion().c_str(),ESP.getCpuFreqMHz());
+              Serial.printf("flash chipid=%d size=%d rsize=%d speed=%d\r\n",ESP.getFlashChipId(),ESP.getFlashChipSize(),ESP.getFlashChipRealSize(),ESP.getFlashChipSpeed());
               break;
             }
             case 'a':
@@ -285,13 +407,60 @@ class ZCommand : public ZMode
               }
             case 'd':
             case 'D':
-              //TODO: the terminal command
+              if(vlen == 0)
+              {
+                if((current == null)||(!current->isConnected()))
+                  result=1;
+                else
+                {
+                  currMode=streamMode;
+                  bool doPETSCII = strchr(dmodifiers.c_str(),'P')||strchr(dmodifiers.c_str(),'p');
+                  streamMode->reset(current,false,doPETSCII,echoOn);
+                }
+              }
+              else
+              if((vval >= 0)&&(isNumber))
+              {
+                WiFiClientNode *c=conns;
+                while((c!=null)&&(c->id != vval))
+                  c=c->next;
+                if((c!=null)&&(c->id == vval)&&(c->isConnected()))
+                {
+                  currMode=streamMode;
+                  bool doPETSCII = strchr(dmodifiers.c_str(),'P')||strchr(dmodifiers.c_str(),'p');
+                  streamMode->reset(current,false,doPETSCII,echoOn);
+                }
+                else
+                  result=1;
+              }
+              else
+              {
+                char *colon=strstr((char *)vbuf,":");
+                int port=23;
+                if(colon != null)
+                {
+                  (*colon)=0;
+                  port=atoi((char *)(++colon));
+                }
+                WiFiClientNode *c = new WiFiClientNode((char *)vbuf,port);
+                if(!c->isConnected())
+                {
+                  delete c;
+                  result=1;
+                }
+                else
+                {
+                  currMode=streamMode;
+                  bool doPETSCII = strchr(dmodifiers.c_str(),'P')||strchr(dmodifiers.c_str(),'p');
+                  streamMode->reset(current,true,doPETSCII,echoOn);
+                }
+              }
               break;
             case 'o':
             case 'O':
             case 'c':
             case 'C':
-              if((vlen == 0)||((vval==0)&&(isNumber)))
+              if(vlen == 0)
               {
                 if(current == null)
                   result=1;
@@ -299,12 +468,13 @@ class ZCommand : public ZMode
                 {
                   result=99;
                   if(current->isConnected())
-                    Serial.printf("NOCARRIER %d %s:%d\r\n",current->id,current->host,current->port);
-                  else
                     Serial.printf("CONNECTED %d %s:%d\r\n",current->id,current->host,current->port);
+                  else
+                    Serial.printf("NOCARRIER %d %s:%d\r\n",current->id,current->host,current->port);
                 }
               }
-              if(vval > 0)
+              else
+              if((vval >= 0)&&(isNumber))
               {
                 WiFiClientNode *c=conns;
                 while((c!=null)&&(c->id != vval))
@@ -317,9 +487,9 @@ class ZCommand : public ZMode
                   while(c!=null)
                   {
                     if(current->isConnected())
-                      Serial.printf("NOCARRIER %d %s:%d\r\n",c->id,c->host,c->port);
-                    else
                       Serial.printf("CONNECTED %d %s:%d\r\n",c->id,c->host,c->port);
+                    else
+                      Serial.printf("NOCARRIER %d %s:%d\r\n",c->id,c->host,c->port);
                     c=c->next;
                   }
                   result=1;
@@ -331,7 +501,7 @@ class ZCommand : public ZMode
                 int port=23;
                 if(colon != null)
                 {
-                  *colon=0;
+                  (*colon)=0;
                   port=atoi((char *)(++colon));
                 }
                 WiFiClientNode *c = new WiFiClientNode((char *)vbuf,port);
@@ -409,6 +579,22 @@ class ZCommand : public ZMode
 
     void loop()
     {
+      if((currentExpires > 0) && (millis() > currentExpires))
+      {
+        currentExpires = 0;
+        if(strcmp((char *)nbuf,"+++")==0)
+        {
+          if(current != 0)
+          {
+            Serial.printf("NOCARRIER %d %s:%d\r\n",current->id,current->host,current->port);
+            delete current;
+            current = conns;
+          }
+          memset(nbuf,0,MAX_COMMAND_SIZE);
+          eon=0;
+        }
+      }
+      
       if(XON>0)
       {
         WiFiClientNode *curr=conns;
@@ -425,7 +611,8 @@ class ZCommand : public ZMode
           else
           if(curr->client->available()>0)
           {
-            XON--;
+            if(XON < 10)
+              XON--;
             int maxBytes=256;
             if(curr->client->available()<maxBytes)
               maxBytes=curr->client->available();
@@ -443,13 +630,19 @@ class ZCommand : public ZMode
     
 };
 
-ZCommand commandMode;
+static ZCommand *commandMode = null;
 
-ZMode *currMode = &commandMode;
+void resetMode()
+{
+  currMode = commandMode;
+}
 
 void setup() 
 {
   delay(10);
+  commandMode = new ZCommand();
+  streamMode = new ZStream();
+  resetMode();
   SPIFFS.begin();
   String msg;
   String argv[10];
@@ -479,10 +672,10 @@ void setup()
     }
   }
   if(argv[2].length()>0)
-    commandMode.baudRate=atoi(argv[2].c_str());
-  if(commandMode.baudRate <= 0)
-    commandMode.baudRate=115200;
-  Serial.begin(commandMode.baudRate);  //Start Serial
+    commandMode->baudRate=atoi(argv[2].c_str());
+  if(commandMode->baudRate <= 0)
+    commandMode->baudRate=115200;
+  Serial.begin(commandMode->baudRate);  //Start Serial
   Serial.print("\r\nZiModem v");
   Serial.setTimeout(60000);
   Serial.println(ZIMODEM_VERSION);
@@ -490,8 +683,8 @@ void setup()
   Serial.printf("flash chipid=%d size=%d rsize=%d speed=%d\r\n",ESP.getFlashChipId(),ESP.getFlashChipSize(),ESP.getFlashChipRealSize(),ESP.getFlashChipSpeed());
   if(argv[0].length()>0)
   {
-    commandMode.wifiSSI=argv[0];
-    commandMode.wifiPW=argv[1];
+    commandMode->wifiSSI=argv[0];
+    commandMode->wifiPW=argv[1];
     if(connectWifi(argv[0].c_str(),argv[1].c_str()))
       msg = "CONNECTED TO " + argv[0] + " (" + WiFi.localIP().toString().c_str() + ")\r\n";
     else
