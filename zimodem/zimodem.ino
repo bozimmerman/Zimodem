@@ -1,6 +1,7 @@
 #include <ESP8266WiFi.h>
 #include <FS.h>
 #include <spiffs/spiffs.h>
+#include "pet2asc.h"
 
 #define ZIMODEM_VERSION "0.1"
 #define null 0
@@ -125,13 +126,14 @@ class ZStream : public ZMode
   int plussesInARow=0;
   bool echo=false;
   bool petscii=false;
+  bool telnet=false;
   
   public:
     ZStream() : ZMode()
     {
     }
     
-    void reset(WiFiClientNode *conn, bool dodisconnect, bool doPETSCII, bool doecho)
+    void reset(WiFiClientNode *conn, bool dodisconnect, bool doPETSCII, bool doTelnet, bool doecho)
     {
       current = conn;
       currentExpires = 0;
@@ -139,6 +141,7 @@ class ZStream : public ZMode
       plussesInARow=0;
       echo=doecho;
       petscii=doPETSCII;
+      telnet=doTelnet;
     }
     
     void serialIncoming()
@@ -154,7 +157,9 @@ class ZStream : public ZMode
             {
               if(echo)
                 Serial.write(c);
-              if(current->isConnected())
+              if(petscii)
+                c = petToAsc(c,&Serial);
+              if(current->isConnected() && (c != 0))
                 current->client->write(c);
             }
         }
@@ -190,17 +195,19 @@ class ZStream : public ZMode
         }
       }
       else
+      if(current->client->available()>0)
       {
         while(current->client->available()>0)
         {
-          int maxBytes=4096;
-          if(current->client->available()<maxBytes)
-            maxBytes=current->client->available();
-          uint8_t buf[maxBytes];
-          current->client->read(buf,maxBytes);
-          Serial.write(buf,maxBytes);
-          Serial.flush();
+          uint8_t c=current->client->read();
+          if(telnet)
+            c=handleAsciiIAC(c,current->client);
+          if(petscii)
+            c=ascToPet(c,current->client);
+          if(c>0)
+            Serial.write(c);
         }
+        Serial.flush();
       }
     }
 };
@@ -415,7 +422,8 @@ class ZCommand : public ZMode
                 {
                   currMode=streamMode;
                   bool doPETSCII = strchr(dmodifiers.c_str(),'P')||strchr(dmodifiers.c_str(),'p');
-                  streamMode->reset(current,false,doPETSCII,echoOn);
+                  bool doTelnet = strchr(dmodifiers.c_str(),'T')||strchr(dmodifiers.c_str(),'t');
+                  streamMode->reset(current,false,doPETSCII,doTelnet,echoOn);
                 }
               }
               else
@@ -428,7 +436,8 @@ class ZCommand : public ZMode
                 {
                   currMode=streamMode;
                   bool doPETSCII = strchr(dmodifiers.c_str(),'P')||strchr(dmodifiers.c_str(),'p');
-                  streamMode->reset(current,false,doPETSCII,echoOn);
+                  bool doTelnet = strchr(dmodifiers.c_str(),'T')||strchr(dmodifiers.c_str(),'t');
+                  streamMode->reset(current,false,doPETSCII,doTelnet,echoOn);
                 }
                 else
                   result=1;
@@ -452,7 +461,8 @@ class ZCommand : public ZMode
                 {
                   currMode=streamMode;
                   bool doPETSCII = strchr(dmodifiers.c_str(),'P')||strchr(dmodifiers.c_str(),'p');
-                  streamMode->reset(current,true,doPETSCII,echoOn);
+                  bool doTelnet = strchr(dmodifiers.c_str(),'T')||strchr(dmodifiers.c_str(),'t');
+                  streamMode->reset(current,true,doPETSCII,doTelnet,echoOn);
                 }
               }
               break;

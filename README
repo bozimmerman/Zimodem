@@ -29,10 +29,13 @@ ATWn: Where n > 0, this lists up to n wireless network access points scanned wit
 
 ATD : Start a streaming connection between the current opened connection with an id the same as "n".  Use "+++" to exit back to Command mode.
 ATDP : Same as ATDn except connection input will be translated to PETSCII.
+ATDT : Same as ATDn except connection input will be translated as per TELNET protocol.
 ATDn : Where n > 0, this will start a streaming connection between the previously opened connection with an id the same as "n".  Use "+++" to exit back to Command mode.
 ATDPn : Same as ATDn except connection input will be translated to PETSCII before transmitting to the serial terminal.
+ATDTn : Same as ATDn except connection input will be translated as per TELNET protocol before transmitting to the serial terminal.
 ATD"[HOSTNAME:PORT] : This opens a streaming connection between the terminal and the given host/port. Use "+++" to disconnect and exit back to command mode.
 ATDP"[HOSTNAME:PORT] : Same as ATDn except connection input will be translated to PETSCII.
+ATDT"[HOSTNAME:PORT] : Same as ATDn except connection input will be translated as per TELNET protocol.
 
 ATC : Shows information about the current network connection in the following format "[CONNECTION STATE] [CONNECTION ID] [CONNECTED TO HOST]:[CONNECTED TO PORT]"
 ATC0 : Lists information about all of the network connections in the following format "[CONNECTION STATE] [CONNECTION ID] [CONNECTED TO HOST]:[CONNECTED TO PORT]"
