@@ -2,6 +2,7 @@ class WiFiClientNode
 {
   private:
     void finishConnectionLink();
+    
   public:
     int id=0;
     char *host;

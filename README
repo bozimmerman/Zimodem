@@ -15,17 +15,36 @@ Upon initialization, or any time the ESP8266 is reset, Zimodem will display its 
 
 The command set is as follows (not case sensitive):
 
-ATZ : closes all open connections (preserving the Access Point connection) and resets the state of the Command processor.  XON will be turned back on, and echo turned off.
+ATZ : closes all open connections (preserving the Access Point connection), stops all listeners, and resets the state of the Command processor.  XON will be turned back on, and echo turned off.
 
-ATA : TODO
+ATA/ : Repeats the previous command (no idea why...)
+
+ATAn : TODO
 
 ATE0 : Turns serial terminal echo off.
 ATE1 : Turns serial terminal echo on.
 
-ATBn : Sets a new serial Baud Rate. Not only does it take effect immediately, but it is saved, so that the baud rate is restored on reboot.  Use this command CAREFULLY!
+ATV0 : Turns off verbose responses mode (Uses Terse Numeric response mode)
+ATV1 : Turns on verbose responses mode (Uses Word response mode)
 
-ATW : List all wireless network access points scanned within range.  The response for each entry is the SSID, following by the RSSI, followed by an * character is the connection is encrupted.
-ATWn: Where n > 0, this lists up to n wireless network access points scanned within range.  The response for each entry is the SSID, following by the RSSI, followed by an * character is the connection is encrupted.
+ATX0 : Turns off extended response codes (3/CONNECT instead of 5/CONNECT 115200, etc..)
+ATX1 : Turns on extended response codes (5/CONNECT 115200 instead of 3/CONNECT, etc..)
+
+ATF0 : Turns off flow control
+ATF1 : Turns on xon/xoff flow control
+
+ATQ0 : Turns off quiet mode (Sends response codes)
+ATQ1 : Turns on quiet mode (Stops sending response codes)
+
+ATR0 : Suppresses linefeed (\n $0a) in end of lines.  Will only send carriage return (\r $0d). *AUTO-SAVED*
+ATR1 : Sends \r\n ($0d0a) as end of line string *AUTO-SAVED*
+ATR2 : Sends \n\r ($0a0d) as end of line string *AUTO-SAVED*
+ATR3 : Suppresses carriage return (\r $0d) in end of lines.  Will only send linefeed (\n $0a). *AUTO-SAVED*
+
+ATBn : Sets a new serial Baud Rate. Not only does it take effect immediately, but it is saved, so that the baud rate is restored on reboot.  Use this command CAREFULLY! *AUTO-SAVED*
+
+ATW : List all wireless network access points scanned within range.  The response for each entry is the SSID, following by the RSSI, followed by an * character is the connection is encrupted.  *AUTO-SAVED*
+ATWn : Where n > 0, this lists up to n wireless network access points scanned within range.  The response for each entry is the SSID, following by the RSSI, followed by an * character is the connection is encrupted. *AUTO-SAVED*
 
 ATD : Start a streaming connection between the current opened connection with an id the same as "n".  Use "+++" to exit back to Command mode.
 ATDP : Same as ATDn except connection input will be translated to PETSCII.
@@ -46,6 +65,9 @@ ATO : See ATC
 ATO0 : See ATC0
 ATOn : See ATCn
 ATO"[HOSTNAME]:[PORT]" : See ATC"[HOSTNAME]:[PORT]"
+
+ATH0 : Hangs up (disconnects and deletes) the current opened connection.
+ATH1 : Attempts to reconnect the current connection if it is disconnected.
 
 +++ : With a 1 second pause with no other characters afterwards, this will disconnect the current opened connection.
 

@@ -1,13 +1,15 @@
     
-void ZStream::reset(WiFiClientNode *conn, bool dodisconnect, bool doPETSCII, bool doTelnet, bool doecho)
+void ZStream::reset(WiFiClientNode *conn, bool dodisconnect, bool doPETSCII, bool doTelnet, bool doFlowControl)
 {
   current = conn;
-  currentExpires = 0;
+  currentExpiresTimeMs = 0;
+  lastNonPlusTimeMs = 0;
   disconnectOnExit=dodisconnect;
   plussesInARow=0;
-  echo=doecho;
   petscii=doPETSCII;
   telnet=doTelnet;
+  flowControl=doFlowControl;
+  XON=true;
 }
     
 void ZStream::serialIncoming()
@@ -15,36 +17,56 @@ void ZStream::serialIncoming()
     while(Serial.available()>0)
     {
         uint8_t c=Serial.read();
-        if(c=='+')
+        if((c=='+')
+        &&((plussesInARow>0)||((millis()-lastNonPlusTimeMs)>1000)))
           plussesInARow++;
         else
+        {
           plussesInARow=0;
+          if(c!='+')
+            lastNonPlusTimeMs=millis();
+        }
         if(c>0)
         {
-          if(echo)
-            Serial.write(c);
-          if(petscii)
-            c = petToAsc(c,&Serial);
-          if(current->isConnected() && (c != 0))
-            current->client->write(c);
+          if((c==19)&&(flowControl))
+            XON=false;
+          else
+          if((c==17)&&(flowControl))
+            XON=true;
+          else
+          {
+            if(commandMode.echoOn)
+              Serial.write(c);
+            if(petscii)
+              c = petToAsc(c,&Serial);
+            if(current->isConnected() && (c != 0))
+              current->client->write(c);
+          }
         }
     }
-    currentExpires=0;
+    currentExpiresTimeMs = 0;
     if(plussesInARow==3)
-      currentExpires=millis()+1000;
+      currentExpiresTimeMs=millis()+1000;
 }
 
 void ZStream::loop()
 {
   if((current==null)||(!current->isConnected()))
   {
-    Serial.println("NOCARRIER");
+    if(!commandMode.suppressResponses)
+    {
+      if(commandMode.numericResponses)
+        Serial.printf("3");
+      else
+        Serial.printf("NO CARRIER");
+      Serial.print(commandMode.EOLN);
+    }
     currMode = &commandMode;
   }
   else
-  if((currentExpires > 0) && (millis() > currentExpires))
+  if((currentExpiresTimeMs > 0) && (millis() > currentExpiresTimeMs))
   {
-    currentExpires = 0;
+    currentExpiresTimeMs = 0;
     if(plussesInARow == 3)
     {
       plussesInARow=0;
@@ -52,7 +74,14 @@ void ZStream::loop()
       {
         if(disconnectOnExit)
         {
-          Serial.printf("NOCARRIER %d %s:%d\r\n",current->id,current->host,current->port);
+          if(!commandMode.suppressResponses)
+          {
+            if(commandMode.numericResponses)
+              Serial.printf("3");
+            else
+              Serial.printf("NO CARRIER %d %s:%d",current->id,current->host,current->port);
+            Serial.print(commandMode.EOLN);
+          }
           delete current;
         }
         Serial.println("READY.");
@@ -62,7 +91,8 @@ void ZStream::loop()
     }
   }
   else
-  if(current->client->available()>0)
+  if(((!flowControl)||(XON))
+  &&(current->client->available()>0))
   {
     while(current->client->available()>0)
     {
@@ -73,6 +103,8 @@ void ZStream::loop()
         c=ascToPet(c,current->client);
       if(c>0)
         Serial.write(c);
+      if((flowControl)&&(Serial.available()>0))
+        break;
     }
     Serial.flush();
   }

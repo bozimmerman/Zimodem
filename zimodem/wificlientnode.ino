@@ -13,7 +13,7 @@ void WiFiClientNode::finishConnectionLink()
     last->next = this;
   }
 }
-    
+
 WiFiClientNode::WiFiClientNode(char *hostIp, int newport)
 {
   port=newport;
