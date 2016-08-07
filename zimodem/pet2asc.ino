@@ -115,6 +115,117 @@ char handleAsciiIAC(char c, Stream *stream)
       char what=stream->read();
       return 0;
     }
+    if(c==TELNET_SB)
+    {
+      char what=stream->read();
+      char lastC=c;
+      while(((lastC!=TELNET_IAC)||(c!=TELNET_SE))&&(c>=0))
+      {
+        lastC=c;
+        c=stream->read();
+      }
+      if(what == TELNET_TERMTYPE)
+      {
+        uint8_t resp[] = {TELNET_IAC,TELNET_SB,TELNET_TERMTYPE,0,'Z','i','m','o','d','e','m',TELNET_IAC,TELNET_SE};
+        stream->write(resp,13);
+        return 0;
+      }
+    }
+    return 0;
+  }
+  return c;
+}
+
+char ansiColorToPetsciiColor(char c, Stream *stream)
+{
+  if(c == 27)
+  {
+    c=stream->read();
+    if(c=='[')
+    {
+      int code1=0;
+      int code2=-1;
+      c=stream->read();
+      while((c>='0')&&(c<='9'))
+      {
+        code1=(code1*10) + (c-'0');
+        c=stream->read();
+      }
+      if(c==';')
+      {
+        c=stream->read();
+        while((c>='0')&&(c<='9'))
+        {
+          code2=(code2*10) + (c-'0');
+          c=stream->read();
+        }
+      }
+      switch(code1)
+      {
+      case 0:
+        // dark...
+        switch(code2)
+        {
+        case -1:
+        case 0:
+          return 146; // rvs off
+        case 30: // black
+          return 144;
+        case 31: // red
+          return 28;
+        case 32: // green
+          return 30;
+        case 33: // yellow
+          return 129;
+        case 34: // blue
+          return 31;
+        case 35: // purple
+          return 149;
+        case 36: // cyan
+          return 152;
+        case 37: // white/grey
+        default: 
+          return 155;
+        }
+        break;
+      case 1:
+        // light..
+        switch(code2)
+        {
+        case -1:/* bold */ 
+          return 0;
+        case 0:
+          return 146; // rvs off
+        case 30: // black
+          return 151;
+        case 31: // red
+          return 150;
+        case 32: // green
+          return 153;
+        case 33: // yellow
+          return 158;
+        case 34: // blue
+          return 154;
+        case 35: // purple
+          return 156;
+        case 36: // cyan
+          return 159;
+        case 37: // white/grey
+        default: 
+          return 5;
+        }
+        break;
+      case 2: /*?*/
+      case 3: /*?*/
+      case 4: /*underline*/
+      case 5: /*blink*/
+      case 6: /*italics*/
+        return 0;
+      case 40: case 41: case 42: case 43: case 44: 
+      case 45: case 46: case 47: case 48: case 49:
+        return 18; // rvs on
+      }
+    }
     return 0;
   }
   return c;
@@ -127,6 +238,9 @@ char petToAsc(char c, Stream *stream)
 
 char ascToPet(char c, Stream *stream)
 {
-  return ascToPetTable[c];
+  c=ansiColorToPetsciiColor(c,stream);
+  if(c != 0)
+    return ascToPetTable[c];
+  return 0;
 }
 
