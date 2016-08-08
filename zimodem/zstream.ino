@@ -1,5 +1,5 @@
     
-void ZStream::reset(WiFiClientNode *conn, bool dodisconnect, bool doPETSCII, bool doTelnet, bool doFlowControl)
+void ZStream::reset(WiFiClientNode *conn, bool dodisconnect, bool doPETSCII, bool doTelnet)
 {
   current = conn;
   currentExpiresTimeMs = 0;
@@ -8,45 +8,44 @@ void ZStream::reset(WiFiClientNode *conn, bool dodisconnect, bool doPETSCII, boo
   plussesInARow=0;
   petscii=doPETSCII;
   telnet=doTelnet;
-  flowControl=doFlowControl;
   XON=true;
 }
     
 void ZStream::serialIncoming()
 {
-    while(Serial.available()>0)
-    {
-        uint8_t c=Serial.read();
-        if((c=='+')
-        &&((plussesInARow>0)||((millis()-lastNonPlusTimeMs)>1000)))
-          plussesInARow++;
+  while(Serial.available()>0)
+  {
+      uint8_t c=Serial.read();
+      if((c=='+')
+      &&((plussesInARow>0)||((millis()-lastNonPlusTimeMs)>1000)))
+        plussesInARow++;
+      else
+      if(c!='+')
+      {
+          plussesInARow=0;
+          lastNonPlusTimeMs=millis();
+      }
+      if(c>0)
+      {
+        if((c==19)&&(commandMode.doFlowControl))
+          XON=false;
+        else
+        if((c==17)&&(commandMode.doFlowControl))
+          XON=true;
         else
         {
-          plussesInARow=0;
-          if(c!='+')
-            lastNonPlusTimeMs=millis();
+          if(commandMode.doEcho)
+            Serial.write(c);
+          if(petscii)
+            c = petToAsc(c,&Serial);
+          if(current->isConnected() && (c != 0))
+            current->client->write(c);
         }
-        if(c>0)
-        {
-          if((c==19)&&(flowControl))
-            XON=false;
-          else
-          if((c==17)&&(flowControl))
-            XON=true;
-          else
-          {
-            if(commandMode.echoOn)
-              Serial.write(c);
-            if(petscii)
-              c = petToAsc(c,&Serial);
-            if(current->isConnected() && (c != 0))
-              current->client->write(c);
-          }
-        }
-    }
-    currentExpiresTimeMs = 0;
-    if(plussesInARow==3)
-      currentExpiresTimeMs=millis()+1000;
+      }
+  }
+  currentExpiresTimeMs = 0;
+  if(plussesInARow==3)
+    currentExpiresTimeMs=millis()+1000;
 }
 
 void ZStream::loop()
@@ -91,7 +90,7 @@ void ZStream::loop()
     }
   }
   else
-  if(((!flowControl)||(XON))
+  if(((!commandMode.doFlowControl)||(XON))
   &&(current->client->available()>0))
   {
     while(current->client->available()>0)
@@ -103,7 +102,7 @@ void ZStream::loop()
         c=ascToPet(c,current->client);
       if(c>0)
         Serial.write(c);
-      if((flowControl)&&(Serial.available()>0))
+      if((commandMode.doFlowControl)&&(Serial.available()>0))
         break;
     }
     Serial.flush();

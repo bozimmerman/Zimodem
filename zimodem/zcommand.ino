@@ -19,7 +19,18 @@ byte ZCommand::CRC8(const byte *data, byte len)
   return crc;
 }    
 
-ZResult ZCommand::doResetCommand(bool quiet)
+void ZCommand::setConfigDefaults()
+{
+  doEcho=false;
+  doFlowControl=false;
+  EOLN = "\r\n";
+  suppressResponses=false;
+  numericResponses=false;
+  longResponses=true;
+}
+
+
+ZResult ZCommand::doResetCommand()
 {
   while(conns != null)
   {
@@ -31,62 +42,86 @@ ZResult ZCommand::doResetCommand(bool quiet)
     WiFiServerNode *s=servs;
     delete s;
   }
-  echoOn=false;
+  setConfigDefaults();
+  String argv[10];
+  parseConfigOptions(argv);
   eon=0;
-  XON=99;
+  XON=true;
+  setBaseConfigOptions(argv);
   memset(nbuf,0,MAX_COMMAND_SIZE);
-  if(!quiet)
-  {
-    Serial.print(EOLN);
-    Serial.print("ZiModem v");
-    Serial.print(ZIMODEM_VERSION);
-    Serial.print(EOLN);
-    Serial.printf("sdk=%s core=%s cpu@%d%s",ESP.getSdkVersion(),ESP.getCoreVersion().c_str(),ESP.getCpuFreqMHz(),EOLN.c_str());
-    Serial.printf("flash chipid=%d size=%d rsize=%d speed=%d%s",ESP.getFlashChipId(),ESP.getFlashChipSize(),ESP.getFlashChipRealSize(),ESP.getFlashChipSpeed(),EOLN.c_str());
-  }
+  showInitMessage();
   return ZOK;
 }
 
 void ZCommand::reSaveConfig()
 {
   File f = SPIFFS.open("/zconfig.txt", "w");
-  f.printf("%s,%s,%d,%s",wifiSSI.c_str(),wifiPW.c_str(),baudRate,EOLN.c_str());
+  f.printf("%s,%s,%d,%s,%d,%d,%d,%d,%d",wifiSSI.c_str(),wifiPW.c_str(),baudRate,EOLN.c_str(),doFlowControl,doEcho,suppressResponses,numericResponses,longResponses);
   f.close();
+}
+
+void ZCommand::setBaseConfigOptions(String configArguments[])
+{
+  if(configArguments[CFG_EOLN].length()>0)
+    EOLN = configArguments[CFG_EOLN];
+  if(configArguments[CFG_FLOWCONTROL].length()>0)
+  {
+    doFlowControl = atoi(configArguments[CFG_FLOWCONTROL].c_str());
+    XON=true;
+  }
+  if(configArguments[CFG_ECHO].length()>0)
+    doEcho = atoi(configArguments[CFG_ECHO].c_str());
+  if(configArguments[CFG_RESP_SUPP].length()>0)
+    suppressResponses = atoi(configArguments[CFG_RESP_SUPP].c_str());
+  if(configArguments[CFG_RESP_NUM].length()>0)
+    numericResponses = atoi(configArguments[CFG_RESP_NUM].c_str());
+  if(configArguments[CFG_RESP_LONG].length()>0)
+    longResponses = atoi(configArguments[CFG_RESP_LONG].c_str());
+}
+
+void ZCommand::parseConfigOptions(String configArguments[])
+{
+  File f = SPIFFS.open("/zconfig.txt", "r");
+  String str=f.readString();
+  f.close();
+  if((str!=null)&&(str.length()>0))
+  {
+    int argn=0;
+    for(int i=0;i<str.length();i++)
+    {
+      if((str[i]==',')&&(argn<9))
+        argn++;
+      else
+        configArguments[argn] += str[i];
+    }
+  }
 }
 
 void ZCommand::loadConfig()
 {
+  wifiConnected=false;
+  WiFi.disconnect();
+  setConfigDefaults();
   if(!SPIFFS.exists("/zconfig.txt"))
   {
     SPIFFS.format();
     reSaveConfig();
+    Serial.begin(115200);  //Start Serial
   }
-  else
+  String argv[10];
+  parseConfigOptions(argv);
+  if(argv[CFG_BAUDRATE].length()>0)
+    baudRate=atoi(argv[CFG_BAUDRATE].c_str());
+  if(baudRate <= 0)
+    baudRate=115200;
+  Serial.begin(baudRate);  //Start Serial
+  wifiSSI=argv[CFG_WIFISSI];
+  wifiPW=argv[CFG_WIFIPW];
+  if(wifiSSI.length()>0)
   {
-    String argv[10];
-    File f = SPIFFS.open("/zconfig.txt", "r");
-    String str=f.readString();
-    f.close();
-    if((str!=null)&&(str.length()>0))
-    {
-      int argn=0;
-      for(int i=0;i<str.length();i++)
-      {
-        if((str[i]==',')&&(argn<9))
-          argn++;
-        else
-          argv[argn] += str[i];
-      }
-    }
-    if(argv[2].length()>0)
-      baudRate=atoi(argv[2].c_str());
-    if(commandMode.baudRate <= 0)
-      baudRate=115200;
-    wifiSSI=argv[0];
-    wifiPW=argv[1];
-    if(argv[3].length()>0)
-      EOLN = argv[3];
+    connectWifi(wifiSSI.c_str(),wifiPW.c_str());
   }
+  doResetCommand();
 }
 
 
@@ -111,9 +146,10 @@ ZResult ZCommand::doConnectCommand(int vval, uint8_t *vbuf, int vlen, bool isNum
     else
     {
       if(current->isConnected())
-        Serial.printf("CONNECT %d %s:%d%s",current->id,current->host,current->port,EOLN.c_str());
+        Serial.printf("CONNECTED %d %s:%d",current->id,current->host,current->port);
       else
-        Serial.printf("NO CARRIER %d %s:%d%s",current->id,current->host,current->port,EOLN.c_str());
+        Serial.printf("NO CARRIER %d %s:%d",current->id,current->host,current->port);
+      Serial.print(EOLN);
       return ZIGNORE;
     }
   }
@@ -121,22 +157,34 @@ ZResult ZCommand::doConnectCommand(int vval, uint8_t *vbuf, int vlen, bool isNum
   if((vval >= 0)&&(isNumber))
   {
     WiFiClientNode *c=conns;
-    while((c!=null)&&(c->id != vval))
-      c=c->next;
-    if((c!=null)&&(c->id == vval))
-      current=c;
+    if(vval > 0)
+    {
+      while((c!=null)&&(c->id != vval))
+        c=c->next;
+      if((c!=null)&&(c->id == vval))
+        current=c;
+      else
+        return ZERROR;
+    }
     else
     {
       c=conns;
       while(c!=null)
       {
-        if(current->isConnected())
-          Serial.printf("CONNECTED %d %s:%d%s",c->id,c->host,c->port,EOLN.c_str());
+        if(c->isConnected())
+          Serial.printf("CONNECTED %d %s:%d",c->id,c->host,c->port);
         else
-          Serial.printf("NO CARRIER %d %s:%d%s",c->id,c->host,c->port,EOLN.c_str());
+          Serial.printf("NO CARRIER %d %s:%d",c->id,c->host,c->port);
+        Serial.print(EOLN);
         c=c->next;
       }
-      return ZERROR;
+      WiFiServerNode *s=servs;
+      while(s!=null)
+      {
+        Serial.printf("LISTENING %d *:%d",s->id,s->port);
+        Serial.print(EOLN);
+        s=s->next;
+      }
     }
   }
   else
@@ -197,7 +245,6 @@ ZResult ZCommand::doWiFiCommand(int vval, uint8_t *vbuf, int vlen)
       {
         wifiSSI=ssi;
         wifiPW=pw;
-        reSaveConfig();
       }
     }
   }
@@ -230,6 +277,9 @@ ZResult ZCommand::doTransmitCommand(int vval, uint8_t *vbuf, int vlen)
 
 ZResult ZCommand::doDialStreamCommand(int vval, uint8_t *vbuf, int vlen, bool isNumber,const char *dmodifiers)
 {
+Serial.printf("Stream %d %s %d %d %s\n\r",vval,vbuf,vlen,isNumber,dmodifiers);
+  bool doPETSCII = (strchr(dmodifiers,'P')!=null)||(strchr(dmodifiers,'p')!=null);
+  bool doTelnet = (strchr(dmodifiers,'T')!=null)||(strchr(dmodifiers,'t')!=null);
   if(vlen == 0)
   {
     if((current == null)||(!current->isConnected()))
@@ -237,23 +287,21 @@ ZResult ZCommand::doDialStreamCommand(int vval, uint8_t *vbuf, int vlen, bool is
     else
     {
       currMode=&streamMode;
-      bool doPETSCII = strchr(dmodifiers,'P')||strchr(dmodifiers,'p');
-      bool doTelnet = strchr(dmodifiers,'T')||strchr(dmodifiers,'t');
-      streamMode.reset(current,false,doPETSCII,doTelnet,flowControl);
+      streamMode.reset(current,false,doPETSCII,doTelnet);
     }
   }
   else
   if((vval >= 0)&&(isNumber))
   {
+Serial.printf("VVal %d %d\n\r",vval,isNumber);
     WiFiClientNode *c=conns;
     while((c!=null)&&(c->id != vval))
       c=c->next;
     if((c!=null)&&(c->id == vval)&&(c->isConnected()))
     {
+Serial.printf("Switching to serial mode on %d\n\r",c->id);
+      streamMode.reset(c,false,doPETSCII,doTelnet);
       currMode=&streamMode;
-      bool doPETSCII = strchr(dmodifiers,'P')||strchr(dmodifiers,'p');
-      bool doTelnet = strchr(dmodifiers,'T')||strchr(dmodifiers,'t');
-      streamMode.reset(current,false,doPETSCII,doTelnet,flowControl);
     }
     else
       return ZERROR;
@@ -275,10 +323,9 @@ ZResult ZCommand::doDialStreamCommand(int vval, uint8_t *vbuf, int vlen, bool is
     }
     else
     {
+      current=c;
+      streamMode.reset(c,true,doPETSCII,doTelnet);
       currMode=&streamMode;
-      bool doPETSCII = strchr(dmodifiers,'P')||strchr(dmodifiers,'p');
-      bool doTelnet = strchr(dmodifiers,'T')||strchr(dmodifiers,'t');
-      streamMode.reset(current,true,doPETSCII,doTelnet,flowControl);
     }
   }
   return ZOK;
@@ -296,7 +343,7 @@ bool ZCommand::readSerialStream()
         continue;
       else
       {
-        if(echoOn)
+        if(doEcho)
           Serial.print(EOLN);
         crReceived=true;
         break;
@@ -307,14 +354,14 @@ bool ZCommand::readSerialStream()
     {
       if(c!='+')
         lastNonPlusTimeMs=millis();
-      if((c==19)&&(flowControl))
+      if((c==19)&&(doFlowControl))
         XON=false;
       else
-      if((c==17)&&(flowControl))
+      if((c==17)&&(doFlowControl))
         XON=true;
       else
       {
-        if(echoOn)
+        if(doEcho)
           Serial.write(c);
         if((c==8)||(c==20)||(c==127))
         {
@@ -381,29 +428,27 @@ ZResult ZCommand::doHangupCommand(int vval, uint8_t *vbuf, int vlen, bool isNumb
   else
   if(vval > 0)
   {
-      if(current != 0)
+    WiFiClientNode *c=conns;
+    while(c != 0)
+    {
+      if(vval == c->id)
       {
-        if(current->isConnected())
-          return ZOK;
-        if(current->client == null)
-          return ZERROR;
-        if(current->client->connect(current->host,current->port))
-        {
-          if(!suppressResponses)
-          {
-            if(numericResponses)
-              Serial.print(longResponses?"5":"1");
-            else
-            if(longResponses)
-              Serial.printf("CONNECT %d",baudRate);
-            else
-              Serial.print("CONNECT");
-            Serial.print(EOLN);
-            return ZIGNORE;
-          }
-        }
+        delete c;
+        return ZOK;
       }
-      return ZERROR;
+      c=c->next;
+    }
+    WiFiServerNode *s=servs;
+    while(s!=null)
+    {
+      if(vval == s->id)
+      {
+        delete s;
+        return ZOK;
+      }
+      s=s->next;
+    }
+    return ZERROR;
   }
 }
 
@@ -428,7 +473,6 @@ ZResult ZCommand::doEOLNCommand(int vval, uint8_t *vbuf, int vlen, bool isNumber
         EOLN = "\n";
         break;
       }
-      reSaveConfig();
       return ZOK;
     }
   }
@@ -462,6 +506,11 @@ ZResult ZCommand::doSerialCommand()
         vstart=index;
         vlen=0;
         bool isNumber=true;
+        if((lastCmd=='&')&&(index<len))
+        {
+          index++;//protect our one and only letter.
+          vlen++;
+        }
         if(index<len)
         {
           if(sbuf[index]=='\"')
@@ -475,12 +524,24 @@ ZResult ZCommand::doSerialCommand()
           else
           if((lastCmd=='d')||(lastCmd=='D'))
           {
-            isNumber=false;
             const char *DMODIFIERS="LPRTW,lprtw";
             while((index<len)&&(strchr(DMODIFIERS,sbuf[index])!=null))
-              dmodifiers += sbuf[index++];
-            vlen += len-index;
-            index=len;
+              dmodifiers += (char)sbuf[index++];
+            vstart=index;
+            if(sbuf[index]=='\"')
+            {
+              vstart++;
+              while((++index<len)
+              &&((sbuf[index]!='\"')||(sbuf[index-1]=='\\')))
+                vlen++;
+            }
+            else
+            {
+              vlen += len-index;
+              index=len;
+            }
+            for(int i=vstart;i<vstart+vlen;i++)
+                isNumber = (sbuf[i]>='0') && (sbuf[i]<='9') && isNumber;
           }
           else
           while((index<len)
@@ -508,7 +569,7 @@ ZResult ZCommand::doSerialCommand()
         {
         case 'z':
         case 'Z':
-          result = doResetCommand(false);
+          result = doResetCommand();
           break;
         case 'a':
         case 'A':
@@ -516,11 +577,11 @@ ZResult ZCommand::doSerialCommand()
           break;
         case 'e':
         case 'E':
-          echoOn=(vval > 0);
+          doEcho=(vval > 0);
           break;
         case 'f':
         case 'F':
-          flowControl=(vval > 0);
+          doFlowControl=(vval > 0);
           break;
         case 'x':
         case 'X':
@@ -564,6 +625,27 @@ ZResult ZCommand::doSerialCommand()
         case 'Q':
           suppressResponses = (vval > 0);
           break;
+        case '&':
+          if(vlen > 0)
+          {
+            switch(vbuf[0])
+            {
+            case 'l':
+            case 'L':
+              loadConfig();
+              break;
+            case 'w':
+            case 'W':
+              reSaveConfig();
+              break;
+            default:
+              result=ZERROR;
+              break;
+            }
+          }
+          else
+            result=ZERROR;
+          break;
         default:
           break;
         }
@@ -600,7 +682,13 @@ ZResult ZCommand::doSerialCommand()
       {
         Serial.print("CONNECT");
         if(longResponses)
-          Serial.print(" " + baudRate);
+        {
+          Serial.print(" ");
+          if(current != null)
+            Serial.print(current->id);
+          else
+            Serial.print(baudRate);
+        }
       }
       Serial.print(EOLN);
       break;
@@ -648,7 +736,7 @@ void ZCommand::loop()
     }
   }
   
-  if((!flowControl)||(XON))
+  if((!doFlowControl)||(XON))
   {
     WiFiServerNode *serv = servs;
     while(serv != null)
@@ -656,27 +744,67 @@ void ZCommand::loop()
       WiFiClient newClient = serv->server->available();
       if((newClient != null)&&(newClient.connected()))
       {
-        WiFiClientNode *newClientNode = new WiFiClientNode(&newClient);
-        if(numericResponses)
-          Serial.print(longResponses?"5":"1");
-        else
+        int port=newClient.localPort();
+        String remoteIPStr = newClient.remoteIP().toString();
+        const char *remoteIP=remoteIPStr.c_str();
+        bool found=false;
+        WiFiClientNode *c=conns;
+        while(c!=null)
         {
-          Serial.print("CONNECT");
-          if(longResponses)
-            Serial.print(" " + baudRate);
+          if((c->isConnected())
+          &&(c->port==port)
+          &&(strcmp(remoteIP,c->host)==0))
+            found=true;
+          c=c->next;
         }
-        Serial.print(EOLN);
+        if(!found)
+        {
+          WiFiClient *newClientLoc=new WiFiClient(newClient);
+          newClientLoc->setNoDelay(true);
+          WiFiClientNode *newClientNode = new WiFiClientNode(newClientLoc);
+          if(numericResponses)
+            Serial.print(longResponses?"5":"1");
+          else
+          {
+            Serial.print("CONNECT");
+            if(longResponses)
+            {
+              Serial.print(" ");
+              Serial.print(newClientNode->id);
+            }
+          }
+          Serial.print(EOLN);
+        }
       }
       serv=serv->next;
     }
-    
+
     WiFiClientNode *firstConn = nextConn;
+    if(firstConn == null)
+      firstConn = conns;
     if((nextConn == null)||(nextConn->next == null))
       nextConn = conns;
     else
       nextConn = nextConn->next;
+
     while(XON && (nextConn != null))
     {
+      if((nextConn->client != null) 
+      && (nextConn->client->available()>0))
+      {
+        int maxBytes=256;
+        if(nextConn->client->available()<maxBytes)
+          maxBytes=nextConn->client->available();
+        uint8_t buf[maxBytes];
+        nextConn->client->read(buf,maxBytes);
+        uint8_t crc=CRC8(buf,maxBytes);
+        Serial.printf("[ %d %d %d ]",nextConn->id,maxBytes,(int)crc);
+        Serial.print(EOLN);
+        Serial.write(buf,maxBytes);
+        Serial.flush();
+        break;
+      }
+      else
       if(!nextConn->isConnected())
       {
         if(nextConn->wasConnected)
@@ -691,22 +819,14 @@ void ZCommand::loop()
           }
           nextConn->wasConnected=false;
         }
+        if(nextConn->serverClient)
+        {
+          delete nextConn;
+          nextConn = null;
+          break; // messes up the order, so just leave and start over
+        }
       }
-      else
-      if(nextConn->client->available()>0)
-      {
-        int maxBytes=256;
-        if(nextConn->client->available()<maxBytes)
-          maxBytes=nextConn->client->available();
-        uint8_t buf[maxBytes];
-        nextConn->client->read(buf,maxBytes);
-        uint8_t crc=CRC8(buf,maxBytes);
-        Serial.printf("[ %d %d %d ]%s",nextConn->id,maxBytes,(int)crc,EOLN.c_str());
-        Serial.write(buf,maxBytes);
-        Serial.flush();
-        break;
-      }
-      if((nextConn == null)||(nextConn->next == null))
+      if(nextConn->next == null)
         nextConn = conns;
       else
         nextConn = nextConn->next;

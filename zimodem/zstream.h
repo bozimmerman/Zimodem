@@ -9,10 +9,9 @@ class ZStream : public ZMode
     bool petscii=false;
     bool telnet=false;
     bool XON=true;
-    bool flowControl=false;
   
   public:
-    void reset(WiFiClientNode *conn, bool dodisconnect, bool doPETSCII, bool doTelnet, bool doFlowControl);
+    void reset(WiFiClientNode *conn, bool dodisconnect, bool doPETSCII, bool doTelnet);
     
     void serialIncoming();
     void loop();

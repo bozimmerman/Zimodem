@@ -2,12 +2,13 @@ class WiFiClientNode
 {
   private:
     void finishConnectionLink();
-    
+
   public:
     int id=0;
     char *host;
     int port;
     bool wasConnected=false;
+    bool serverClient=false;
     WiFiClient *client;
     WiFiClientNode *next = null;
     

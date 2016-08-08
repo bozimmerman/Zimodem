@@ -1,9 +1,11 @@
 WiFiServerNode::WiFiServerNode(int newport)
 {
+  id=++WiFiNextClientId;
   port=newport;
   server = new WiFiServer(newport);
+  server->setNoDelay(true);
   server->begin();
-  if(servs!=null)
+  if(servs==null)
     servs=this;
   else
   {

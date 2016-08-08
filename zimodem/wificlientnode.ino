@@ -1,4 +1,3 @@
-static int WiFiNextClientId = 0;
 
 void WiFiClientNode::finishConnectionLink()
 {
@@ -34,36 +33,40 @@ WiFiClientNode::WiFiClientNode(char *hostIp, int newport)
 WiFiClientNode::WiFiClientNode(WiFiClient *newClient)
 {
   port=newClient->localPort();
-  String remoteIP = newClient->remoteIP().toString();
-  host=new char[remoteIP.length()+1];
-  strcpy(host,remoteIP.c_str());
+  String remoteIPStr = newClient->remoteIP().toString();
+  const char *remoteIP=remoteIPStr.c_str();
+  host=new char[remoteIPStr.length()+1];
+  strcpy(host,remoteIP);
   id=++WiFiNextClientId;
   client = newClient;
   finishConnectionLink();
+  serverClient=true;
 }
     
 WiFiClientNode::~WiFiClientNode()
 {
-    if(client != null)
-    {
-      client->stop();
-      delete client;
-    }
-    delete host;
-    if(conns == null)
-    {
-    }
-    else
-    if(conns == this)
-      conns = next;
-    else
-    {
-      WiFiClientNode *last = conns;
-      while(last->next != this)
-        last = last->next;
-      if(last != null)
-        last->next = next;
-    }
+  if(client != null)
+  {
+    client->stop();
+    delete client;
+  }
+  delete host;
+  if(conns == null)
+  {
+  }
+  else
+  if(conns == this)
+    conns = next;
+  else
+  {
+    WiFiClientNode *last = conns;
+    while(last->next != this)
+      last = last->next;
+    if(last != null)
+      last->next = next;
+  }
+  if(commandMode.current == this)
+    commandMode.current = conns;
 }
 
 bool WiFiClientNode::isConnected()
