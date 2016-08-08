@@ -277,7 +277,6 @@ ZResult ZCommand::doTransmitCommand(int vval, uint8_t *vbuf, int vlen)
 
 ZResult ZCommand::doDialStreamCommand(int vval, uint8_t *vbuf, int vlen, bool isNumber,const char *dmodifiers)
 {
-Serial.printf("Stream %d %s %d %d %s\n\r",vval,vbuf,vlen,isNumber,dmodifiers);
   bool doPETSCII = (strchr(dmodifiers,'P')!=null)||(strchr(dmodifiers,'p')!=null);
   bool doTelnet = (strchr(dmodifiers,'T')!=null)||(strchr(dmodifiers,'t')!=null);
   if(vlen == 0)
@@ -293,13 +292,11 @@ Serial.printf("Stream %d %s %d %d %s\n\r",vval,vbuf,vlen,isNumber,dmodifiers);
   else
   if((vval >= 0)&&(isNumber))
   {
-Serial.printf("VVal %d %d\n\r",vval,isNumber);
     WiFiClientNode *c=conns;
     while((c!=null)&&(c->id != vval))
       c=c->next;
     if((c!=null)&&(c->id == vval)&&(c->isConnected()))
     {
-Serial.printf("Switching to serial mode on %d\n\r",c->id);
       streamMode.reset(c,false,doPETSCII,doTelnet);
       currMode=&streamMode;
     }
