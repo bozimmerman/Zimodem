@@ -62,10 +62,13 @@ class ZCommand : public ZMode
     void parseConfigOptions(String configArguments[]);
     void setBaseConfigOptions(String configArguments[]);
     void reSaveConfig();
+    void reSendLastPacket(WiFiClientNode *conn);
 
     ZResult doResetCommand();
+    ZResult doNoListenCommand();
     ZResult doBaudCommand(int vval, uint8_t *vbuf, int vlen);
     ZResult doTransmitCommand(int vval, uint8_t *vbuf, int vlen);
+    ZResult doLastPacket(int vval, uint8_t *vbuf, int vlen, bool isNumber);
     ZResult doConnectCommand(int vval, uint8_t *vbuf, int vlen, bool isNumber);
     ZResult doWiFiCommand(int vval, uint8_t *vbuf, int vlen);
     ZResult doDialStreamCommand(int vval, uint8_t *vbuf, int vlen, bool isNumber, const char *dmodifiers);

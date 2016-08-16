@@ -25,6 +25,8 @@ class WiFiClientNode
     int port;
     bool wasConnected=false;
     bool serverClient=false;
+    uint8 lastPacketBuf[256];
+    uint8 lastPacketLen=0;
     WiFiClient *client;
     WiFiClientNode *next = null;
 

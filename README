@@ -17,9 +17,13 @@ The command set is as follows (not case sensitive):
 
 ATZ : closes all open socket connections (preserving the Access Point connection), stops all listeners, and resets the state of the Command processor to the saved configuration, preserving the current baud rate and wifi connection.
 
+ATIn : re-shows startup message, n does not matter
+
 ATA/ : Repeats the previous command (no idea why...)
 
 ATAn : Causes Zimodem to create a server listening on port n.  Normal connect messages received when a new connection comes in, which are then accessible with ATC commands. Listener is also be listed along with other connections using ATC0.
+ATN0 : Shuts down all listeners, leaving client connections open
+ATNn : if n > 0 then same as ATAn
 
 ATE0 : Turns serial terminal echo off.
 ATE1 : Turns serial terminal echo on.
@@ -56,11 +60,6 @@ ATC : Shows information about the current network connection in the following fo
 ATC0 : Lists information about all of the network connections in the following format "[CONNECTION STATE] [CONNECTION ID] [CONNECTED TO HOST]:[CONNECTED TO PORT]", including any Server (ATA) listeners.
 ATCn : Where n > 0, this changes the Current connection to the one with the given ID.  If no connection exists with the given id, ERROR is returned.
 ATC"[HOSTNAME]:[PORT]" : Creates a new connection to the given host and port, assigning a new id if the connection is successful, and making this connection the new Current connection.  The quotes and colon are required.
-
-ATO : See ATC
-ATO0 : See ATC0
-ATOn : See ATCn
-ATO"[HOSTNAME]:[PORT]" : See ATC"[HOSTNAME]:[PORT]"
 
 ATH0 : Hangs up (disconnects and deletes) the current opened connection.
 ATHn : Hangs up (disconnects and deletes) the open connection with the given id.  Closing a Server (ATA) listener does not close any connections received from that listener.

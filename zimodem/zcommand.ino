@@ -67,6 +67,26 @@ ZResult ZCommand::doResetCommand()
   return ZOK;
 }
 
+ZResult ZCommand::doNoListenCommand()
+{
+  /*
+  WiFiClientNode *c=conns;
+  while(c != null)
+  {
+    WiFiClientNode *c2=c->next;
+    if(c->serverClient)
+      delete c;
+    c=c2;
+  }
+  */
+  while(servs != null)
+  {
+    WiFiServerNode *s=servs;
+    delete s;
+  }
+  return ZOK;
+}
+
 void ZCommand::reSaveConfig()
 {
   File f = SPIFFS.open("/zconfig.txt", "w");
@@ -463,6 +483,34 @@ ZResult ZCommand::doHangupCommand(int vval, uint8_t *vbuf, int vlen, bool isNumb
   }
 }
 
+ZResult ZCommand::doLastPacket(int vval, uint8_t *vbuf, int vlen, bool isNumber)
+{
+  if(!isNumber)
+    return ZERROR;
+  WiFiClientNode *cnode=null;
+  if(vval == 0)
+    cnode=current;
+  else
+  {
+    WiFiClientNode *c=conns;
+    while(c != 0)
+    {
+      if(vval == c->id)
+      {
+        cnode=c;
+        break;
+      }
+      c=c->next;
+    }
+  }
+  if(cnode == null)
+    return ZERROR;
+  if(cnode->lastPacketLen == 0) // means it was never used!
+    return ZERROR;
+  reSendLastPacket(cnode);
+  return ZIGNORE;
+}
+
 ZResult ZCommand::doEOLNCommand(int vval, uint8_t *vbuf, int vlen, bool isNumber)
 {
   if(isNumber)
@@ -500,214 +548,293 @@ ZResult ZCommand::doSerialCommand()
   String currentCommand = (char *)sbuf;
   
   ZResult result=ZOK;
-  if((len>1)
-  &&((sbuf[0]=='A')||(sbuf[0]=='a'))
-  &&((sbuf[1]=='T')||(sbuf[1]=='t')))
+  int index=0;
+  while((index<len-1)
+  &&(((sbuf[index]!='A')&&(sbuf[index]!='a'))
+    ||((sbuf[index+1]!='T')&&(sbuf[index+1]!='t'))))
+      index++;
+
+  if((index<len-1)
+  &&((sbuf[index]=='A')||(sbuf[index]=='a'))
+  &&((sbuf[index+1]=='T')||(sbuf[index+1]=='t')))
   {
-    if(len > 2)
+    index+=2;
+    char lastCmd=' ';
+    int vstart=0;
+    int vlen=0;
+    String dmodifiers="";
+    while(index<len)
     {
-      int index=2;
-      char lastCmd=' ';
-      int vstart=0;
-      int vlen=0;
-      String dmodifiers="";
-      while(index<len)
+      lastCmd=sbuf[index++];
+      vstart=index;
+      vlen=0;
+      bool isNumber=true;
+      if((lastCmd=='&')&&(index<len))
       {
-        lastCmd=sbuf[index++];
-        vstart=index;
-        vlen=0;
-        bool isNumber=true;
-        if((lastCmd=='&')&&(index<len))
+        index++;//protect our one and only letter.
+        vlen++;
+      }
+      if(index<len)
+      {
+        if(sbuf[index]=='\"')
         {
-          index++;//protect our one and only letter.
-          vlen++;
+          isNumber=false;
+          vstart++;
+          while((++index<len)
+          &&((sbuf[index]!='\"')||(sbuf[index-1]=='\\')))
+            vlen++;
         }
-        if(index<len)
+        else
+        if((lastCmd=='d')||(lastCmd=='D'))
         {
+          const char *DMODIFIERS="LPRTW,lprtw";
+          while((index<len)&&(strchr(DMODIFIERS,sbuf[index])!=null))
+            dmodifiers += (char)sbuf[index++];
+          vstart=index;
           if(sbuf[index]=='\"')
           {
-            isNumber=false;
             vstart++;
             while((++index<len)
             &&((sbuf[index]!='\"')||(sbuf[index-1]=='\\')))
               vlen++;
           }
           else
-          if((lastCmd=='d')||(lastCmd=='D'))
           {
-            const char *DMODIFIERS="LPRTW,lprtw";
-            while((index<len)&&(strchr(DMODIFIERS,sbuf[index])!=null))
-              dmodifiers += (char)sbuf[index++];
-            vstart=index;
-            if(sbuf[index]=='\"')
-            {
-              vstart++;
-              while((++index<len)
-              &&((sbuf[index]!='\"')||(sbuf[index-1]=='\\')))
-                vlen++;
-            }
+            vlen += len-index;
+            index=len;
+          }
+          for(int i=vstart;i<vstart+vlen;i++)
+              isNumber = (sbuf[i]>='0') && (sbuf[i]<='9') && isNumber;
+        }
+        else
+        while((index<len)
+        &&(! (((sbuf[index]>='a')&&(sbuf[index]<='z'))
+              ||((sbuf[index]>='A')&&(sbuf[index]<='Z')))))
+        {
+          isNumber = (sbuf[index]>='0') && (sbuf[index]<='9') && isNumber;
+          vlen++;
+          index++;
+        }
+      }
+      int vval=0;
+      uint8_t vbuf[vlen+1];
+      memset(vbuf,0,vlen+1);
+      if(vlen>0)
+      {
+        memcpy(vbuf,sbuf+vstart,vlen);
+        if((vlen > 0)&&(isNumber))
+          vval=atoi((char *)vbuf);
+      }
+      /*
+       * We have cmd and args, time to DO!
+       */
+      switch(lastCmd)
+      {
+      case 'z':
+      case 'Z':
+        result = doResetCommand();
+        break;
+      case 'n':
+      case 'N':
+        if(isNumber && (vval == 0))
+        {
+          doNoListenCommand();
+          break;
+        }
+      case 'a':
+      case 'A':
+        result = doAnswerCommand(vval,vbuf,vlen,isNumber,dmodifiers.c_str());
+        break;
+      case 'e':
+      case 'E':
+        if(!isNumber)
+          result=ZERROR;
+        else
+          doEcho=(vval > 0);
+        break;
+      case 'f':
+      case 'F':
+        if(!isNumber)
+          result=ZERROR;
+        else
+          doFlowControl=(vval > 0);
+        break;
+      case 'x':
+      case 'X':
+        if(!isNumber)
+          result=ZERROR;
+        else
+          longResponses = (vval > 0);
+        break;
+      case 'r':
+      case 'R':
+        result = doEOLNCommand(vval,vbuf,vlen,isNumber);
+        break;
+      case 'b':
+      case 'B':
+        result = doBaudCommand(vval,vbuf,vlen);
+        break;
+      case 't':
+      case 'T':
+        result = doTransmitCommand(vval,vbuf,vlen);
+        break;
+      case 'h':
+      case 'H':
+        result = doHangupCommand(vval,vbuf,vlen,isNumber);
+        break;
+      case 'd':
+      case 'D':
+        result = doDialStreamCommand(vval,vbuf,vlen,isNumber,dmodifiers.c_str());
+        break;
+      case 'o':
+      case 'O':
+        result = isNumber ? ZOK : ZERROR;
+        break;
+      case 'c':
+      case 'C':
+        result = doConnectCommand(vval,vbuf,vlen,isNumber);
+        break;
+      case 'i':
+      case 'I':
+        showInitMessage();
+        break;
+      case 'l':
+      case 'L':
+        doLastPacket(vval,vbuf,vlen,isNumber);
+        break;
+      case 'm':
+      case 'M':
+      case 'y':
+      case 'Y':
+        result = isNumber ? ZOK : ZERROR;
+        break;
+      case 'w':
+      case 'W':
+        result = doWiFiCommand(vval,vbuf,vlen);
+        break;
+      case 'v':
+      case 'V':
+        if(!isNumber)
+          result=ZERROR;
+        else
+          numericResponses = (vval == 0);
+        break;
+      case 'q':
+      case 'Q':
+        if(!isNumber)
+          result=ZERROR;
+        else
+          suppressResponses = (vval > 0);
+        break;
+      case 's':
+      case 'S':
+        {
+          if(vlen<3)
+            result=ZERROR;
+          else
+          {
+            char *eq=strchr((char *)vbuf,'=');
+            if((eq == null)||(eq == (char *)vbuf)||(eq==(char *)&(vbuf[vlen-1])))
+              result=ZERROR;
             else
             {
-              vlen += len-index;
-              index=len;
-            }
-            for(int i=vstart;i<vstart+vlen;i++)
-                isNumber = (sbuf[i]>='0') && (sbuf[i]<='9') && isNumber;
-          }
-          else
-          while((index<len)
-          &&(! (((sbuf[index]>='a')&&(sbuf[index]<='z'))
-             ||((sbuf[index]>='A')&&(sbuf[index]<='Z')))))
-          {
-            isNumber = (sbuf[index]>='0') && (sbuf[index]<='9') && isNumber;
-            vlen++;
-            index++;
-          }
-        }
-        int vval=0;
-        uint8_t vbuf[vlen+1];
-        memset(vbuf,0,vlen+1);
-        if(vlen>0)
-        {
-          memcpy(vbuf,sbuf+vstart,vlen);
-          if((vlen > 0)&&(isNumber))
-            vval=atoi((char *)vbuf);
-        }
-        /*
-         * We have cmd and args, time to DO!
-         */
-        switch(lastCmd)
-        {
-        case 'z':
-        case 'Z':
-          result = doResetCommand();
-          break;
-        case 'a':
-        case 'A':
-          result = doAnswerCommand(vval,vbuf,vlen,isNumber,dmodifiers.c_str());
-          break;
-        case 'e':
-        case 'E':
-          doEcho=(vval > 0);
-          break;
-        case 'f':
-        case 'F':
-          doFlowControl=(vval > 0);
-          break;
-        case 'x':
-        case 'X':
-          longResponses = (vval > 0);
-          break;
-        case 'r':
-        case 'R':
-          result = doEOLNCommand(vval,vbuf,vlen,isNumber);
-          break;
-        case 'b':
-        case 'B':
-          result = doBaudCommand(vval,vbuf,vlen);
-          break;
-        case 't':
-        case 'T':
-          result = doTransmitCommand(vval,vbuf,vlen);
-          break;
-        case 'h':
-        case 'H':
-          result = doHangupCommand(vval,vbuf,vlen,isNumber);
-          break;
-        case 'd':
-        case 'D':
-          result = doDialStreamCommand(vval,vbuf,vlen,isNumber,dmodifiers.c_str());
-          break;
-        case 'o':
-        case 'O':
-        case 'c':
-        case 'C':
-          result = doConnectCommand(vval,vbuf,vlen,isNumber);
-          break;
-        case 'w':
-        case 'W':
-          result = doWiFiCommand(vval,vbuf,vlen);
-          break;
-        case 'v':
-        case 'V':
-          numericResponses = (isNumber && (vval == 0));
-          break;
-        case 'q':
-        case 'Q':
-          suppressResponses = (vval > 0);
-          break;
-        case '&':
-          if(vlen > 0)
-          {
-            switch(vbuf[0])
-            {
-            case 'l':
-            case 'L':
-              loadConfig();
-              break;
-            case 'w':
-            case 'W':
-              reSaveConfig();
-              break;
-            default:
-              result=ZERROR;
-              break;
+              // ok enough for now
             }
           }
-          else
+        }
+        break;
+      case '&':
+        if(vlen > 0)
+        {
+          switch(vbuf[0])
+          {
+          case 'l':
+          case 'L':
+            loadConfig();
+            break;
+          case 'w':
+          case 'W':
+            reSaveConfig();
+            break;
+          default:
             result=ZERROR;
-          break;
-        default:
-          break;
+            break;
+          }
         }
+        else
+          result=ZERROR;
+        break;
+      default:
+        result=ZERROR;
+        break;
       }
     }
-  }
-  else
-    result = ZERROR;
 
-  if(result != ZIGNORE_SPECIAL)
-    previousCommand = currentCommand;
-  if(!suppressResponses)
-  {
-    switch(result)
+    if(result != ZIGNORE_SPECIAL)
+      previousCommand = currentCommand;
+    if(suppressResponses)
     {
-    case ZOK:
-      if(numericResponses)
-        Serial.print("0");
-      else
-        Serial.print("OK");
-      Serial.print(EOLN);
-      break;
-    case ZERROR:
-      if(numericResponses)
-        Serial.print("4");
-      else
-        Serial.print("ERROR");
-      Serial.print(EOLN);
-      break;
-    case ZCONNECT:
-      if(numericResponses)
-        Serial.print(longResponses?"5":"1");
-      else
+      if(result == ZERROR)
       {
-        Serial.print("CONNECT");
-        if(longResponses)
-        {
-          Serial.print(" ");
-          if(current != null)
-            Serial.print(current->id);
-          else
-            Serial.print(baudRate);
-        }
+        // on error, cut and run
+        return ZERROR;
       }
-      Serial.print(EOLN);
-      break;
-    default:
-      break;
+    }
+    else
+    {
+      switch(result)
+      {
+      case ZOK:
+        if(index >= len)
+        {
+          if(numericResponses)
+            Serial.print("0");
+          else
+            Serial.print("OK");
+          Serial.print(EOLN);
+        }
+        break;
+      case ZERROR:
+        if(numericResponses)
+          Serial.print("4");
+        else
+          Serial.print("ERROR");
+        Serial.print(EOLN);
+        // on error, cut and run
+        return ZERROR;
+      case ZCONNECT:
+        if(numericResponses)
+          Serial.print(longResponses?"5":"1");
+        else
+        {
+          Serial.print("CONNECT");
+          if(longResponses)
+          {
+            Serial.print(" ");
+            if(current != null)
+              Serial.print(current->id);
+            else
+              Serial.print(baudRate);
+          }
+        }
+        Serial.print(EOLN);
+        break;
+      default:
+        break;
+      }
     }
   }
+
   return result;
+}
+
+void ZCommand::reSendLastPacket(WiFiClientNode *conn)
+{
+  uint8_t crc=CRC8(conn->lastPacketBuf,conn->lastPacketLen);
+  Serial.printf("[ %d %d %d ]",conn->id,conn->lastPacketLen,(int)crc);
+  Serial.print(EOLN);
+  Serial.write(conn->lastPacketBuf,conn->lastPacketLen);
+  Serial.flush();
 }
 
 void ZCommand::serialIncoming()
@@ -806,13 +933,9 @@ void ZCommand::loop()
         int maxBytes=256;
         if(nextConn->client->available()<maxBytes)
           maxBytes=nextConn->client->available();
-        uint8_t buf[maxBytes];
-        nextConn->client->read(buf,maxBytes);
-        uint8_t crc=CRC8(buf,maxBytes);
-        Serial.printf("[ %d %d %d ]",nextConn->id,maxBytes,(int)crc);
-        Serial.print(EOLN);
-        Serial.write(buf,maxBytes);
-        Serial.flush();
+        nextConn->client->read(nextConn->lastPacketBuf,maxBytes);
+        nextConn->lastPacketLen=maxBytes;
+        reSendLastPacket(nextConn);
         break;
       }
       else
