@@ -1,1 +1,5 @@
   *. Still need to be able to guarentee 1 received packet!
+  *. Server needs a single-connection mode
+  *. Fix the PETSCII color problem
+  *. See about DCD
+  
