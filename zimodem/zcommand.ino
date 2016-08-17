@@ -61,6 +61,7 @@ ZResult ZCommand::doResetCommand()
   parseConfigOptions(argv);
   eon=0;
   XON=true;
+  singlePacket=false;
   setBaseConfigOptions(argv);
   memset(nbuf,0,MAX_COMMAND_SIZE);
   showInitMessage();
@@ -90,7 +91,8 @@ ZResult ZCommand::doNoListenCommand()
 void ZCommand::reSaveConfig()
 {
   File f = SPIFFS.open("/zconfig.txt", "w");
-  f.printf("%s,%s,%d,%s,%d,%d,%d,%d,%d",wifiSSI.c_str(),wifiPW.c_str(),baudRate,EOLN.c_str(),doFlowControl,doEcho,suppressResponses,numericResponses,longResponses);
+  int flowControl=(doFlowControl && singlePacket) ? 2 : doFlowControl;
+  f.printf("%s,%s,%d,%s,%d,%d,%d,%d,%d",wifiSSI.c_str(),wifiPW.c_str(),baudRate,EOLN.c_str(),flowControl,doEcho,suppressResponses,numericResponses,longResponses);
   f.close();
 }
 
@@ -100,7 +102,17 @@ void ZCommand::setBaseConfigOptions(String configArguments[])
     EOLN = configArguments[CFG_EOLN];
   if(configArguments[CFG_FLOWCONTROL].length()>0)
   {
-    doFlowControl = atoi(configArguments[CFG_FLOWCONTROL].c_str());
+    int x = atoi(configArguments[CFG_FLOWCONTROL].c_str());
+    if(x == 2)
+    {
+      doFlowControl =true;
+      singlePacket = true;
+    }
+    else
+    {
+      doFlowControl = x;
+      singlePacket = false;
+    }
     XON=true;
   }
   if(configArguments[CFG_ECHO].length()>0)
@@ -657,7 +669,10 @@ ZResult ZCommand::doSerialCommand()
         if(!isNumber)
           result=ZERROR;
         else
-          doFlowControl=(vval > 0);
+        {
+          singlePacket = (vval == 2);
+          doFlowControl = (vval > 0);
+        }
         break;
       case 'x':
       case 'X':
@@ -936,6 +951,10 @@ void ZCommand::loop()
         nextConn->client->read(nextConn->lastPacketBuf,maxBytes);
         nextConn->lastPacketLen=maxBytes;
         reSendLastPacket(nextConn);
+        if(singlePacket)
+        {
+          XON=false;
+        }
         break;
       }
       else

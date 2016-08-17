@@ -48,6 +48,7 @@ class ZCommand : public ZMode
     int eon=0;
     WiFiClientNode *current = null;
     bool XON=true;
+    bool singlePacket=false;
     unsigned long lastNonPlusTimeMs = 0;
     unsigned long currentExpiresTimeMs = 0;
     String previousCommand = "";
