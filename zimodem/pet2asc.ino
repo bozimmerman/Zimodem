@@ -167,7 +167,7 @@ char ansiColorToPetsciiColor(char c, Stream *stream)
         code1=(code1*10) + (c-'0');
         c=stream->read();
       }
-      if(c==';')
+      while(c==';')
       {
         c=stream->read();
         while((c>='0')&&(c<='9'))
@@ -186,7 +186,7 @@ char ansiColorToPetsciiColor(char c, Stream *stream)
         case 0:
           return 146; // rvs off
         case 30: // black
-          return 144;
+          return 155;//144;
         case 31: // red
           return 28;
         case 32: // green
