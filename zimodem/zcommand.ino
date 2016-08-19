@@ -316,7 +316,7 @@ ZResult ZCommand::doTransmitCommand(int vval, uint8_t *vbuf, int vlen)
     uint8_t buf[vlen];
     memcpy(buf,vbuf,vlen);
     current->client->write(buf,vlen);
-    current->client->print(EOLN);
+    current->client->print("\r\n"); // special case
   }
   return ZOK;
 }
@@ -595,6 +595,8 @@ ZResult ZCommand::doSerialCommand()
           while((++index<len)
           &&((sbuf[index]!='\"')||(sbuf[index-1]=='\\')))
             vlen++;
+          if(index<len)
+            index++;
         }
         else
         if((lastCmd=='d')||(lastCmd=='D'))
@@ -609,6 +611,8 @@ ZResult ZCommand::doSerialCommand()
             while((++index<len)
             &&((sbuf[index]!='\"')||(sbuf[index-1]=='\\')))
               vlen++;
+            if(index<len)
+              index++;
           }
           else
           {
@@ -945,15 +949,19 @@ void ZCommand::loop()
       if((nextConn->client != null) 
       && (nextConn->client->available()>0))
       {
+        int availableBytes = nextConn->client->available();
         int maxBytes=256;
-        if(nextConn->client->available()<maxBytes)
-          maxBytes=nextConn->client->available();
+        if(availableBytes<maxBytes)
+          maxBytes=availableBytes;
         nextConn->client->read(nextConn->lastPacketBuf,maxBytes);
-        nextConn->lastPacketLen=maxBytes;
-        reSendLastPacket(nextConn);
-        if(singlePacket)
+        if(maxBytes > 0)
         {
-          XON=false;
+          nextConn->lastPacketLen=maxBytes;
+          reSendLastPacket(nextConn);
+          if(singlePacket)
+          {
+            XON=false;
+          }
         }
         break;
       }
