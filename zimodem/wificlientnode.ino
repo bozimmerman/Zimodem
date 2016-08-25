@@ -82,6 +82,9 @@ WiFiClientNode::~WiFiClientNode()
   }
   if(commandMode.current == this)
     commandMode.current = conns;
+  if(commandMode.nextConn == this)
+    commandMode.nextConn = conns;
+  next=null;
 }
 
 bool WiFiClientNode::isConnected()

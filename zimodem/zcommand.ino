@@ -51,6 +51,8 @@ ZResult ZCommand::doResetCommand()
     WiFiClientNode *c=conns;
     delete c;
   }
+  current = null;
+  nextConn = null;
   while(servs != null)
   {
     WiFiServerNode *s=servs;
@@ -208,7 +210,7 @@ ZResult ZCommand::doConnectCommand(int vval, uint8_t *vbuf, int vlen, bool isNum
       while((c!=null)&&(c->id != vval))
         c=c->next;
       if((c!=null)&&(c->id == vval))
-        current=c;
+        current = c;
       else
         return ZERROR;
     }
@@ -450,21 +452,26 @@ ZResult ZCommand::doAnswerCommand(int vval, uint8_t *vbuf, int vlen, bool isNumb
 
 ZResult ZCommand::doHangupCommand(int vval, uint8_t *vbuf, int vlen, bool isNumber)
 {
+  if(vlen == 0)
+  {
+    while(conns != null)
+    {
+      WiFiClientNode *c=conns;
+      delete c;
+    }
+    current = null;
+    nextConn = null;
+    return ZOK;
+  }
+  else
   if(isNumber && (vval == 0))
   {
       if(current != 0)
       {
-        if(!suppressResponses)
-        {
-          if(numericResponses)
-            Serial.printf("3");
-          else
-            Serial.printf("NO CARRIER %d %s:%d%s",current->id,current->host,current->port);
-          Serial.print(EOLN);
-        }
         delete current;
         current = conns;
-        return ZIGNORE;
+        nextConn = conns;
+        return ZOK;
       }
       return ZERROR;
   }
@@ -476,6 +483,10 @@ ZResult ZCommand::doHangupCommand(int vval, uint8_t *vbuf, int vlen, bool isNumb
     {
       if(vval == c->id)
       {
+        if(current == c)
+          current = conns;
+        if(nextConn == c)
+          nextConn = conns;
         delete c;
         return ZOK;
       }
@@ -875,7 +886,7 @@ void ZCommand::loop()
     currentExpiresTimeMs = 0;
     if(strcmp((char *)nbuf,"+++")==0)
     {
-      if(current != 0)
+      if(current != null)
       {
         if(!suppressResponses)
         {
@@ -887,6 +898,7 @@ void ZCommand::loop()
         }
         delete current;
         current = conns;
+        nextConn = conns;
       }
       memset(nbuf,0,MAX_COMMAND_SIZE);
       eon=0;
@@ -987,6 +999,7 @@ void ZCommand::loop()
           break; // messes up the order, so just leave and start over
         }
       }
+      
       if(nextConn->next == null)
         nextConn = conns;
       else
