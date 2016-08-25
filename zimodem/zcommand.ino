@@ -962,7 +962,7 @@ void ZCommand::loop()
       && (nextConn->client->available()>0))
       {
         int availableBytes = nextConn->client->available();
-        int maxBytes=256;
+        int maxBytes=254;
         if(availableBytes<maxBytes)
           maxBytes=availableBytes;
         nextConn->client->read(nextConn->lastPacketBuf,maxBytes);
