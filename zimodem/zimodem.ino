@@ -19,7 +19,7 @@
 #include <spiffs/spiffs.h>
 
 #define null 0
-#define ZIMODEM_VERSION "1.1"
+#define ZIMODEM_VERSION "1.2"
 
 #include "pet2asc.h"
 #include "zmode.h"

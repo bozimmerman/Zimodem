@@ -37,10 +37,18 @@ void ZCommand::setConfigDefaults()
 {
   doEcho=false;
   doFlowControl=false;
-  EOLN = "\r\n";
   suppressResponses=false;
   numericResponses=false;
   longResponses=true;
+  packetSize=127;
+  strcpy(CRLF,"\r\n");
+  strcpy(LFCR,"\n\r");
+  strcpy(LF,"\n");
+  strcpy(CR,"\r");
+  EC='+';
+  strcpy(ECS,"+++");
+  BS=8;
+  EOLN = CRLF;
 }
 
 
@@ -376,53 +384,6 @@ ZResult ZCommand::doDialStreamCommand(int vval, uint8_t *vbuf, int vlen, bool is
   return ZOK;
 }
 
-bool ZCommand::readSerialStream()
-{
-  bool crReceived=false;
-  while(Serial.available()>0)
-  {
-    uint8_t c=Serial.read();
-    if((c=='\r')||(c=='\n'))
-    {
-      if(eon == 0)
-        continue;
-      else
-      {
-        if(doEcho)
-          Serial.print(EOLN);
-        crReceived=true;
-        break;
-      }
-    }
-    
-    if(c>0)
-    {
-      if(c!='+')
-        lastNonPlusTimeMs=millis();
-      if((c==19)&&(doFlowControl))
-        XON=false;
-      else
-      if((c==17)&&(doFlowControl))
-        XON=true;
-      else
-      {
-        if(doEcho)
-          Serial.write(c);
-        if((c==8)||(c==20)||(c==127))
-        {
-          if(eon>0)
-            nbuf[--eon]=0;
-          continue;
-        }
-        nbuf[eon++]=c;
-        if(eon>=MAX_COMMAND_SIZE)
-          crReceived=true;
-      }
-    }
-  }
-  return crReceived;
-}
-
 ZResult ZCommand::doAnswerCommand(int vval, uint8_t *vbuf, int vlen, bool isNumber, const char *dmodifiers)
 {
   if((vlen == 1)&&(vbuf[0]=='/'))
@@ -543,22 +504,69 @@ ZResult ZCommand::doEOLNCommand(int vval, uint8_t *vbuf, int vlen, bool isNumber
       switch(vval)
       {
       case 0:
-        EOLN = "\r";
+        EOLN = CR;
         break;
       case 1:
-        EOLN = "\r\n";
+        EOLN = CRLF;
         break;
       case 2:
-        EOLN = "\n\r";
+        EOLN = LFCR;
         break;
       case 3:
-        EOLN = "\n";
+        EOLN = LF;
         break;
       }
       return ZOK;
     }
   }
   return ZERROR;
+}
+
+bool ZCommand::readSerialStream()
+{
+  bool crReceived=false;
+  while(Serial.available()>0)
+  {
+    uint8_t c=Serial.read();
+    if((c==CR[0])||(c==LF[0]))
+    {
+      if(eon == 0)
+        continue;
+      else
+      {
+        if(doEcho)
+          Serial.print(EOLN);
+        crReceived=true;
+        break;
+      }
+    }
+    
+    if(c>0)
+    {
+      if(c!=EC)
+        lastNonPlusTimeMs=millis();
+      if((c==19)&&(doFlowControl))
+        XON=false;
+      else
+      if((c==17)&&(doFlowControl))
+        XON=true;
+      else
+      {
+        if(doEcho)
+          Serial.write(c);
+        if((c==BS)||((BS==8)&&((c==20)||(c==127))))
+        {
+          if(eon>0)
+            nbuf[--eon]=0;
+          continue;
+        }
+        nbuf[eon++]=c;
+        if(eon>=MAX_COMMAND_SIZE)
+          crReceived=true;
+      }
+    }
+  }
+  return crReceived;
 }
 
 ZResult ZCommand::doSerialCommand()
@@ -764,11 +772,69 @@ ZResult ZCommand::doSerialCommand()
           else
           {
             char *eq=strchr((char *)vbuf,'=');
-            if((eq == null)||(eq == (char *)vbuf)||(eq==(char *)&(vbuf[vlen-1])))
+            if((eq == null)||(eq == (char *)vbuf)||(eq>=(char *)&(vbuf[vlen-1])))
               result=ZERROR;
             else
             {
-              // ok enough for now
+              *eq=0;
+              int snum = atoi((char *)vbuf);
+              int sval = atoi((char *)(eq + 1));
+              if((snum == 0)&&((vbuf[0]!='0')||(eq != (char *)(vbuf+1))))
+                result=ZERROR;
+              else
+              if((sval == 0)&&((*(eq+1)!='0')||(*(eq+2) != 0)))
+                result=ZERROR;
+              else
+              switch(snum)
+              {
+              case 2:
+                if((sval < 0)||(sval>255))
+                  result=ZERROR;
+                else
+                {
+                  EC=(char)sval;
+                  ECS[0]=EC;
+                  ECS[1]=EC;
+                  ECS[2]=EC;
+                }
+                break;
+              case 3:
+                if((sval < 0)||(sval>127))
+                  result=ZERROR;
+                else
+                {
+                  CR[0]=(char)sval;
+                  CRLF[0]=(char)sval;
+                  LFCR[1]=(char)sval;
+                }
+                break;
+              case 4:
+                if((sval < 0)||(sval>127))
+                  result=ZERROR;
+                else
+                {
+                  LF[0]=(char)sval;
+                  CRLF[1]=(char)sval;
+                  LFCR[0]=(char)sval;
+                }
+                break;
+              case 5:
+                if((sval < 0)||(sval>32))
+                  result=ZERROR;
+                else
+                {
+                  BS=(char)sval;
+                }
+                break;
+              case 40:
+                if(sval < 1)
+                  result=ZERROR;
+                else
+                  packetSize=sval;
+                break;
+             default:
+                break;
+              }
             }
           }
         }
@@ -872,7 +938,7 @@ void ZCommand::serialIncoming()
   bool crReceived=readSerialStream();
   if(currentExpiresTimeMs > 0)
     currentExpiresTimeMs = 0;
-  if((strcmp((char *)nbuf,"+++")==0)&&((millis()-lastNonPlusTimeMs)>1000))
+  if((strcmp((char *)nbuf,ECS)==0)&&((millis()-lastNonPlusTimeMs)>1000))
     currentExpiresTimeMs = millis() + 1000;
   if(!crReceived)
     return;
@@ -884,7 +950,7 @@ void ZCommand::loop()
   if((currentExpiresTimeMs > 0) && (millis() > currentExpiresTimeMs))
   {
     currentExpiresTimeMs = 0;
-    if(strcmp((char *)nbuf,"+++")==0)
+    if(strcmp((char *)nbuf,ECS)==0)
     {
       if(current != null)
       {
@@ -962,7 +1028,7 @@ void ZCommand::loop()
       && (nextConn->client->available()>0))
       {
         int availableBytes = nextConn->client->available();
-        int maxBytes=254;
+        int maxBytes=packetSize;
         if(availableBytes<maxBytes)
           maxBytes=availableBytes;
         nextConn->client->read(nextConn->lastPacketBuf,maxBytes);

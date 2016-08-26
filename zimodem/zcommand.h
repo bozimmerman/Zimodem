@@ -44,8 +44,15 @@ class ZCommand : public ZMode
   friend class WiFiClientNode;
 
   private:
+    char *CRLF="\r\n";
+    char *LFCR="\r\n";
+    char *LF="\n";
+    char *CR="\r";
+    char BS=8;
+  
     uint8_t nbuf[MAX_COMMAND_SIZE];
     int eon=0;
+    int packetSize = 127;
     WiFiClientNode *current = null;
     bool XON=true;
     bool singlePacket=false;
@@ -84,6 +91,8 @@ class ZCommand : public ZMode
     boolean doEcho;
     bool doFlowControl;
     String EOLN;
+    char EC='+';
+    char *ECS="+++";
 
     void loadConfig();
     void serialIncoming();

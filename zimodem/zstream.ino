@@ -31,11 +31,11 @@ void ZStream::serialIncoming()
   while(Serial.available()>0)
   {
       uint8_t c=Serial.read();
-      if((c=='+')
+      if((c==commandMode.EC)
       &&((plussesInARow>0)||((millis()-lastNonPlusTimeMs)>1000)))
         plussesInARow++;
       else
-      if(c!='+')
+      if(c!=commandMode.EC)
       {
           plussesInARow=0;
           lastNonPlusTimeMs=millis();
