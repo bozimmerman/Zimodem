@@ -71,7 +71,7 @@ ZResult ZCommand::doResetCommand()
   parseConfigOptions(argv);
   eon=0;
   XON=true;
-  singlePacket=false;
+  flowControlType=FCT_NORMAL;
   setBaseConfigOptions(argv);
   memset(nbuf,0,MAX_COMMAND_SIZE);
   showInitMessage();
@@ -101,7 +101,16 @@ ZResult ZCommand::doNoListenCommand()
 void ZCommand::reSaveConfig()
 {
   File f = SPIFFS.open("/zconfig.txt", "w");
-  int flowControl=(doFlowControl && singlePacket) ? 2 : doFlowControl;
+  int flowControl = doFlowControl;
+  switch(flowControlType)
+  {
+  case FCT_MANUAL:
+    flowControl = 3;
+    break;
+  case FCT_AUTOOFF:
+    flowControl = 2;
+    break;
+  }
   f.printf("%s,%s,%d,%s,%d,%d,%d,%d,%d",wifiSSI.c_str(),wifiPW.c_str(),baudRate,EOLN.c_str(),flowControl,doEcho,suppressResponses,numericResponses,longResponses);
   f.close();
 }
@@ -113,17 +122,24 @@ void ZCommand::setBaseConfigOptions(String configArguments[])
   if(configArguments[CFG_FLOWCONTROL].length()>0)
   {
     int x = atoi(configArguments[CFG_FLOWCONTROL].c_str());
-    if(x == 2)
+    switch(x)
     {
-      doFlowControl =true;
-      singlePacket = true;
+      case 2:
+        doFlowControl =true;
+        flowControlType = FCT_AUTOOFF;
+        XON=true;
+        break;
+      case 3:
+        doFlowControl =true;
+        flowControlType = FCT_MANUAL;
+        XON=false;
+        break;
+      default:
+        doFlowControl = x;
+        flowControlType = FCT_NORMAL;
+        XON=true;
+        break;
     }
-    else
-    {
-      doFlowControl = x;
-      singlePacket = false;
-    }
-    XON=true;
   }
   if(configArguments[CFG_ECHO].length()>0)
     doEcho = atoi(configArguments[CFG_ECHO].c_str());
@@ -193,10 +209,13 @@ ZResult ZCommand::doBaudCommand(int vval, uint8_t *vbuf, int vlen)
   return ZOK;
 }
 
-ZResult ZCommand::doConnectCommand(int vval, uint8_t *vbuf, int vlen, bool isNumber)
+ZResult ZCommand::doConnectCommand(int vval, uint8_t *vbuf, int vlen, bool isNumber, const char *dmodifiers)
 {
+  bool doPETSCII = (strchr(dmodifiers,'P') != null) || (strchr(dmodifiers,'p') != null);
   if(vlen == 0)
   {
+    if(strlen(dmodifiers)>0)
+      return ZERROR;
     if(current == null)
       return ZERROR;
     else
@@ -212,6 +231,8 @@ ZResult ZCommand::doConnectCommand(int vval, uint8_t *vbuf, int vlen, bool isNum
   else
   if((vval >= 0)&&(isNumber))
   {
+    if(strlen(dmodifiers)>0)
+      return ZERROR;
     WiFiClientNode *c=conns;
     if(vval > 0)
     {
@@ -252,7 +273,7 @@ ZResult ZCommand::doConnectCommand(int vval, uint8_t *vbuf, int vlen, bool isNum
       (*colon)=0;
       port=atoi((char *)(++colon));
     }
-    WiFiClientNode *c = new WiFiClientNode((char *)vbuf,port);
+    WiFiClientNode *c = new WiFiClientNode((char *)vbuf,port,doPETSCII);
     if(!c->isConnected())
     {
       delete c;
@@ -316,6 +337,11 @@ ZResult ZCommand::doTransmitCommand(int vval, uint8_t *vbuf, int vlen)
   {
     uint8_t buf[vval];
     int recvd = Serial.readBytes(buf,vval);
+    if(current->doPETSCII)
+    {
+      for(int i=0;i<recvd;i++)
+        buf[i]=petToAsc(buf[i],current->client);
+    }
     if(recvd == vval)
       current->client->write(buf,recvd);
     else
@@ -325,6 +351,11 @@ ZResult ZCommand::doTransmitCommand(int vval, uint8_t *vbuf, int vlen)
   {
     uint8_t buf[vlen];
     memcpy(buf,vbuf,vlen);
+    if(current->doPETSCII)
+    {
+      for(int i=0;i<vlen;i++)
+        buf[i]=petToAsc(buf[i],current->client);
+    }
     current->client->write(buf,vlen);
     current->client->print("\r\n"); // special case
   }
@@ -342,7 +373,7 @@ ZResult ZCommand::doDialStreamCommand(int vval, uint8_t *vbuf, int vlen, bool is
     else
     {
       currMode=&streamMode;
-      streamMode.reset(current,false,doPETSCII,doTelnet);
+      streamMode.reset(current,false,doPETSCII|| current->doPETSCII,doTelnet);
     }
   }
   else
@@ -353,7 +384,7 @@ ZResult ZCommand::doDialStreamCommand(int vval, uint8_t *vbuf, int vlen, bool is
       c=c->next;
     if((c!=null)&&(c->id == vval)&&(c->isConnected()))
     {
-      streamMode.reset(c,false,doPETSCII,doTelnet);
+      streamMode.reset(c,false,doPETSCII || c->doPETSCII,doTelnet);
       currMode=&streamMode;
     }
     else
@@ -368,7 +399,7 @@ ZResult ZCommand::doDialStreamCommand(int vval, uint8_t *vbuf, int vlen, bool is
       (*colon)=0;
       port=atoi((char *)(++colon));
     }
-    WiFiClientNode *c = new WiFiClientNode((char *)vbuf,port);
+    WiFiClientNode *c = new WiFiClientNode((char *)vbuf,port,doPETSCII);
     if(!c->isConnected())
     {
       delete c;
@@ -546,10 +577,18 @@ bool ZCommand::readSerialStream()
       if(c!=EC)
         lastNonPlusTimeMs=millis();
       if((c==19)&&(doFlowControl))
+      {
         XON=false;
+      }
       else
       if((c==17)&&(doFlowControl))
+      {
         XON=true;
+        if(flowControlType == FCT_MANUAL)
+        {
+          sendNextPacket();
+        }
+      }
       else
       {
         if(doEcho)
@@ -618,7 +657,8 @@ ZResult ZCommand::doSerialCommand()
             index++;
         }
         else
-        if((lastCmd=='d')||(lastCmd=='D'))
+        if((lastCmd=='d')||(lastCmd=='D')
+        || (lastCmd=='c')||(lastCmd=='C'))
         {
           const char *DMODIFIERS="LPRTW,lprtw";
           while((index<len)&&(strchr(DMODIFIERS,sbuf[index])!=null))
@@ -693,7 +733,15 @@ ZResult ZCommand::doSerialCommand()
           result=ZERROR;
         else
         {
-          singlePacket = (vval == 2);
+          flowControlType = FCT_NORMAL;
+          if(vval == 2)
+            flowControlType = FCT_AUTOOFF;
+          else
+          if(vval == 3)
+          {
+            flowControlType = FCT_MANUAL;
+            XON=false;
+          }
           doFlowControl = (vval > 0);
         }
         break;
@@ -730,7 +778,7 @@ ZResult ZCommand::doSerialCommand()
         break;
       case 'c':
       case 'C':
-        result = doConnectCommand(vval,vbuf,vlen,isNumber);
+        result = doConnectCommand(vval,vbuf,vlen,isNumber,dmodifiers.c_str());
         break;
       case 'i':
       case 'I':
@@ -945,6 +993,132 @@ void ZCommand::serialIncoming()
   doSerialCommand();
 }
 
+void ZCommand::sendNextPacket()
+{
+  WiFiClientNode *firstConn = nextConn;
+  if(firstConn == null)
+    firstConn = conns;
+  if((nextConn == null)||(nextConn->next == null))
+    nextConn = conns;
+  else
+    nextConn = nextConn->next;
+
+  while(XON && (nextConn != null))
+  {
+    if((nextConn->client != null) 
+    && (nextConn->client->available()>0))
+    {
+      int availableBytes = nextConn->client->available();
+      int maxBytes=packetSize;
+      if(availableBytes<maxBytes)
+        maxBytes=availableBytes;
+      nextConn->client->read(nextConn->lastPacketBuf,maxBytes);
+      if(maxBytes > 0)
+      {
+        if(nextConn->doPETSCII)
+        {
+          for(int i=0;i<maxBytes;i++)
+            nextConn->lastPacketBuf[i]=ascToPet(nextConn->lastPacketBuf[i],nextConn->client);
+        }
+        nextConn->lastPacketLen=maxBytes;
+        reSendLastPacket(nextConn);
+        if(flowControlType != FCT_NORMAL)
+        {
+          XON=false;
+        }
+        if(flowControlType == FCT_MANUAL)
+        {
+          return;
+        }
+      }
+      break;
+    }
+    else
+    if(!nextConn->isConnected())
+    {
+      if(nextConn->wasConnected)
+      {
+        nextConn->wasConnected=false;
+        if(!suppressResponses)
+        {
+          if(numericResponses)
+            Serial.printf("3");
+          else
+            Serial.printf("NO CARRIER %d",nextConn->id);
+          Serial.print(EOLN);
+          if(flowControlType == FCT_MANUAL)
+          {
+            return;
+          }
+        }
+      }
+      if(nextConn->serverClient)
+      {
+        delete nextConn;
+        nextConn = null;
+        break; // messes up the order, so just leave and start over
+      }
+    }
+    
+    if(nextConn->next == null)
+      nextConn = conns;
+    else
+      nextConn = nextConn->next;
+    if(nextConn == firstConn)
+      break;
+  }
+  if(flowControlType == FCT_MANUAL)
+  {
+    XON=false;
+    Serial.print("[ 0 0 0 ]");
+    Serial.print(EOLN);
+  }
+}
+
+void ZCommand::acceptNewConnection()
+{
+  WiFiServerNode *serv = servs;
+  while(serv != null)
+  {
+    WiFiClient newClient = serv->server->available();
+    if((newClient != null)&&(newClient.connected()))
+    {
+      int port=newClient.localPort();
+      String remoteIPStr = newClient.remoteIP().toString();
+      const char *remoteIP=remoteIPStr.c_str();
+      bool found=false;
+      WiFiClientNode *c=conns;
+      while(c!=null)
+      {
+        if((c->isConnected())
+        &&(c->port==port)
+        &&(strcmp(remoteIP,c->host)==0))
+          found=true;
+        c=c->next;
+      }
+      if(!found)
+      {
+        WiFiClient *newClientLoc=new WiFiClient(newClient);
+        newClientLoc->setNoDelay(true);
+        WiFiClientNode *newClientNode = new WiFiClientNode(newClientLoc);
+        if(numericResponses)
+          Serial.print(longResponses?"5":"1");
+        else
+        {
+          Serial.print("CONNECT");
+          if(longResponses)
+          {
+            Serial.print(" ");
+            Serial.print(newClientNode->id);
+          }
+        }
+        Serial.print(EOLN);
+      }
+    }
+    serv=serv->next;
+  }
+}
+
 void ZCommand::loop()
 {
   if((currentExpiresTimeMs > 0) && (millis() > currentExpiresTimeMs))
@@ -973,106 +1147,10 @@ void ZCommand::loop()
   
   if((!doFlowControl)||(XON))
   {
-    WiFiServerNode *serv = servs;
-    while(serv != null)
-    {
-      WiFiClient newClient = serv->server->available();
-      if((newClient != null)&&(newClient.connected()))
-      {
-        int port=newClient.localPort();
-        String remoteIPStr = newClient.remoteIP().toString();
-        const char *remoteIP=remoteIPStr.c_str();
-        bool found=false;
-        WiFiClientNode *c=conns;
-        while(c!=null)
-        {
-          if((c->isConnected())
-          &&(c->port==port)
-          &&(strcmp(remoteIP,c->host)==0))
-            found=true;
-          c=c->next;
-        }
-        if(!found)
-        {
-          WiFiClient *newClientLoc=new WiFiClient(newClient);
-          newClientLoc->setNoDelay(true);
-          WiFiClientNode *newClientNode = new WiFiClientNode(newClientLoc);
-          if(numericResponses)
-            Serial.print(longResponses?"5":"1");
-          else
-          {
-            Serial.print("CONNECT");
-            if(longResponses)
-            {
-              Serial.print(" ");
-              Serial.print(newClientNode->id);
-            }
-          }
-          Serial.print(EOLN);
-        }
-      }
-      serv=serv->next;
-    }
-
-    WiFiClientNode *firstConn = nextConn;
-    if(firstConn == null)
-      firstConn = conns;
-    if((nextConn == null)||(nextConn->next == null))
-      nextConn = conns;
-    else
-      nextConn = nextConn->next;
-
-    while(XON && (nextConn != null))
-    {
-      if((nextConn->client != null) 
-      && (nextConn->client->available()>0))
-      {
-        int availableBytes = nextConn->client->available();
-        int maxBytes=packetSize;
-        if(availableBytes<maxBytes)
-          maxBytes=availableBytes;
-        nextConn->client->read(nextConn->lastPacketBuf,maxBytes);
-        if(maxBytes > 0)
-        {
-          nextConn->lastPacketLen=maxBytes;
-          reSendLastPacket(nextConn);
-          if(singlePacket)
-          {
-            XON=false;
-          }
-        }
-        break;
-      }
-      else
-      if(!nextConn->isConnected())
-      {
-        if(nextConn->wasConnected)
-        {
-          if(!suppressResponses)
-          {
-            if(numericResponses)
-              Serial.printf("3");
-            else
-              Serial.printf("NO CARRIER %d",nextConn->id);
-            Serial.print(EOLN);
-          }
-          nextConn->wasConnected=false;
-        }
-        if(nextConn->serverClient)
-        {
-          delete nextConn;
-          nextConn = null;
-          break; // messes up the order, so just leave and start over
-        }
-      }
-      
-      if(nextConn->next == null)
-        nextConn = conns;
-      else
-        nextConn = nextConn->next;
-      if(nextConn == firstConn)
-        break;
-    }
+    acceptNewConnection();
+    
+    sendNextPacket();
+    
   } //TODO: consider local buffering with XOFF, until then, trust the socket buffers.
 }
 

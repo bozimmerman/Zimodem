@@ -39,6 +39,13 @@ enum ConfigOptions
   CFG_RESP_LONG,
 };
 
+enum FlowControlType
+{
+  FCT_NORMAL,
+  FCT_AUTOOFF,
+  FCT_MANUAL
+};
+
 class ZCommand : public ZMode
 {
   friend class WiFiClientNode;
@@ -55,7 +62,7 @@ class ZCommand : public ZMode
     int packetSize = 127;
     WiFiClientNode *current = null;
     bool XON=true;
-    bool singlePacket=false;
+    FlowControlType flowControlType=FCT_NORMAL;
     unsigned long lastNonPlusTimeMs = 0;
     unsigned long currentExpiresTimeMs = 0;
     String previousCommand = "";
@@ -71,13 +78,15 @@ class ZCommand : public ZMode
     void setBaseConfigOptions(String configArguments[]);
     void reSaveConfig();
     void reSendLastPacket(WiFiClientNode *conn);
+    void acceptNewConnection();
+    void sendNextPacket();
 
     ZResult doResetCommand();
     ZResult doNoListenCommand();
     ZResult doBaudCommand(int vval, uint8_t *vbuf, int vlen);
     ZResult doTransmitCommand(int vval, uint8_t *vbuf, int vlen);
     ZResult doLastPacket(int vval, uint8_t *vbuf, int vlen, bool isNumber);
-    ZResult doConnectCommand(int vval, uint8_t *vbuf, int vlen, bool isNumber);
+    ZResult doConnectCommand(int vval, uint8_t *vbuf, int vlen, bool isNumber, const char *dmodifiers);
     ZResult doWiFiCommand(int vval, uint8_t *vbuf, int vlen);
     ZResult doDialStreamCommand(int vval, uint8_t *vbuf, int vlen, bool isNumber, const char *dmodifiers);
     ZResult doAnswerCommand(int vval, uint8_t *vbuf, int vlen, bool isNumber, const char *dmodifiers);

@@ -37,6 +37,7 @@ ATX1 : Turns on extended response codes (5/CONNECT 2 instead of 1/CONNECT, etc..
 ATF0 : Turns off flow control
 ATF1 : Turns on xon/xoff flow control
 ATF2 : Turns on xon/xoff flow control, sets XON mode (if necessary), and, in command mode, will immediately go to XOFF when a single connection packet is received. This is very useful when the client wants to ensure it only receives one packet to process.  You can think of this as an alternative way to use xon/xoff by having XOFF automatic between packets.
+ATF3 : Similar to ATF2 except that the default is XOFF, and, in command mode, a XON code from the user will immediately trigger either an empty packet response [ 0 0 0 ], or a real packet if one is available.  After this, as in ATF2, XOFF is automatically set.
 
 ATQ0 : Turns off quiet mode (Sends response codes)
 ATQ1 : Turns on quiet mode (Stops sending response codes)
@@ -61,6 +62,7 @@ ATC : Shows information about the current network connection in the following fo
 ATC0 : Lists information about all of the network connections in the following format "[CONNECTION STATE] [CONNECTION ID] [CONNECTED TO HOST]:[CONNECTED TO PORT]", including any Server (ATA) listeners.
 ATCn : Where n > 0, this changes the Current connection to the one with the given ID.  If no connection exists with the given id, ERROR is returned.
 ATC"[HOSTNAME]:[PORT]" : Creates a new connection to the given host and port, assigning a new id if the connection is successful, and making this connection the new Current connection.  The quotes and colon are required.
+ATCP"[HOSTNAME]:[PORT]" : Same as above, except terminal input is converted from PETSCII->ASCII, and incoming network packets from ASCII->PETSCII
 
 ATH  : Hangs up (disconnects and deletes) all open connections.  Does not close Server listeners.
 ATH0 : Hangs up (disconnects and deletes) the current opened connection.

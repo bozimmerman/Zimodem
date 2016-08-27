@@ -25,12 +25,13 @@ class WiFiClientNode
     int port;
     bool wasConnected=false;
     bool serverClient=false;
+    bool doPETSCII=false;
     uint8 lastPacketBuf[256];
     int lastPacketLen=0;
     WiFiClient *client;
     WiFiClientNode *next = null;
 
-    WiFiClientNode(char *hostIp, int newport);
+    WiFiClientNode(char *hostIp, int newport, bool PETSCII);
     WiFiClientNode(WiFiClient *newClient);
     ~WiFiClientNode();
     bool isConnected();

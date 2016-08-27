@@ -28,12 +28,13 @@ void WiFiClientNode::finishConnectionLink()
   }
 }
 
-WiFiClientNode::WiFiClientNode(char *hostIp, int newport)
+WiFiClientNode::WiFiClientNode(char *hostIp, int newport, bool PETSCII)
 {
   port=newport;
   host=new char[strlen(hostIp)+1];
   strcpy(host,hostIp);
   id=++WiFiNextClientId;
+  doPETSCII=PETSCII;
   client = new WiFiClient();
   if(!client->connect(hostIp, port))
   {
