@@ -1020,7 +1020,6 @@ void ZCommand::reSendLastPacket(WiFiClientNode *conn)
   Serial.printf("[ %d %d %d ]",conn->id,conn->lastPacketLen,(int)crc);
   Serial.print(EOLN);
   Serial.write(conn->lastPacketBuf,conn->lastPacketLen);
-  Serial.flush();
 }
 
 void ZCommand::serialIncoming()

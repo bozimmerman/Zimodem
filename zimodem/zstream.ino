@@ -129,7 +129,6 @@ void ZStream::loop()
       if((commandMode.doFlowControl)&&(Serial.available()>0))
         break;
     }
-    Serial.flush();
   }
 }
 
