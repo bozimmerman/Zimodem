@@ -89,7 +89,7 @@ void ZStream::loop()
       }
       if(!found)
       {
-        newClient.write("BUSY\r\n7\r\n");
+        newClient.write("\r\n\r\n\r\n\r\n\r\nBUSY\r\n7\r\n");
         newClient.flush();
         newClient.stop();
       }
