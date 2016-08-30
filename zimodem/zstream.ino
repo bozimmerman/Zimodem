@@ -98,13 +98,14 @@ void ZStream::loop()
             if(commandMode.numericResponses)
               Serial.printf("3");
             else
-              Serial.printf("NO CARRIER %d %s:%d",current->id,current->host,current->port);
+              Serial.printf("NO CARRIER");
             Serial.print(commandMode.EOLN);
           }
           delete current;
         }
         Serial.println("READY.");
         current = null;
+        
         currMode = &commandMode;
         dcdStatus = LOW;
         digitalWrite(2,dcdStatus);
@@ -115,7 +116,8 @@ void ZStream::loop()
   if(((!commandMode.doFlowControl)||(XON))
   &&(current->client->available()>0))
   {
-    while(current->client->available()>0)
+    int maxBytes=commandMode.packetSize; // watchdog'll get you if you're in here too long
+    while((current->client->available()>0)&&(--maxBytes > 0))
     {
       uint8_t c=current->client->read();
       if(telnet)

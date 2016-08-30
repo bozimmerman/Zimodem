@@ -60,7 +60,6 @@ class ZCommand : public ZMode
     
     uint8_t nbuf[MAX_COMMAND_SIZE];
     int eon=0;
-    int packetSize = 127;
     int lastServerClientId = 0;
     WiFiClientNode *current = null;
     bool XON=true;
@@ -97,6 +96,7 @@ class ZCommand : public ZMode
     ZResult doEOLNCommand(int vval, uint8_t *vbuf, int vlen, bool isNumber);
 
   public:
+    int packetSize = 127;
     bool suppressResponses;
     bool numericResponses;
     bool longResponses;
