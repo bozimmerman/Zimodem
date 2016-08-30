@@ -14,7 +14,7 @@
    limitations under the License.
 */
 
-void ZStream::reset(WiFiClientNode *conn, bool dodisconnect, bool doPETSCII, bool doTelnet)
+void ZStream::switchTo(WiFiClientNode *conn, bool dodisconnect, bool doPETSCII, bool doTelnet)
 {
   current = conn;
   currentExpiresTimeMs = 0;
@@ -24,6 +24,9 @@ void ZStream::reset(WiFiClientNode *conn, bool dodisconnect, bool doPETSCII, boo
   petscii=doPETSCII;
   telnet=doTelnet;
   XON=true;
+  dcdStatus = HIGH;
+  digitalWrite(2,dcdStatus);
+  currMode=&streamMode;
 }
     
 void ZStream::serialIncoming()
@@ -76,6 +79,8 @@ void ZStream::loop()
       Serial.print(commandMode.EOLN);
     }
     currMode = &commandMode;
+    dcdStatus = LOW;
+    digitalWrite(2,dcdStatus);
   }
   else
   if((currentExpiresTimeMs > 0) && (millis() > currentExpiresTimeMs))
@@ -101,6 +106,8 @@ void ZStream::loop()
         Serial.println("READY.");
         current = null;
         currMode = &commandMode;
+        dcdStatus = LOW;
+        digitalWrite(2,dcdStatus);
       }
     }
   }

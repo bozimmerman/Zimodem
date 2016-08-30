@@ -56,12 +56,15 @@ class ZCommand : public ZMode
     char *LF="\n";
     char *CR="\r";
     char BS=8;
-  
+    char ringCounter = 1;
+    
     uint8_t nbuf[MAX_COMMAND_SIZE];
     int eon=0;
     int packetSize = 127;
+    int lastServerClientId = 0;
     WiFiClientNode *current = null;
     bool XON=true;
+    bool autoStreamMode=false;
     FlowControlType flowControlType=FCT_NORMAL;
     unsigned long lastNonPlusTimeMs = 0;
     unsigned long currentExpiresTimeMs = 0;

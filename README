@@ -19,9 +19,11 @@ ATZ : closes all open socket connections (preserving the Access Point connection
 
 ATIn : re-shows startup message, n does not matter
 
+ATA  : If a server listener has generated a RING, then ATA will switch the last rung connection to Stream mode (see ATD).
 ATA/ : Repeats the previous command (no idea why...)
 
-ATAn : Causes Zimodem to create a server listening on port n.  Normal connect messages received when a new connection comes in, which are then accessible with ATC commands. Listener is also be listed along with other connections using ATC0.
+ATAn : Causes Zimodem to create a server listening on port n.  When a connection is received, the terminal will generate 1 or more RINGs according to the ATS0 register, followed by a normal CONNECT respose. At this point, all other commands related to connections may be used normally, unless ATS41 is > 0, in which case incoming connections are automatically sent to Stream mode as per ATD or ATA. Listeners are listed along with other connections using ATC0.
+
 ATN0 : Shuts down all listeners, leaving client connections open
 ATNn : if n > 0 then same as ATAn
 
@@ -68,7 +70,7 @@ ATH  : Hangs up (disconnects and deletes) all open connections.  Does not close 
 ATH0 : Hangs up (disconnects and deletes) the current opened connection.
 ATHn : Hangs up (disconnects and deletes) the open connection with the given id.  Closing a Server (ATA) listener does not close any connections received from that listener.
 
-ATS0=n : Unimplemented, always returns OK
+ATS0=n : Changes the number of RING messages received before a CONNECT response is sent, on incoming Server listeners.
 ATS1=n : Unimplemented, always returns OK
 ATS2=n : Change the escape character (n = 0-255), Defaults to ASCII decimal 43 ("+")
 ATS3=n : Change the Carriage Return Character	(n = 0-127), Defaults to ASCII decimal 13 (Carriage Return)
@@ -76,7 +78,7 @@ ATS4=n : Change the Line Feed Character	(0-127), Defaults ASCII decimal 10 (Line
 ATS5=n : Change the Backspace Character	(0-32), ASCII decimal 8 (Backspace)
 ATS6 ... 39=n : Unimplemented, always returns OK
 ATS40=n : Change the size of the connection packets (n > 0), Defaults to 127 bytes
-
+ATS41=n : When n > 0, all incoming Server listener connections are immediately sent to Stream mode.  If n=0, connections remain in normal command mode (default).
 +++ : With a 1 second pause with no other characters afterwards, this will disconnect the current opened connection.
 
 ATT"[MESSAGE]" : Transmit the given text string, with \r\n at the end, on the current connection.

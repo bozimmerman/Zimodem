@@ -39,6 +39,7 @@ static bool wifiConnected =false;
 static String wifiSSI;
 static String wifiPW;
 static int baudRate=1200;
+static int dcdStatus = LOW; 
 
 static bool connectWifi(const char* ssid, const char* password)
 {
@@ -87,6 +88,10 @@ void setup()
   currMode = &commandMode;
   SPIFFS.begin();
   commandMode.loadConfig();
+  pinMode(0,OUTPUT);
+  digitalWrite(0,dcdStatus);
+  pinMode(2,OUTPUT);
+  digitalWrite(2,dcdStatus);
 }
 
 void loop() 

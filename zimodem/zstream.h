@@ -27,7 +27,7 @@ class ZStream : public ZMode
     bool XON=true;
 
   public:
-    void reset(WiFiClientNode *conn, bool dodisconnect, bool doPETSCII, bool doTelnet);
+    void switchTo(WiFiClientNode *conn, bool dodisconnect, bool doPETSCII, bool doTelnet);
 
     void serialIncoming();
     void loop();

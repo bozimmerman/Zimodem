@@ -372,8 +372,7 @@ ZResult ZCommand::doDialStreamCommand(int vval, uint8_t *vbuf, int vlen, bool is
       return ZERROR;
     else
     {
-      currMode=&streamMode;
-      streamMode.reset(current,false,doPETSCII|| current->doPETSCII,doTelnet);
+      streamMode.switchTo(current,false,doPETSCII|| current->doPETSCII,doTelnet);
     }
   }
   else
@@ -384,8 +383,7 @@ ZResult ZCommand::doDialStreamCommand(int vval, uint8_t *vbuf, int vlen, bool is
       c=c->next;
     if((c!=null)&&(c->id == vval)&&(c->isConnected()))
     {
-      streamMode.reset(c,false,doPETSCII || c->doPETSCII,doTelnet);
-      currMode=&streamMode;
+      streamMode.switchTo(c,false,doPETSCII || c->doPETSCII,doTelnet);
     }
     else
       return ZERROR;
@@ -408,8 +406,7 @@ ZResult ZCommand::doDialStreamCommand(int vval, uint8_t *vbuf, int vlen, bool is
     else
     {
       current=c;
-      streamMode.reset(c,true,doPETSCII,doTelnet);
-      currMode=&streamMode;
+      streamMode.switchTo(c,true,doPETSCII,doTelnet);
     }
   }
   return ZOK;
@@ -434,7 +431,38 @@ ZResult ZCommand::doAnswerCommand(int vval, uint8_t *vbuf, int vlen, bool isNumb
   }
   else
   if(vval <= 0)
-      return ZERROR;
+  {
+      WiFiClientNode *c=conns;
+      while(c!=null)
+      {
+        if((c->isConnected())
+        &&(c->id = lastServerClientId))
+        {
+          streamMode.switchTo(c,false,false,false);
+          lastServerClientId=0;
+          if(ringCounter == 0)
+          {
+            if(numericResponses)
+              Serial.print(longResponses?"5":"1");
+            else
+            {
+              Serial.print("CONNECT");
+              if(longResponses)
+              {
+                Serial.print(" ");
+                Serial.print(c->id);
+              }
+            }
+            Serial.print(EOLN);
+            return ZIGNORE;
+          }
+          break;
+        }
+        c=c->next;
+      }
+      //TODO: possibly go to streaming mode, turn on DCD, and do nothing?
+      return ZOK; // not really doing anything important...
+  }
   else
   {
     WiFiServerNode *newServer = new WiFiServerNode(vval);
@@ -835,6 +863,12 @@ ZResult ZCommand::doSerialCommand()
               else
               switch(snum)
               {
+              case 0:
+                if((sval < 0)||(sval>255))
+                  result=ZERROR;
+                else
+                  ringCounter = sval;
+                break;
               case 2:
                 if((sval < 0)||(sval>255))
                   result=ZERROR;
@@ -880,6 +914,9 @@ ZResult ZCommand::doSerialCommand()
                 else
                   packetSize=sval;
                 break;
+             case 41:
+                autoStreamMode = (sval > 0);
+                break;
              default:
                 break;
               }
@@ -899,6 +936,11 @@ ZResult ZCommand::doSerialCommand()
           case 'w':
           case 'W':
             reSaveConfig();
+            break;
+          case 'o':
+          case 'O':
+            dcdStatus = (dcdStatus == LOW) ? HIGH : LOW;
+            digitalWrite(2,dcdStatus);
             break;
           default:
             result=ZERROR;
@@ -1101,18 +1143,45 @@ void ZCommand::acceptNewConnection()
         WiFiClient *newClientLoc=new WiFiClient(newClient);
         newClientLoc->setNoDelay(true);
         WiFiClientNode *newClientNode = new WiFiClientNode(newClientLoc);
-        if(numericResponses)
-          Serial.print(longResponses?"5":"1");
-        else
+        int i=0;
+        do
         {
-          Serial.print("CONNECT");
-          if(longResponses)
+          if(numericResponses)
+            Serial.print("2");
+          else
           {
-            Serial.print(" ");
-            Serial.print(newClientNode->id);
+            Serial.print("RING");
+            if(longResponses)
+            {
+              Serial.print(" ");
+              Serial.print(newClientNode->id);
+            }
+          }
+          Serial.print(EOLN);
+        }
+        while((++i)<ringCounter);
+        
+        lastServerClientId = newClientNode->id;
+        if(ringCounter > 0)
+        {
+          if(numericResponses)
+            Serial.print(longResponses?"5":"1");
+          else
+          {
+            Serial.print("CONNECT");
+            if(longResponses)
+            {
+              Serial.print(" ");
+              Serial.print(newClientNode->id);
+            }
+          }
+          Serial.print(EOLN);
+          if(autoStreamMode)
+          {
+            doAnswerCommand(0, (uint8_t *)"", 0, false, "");
+            break;
           }
         }
-        Serial.print(EOLN);
       }
     }
     serv=serv->next;
