@@ -68,6 +68,35 @@ void ZStream::serialIncoming()
 
 void ZStream::loop()
 {
+  WiFiServerNode *serv = servs;
+  while(serv != null)
+  {
+    WiFiClient newClient = serv->server->available();
+    if((newClient != null)&&(newClient.connected()))
+    {
+      int port=newClient.localPort();
+      String remoteIPStr = newClient.remoteIP().toString();
+      const char *remoteIP=remoteIPStr.c_str();
+      bool found=false;
+      WiFiClientNode *c=conns;
+      while(c!=null)
+      {
+        if((c->isConnected())
+        &&(c->port==port)
+        &&(strcmp(remoteIP,c->host)==0))
+          found=true;
+        c=c->next;
+      }
+      if(!found)
+      {
+        newClient.write("BUSY\r\n7\r\n");
+        newClient.flush();
+        newClient.stop();
+      }
+    }
+    serv=serv->next;
+  }
+  
   if((current==null)||(!current->isConnected()))
   {
     if(!commandMode.suppressResponses)
@@ -117,7 +146,7 @@ void ZStream::loop()
   &&(current->client->available()>0))
   {
     int maxBytes=commandMode.packetSize; // watchdog'll get you if you're in here too long
-    while((current->client->available()>0)&&(--maxBytes > 0))
+    while(current->isConnected() && (current->client->available()>0)&&(--maxBytes > 0))
     {
       uint8_t c=current->client->read();
       if(telnet)
