@@ -16,13 +16,18 @@
 
 void ZStream::switchTo(WiFiClientNode *conn, bool dodisconnect, bool doPETSCII, bool doTelnet)
 {
+  switchTo(conn);
+  disconnectOnExit=dodisconnect;
+  petscii=doPETSCII;
+  telnet=doTelnet;
+}
+    
+void ZStream::switchTo(WiFiClientNode *conn)
+{
   current = conn;
   currentExpiresTimeMs = 0;
   lastNonPlusTimeMs = 0;
-  disconnectOnExit=dodisconnect;
   plussesInARow=0;
-  petscii=doPETSCII;
-  telnet=doTelnet;
   XON=true;
   dcdStatus = HIGH;
   digitalWrite(2,dcdStatus);
@@ -31,40 +36,71 @@ void ZStream::switchTo(WiFiClientNode *conn, bool dodisconnect, bool doPETSCII, 
     
 void ZStream::serialIncoming()
 {
-  while(Serial.available()>0)
+  int serialAvailable = Serial.available();
+  int wasSerialAvailable = serialAvailable;
+  if(serialAvailable > 0)
   {
-      uint8_t c=Serial.read();
-      if((c==commandMode.EC)
-      &&((plussesInARow>0)||((millis()-lastNonPlusTimeMs)>1000)))
-        plussesInARow++;
+    //Serial.write('*'); Serial.flush();
+  }
+  while((serialAvailable--)>0)
+  {
+    uint8_t c=Serial.read();
+    if((c==commandMode.EC)
+    &&((plussesInARow>0)||((millis()-lastNonPlusTimeMs)>1000)))
+      plussesInARow++;
+    else
+    if(c!=commandMode.EC)
+    {
+        plussesInARow=0;
+        lastNonPlusTimeMs=millis();
+    }
+    if(c>0)
+    {
+      if((c==19)&&(commandMode.doFlowControl))
+        XON=false;
       else
-      if(c!=commandMode.EC)
+      if((c==17)&&(commandMode.doFlowControl))
+        XON=true;
+      else
       {
-          plussesInARow=0;
-          lastNonPlusTimeMs=millis();
+        if(commandMode.doEcho)
+          Serial.write(c);
+        if(petscii)
+          c = petToAsc(c,&Serial);
+        if(current->isConnected() && (c != 0))
+          current->client->write(c);
       }
-      if(c>0)
-      {
-        if((c==19)&&(commandMode.doFlowControl))
-          XON=false;
-        else
-        if((c==17)&&(commandMode.doFlowControl))
-          XON=true;
-        else
-        {
-          if(commandMode.doEcho)
-            Serial.write(c);
-          if(petscii)
-            c = petToAsc(c,&Serial);
-          if(current->isConnected() && (c != 0))
-            current->client->write(c);
-        }
-      }
+    }
   }
   currentExpiresTimeMs = 0;
   if(plussesInARow==3)
     currentExpiresTimeMs=millis()+1000;
+  if(wasSerialAvailable > 0)
+  {
+    //Serial.write('&'); Serial.flush();
+  }
 }
+
+void ZStream::switchBackToCommandMode(bool logout)
+{
+    if(disconnectOnExit && logout && (current != null))
+    {
+      if(!commandMode.suppressResponses)
+      {
+        if(commandMode.numericResponses)
+          Serial.printf("3");
+        else
+          Serial.printf("NO CARRIER");
+        Serial.print(commandMode.EOLN);
+      }
+      delete current;
+    }
+    current = null;
+    dcdStatus = LOW;
+    digitalWrite(2,dcdStatus);
+    currMode = &commandMode;
+}
+
 
 void ZStream::loop()
 {
@@ -99,17 +135,7 @@ void ZStream::loop()
   
   if((current==null)||(!current->isConnected()))
   {
-    if(!commandMode.suppressResponses)
-    {
-      if(commandMode.numericResponses)
-        Serial.printf("3");
-      else
-        Serial.printf("NO CARRIER");
-      Serial.print(commandMode.EOLN);
-    }
-    currMode = &commandMode;
-    dcdStatus = LOW;
-    digitalWrite(2,dcdStatus);
+    switchBackToCommandMode(true);
   }
   else
   if((currentExpiresTimeMs > 0) && (millis() > currentExpiresTimeMs))
@@ -120,33 +146,20 @@ void ZStream::loop()
       plussesInARow=0;
       if(current != 0)
       {
-        if(disconnectOnExit)
-        {
-          if(!commandMode.suppressResponses)
-          {
-            if(commandMode.numericResponses)
-              Serial.printf("3");
-            else
-              Serial.printf("NO CARRIER");
-            Serial.print(commandMode.EOLN);
-          }
-          delete current;
-        }
-        Serial.println("READY.");
-        current = null;
-        
-        currMode = &commandMode;
-        dcdStatus = LOW;
-        digitalWrite(2,dcdStatus);
+        switchBackToCommandMode(false);
       }
     }
   }
   else
   if(((!commandMode.doFlowControl)||(XON))
+  &&(current->isConnected())
   &&(current->client->available()>0))
   {
-    int maxBytes=commandMode.packetSize; // watchdog'll get you if you're in here too long
-    while(current->isConnected() && (current->client->available()>0)&&(--maxBytes > 0))
+    int maxBytes= 1;//baudRate / 100; // commandMode.packetSize ; //watchdog'll get you if you're in here too long
+    int bytesAvailable = current->client->available();
+    if(bytesAvailable > maxBytes)
+      bytesAvailable = maxBytes;
+    while(current->isConnected() && ((bytesAvailable--)>0))
     {
       uint8_t c=current->client->read();
       if(telnet)

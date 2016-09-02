@@ -70,6 +70,8 @@ ATH  : Hangs up (disconnects and deletes) all open connections.  Does not close 
 ATH0 : Hangs up (disconnects and deletes) the current opened connection.
 ATHn : Hangs up (disconnects and deletes) the open connection with the given id.  Closing a Server (ATA) listener does not close any connections received from that listener.
 
+ATO : Re-enters a Streaming session (see ATD) under the previous settings, with the current (previous) connection.
+
 ATS0=n : Changes the number of RING messages received before a CONNECT response is sent, on incoming Server listeners.
 ATS1=n : Unimplemented, always returns OK
 ATS2=n : Change the escape character (n = 0-255), Defaults to ASCII decimal 43 ("+")

@@ -74,7 +74,6 @@ ZResult ZCommand::doResetCommand()
   flowControlType=FCT_NORMAL;
   setBaseConfigOptions(argv);
   memset(nbuf,0,MAX_COMMAND_SIZE);
-  showInitMessage();
   return ZOK;
 }
 
@@ -194,6 +193,7 @@ void ZCommand::loadConfig()
     connectWifi(wifiSSI.c_str(),wifiPW.c_str());
   }
   doResetCommand();
+  showInitMessage();
 }
 
 
@@ -383,6 +383,7 @@ ZResult ZCommand::doDialStreamCommand(int vval, uint8_t *vbuf, int vlen, bool is
       c=c->next;
     if((c!=null)&&(c->id == vval)&&(c->isConnected()))
     {
+      current=c;
       streamMode.switchTo(c,false,doPETSCII || c->doPETSCII,doTelnet);
     }
     else
@@ -438,6 +439,7 @@ ZResult ZCommand::doAnswerCommand(int vval, uint8_t *vbuf, int vlen, bool isNumb
         if((c->isConnected())
         &&(c->id = lastServerClientId))
         {
+          current=c;
           streamMode.switchTo(c,false,false,false);
           lastServerClientId=0;
           if(ringCounter == 0)
@@ -802,7 +804,16 @@ ZResult ZCommand::doSerialCommand()
         break;
       case 'o':
       case 'O':
-        result = isNumber ? ZOK : ZERROR;
+        if((vlen == 0)&&(!isNumber))
+        {
+          result = ZOK;
+          if(current == null)
+            result = ZERROR;
+          else
+            streamMode.switchTo(current);
+        }
+        else
+          result = isNumber ? ZOK : ZERROR;
         break;
       case 'c':
       case 'C':
