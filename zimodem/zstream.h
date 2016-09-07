@@ -26,8 +26,12 @@ class ZStream : public ZMode
     bool telnet=false;
     bool XON=true;
     long nextAlarm = millis() + 5000;
+    int logFileCtrW=0;
+    int logFileCtrR=0;
 
     void switchBackToCommandMode(bool logout);
+    void serialWrite(uint8_t c);
+    void serialDeque();
 
   public:
     void switchTo(WiFiClientNode *conn);

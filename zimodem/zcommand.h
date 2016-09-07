@@ -81,6 +81,7 @@ class ZCommand : public ZMode
     void reSaveConfig();
     void reSendLastPacket(WiFiClientNode *conn);
     void acceptNewConnection();
+    void sendConnectionNotice(int nodeId);
     void sendNextPacket();
 
     ZResult doResetCommand();

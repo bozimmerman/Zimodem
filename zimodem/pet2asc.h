@@ -14,9 +14,7 @@
    limitations under the License.
 */
 
-#include <ESP8266WiFi.h>
-
-char petToAsc(char c, Stream *stream);
-char ascToPet(char c, Stream *stream);
-char handleAsciiIAC(char c, Stream *stream);
+char petToAsc(char c);
+bool ascToPet(char *c, Stream *stream);
+bool handleAsciiIAC(char *c, Stream *stream);
 

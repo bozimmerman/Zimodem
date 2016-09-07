@@ -88,3 +88,5 @@ ATTn : Where n > 0, this starts a transmit of exactly n bytes to the current con
 
 AT&L : Reloads the saved configuration.
 AT&W : Saves the current configuration: WiFi settings(ATW), baud rate (ATB), end of line (ATR) settings, flow control (ATF), echo mode (ATE), extended responses (ATX), verbose responses (ATV), quiet responses (ATQ)
+
+AT&G : 1 to turn on internal serial-reception log, 0 to turn off or view.

@@ -112,44 +112,47 @@ unsigned char ascToPetTable[256] = {
   /** TELNET CODE: IAC*/
 #define TELNET_IAC 255 
 
-char handleAsciiIAC(char c, Stream *stream)
+bool handleAsciiIAC(char *c, Stream *stream)
 {
-  if(c == 255)
+  if(*c == 255)
   {
-    c=stream->read();
-    if(c==TELNET_IAC)
-      return 255;
-    if((c==TELNET_WILL)||(c==TELNET_WONT))
+    *c=stream->read();
+    if(*c==TELNET_IAC)
+    {
+      *c = 255;
+      return true;
+    }
+    if((*c==TELNET_WILL)||(*c==TELNET_WONT))
     {
       char what=stream->read();
       uint8_t iacDont[] = {TELNET_IAC, TELNET_DONT, what};
       stream->write(iacDont,3);
-      return 0;
+      return false;
     }
-    if((c==TELNET_DO)||(c==TELNET_DONT))
+    if((*c==TELNET_DO)||(*c==TELNET_DONT))
     {
       char what=stream->read();
-      return 0;
+      return false;
     }
-    if(c==TELNET_SB)
+    if(*c==TELNET_SB)
     {
       char what=stream->read();
-      char lastC=c;
-      while(((lastC!=TELNET_IAC)||(c!=TELNET_SE))&&(c>=0))
+      char lastC=*c;
+      while(((lastC!=TELNET_IAC)||(*c!=TELNET_SE))&&(*c>=0))
       {
-        lastC=c;
-        c=stream->read();
+        lastC=*c;
+        *c=stream->read();
       }
       if(what == TELNET_TERMTYPE)
       {
         uint8_t resp[] = {TELNET_IAC,TELNET_SB,TELNET_TERMTYPE,0,'Z','i','m','o','d','e','m',TELNET_IAC,TELNET_SE};
         stream->write(resp,13);
-        return 0;
+        return false;
       }
     }
-    return 0;
+    return false;
   }
-  return c;
+  return true;
 }
 
 char ansiColorToPetsciiColor(char c, Stream *stream)
@@ -247,16 +250,19 @@ char ansiColorToPetsciiColor(char c, Stream *stream)
   return c;
 }
 
-char petToAsc(char c, Stream *stream)
+char petToAsc(char c)
 {
   return petToAscTable[c];
 }
 
-char ascToPet(char c, Stream *stream)
+bool ascToPet(char *c, Stream *stream)
 {
-  c=ansiColorToPetsciiColor(c,stream);
-  if(c != 0)
-    return ascToPetTable[c];
-  return 0;
+  *c=ansiColorToPetsciiColor(*c,stream);
+  if(*c != 0)
+  {
+    *c = ascToPetTable[*c];
+    return true;
+  }
+  return false;
 }
 

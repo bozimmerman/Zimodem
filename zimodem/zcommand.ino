@@ -51,6 +51,14 @@ void ZCommand::setConfigDefaults()
   EOLN = CRLF;
 }
 
+char lc(char c)
+{
+  if((c>=65) && (c<=90))
+    return c+32;
+  if((c>=193) && (c<=218))
+    return c-96;
+  return c;
+}
 
 ZResult ZCommand::doResetCommand()
 {
@@ -184,7 +192,7 @@ void ZCommand::loadConfig()
   if(argv[CFG_BAUDRATE].length()>0)
     baudRate=atoi(argv[CFG_BAUDRATE].c_str());
   if(baudRate <= 0)
-    baudRate=115200;
+    baudRate=1200;
   Serial.begin(baudRate);  //Start Serial
   wifiSSI=argv[CFG_WIFISSI];
   wifiPW=argv[CFG_WIFIPW];
@@ -337,15 +345,14 @@ ZResult ZCommand::doTransmitCommand(int vval, uint8_t *vbuf, int vlen)
   {
     uint8_t buf[vval];
     int recvd = Serial.readBytes(buf,vval);
+    if(recvd != vval)
+      return ZERROR;
     if(current->doPETSCII)
     {
       for(int i=0;i<recvd;i++)
-        buf[i]=petToAsc(buf[i],current->client);
+        buf[i]=petToAsc(buf[i]);
     }
-    if(recvd == vval)
-      current->client->write(buf,recvd);
-    else
-      return ZERROR;
+    current->client->write(buf,recvd);
   }
   else
   {
@@ -354,7 +361,7 @@ ZResult ZCommand::doTransmitCommand(int vval, uint8_t *vbuf, int vlen)
     if(current->doPETSCII)
     {
       for(int i=0;i<vlen;i++)
-        buf[i]=petToAsc(buf[i],current->client);
+        buf[i] = petToAsc(buf[i]);
     }
     current->client->write(buf,vlen);
     current->client->print("\r\n"); // special case
@@ -444,18 +451,7 @@ ZResult ZCommand::doAnswerCommand(int vval, uint8_t *vbuf, int vlen, bool isNumb
           lastServerClientId=0;
           if(ringCounter == 0)
           {
-            if(numericResponses)
-              Serial.print(longResponses?"5":"1");
-            else
-            {
-              Serial.print("CONNECT");
-              if(longResponses)
-              {
-                Serial.print(" ");
-                Serial.print(c->id);
-              }
-            }
-            Serial.print(EOLN);
+            sendConnectionNotice(c->id);
             return ZIGNORE;
           }
           break;
@@ -467,6 +463,14 @@ ZResult ZCommand::doAnswerCommand(int vval, uint8_t *vbuf, int vlen, bool isNumb
   }
   else
   {
+    
+    WiFiServerNode *s=servs;
+    while(s != null)
+    {
+      if(s->port == vval)
+        return ZOK;
+      s=s->next;
+    }
     WiFiServerNode *newServer = new WiFiServerNode(vval);
     return ZOK;
   }
@@ -650,13 +654,12 @@ ZResult ZCommand::doSerialCommand()
   ZResult result=ZOK;
   int index=0;
   while((index<len-1)
-  &&(((sbuf[index]!='A')&&(sbuf[index]!='a'))
-    ||((sbuf[index+1]!='T')&&(sbuf[index+1]!='t'))))
+  &&((lc(sbuf[index])!='a')||(lc(sbuf[index+1])!='t')))
       index++;
 
   if((index<len-1)
-  &&((sbuf[index]=='A')||(sbuf[index]=='a'))
-  &&((sbuf[index+1]=='T')||(sbuf[index+1]=='t')))
+  &&(lc(sbuf[index])=='a')
+  &&(lc(sbuf[index+1])=='t'))
   {
     index+=2;
     char lastCmd=' ';
@@ -665,14 +668,14 @@ ZResult ZCommand::doSerialCommand()
     String dmodifiers="";
     while(index<len)
     {
-      lastCmd=sbuf[index++];
+      lastCmd=lc(sbuf[index++]);
       vstart=index;
       vlen=0;
       bool isNumber=true;
       if((lastCmd=='&')&&(index<len))
       {
         index++;//protect our one and only letter.
-        vlen++;
+        vstart++;
       }
       if(index<len)
       {
@@ -690,9 +693,9 @@ ZResult ZCommand::doSerialCommand()
         if((lastCmd=='d')||(lastCmd=='D')
         || (lastCmd=='c')||(lastCmd=='C'))
         {
-          const char *DMODIFIERS="LPRTW,lprtw";
-          while((index<len)&&(strchr(DMODIFIERS,sbuf[index])!=null))
-            dmodifiers += (char)sbuf[index++];
+          const char *DMODIFIERS=",lprtw";
+          while((index<len)&&(strchr(DMODIFIERS,lc(sbuf[index]))!=null))
+            dmodifiers += lc((char)sbuf[index++]);
           vstart=index;
           if(sbuf[index]=='\"')
           {
@@ -713,8 +716,7 @@ ZResult ZCommand::doSerialCommand()
         }
         else
         while((index<len)
-        &&(! (((sbuf[index]>='a')&&(sbuf[index]<='z'))
-              ||((sbuf[index]>='A')&&(sbuf[index]<='Z')))))
+        &&(!((lc(sbuf[index])>='a')&&(lc(sbuf[index])<='z'))))
         {
           isNumber = (sbuf[index]>='0') && (sbuf[index]<='9') && isNumber;
           vlen++;
@@ -736,29 +738,24 @@ ZResult ZCommand::doSerialCommand()
       switch(lastCmd)
       {
       case 'z':
-      case 'Z':
         result = doResetCommand();
         break;
       case 'n':
-      case 'N':
         if(isNumber && (vval == 0))
         {
           doNoListenCommand();
           break;
         }
       case 'a':
-      case 'A':
         result = doAnswerCommand(vval,vbuf,vlen,isNumber,dmodifiers.c_str());
         break;
       case 'e':
-      case 'E':
         if(!isNumber)
           result=ZERROR;
         else
           doEcho=(vval > 0);
         break;
       case 'f':
-      case 'F':
         if(!isNumber)
           result=ZERROR;
         else
@@ -776,34 +773,27 @@ ZResult ZCommand::doSerialCommand()
         }
         break;
       case 'x':
-      case 'X':
         if(!isNumber)
           result=ZERROR;
         else
           longResponses = (vval > 0);
         break;
       case 'r':
-      case 'R':
         result = doEOLNCommand(vval,vbuf,vlen,isNumber);
         break;
       case 'b':
-      case 'B':
         result = doBaudCommand(vval,vbuf,vlen);
         break;
       case 't':
-      case 'T':
         result = doTransmitCommand(vval,vbuf,vlen);
         break;
       case 'h':
-      case 'H':
         result = doHangupCommand(vval,vbuf,vlen,isNumber);
         break;
       case 'd':
-      case 'D':
         result = doDialStreamCommand(vval,vbuf,vlen,isNumber,dmodifiers.c_str());
         break;
       case 'o':
-      case 'O':
         if((vlen == 0)&&(!isNumber))
         {
           result = ZOK;
@@ -816,43 +806,34 @@ ZResult ZCommand::doSerialCommand()
           result = isNumber ? ZOK : ZERROR;
         break;
       case 'c':
-      case 'C':
         result = doConnectCommand(vval,vbuf,vlen,isNumber,dmodifiers.c_str());
         break;
       case 'i':
-      case 'I':
         showInitMessage();
         break;
       case 'l':
-      case 'L':
         doLastPacket(vval,vbuf,vlen,isNumber);
         break;
       case 'm':
-      case 'M':
       case 'y':
-      case 'Y':
         result = isNumber ? ZOK : ZERROR;
         break;
       case 'w':
-      case 'W':
         result = doWiFiCommand(vval,vbuf,vlen);
         break;
       case 'v':
-      case 'V':
         if(!isNumber)
           result=ZERROR;
         else
           numericResponses = (vval == 0);
         break;
       case 'q':
-      case 'Q':
         if(!isNumber)
           result=ZERROR;
         else
           suppressResponses = (vval > 0);
         break;
       case 's':
-      case 'S':
         {
           if(vlen<3)
             result=ZERROR;
@@ -936,30 +917,59 @@ ZResult ZCommand::doSerialCommand()
         }
         break;
       case '&':
-        if(vlen > 0)
+        switch(lc(sbuf[vstart-1]))
         {
-          switch(vbuf[0])
+        case 'l':
+          loadConfig();
+          break;
+        case 'w':
+          reSaveConfig();
+          break;
+        case 'g':
+          if(vval == 0)
           {
-          case 'l':
-          case 'L':
-            loadConfig();
-            break;
-          case 'w':
-          case 'W':
-            reSaveConfig();
-            break;
-          case 'o':
-          case 'O':
-            dcdStatus = (dcdStatus == LOW) ? HIGH : LOW;
-            digitalWrite(2,dcdStatus);
-            break;
-          default:
-            result=ZERROR;
-            break;
+            if(logFileOpen)
+            {
+              logFileOpen = false;
+              logFile.close();
+            }
+            logFile = SPIFFS.open("/logfile.txt", "r");
+            int numBytes = logFile.available();
+            while (numBytes > 0) 
+            {
+              if(numBytes > 128)
+                numBytes = 128;
+              byte buf[numBytes];
+              int numRead = logFile.read(buf,numBytes);
+              int i=0;
+              while(i < numRead)
+              {
+                if(Serial.availableForWrite() > 0)
+                  Serial.write(buf[i++]);
+                else
+                  delay(10);
+              }
+              numBytes = logFile.available();
+            }
+            logFile.close();
+            Serial.println("");
+            result=ZOK;
           }
-        }
-        else
+          else
+          if(logFileOpen)
+            result=ZERROR;
+          else
+          {
+            logFileOpen = true;
+            SPIFFS.remove("/logfile.txt");
+            logFile = SPIFFS.open("/logfile.txt", "w");              
+            result=ZOK;
+          }
+          break;
+        default:
           result=ZERROR;
+          break;
+        }
         break;
       default:
         result=ZERROR;
@@ -1000,21 +1010,7 @@ ZResult ZCommand::doSerialCommand()
         // on error, cut and run
         return ZERROR;
       case ZCONNECT:
-        if(numericResponses)
-          Serial.print(longResponses?"5":"1");
-        else
-        {
-          Serial.print("CONNECT");
-          if(longResponses)
-          {
-            Serial.print(" ");
-            if(current != null)
-              Serial.print(current->id);
-            else
-              Serial.print(baudRate);
-          }
-        }
-        Serial.print(EOLN);
+        sendConnectionNotice((current == null) ? baudRate : current->id);
         break;
       default:
         break;
@@ -1064,13 +1060,23 @@ void ZCommand::sendNextPacket()
       int maxBytes=packetSize;
       if(availableBytes<maxBytes)
         maxBytes=availableBytes;
-      nextConn->client->read(nextConn->lastPacketBuf,maxBytes);
+      if(maxBytes > Serial.availableForWrite()-15)
+        maxBytes = Serial.availableForWrite()-15;
       if(maxBytes > 0)
       {
+        maxBytes = nextConn->client->read(nextConn->lastPacketBuf,maxBytes);
         if(nextConn->doPETSCII)
         {
-          for(int i=0;i<maxBytes;i++)
-            nextConn->lastPacketBuf[i]=ascToPet(nextConn->lastPacketBuf[i],nextConn->client);
+          int bytesToRead=maxBytes;
+          for(int i=0, b=0;i<bytesToRead;i++,b++)
+          {
+            nextConn->lastPacketBuf[b]=nextConn->lastPacketBuf[i];
+            if(!ascToPet((char *)&nextConn->lastPacketBuf[b],nextConn->client))
+            {
+              b--;
+              maxBytes--;
+            }
+          }
         }
         nextConn->lastPacketLen=maxBytes;
         reSendLastPacket(nextConn);
@@ -1127,6 +1133,51 @@ void ZCommand::sendNextPacket()
   }
 }
 
+void ZCommand::sendConnectionNotice(int id)
+{
+  if(numericResponses)
+  {
+    if(!longResponses)
+      Serial.print("1");
+    else
+    if(baudRate < 1200)
+      Serial.print("1");
+    else
+    if(baudRate < 2400)
+      Serial.print("5");
+    else
+    if(baudRate < 4800)
+      Serial.print("10");
+    else
+    if(baudRate < 7200)
+      Serial.print("11");
+    else
+    if(baudRate < 9600)
+      Serial.print("24");
+    else
+    if(baudRate < 12000)
+      Serial.print("12");
+    else
+    if(baudRate < 14400)
+      Serial.print("25");
+    else
+    if(baudRate < 19200)
+      Serial.print("13");
+    else
+      Serial.print("28");
+  }
+  else
+  {
+    Serial.print("CONNECT");
+    if(longResponses)
+    {
+      Serial.print(" ");
+      Serial.print(id);
+    }
+  }
+  Serial.print(EOLN);
+}
+
 void ZCommand::acceptNewConnection()
 {
   WiFiServerNode *serv = servs;
@@ -1174,18 +1225,7 @@ void ZCommand::acceptNewConnection()
         lastServerClientId = newClientNode->id;
         if(ringCounter > 0)
         {
-          if(numericResponses)
-            Serial.print(longResponses?"5":"1");
-          else
-          {
-            Serial.print("CONNECT");
-            if(longResponses)
-            {
-              Serial.print(" ");
-              Serial.print(newClientNode->id);
-            }
-          }
-          Serial.print(EOLN);
+          sendConnectionNotice(newClientNode->id);
           if(autoStreamMode)
           {
             doAnswerCommand(0, (uint8_t *)"", 0, false, "");

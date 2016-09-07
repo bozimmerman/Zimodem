@@ -14,12 +14,16 @@
    limitations under the License.
 */
 
+#define TCP_SND_BUF                     4 * TCP_MSS
+// this failed to change ClientContext.h delay(5000)! Therefore, that change needs to be made by hand for now.
+#define delay(a) if((strstr(__FILE__,"ClientContext")!=null)&&(a==5000)) delay(10); else delay(a);
+
 #include <ESP8266WiFi.h>
 #include <FS.h>
 #include <spiffs/spiffs.h>
 
 #define null 0
-#define ZIMODEM_VERSION "1.2"
+#define ZIMODEM_VERSION "1.5"
 
 #include "pet2asc.h"
 #include "zmode.h"
@@ -40,6 +44,12 @@ static String wifiSSI;
 static String wifiPW;
 static int baudRate=1200;
 static int dcdStatus = LOW; 
+static bool logFileOpen = false;
+static File logFile; 
+static const int BUFSIZE = 4096;
+static uint8_t TBUF[BUFSIZE];
+static int TBUFhead=0;
+static int TBUFtail=0;
 
 static bool connectWifi(const char* ssid, const char* password)
 {

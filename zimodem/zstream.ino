@@ -14,6 +14,8 @@
    limitations under the License.
 */
 
+#define DBG_BYT_CTR 23
+
 void ZStream::switchTo(WiFiClientNode *conn, bool dodisconnect, bool doPETSCII, bool doTelnet)
 {
   switchTo(conn);
@@ -33,16 +35,21 @@ void ZStream::switchTo(WiFiClientNode *conn)
   digitalWrite(2,dcdStatus);
   currMode=&streamMode;
 }
-    
+
+static char HD[3];
+
+char *TOHEX(uint8_t a)
+{
+  HD[0] = "0123456789ABCDEF"[(a >> 4) & 0x0f];
+  HD[1] = "0123456789ABCDEF"[a & 0x0f];
+  HD[2] = 0;
+  return HD;
+}
+
 void ZStream::serialIncoming()
 {
   int serialAvailable = Serial.available();
-  int wasSerialAvailable = serialAvailable;
   if(serialAvailable > 0)
-  {
-    //Serial.write('*'); Serial.flush();
-  }
-  while((serialAvailable--)>0)
   {
     uint8_t c=Serial.read();
     if((c==commandMode.EC)
@@ -54,30 +61,40 @@ void ZStream::serialIncoming()
         plussesInARow=0;
         lastNonPlusTimeMs=millis();
     }
-    if(c>0)
+    if((c==19)&&(commandMode.doFlowControl))
+      XON=false;
+    else
+    if((c==17)&&(commandMode.doFlowControl))
+      XON=true;
+    else
     {
-      if((c==19)&&(commandMode.doFlowControl))
-        XON=false;
-      else
-      if((c==17)&&(commandMode.doFlowControl))
-        XON=true;
-      else
+      if(commandMode.doEcho)
+        Serial.write(c);
+      if(petscii)
+        c = petToAsc(c);
+      if(current->isConnected())
       {
-        if(commandMode.doEcho)
-          Serial.write(c);
-        if(petscii)
-          c = petToAsc(c,&Serial);
-        if(current->isConnected() && (c != 0))
-          current->client->write(c);
+        //BZ: Requires changing delay(5000) in ESP8266 ClientContext.h
+        current->client->write(c);
+        if(logFileOpen)
+        {
+          if((logFileCtrW > 0)
+          ||(++logFileCtrR > DBG_BYT_CTR))
+          {
+            logFileCtrR=1;
+            logFileCtrW=0;
+            logFile.println("");
+            logFile.print("Serial: ");
+          }
+          logFile.print(TOHEX(c));
+          logFile.print(" ");
+        }
       }
     }
-  }
-  currentExpiresTimeMs = 0;
-  if(plussesInARow==3)
-    currentExpiresTimeMs=millis()+1000;
-  if(wasSerialAvailable > 0)
-  {
-    //Serial.write('&'); Serial.flush();
+    
+    currentExpiresTimeMs = 0;
+    if(plussesInARow==3)
+      currentExpiresTimeMs=millis()+1000;
   }
 }
 
@@ -101,6 +118,36 @@ void ZStream::switchBackToCommandMode(bool logout)
     currMode = &commandMode;
 }
 
+void ZStream::serialWrite(uint8_t c)
+{
+  Serial.write(c);
+  if(logFileOpen)
+  {
+    if((logFileCtrR > 0)
+    ||(++logFileCtrW > DBG_BYT_CTR))
+    {
+      logFileCtrR=0;
+      logFileCtrW=1;
+      logFile.println("");
+      logFile.print("Socket: ");
+    }
+    logFile.print(TOHEX(c));
+    logFile.print(" ");
+  }
+}
+    
+void ZStream::serialDeque()
+{
+  int availToWrite = Serial.availableForWrite();
+  while((TBUFhead != TBUFtail)&&(availToWrite>0))
+  {
+    serialWrite(TBUF[TBUFhead]);
+    TBUFhead++;
+    if(TBUFhead >= BUFSIZE)
+      TBUFhead = 0;
+    availToWrite = Serial.availableForWrite();
+  }
+}
 
 void ZStream::loop()
 {
@@ -151,25 +198,33 @@ void ZStream::loop()
     }
   }
   else
-  if(((!commandMode.doFlowControl)||(XON))
-  &&(current->isConnected())
-  &&(current->client->available()>0))
+  if((!commandMode.doFlowControl)||(XON))
   {
-    int maxBytes= 1;//baudRate / 100; // commandMode.packetSize ; //watchdog'll get you if you're in here too long
-    int bytesAvailable = current->client->available();
-    if(bytesAvailable > maxBytes)
-      bytesAvailable = maxBytes;
-    while(current->isConnected() && ((bytesAvailable--)>0))
+    serialDeque();
+    if((current->isConnected())
+    &&(current->client->available()>0))
     {
-      uint8_t c=current->client->read();
-      if(telnet)
-        c=handleAsciiIAC(c,current->client);
-      if(petscii)
-        c=ascToPet(c,current->client);
-      if(c>0)
-        Serial.write(c);
-      if((commandMode.doFlowControl)&&(Serial.available()>0))
-        break;
+      //int maxBytes= 1;//baudRate / 100; // commandMode.packetSize ; //watchdog'll get you if you're in here too long
+      int bytesAvailable = current->client->available();
+      //if(bytesAvailable > maxBytes)
+      //  bytesAvailable = maxBytes;
+      if(bytesAvailable>0)
+      {
+        uint8_t c = current->client->read();
+        if((!telnet || handleAsciiIAC((char *)&c,current->client))
+        && (!petscii || ascToPet((char *)&c,current->client)))
+        {
+          if(Serial.availableForWrite() <= 0)
+          {
+            TBUF[TBUFtail] = c;
+            TBUFtail++;
+            if(TBUFtail >= BUFSIZE)
+              TBUFtail = 0;
+          }
+          else
+            serialWrite(c);
+        }
+      }
     }
   }
 }

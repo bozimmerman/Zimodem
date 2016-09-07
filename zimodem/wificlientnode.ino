@@ -16,6 +16,7 @@
 
 void WiFiClientNode::finishConnectionLink()
 {
+  client->setNoDelay(true);
   wasConnected=true;
   if(conns == null)
     conns = this;
