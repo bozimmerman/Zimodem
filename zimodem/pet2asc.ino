@@ -155,28 +155,30 @@ bool handleAsciiIAC(char *c, Stream *stream)
   return true;
 }
 
-char ansiColorToPetsciiColor(char c, Stream *stream)
+bool ansiColorToPetsciiColor(char *c, Stream *stream)
 {
-  if(c == 27)
+  if(*c == 27)
   {
-    c=stream->read();
-    if(c=='[')
+    *c=stream->read();
+    if(*c=='[')
     {
       int code1=0;
       int code2=-1;
-      c=stream->read();
-      while((c>='0')&&(c<='9'))
+      *c=stream->read();
+      while((*c>='0')&&(*c<='9'))
       {
-        code1=(code1*10) + (c-'0');
-        c=stream->read();
+        code1=(code1*10) + (*c-'0');
+        *c=stream->read();
       }
-      while(c==';')
+      while(*c==';')
       {
-        c=stream->read();
-        while((c>='0')&&(c<='9'))
+        *c=stream->read();
+        if((*c>='0')&&(*c<='9'))
+          code2=0;
+        while((*c>='0')&&(*c<='9'))
         {
-          code2=(code2*10) + (c-'0');
-          c=stream->read();
+          code2=(code2*10) + (*c-'0');
+          *c=stream->read();
         }
       }
       switch(code1)
@@ -187,24 +189,33 @@ char ansiColorToPetsciiColor(char c, Stream *stream)
         {
         case -1:
         case 0:
-          return 146; // rvs off
+          *c=  146; // rvs off
+          return true;
         case 30: // black
-          return 155;//144;
+          *c=  155;//144;
+          return true;
         case 31: // red
-          return 28;
+          *c=  28;
+          return true;
         case 32: // green
-          return 30;
+          *c=  30;
+          return true;
         case 33: // yellow
-          return 129;
+          *c=  129;
+          return true;
         case 34: // blue
-          return 31;
+          *c=  31;
+          return true;
         case 35: // purple
-          return 149;
+          *c=  149;
+          return true;
         case 36: // cyan
-          return 152;
+          *c=  152;
+          return true;
         case 37: // white/grey
         default: 
-          return 155;
+          *c= 155;
+          return true;
         }
         break;
       case 1:
@@ -212,26 +223,36 @@ char ansiColorToPetsciiColor(char c, Stream *stream)
         switch(code2)
         {
         case -1:/* bold */ 
-          return 0;
+          *c=  0;
+          return true;
         case 0:
-          return 146; // rvs off
+          *c=  146; // rvs off
+          return true;
         case 30: // black
-          return 151;
+          *c=  151;
+          return true;
         case 31: // red
-          return 150;
+          *c=  150;
+          return true;
         case 32: // green
-          return 153;
+          *c=  153;
+          return true;
         case 33: // yellow
-          return 158;
+          *c=  158;
+          return true;
         case 34: // blue
-          return 154;
+          *c=  154;
+          return true;
         case 35: // purple
-          return 156;
+          *c=  156;
+          return true;
         case 36: // cyan
-          return 159;
+          *c=  159;
+          return true;
         case 37: // white/grey
         default: 
-          return 5;
+          *c=  5;
+          return true;
         }
         break;
       case 2: /*?*/
@@ -239,15 +260,18 @@ char ansiColorToPetsciiColor(char c, Stream *stream)
       case 4: /*underline*/
       case 5: /*blink*/
       case 6: /*italics*/
-        return 0;
+        *c=0;
+        return true;
       case 40: case 41: case 42: case 43: case 44: 
       case 45: case 46: case 47: case 48: case 49:
-        return 18; // rvs on
+        *c=18; // rvs on
+        return true;
       }
     }
-    return 0;
+    *c = 0;
+    return true;
   }
-  return c;
+  return false;
 }
 
 char petToAsc(char c)
@@ -257,12 +281,8 @@ char petToAsc(char c)
 
 bool ascToPet(char *c, Stream *stream)
 {
-  *c=ansiColorToPetsciiColor(*c,stream);
-  if(*c != 0)
-  {
+  if(!ansiColorToPetsciiColor(c,stream))
     *c = ascToPetTable[*c];
-    return true;
-  }
-  return false;
+  return true;
 }
 

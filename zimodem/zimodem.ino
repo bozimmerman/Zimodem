@@ -85,7 +85,7 @@ static void showInitMessage()
       Serial.print("ERROR ON " + wifiSSI);
   }
   else
-    Serial.print("INITAILIZED");
+    Serial.print("INITIALIZED");
   Serial.print(commandMode.EOLN);
   Serial.print("READY.");
   Serial.print(commandMode.EOLN);

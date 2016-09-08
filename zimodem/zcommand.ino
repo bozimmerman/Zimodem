@@ -107,6 +107,8 @@ ZResult ZCommand::doNoListenCommand()
 
 void ZCommand::reSaveConfig()
 {
+  SPIFFS.remove("/zconfig.txt");
+  delay(500);
   File f = SPIFFS.open("/zconfig.txt", "w");
   int flowControl = doFlowControl;
   switch(flowControlType)
@@ -120,6 +122,27 @@ void ZCommand::reSaveConfig()
   }
   f.printf("%s,%s,%d,%s,%d,%d,%d,%d,%d",wifiSSI.c_str(),wifiPW.c_str(),baudRate,EOLN.c_str(),flowControl,doEcho,suppressResponses,numericResponses,longResponses);
   f.close();
+  delay(500);
+  if(SPIFFS.exists("/zconfig.txt"))
+  {
+    File f = SPIFFS.open("/zconfig.txt", "r");
+    String str=f.readString();
+    f.close();
+    int argn=0;
+    if((str!=null)&&(str.length()>0))
+    {
+      for(int i=0;i<str.length();i++)
+      {
+        if((str[i]==',')&&(argn<9))
+          argn++;
+      }
+    }
+    if(argn!=CFG_LAST)
+    {
+      delay(100);
+      reSaveConfig();
+    }
+  }
 }
 
 void ZCommand::setBaseConfigOptions(String configArguments[])
@@ -160,6 +183,7 @@ void ZCommand::setBaseConfigOptions(String configArguments[])
 
 void ZCommand::parseConfigOptions(String configArguments[])
 {
+  delay(500);
   File f = SPIFFS.open("/zconfig.txt", "r");
   String str=f.readString();
   f.close();
@@ -185,7 +209,7 @@ void ZCommand::loadConfig()
   {
     SPIFFS.format();
     reSaveConfig();
-    Serial.begin(115200);  //Start Serial
+    Serial.begin(1200);  //Start Serial
   }
   String argv[10];
   parseConfigOptions(argv);
