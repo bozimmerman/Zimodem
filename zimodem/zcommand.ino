@@ -35,7 +35,7 @@ byte ZCommand::CRC8(const byte *data, byte len)
 
 void ZCommand::setConfigDefaults()
 {
-  doEcho=false;
+  doEcho=true;
   doFlowControl=false;
   suppressResponses=false;
   numericResponses=false;
@@ -48,7 +48,7 @@ void ZCommand::setConfigDefaults()
   EC='+';
   strcpy(ECS,"+++");
   BS=8;
-  EOLN = CRLF;
+  EOLN = CR;
 }
 
 char lc(char c)
@@ -395,8 +395,9 @@ ZResult ZCommand::doTransmitCommand(int vval, uint8_t *vbuf, int vlen)
 
 ZResult ZCommand::doDialStreamCommand(int vval, uint8_t *vbuf, int vlen, bool isNumber,const char *dmodifiers)
 {
-  bool doPETSCII = (strchr(dmodifiers,'P')!=null)||(strchr(dmodifiers,'p')!=null);
-  bool doTelnet = (strchr(dmodifiers,'T')!=null)||(strchr(dmodifiers,'t')!=null);
+  bool doPETSCII = (strchr(dmodifiers,'p')!=null);
+  bool doTelnet = (strchr(dmodifiers,'t')!=null);
+  bool doBBS = (strchr(dmodifiers,'b')!=null);
   if(vlen == 0)
   {
     if((current == null)||(!current->isConnected()))
@@ -415,7 +416,7 @@ ZResult ZCommand::doDialStreamCommand(int vval, uint8_t *vbuf, int vlen, bool is
     if((c!=null)&&(c->id == vval)&&(c->isConnected()))
     {
       current=c;
-      streamMode.switchTo(c,false,doPETSCII || c->doPETSCII,doTelnet);
+      streamMode.switchTo(c,false,doPETSCII || c->doPETSCII,doTelnet,doBBS);
     }
     else
       return ZERROR;
@@ -438,7 +439,7 @@ ZResult ZCommand::doDialStreamCommand(int vval, uint8_t *vbuf, int vlen, bool is
     else
     {
       current=c;
-      streamMode.switchTo(c,true,doPETSCII,doTelnet);
+      streamMode.switchTo(c,true,doPETSCII,doTelnet,doBBS);
     }
   }
   return ZOK;
@@ -717,7 +718,7 @@ ZResult ZCommand::doSerialCommand()
         if((lastCmd=='d')||(lastCmd=='D')
         || (lastCmd=='c')||(lastCmd=='C'))
         {
-          const char *DMODIFIERS=",lprtw";
+          const char *DMODIFIERS=",lbprtw";
           while((index<len)&&(strchr(DMODIFIERS,lc(sbuf[index]))!=null))
             dmodifiers += lc((char)sbuf[index++]);
           vstart=index;

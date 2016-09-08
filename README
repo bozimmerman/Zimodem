@@ -57,8 +57,9 @@ ATWn : Where n > 0, this lists up to n wireless network access points scanned wi
 ATD : Start a streaming connection between the current opened connection.  Use "+++" to exit back to Command mode.
 ATDn : Where n > 0, this will start a streaming connection between the previously opened connection with an id the same as n.  Use "+++" to exit back to Command mode.
 ATD"[HOSTNAME:PORT] : This opens a streaming connection between the terminal and the given host/port. Use "+++" to disconnect and exit back to command mode.
-atdP : Adding a P after the D, but before the first argument causes connection input to be translated to PETSCII
-atdT : Adding a T after the D, but before the first argument causes connection input to be translated per TELNET
+atdP : Adding a P somewhere after the D, but before the first argument causes connection input to be translated to PETSCII
+atdT : Adding a T somewhere after the D, but before the first argument causes connection input to be translated per TELNET
+atdB : Adding a B somewhere after the D, but before the first argument causes flow control and echo to be disabled only for that streaming session.
 
 ATC : Shows information about the current network connection in the following format "[CONNECTION STATE] [CONNECTION ID] [CONNECTED TO HOST]:[CONNECTED TO PORT]"
 ATC0 : Lists information about all of the network connections in the following format "[CONNECTION STATE] [CONNECTION ID] [CONNECTED TO HOST]:[CONNECTED TO PORT]", including any Server (ATA) listeners.

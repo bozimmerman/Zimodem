@@ -24,6 +24,11 @@ void ZStream::switchTo(WiFiClientNode *conn, bool dodisconnect, bool doPETSCII, 
   telnet=doTelnet;
 }
     
+void ZStream::switchTo(WiFiClientNode *conn, bool dodisconnect, bool doPETSCII, bool doTelnet, bool bbs)
+{
+  switchTo(conn,dodisconnect,doPETSCII,doTelnet);
+  doBBS=bbs;
+}
 void ZStream::switchTo(WiFiClientNode *conn)
 {
   current = conn;
@@ -61,14 +66,14 @@ void ZStream::serialIncoming()
         plussesInARow=0;
         lastNonPlusTimeMs=millis();
     }
-    if((c==19)&&(commandMode.doFlowControl))
+    if((c==19)&&(commandMode.doFlowControl) && (!doBBS))
       XON=false;
     else
-    if((c==17)&&(commandMode.doFlowControl))
+    if((c==17)&&(commandMode.doFlowControl) && (!doBBS))
       XON=true;
     else
     {
-      if(commandMode.doEcho)
+      if(commandMode.doEcho && (!doBBS))
         Serial.write(c);
       if(petscii)
         c = petToAsc(c);
@@ -198,7 +203,7 @@ void ZStream::loop()
     }
   }
   else
-  if((!commandMode.doFlowControl)||(XON))
+  if((!commandMode.doFlowControl)||(XON)||(doBBS))
   {
     serialDeque();
     if((current->isConnected())

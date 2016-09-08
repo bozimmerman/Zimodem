@@ -34,8 +34,11 @@ class ZStream : public ZMode
     void serialDeque();
 
   public:
+    bool doBBS=false;
+    
     void switchTo(WiFiClientNode *conn);
     void switchTo(WiFiClientNode *conn, bool dodisconnect, bool doPETSCII, bool doTelnet);
+    void switchTo(WiFiClientNode *conn, bool dodisconnect, bool doPETSCII, bool doTelnet, bool bbsMode);
 
     void serialIncoming();
     void loop();
