@@ -14,10 +14,11 @@
    limitations under the License.
 */
 
-class WiFiClientNode
+class WiFiClientNode : public Stream
 {
   private:
     void finishConnectionLink();
+    WiFiClient client;
 
   public:
     int id=0;
@@ -28,12 +29,18 @@ class WiFiClientNode
     bool doPETSCII=false;
     uint8 lastPacketBuf[256];
     int lastPacketLen=0;
-    WiFiClient *client;
     WiFiClientNode *next = null;
 
     WiFiClientNode(char *hostIp, int newport, bool PETSCII);
-    WiFiClientNode(WiFiClient *newClient);
+    WiFiClientNode(WiFiClient newClient);
     ~WiFiClientNode();
     bool isConnected();
+    size_t write(uint8_t c);
+    size_t write(const uint8_t *buf, size_t size);
+    int read();
+    int peek();
+    void flush();
+    int available();
+    int read(uint8_t *buf, size_t size);
 };
 

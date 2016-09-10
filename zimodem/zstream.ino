@@ -80,7 +80,7 @@ void ZStream::serialIncoming()
       if(current->isConnected())
       {
         //BZ: Requires changing delay(5000) in ESP8266 ClientContext.h
-        current->client->write(c);
+        current->write(c);
         if(logFileOpen)
         {
           if((logFileCtrW > 0)
@@ -219,27 +219,33 @@ void ZStream::loop()
   {
     serialDeque();
     if((current->isConnected())
-    &&(current->client->available()>0))
+    &&(current->available()>0))
     {
-      //int maxBytes= 1;//baudRate / 100; // commandMode.packetSize ; //watchdog'll get you if you're in here too long
-      int bytesAvailable = current->client->available();
-      //if(bytesAvailable > maxBytes)
-      //  bytesAvailable = maxBytes;
+      int maxBytes=  1;//commandMode.packetSize; //baudRate / 100; //watchdog'll get you if you're in here too long
+      int bytesAvailable = current->available();
+      if(bytesAvailable > maxBytes)
+        bytesAvailable = maxBytes;
       if(bytesAvailable>0)
       {
-        uint8_t c = current->client->read();
-        if((!telnet || handleAsciiIAC((char *)&c,current->client))
-        && (!petscii || ascToPet((char *)&c,current->client)))
+        for(int i=0;(i<bytesAvailable) && (current->available()>0);i++)
         {
-          if(Serial.availableForWrite() <= 0)
+          uint8_t c=current->read();
+          if((!telnet || handleAsciiIAC((char *)&c,current))
+          && (!petscii || ascToPet((char *)&c,current)))
           {
-            TBUF[TBUFtail] = c;
-            TBUFtail++;
-            if(TBUFtail >= BUFSIZE)
-              TBUFtail = 0;
+            if(Serial.availableForWrite() <= 0)
+            {
+              TBUF[TBUFtail] = c;
+              TBUFtail++;
+              if(TBUFtail >= BUFSIZE)
+                TBUFtail = 0;
+            }
+            else
+            {
+              serialWrite(c);
+              Serial.flush();
+            }
           }
-          else
-            serialWrite(c);
         }
       }
     }

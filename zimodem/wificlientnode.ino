@@ -16,7 +16,7 @@
 
 void WiFiClientNode::finishConnectionLink()
 {
-  client->setNoDelay(true);
+  client.setNoDelay(true);
   wasConnected=true;
   if(conns == null)
     conns = this;
@@ -36,8 +36,9 @@ WiFiClientNode::WiFiClientNode(char *hostIp, int newport, bool PETSCII)
   strcpy(host,hostIp);
   id=++WiFiNextClientId;
   doPETSCII=PETSCII;
-  client = new WiFiClient();
-  if(!client->connect(hostIp, port))
+  WiFiClient *newC = new WiFiClient();
+  client = *newC;
+  if(!client.connect(hostIp, port))
   {
     // deleted when it returns and is deleted
   }
@@ -47,10 +48,10 @@ WiFiClientNode::WiFiClientNode(char *hostIp, int newport, bool PETSCII)
   }
 }
     
-WiFiClientNode::WiFiClientNode(WiFiClient *newClient)
+WiFiClientNode::WiFiClientNode(WiFiClient newClient)
 {
-  port=newClient->localPort();
-  String remoteIPStr = newClient->remoteIP().toString();
+  port=newClient.localPort();
+  String remoteIPStr = newClient.remoteIP().toString();
   const char *remoteIP=remoteIPStr.c_str();
   host=new char[remoteIPStr.length()+1];
   strcpy(host,remoteIP);
@@ -62,11 +63,7 @@ WiFiClientNode::WiFiClientNode(WiFiClient *newClient)
     
 WiFiClientNode::~WiFiClientNode()
 {
-  if(client != null)
-  {
-    client->stop();
-    delete client;
-  }
+  client.stop();
   delete host;
   if(conns == null)
   {
@@ -91,6 +88,43 @@ WiFiClientNode::~WiFiClientNode()
 
 bool WiFiClientNode::isConnected()
 {
-  return (client != null) && (client->connected());
+  return client.connected();
 }
+
+size_t WiFiClientNode::write(uint8_t c)
+{
+  return client.write(c);
+}
+
+int WiFiClientNode::read()
+{
+  return client.read();
+}
+
+int WiFiClientNode::peek()
+{
+  return client.peek();
+}
+
+void WiFiClientNode::flush()
+{
+  return client.flush();
+}
+
+int WiFiClientNode::available()
+{
+  return client.available();
+}
+
+int WiFiClientNode::read(uint8_t *buf, size_t size)
+{
+  return client.read(buf,size);
+}
+
+size_t WiFiClientNode::write(const uint8_t *buf, size_t size)
+{
+  return client.write(buf,size);
+}
+
+
 

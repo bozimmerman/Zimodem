@@ -441,7 +441,7 @@ ZResult ZCommand::doTransmitCommand(int vval, uint8_t *vbuf, int vlen)
       for(int i=0;i<recvd;i++)
         buf[i]=petToAsc(buf[i]);
     }
-    current->client->write(buf,recvd);
+    current->write(buf,recvd);
   }
   else
   {
@@ -452,8 +452,8 @@ ZResult ZCommand::doTransmitCommand(int vval, uint8_t *vbuf, int vlen)
       for(int i=0;i<vlen;i++)
         buf[i] = petToAsc(buf[i]);
     }
-    current->client->write(buf,vlen);
-    current->client->print("\r\n"); // special case
+    current->write(buf,vlen);
+    current->write((const uint8_t*)"\r\n",2); // special case
   }
   return ZOK;
 }
@@ -1146,10 +1146,10 @@ void ZCommand::sendNextPacket()
 
   while(XON && (nextConn != null))
   {
-    if((nextConn->client != null) 
-    && (nextConn->client->available()>0))
+    if((nextConn->isConnected())
+    && (nextConn->available()>0))
     {
-      int availableBytes = nextConn->client->available();
+      int availableBytes = nextConn->available();
       int maxBytes=packetSize;
       if(availableBytes<maxBytes)
         maxBytes=availableBytes;
@@ -1157,14 +1157,14 @@ void ZCommand::sendNextPacket()
         maxBytes = Serial.availableForWrite()-15;
       if(maxBytes > 0)
       {
-        maxBytes = nextConn->client->read(nextConn->lastPacketBuf,maxBytes);
+        maxBytes = nextConn->read(nextConn->lastPacketBuf,maxBytes);
         if(nextConn->doPETSCII)
         {
           int bytesToRead=maxBytes;
           for(int i=0, b=0;i<bytesToRead;i++,b++)
           {
             nextConn->lastPacketBuf[b]=nextConn->lastPacketBuf[i];
-            if(!ascToPet((char *)&nextConn->lastPacketBuf[b],nextConn->client))
+            if(!ascToPet((char *)&nextConn->lastPacketBuf[b],nextConn))
             {
               b--;
               maxBytes--;
@@ -1294,9 +1294,8 @@ void ZCommand::acceptNewConnection()
       }
       if(!found)
       {
-        WiFiClient *newClientLoc=new WiFiClient(newClient);
-        newClientLoc->setNoDelay(true);
-        WiFiClientNode *newClientNode = new WiFiClientNode(newClientLoc);
+        newClient.setNoDelay(true);
+        WiFiClientNode *newClientNode = new WiFiClientNode(newClient);
         int i=0;
         do
         {
