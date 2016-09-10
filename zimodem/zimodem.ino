@@ -15,13 +15,6 @@
 */
 
 #define TCP_SND_BUF                     4 * TCP_MSS
-// this failed to change ClientContext.h delay(5000)! Therefore, that change needs to be made by hand for now.
-#define delay(a) if((strstr(__FILE__,"ClientContext")!=null)&&(a==5000)) delay(10); else delay(a);
-
-#include <ESP8266WiFi.h>
-#include <FS.h>
-#include <spiffs/spiffs.h>
-
 #define null 0
 #define ZIMODEM_VERSION "1.5"
 

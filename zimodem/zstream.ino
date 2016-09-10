@@ -63,8 +63,8 @@ void ZStream::serialIncoming()
     else
     if(c!=commandMode.EC)
     {
-        plussesInARow=0;
-        lastNonPlusTimeMs=millis();
+      plussesInARow=0;
+      lastNonPlusTimeMs=millis();
     }
     if((c==19)&&(commandMode.doFlowControl) && (!doBBS))
       XON=false;
@@ -91,7 +91,13 @@ void ZStream::serialIncoming()
             logFile.println("");
             logFile.print("Serial: ");
           }
-          logFile.print(TOHEX(c));
+          /*if((c>=32)&&(c<=127))
+          {
+            logFile.print('_');
+            logFile.print((char)c);
+          }
+          else*/
+            logFile.print(TOHEX(c));
           logFile.print(" ");
         }
       }
@@ -136,7 +142,13 @@ void ZStream::serialWrite(uint8_t c)
       logFile.println("");
       logFile.print("Socket: ");
     }
-    logFile.print(TOHEX(c));
+    /*if((c>=32)&&(c<=127))
+    {
+      logFile.print('_');
+      logFile.print((char)c);
+    }
+    else*/
+      logFile.print(TOHEX(c));
     logFile.print(" ");
   }
 }

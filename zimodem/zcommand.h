@@ -84,6 +84,7 @@ class ZCommand : public ZMode
     void acceptNewConnection();
     void sendConnectionNotice(int nodeId);
     void sendNextPacket();
+    void showAtStatusMessage();
 
     ZResult doResetCommand();
     ZResult doNoListenCommand();

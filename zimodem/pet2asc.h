@@ -13,6 +13,10 @@
    See the License for the specific language governing permissions and
    limitations under the License.
 */
+#include "ESP8266WiFi.h"
+#include <FS.h>
+#include <spiffs/spiffs.h>
+
 
 char petToAsc(char c);
 bool ascToPet(char *c, Stream *stream);

@@ -3,21 +3,42 @@ Please read the LICENSE file for license information
 Please read the NOTICE file for credits information
 
 Intro:
-This firmware, hereafter "Zimodem", provides an api for communication between a serial terminal and the ESP8266.  It simulates the old-style Hayes "AT" commands, so that the ESP8266 appears to the terminal as if it were a Hayes modem.  These "AT" commands may then be issued to the ESP8266 in order to force it to connect to a wireless access point, and from there to make one or more manageable connections to the internet.  It also includes a streaming serial "telnet" mode, and server/port listener capabilities.
+------
+This firmware code, hereafter "Zimodem", provides an api for communication between a serial terminal and the ESP8266.  It simulates the old-style Hayes "AT" commands, so that the ESP8266 appears to the terminal as if it were a Hayes modem.  These "AT" commands may then be issued to the ESP8266 in order to force it to connect to a wireless access point, and from there to make one or more manageable connections to the internet.  It also includes a streaming serial "telnet" mode, and server/port listener capabilities.
 
 The default baud rate that Zimodem establishes is 1200.  Be sure to use the commands below to set this to the proper baud rate for your terminal/host computer.
 
 Building:
-Zimodem was built using Arduino IDE rev1.6.10 with the  Arduino Generic ESP8266 Module installed from http://arduino.esp8266.com/stable/package_esp8266com_index.json
+---------
+Zimodem was built using Arduino IDE rev1.6.11 with the Arduino Generic ESP8266 Module installed from the head dev at https://github.com/esp8266/Arduino.  Using that version of the library not the official Boards Manager distribution (via Additional Boards Manager URL http://arduino.esp8266.com/stable/package_esp8266com_index.json) was important to resolving several problems (specifically 300ms/byte socket write times).  How you get there from here was tricky.  I followed the standard instructions for installing an ESP board, found where it dropped the package (on Windows 10, it was in:
+c:\users\<myname>\AppData\Local\Arduino15\packages\esp8266\hardware\esp8266\... I dropped the new stuff from github in there instead of the old stuff, and then went into the new "tools" directory and ran get.py.
 
 Using:
-Upon initialization, or any time the ESP8266 is reset, Zimodem will display its version, and some information about the host hardware, and then read a configuration file from the internal SPIFFS to re-establish the previously set baud rate, and to attempt to re-connect to the previously connected wireless router.  The first time it is run, Zimodem will set a baud rate of 1200 and display INITALIZED to let you know that no previous configuration was found.  Once the serial terminal displays READY, it is ready to receive commands.
+------
+Upon initialization, or any time the ESP8266 is reset, Zimodem will display its version, and some information about the host hardware, and then read a configuration file from the internal SPIFFS to re-establish the previously set baud rate, and to attempt to re-connect to the previously connected wireless router.  The first time it is run, Zimodem will set a baud rate of 1200 and display INITALIZED to let you know that no previous wifi configuration was found.  Once the serial terminal displays READY, it is ready to receive commands.  
+
+The first command you'll probably want to enter is ATW to list your wireless routers, and then ATW"<<wireless router ssi>>,<<wireless password>>" to connect to the router, then AT&W to save it.
+
+If you plan to use this primarily from a computer that doesn't need linefeeds, such as the C64, you'll want to enter ATR0 to go into carriage-return only mode, and then at&w to save this setting as well.
+
+If you want to operate at a higher baud, you'll want to enter ATB9600 (or whatever baud rate you want to try), and then reconnect your terminal program to the modem at that new baud rate.  If everything looks good, and you want to keep the new baud rate across restarts, don't forget to save the new baud rate with AT&W.
+
+If you want to connect to a remote telnet server, eg coffeemud.net, port 23, you'll want to enter ATDT"coffeemud.net:23".  Don't forget to set your terminal program to the proper translation mode (ANSI, ASCII, or whatever).
+
+If you are using a Commodore Graphics terminal program and want to connect to a Commodore BBS, eg cottonwoodbbs.dyndns.org port 6502, you'll want to enter ATB"cottonwoodbbs.dyndns.org:6502".
+
+If you want to run a Commodore BBS program using the modem, you'll want to configure the BBS program to the same idle baud rate that your modem is using (1200 baud by default), configure it for a Hayes style modem (or the C=1670), and use an initialization string of "ATR0E0S0=1S41=1A6400" plus any other recommended settings from the BBS program. This creates a listener at port 6400 that switches directly to stream mode on the first ring, with no linefeed carriage returns, and no keystroke echo.  Your BBS program may require you add certain other settings, such as V0 or X1.. which you should also do.
+
+Command Set:
+-----------
 
 The command set is as follows (not case sensitive):
 
 ATZ : closes all open socket connections (preserving the Access Point connection), stops all listeners, and resets the state of the Command processor to the saved configuration, preserving the current baud rate and wifi connection.
 
-ATIn : re-shows startup message, n does not matter
+ATI : re-shows the startup message, including wifi connection information.
+ATI0 : same as ATI
+ATI1 : Shows the current variable settings, including 'S' registers.
 
 ATA  : If a server listener has generated a RING, then ATA will switch the last rung connection to Stream mode (see ATD).
 ATA/ : Repeats the previous command (no idea why...)
