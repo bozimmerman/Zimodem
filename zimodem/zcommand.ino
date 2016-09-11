@@ -1276,52 +1276,55 @@ void ZCommand::acceptNewConnection()
   WiFiServerNode *serv = servs;
   while(serv != null)
   {
-    WiFiClient newClient = serv->server->available();
-    if((newClient != null)&&(newClient.connected()))
+    if(serv->hasClient())
     {
-      int port=newClient.localPort();
-      String remoteIPStr = newClient.remoteIP().toString();
-      const char *remoteIP=remoteIPStr.c_str();
-      bool found=false;
-      WiFiClientNode *c=conns;
-      while(c!=null)
+      WiFiClient newClient = serv->server->available();
+      if((newClient != null)&&(newClient.connected()))
       {
-        if((c->isConnected())
-        &&(c->port==port)
-        &&(strcmp(remoteIP,c->host)==0))
-          found=true;
-        c=c->next;
-      }
-      if(!found)
-      {
-        newClient.setNoDelay(true);
-        WiFiClientNode *newClientNode = new WiFiClientNode(newClient);
-        int i=0;
-        do
+        int port=newClient.localPort();
+        String remoteIPStr = newClient.remoteIP().toString();
+        const char *remoteIP=remoteIPStr.c_str();
+        bool found=false;
+        WiFiClientNode *c=conns;
+        while(c!=null)
         {
-          if(numericResponses)
-            Serial.print("2");
-          else
-          {
-            Serial.print("RING");
-            if(longResponses)
-            {
-              Serial.print(" ");
-              Serial.print(newClientNode->id);
-            }
-          }
-          Serial.print(EOLN);
+          if((c->isConnected())
+          &&(c->port==port)
+          &&(strcmp(remoteIP,c->host)==0))
+            found=true;
+          c=c->next;
         }
-        while((++i)<ringCounter);
-        
-        lastServerClientId = newClientNode->id;
-        if(ringCounter > 0)
+        if(!found)
         {
-          sendConnectionNotice(newClientNode->id);
-          if(autoStreamMode)
+          //BZ:newClient.setNoDelay(true);
+          WiFiClientNode *newClientNode = new WiFiClientNode(newClient);
+          int i=0;
+          do
           {
-            doAnswerCommand(0, (uint8_t *)"", 0, false, "");
-            break;
+            if(numericResponses)
+              Serial.print("2");
+            else
+            {
+              Serial.print("RING");
+              if(longResponses)
+              {
+                Serial.print(" ");
+                Serial.print(newClientNode->id);
+              }
+            }
+            Serial.print(EOLN);
+          }
+          while((++i)<ringCounter);
+          
+          lastServerClientId = newClientNode->id;
+          if(ringCounter > 0)
+          {
+            sendConnectionNotice(newClientNode->id);
+            if(autoStreamMode)
+            {
+              doAnswerCommand(0, (uint8_t *)"", 0, false, "");
+              break;
+            }
           }
         }
       }

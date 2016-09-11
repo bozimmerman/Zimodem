@@ -25,6 +25,7 @@ class WiFiServerNode
     WiFiServerNode *next = null;
 
     WiFiServerNode(int port);
+    bool hasClient();
     ~WiFiServerNode();
 };
 

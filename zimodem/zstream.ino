@@ -81,6 +81,7 @@ void ZStream::serialIncoming()
       {
         //BZ: Requires changing delay(5000) in ESP8266 ClientContext.h
         current->write(c);
+        current->flush();
         if(logFileOpen)
         {
           if((logFileCtrW > 0)
@@ -155,14 +156,12 @@ void ZStream::serialWrite(uint8_t c)
     
 void ZStream::serialDeque()
 {
-  int availToWrite = Serial.availableForWrite();
-  while((TBUFhead != TBUFtail)&&(availToWrite>0))
+  if((TBUFhead != TBUFtail)&&(Serial.availableForWrite()>0))
   {
     serialWrite(TBUF[TBUFhead]);
     TBUFhead++;
     if(TBUFhead >= BUFSIZE)
       TBUFhead = 0;
-    availToWrite = Serial.availableForWrite();
   }
 }
 
@@ -171,27 +170,30 @@ void ZStream::loop()
   WiFiServerNode *serv = servs;
   while(serv != null)
   {
-    WiFiClient newClient = serv->server->available();
-    if((newClient != null)&&(newClient.connected()))
+    if(serv->hasClient())
     {
-      int port=newClient.localPort();
-      String remoteIPStr = newClient.remoteIP().toString();
-      const char *remoteIP=remoteIPStr.c_str();
-      bool found=false;
-      WiFiClientNode *c=conns;
-      while(c!=null)
+      WiFiClient newClient = serv->server->available();
+      if((newClient != null)&&(newClient.connected()))
       {
-        if((c->isConnected())
-        &&(c->port==port)
-        &&(strcmp(remoteIP,c->host)==0))
-          found=true;
-        c=c->next;
-      }
-      if(!found)
-      {
-        newClient.write("\r\n\r\n\r\n\r\n\r\nBUSY\r\n7\r\n");
-        newClient.flush();
-        newClient.stop();
+        int port=newClient.localPort();
+        String remoteIPStr = newClient.remoteIP().toString();
+        const char *remoteIP=remoteIPStr.c_str();
+        bool found=false;
+        WiFiClientNode *c=conns;
+        while(c!=null)
+        {
+          if((c->isConnected())
+          &&(c->port==port)
+          &&(strcmp(remoteIP,c->host)==0))
+            found=true;
+          c=c->next;
+        }
+        if(!found)
+        {
+          newClient.write("\r\n\r\n\r\n\r\n\r\nBUSY\r\n7\r\n");
+          newClient.flush();
+          newClient.stop();
+        }
       }
     }
     serv=serv->next;
@@ -217,11 +219,9 @@ void ZStream::loop()
   else
   if((!commandMode.doFlowControl)||(XON)||(doBBS))
   {
-    serialDeque();
-    if((current->isConnected())
-    &&(current->available()>0))
+    if((current->isConnected()) && (current->available()>0))
     {
-      int maxBytes=  1;//commandMode.packetSize; //baudRate / 100; //watchdog'll get you if you're in here too long
+      int maxBytes=  BUFSIZE; //baudRate / 100; //watchdog'll get you if you're in here too long
       int bytesAvailable = current->available();
       if(bytesAvailable > maxBytes)
         bytesAvailable = maxBytes;
@@ -233,22 +233,15 @@ void ZStream::loop()
           if((!telnet || handleAsciiIAC((char *)&c,current))
           && (!petscii || ascToPet((char *)&c,current)))
           {
-            if(Serial.availableForWrite() <= 0)
-            {
-              TBUF[TBUFtail] = c;
-              TBUFtail++;
-              if(TBUFtail >= BUFSIZE)
-                TBUFtail = 0;
-            }
-            else
-            {
-              serialWrite(c);
-              Serial.flush();
-            }
+            TBUF[TBUFtail] = c;
+            TBUFtail++;
+            if(TBUFtail >= BUFSIZE)
+              TBUFtail = 0;
           }
         }
       }
     }
-  }
+    serialDeque();
+   }
 }
 

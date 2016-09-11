@@ -16,7 +16,6 @@
 
 void WiFiClientNode::finishConnectionLink()
 {
-  client.setNoDelay(true);
   wasConnected=true;
   if(conns == null)
     conns = this;
@@ -63,8 +62,12 @@ WiFiClientNode::WiFiClientNode(WiFiClient newClient)
     
 WiFiClientNode::~WiFiClientNode()
 {
-  client.stop();
-  delete host;
+  if(host!=null)
+  {
+    client.stop();
+    delete host;
+  }
+  host=null;
   if(conns == null)
   {
   }
@@ -88,41 +91,54 @@ WiFiClientNode::~WiFiClientNode()
 
 bool WiFiClientNode::isConnected()
 {
-  return client.connected();
+  return (host != null) && client.connected();
 }
 
 size_t WiFiClientNode::write(uint8_t c)
 {
+  if(host == null)
+    return 0;
   return client.write(c);
 }
 
 int WiFiClientNode::read()
 {
+  if(host == null)
+    return 0;
   return client.read();
 }
 
 int WiFiClientNode::peek()
 {
+  if(host == null)
+    return 0;
   return client.peek();
 }
 
 void WiFiClientNode::flush()
 {
-  return client.flush();
+  if(host != null)
+    client.flush();
 }
 
 int WiFiClientNode::available()
 {
+  if(host == null)
+    return 0;
   return client.available();
 }
 
 int WiFiClientNode::read(uint8_t *buf, size_t size)
 {
+  if(host == null)
+    return 0;
   return client.read(buf,size);
 }
 
 size_t WiFiClientNode::write(const uint8_t *buf, size_t size)
 {
+  if(host == null)
+    return 0;
   return client.write(buf,size);
 }
 
