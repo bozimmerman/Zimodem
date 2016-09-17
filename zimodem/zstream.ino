@@ -14,7 +14,7 @@
    limitations under the License.
 */
 
-#define DBG_BYT_CTR 23
+#define DBG_BYT_CTR 20
 
 void ZStream::switchTo(WiFiClientNode *conn, bool dodisconnect, bool doPETSCII, bool doTelnet)
 {
@@ -29,6 +29,7 @@ void ZStream::switchTo(WiFiClientNode *conn, bool dodisconnect, bool doPETSCII, 
   switchTo(conn,dodisconnect,doPETSCII,doTelnet);
   doBBS=bbs;
 }
+
 void ZStream::switchTo(WiFiClientNode *conn)
 {
   current = conn;
@@ -39,9 +40,14 @@ void ZStream::switchTo(WiFiClientNode *conn)
   dcdStatus = HIGH;
   digitalWrite(2,dcdStatus);
   currMode=&streamMode;
+  expectedSerialTime = (1000 / (baudRate / 8))+1;
+  if(expectedSerialTime < 1)
+    expectedSerialTime = 1;
+  streamStartTime = 0;
 }
 
 static char HD[3];
+static char HDL[9];
 
 char *TOHEX(uint8_t a)
 {
@@ -49,6 +55,17 @@ char *TOHEX(uint8_t a)
   HD[1] = "0123456789ABCDEF"[a & 0x0f];
   HD[2] = 0;
   return HD;
+}
+
+char *TOHEX(unsigned long a)
+{
+  for(int i=7;i>=0;i--)
+  {
+    HDL[i] = "0123456789ABCDEF"[a & 0x0f];
+    a = a >> 4;
+  }
+  HDL[8] = 0;
+  return HDL;
 }
 
 void ZStream::serialIncoming()
@@ -79,19 +96,24 @@ void ZStream::serialIncoming()
         c = petToAsc(c);
       if(current->isConnected())
       {
+        if(streamStartTime == 0)
+          streamStartTime = millis();
+
         //BZ: Requires changing delay(5000) in ESP8266 ClientContext.h
         current->write(c);
-        current->flush();
+        //current->flush(); // does this empty the RX buffer?! that's terrible!
         if(logFileOpen)
         {
           if((logFileCtrW > 0)
-          ||(++logFileCtrR > DBG_BYT_CTR))
+          ||(++logFileCtrR > DBG_BYT_CTR)
+          ||((millis()-lastSerialRead)>expectedSerialTime))
           {
             logFileCtrR=1;
             logFileCtrW=0;
             logFile.println("");
-            logFile.print("Serial: ");
+            logFile.printf("%s Ser: ",TOHEX(millis()-streamStartTime));
           }
+          lastSerialRead=millis();
           /*if((c>=32)&&(c<=127))
           {
             logFile.print('_');
@@ -101,6 +123,8 @@ void ZStream::serialIncoming()
             logFile.print(TOHEX(c));
           logFile.print(" ");
         }
+        delay(0); // a substitute for flush...
+        yield();
       }
     }
     
@@ -132,17 +156,22 @@ void ZStream::switchBackToCommandMode(bool logout)
 
 void ZStream::serialWrite(uint8_t c)
 {
+  if(streamStartTime == 0)
+    streamStartTime = millis();
+
   Serial.write(c);
   if(logFileOpen)
   {
     if((logFileCtrR > 0)
-    ||(++logFileCtrW > DBG_BYT_CTR))
+    ||(++logFileCtrW > DBG_BYT_CTR)
+    ||((millis()-lastSerialWrite)>expectedSerialTime))
     {
       logFileCtrR=0;
       logFileCtrW=1;
       logFile.println("");
-      logFile.print("Socket: ");
+      logFile.printf("%s Soc: ",TOHEX(millis()-streamStartTime));
     }
+    lastSerialWrite=millis();
     /*if((c>=32)&&(c<=127))
     {
       logFile.print('_');
@@ -163,6 +192,14 @@ void ZStream::serialDeque()
     if(TBUFhead >= BUFSIZE)
       TBUFhead = 0;
   }
+}
+
+int serialBufferBytesRemaining()
+{
+  int amt = TBUFtail - TBUFhead;
+  if(amt >= 0)
+    return BUFSIZE - amt;
+  return -amt;
 }
 
 void ZStream::loop()
@@ -221,22 +258,25 @@ void ZStream::loop()
   {
     if((current->isConnected()) && (current->available()>0))
     {
-      int maxBytes=  BUFSIZE; //baudRate / 100; //watchdog'll get you if you're in here too long
-      int bytesAvailable = current->available();
-      if(bytesAvailable > maxBytes)
-        bytesAvailable = maxBytes;
-      if(bytesAvailable>0)
+      if(serialBufferBytesRemaining() > 1)
       {
-        for(int i=0;(i<bytesAvailable) && (current->available()>0);i++)
+        int maxBytes=  BUFSIZE; //baudRate / 100; //watchdog'll get you if you're in here too long
+        int bytesAvailable = current->available();
+        if(bytesAvailable > maxBytes)
+          bytesAvailable = maxBytes;
+        if(bytesAvailable>0)
         {
-          uint8_t c=current->read();
-          if((!telnet || handleAsciiIAC((char *)&c,current))
-          && (!petscii || ascToPet((char *)&c,current)))
+          for(int i=0;(i<bytesAvailable) && (current->available()>0);i++)
           {
-            TBUF[TBUFtail] = c;
-            TBUFtail++;
-            if(TBUFtail >= BUFSIZE)
-              TBUFtail = 0;
+            uint8_t c=current->read();
+            if((!telnet || handleAsciiIAC((char *)&c,current))
+            && (!petscii || ascToPet((char *)&c,current)))
+            {
+              TBUF[TBUFtail] = c;
+              TBUFtail++;
+              if(TBUFtail >= BUFSIZE)
+                TBUFtail = 0;
+            }
           }
         }
       }

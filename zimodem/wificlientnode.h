@@ -19,6 +19,7 @@ class WiFiClientNode : public Stream
   private:
     void finishConnectionLink();
     WiFiClient client;
+    WiFiClient *clientPtr;
 
   public:
     int id=0;

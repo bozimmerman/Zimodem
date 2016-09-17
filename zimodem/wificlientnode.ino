@@ -35,8 +35,9 @@ WiFiClientNode::WiFiClientNode(char *hostIp, int newport, bool PETSCII)
   strcpy(host,hostIp);
   id=++WiFiNextClientId;
   doPETSCII=PETSCII;
-  WiFiClient *newC = new WiFiClient();
-  client = *newC;
+  clientPtr = new WiFiClient();
+  client = *clientPtr;
+  client.setNoDelay(true);
   if(!client.connect(hostIp, port))
   {
     // deleted when it returns and is deleted
@@ -49,6 +50,8 @@ WiFiClientNode::WiFiClientNode(char *hostIp, int newport, bool PETSCII)
     
 WiFiClientNode::WiFiClientNode(WiFiClient newClient)
 {
+  clientPtr=null;
+  newClient.setNoDelay(true);
   port=newClient.localPort();
   String remoteIPStr = newClient.remoteIP().toString();
   const char *remoteIP=remoteIPStr.c_str();
@@ -66,8 +69,13 @@ WiFiClientNode::~WiFiClientNode()
   {
     client.stop();
     delete host;
+    host=null;
   }
-  host=null;
+  if(clientPtr != null)
+  {
+    delete clientPtr;
+    clientPtr = null;
+  }
   if(conns == null)
   {
   }

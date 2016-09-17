@@ -1040,7 +1040,8 @@ ZResult ZCommand::doSerialCommand()
                 if(Serial.availableForWrite() > 0)
                   Serial.write(buf[i++]);
                 else
-                  delay(10);
+                  delay(1);
+                yield();
               }
               numBytes = logFile.available();
             }
