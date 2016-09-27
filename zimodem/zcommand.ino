@@ -1338,12 +1338,14 @@ void ZCommand::acceptNewConnection()
           lastServerClientId = newClientNode->id;
           if(ringCounter > 0)
           {
-            sendConnectionNotice(newClientNode->id);
             if(autoStreamMode)
             {
+              sendConnectionNotice(streamBaudRate);
               doAnswerCommand(0, (uint8_t *)"", 0, false, "");
               break;
             }
+            else
+              sendConnectionNotice(newClientNode->id);
           }
         }
       }
