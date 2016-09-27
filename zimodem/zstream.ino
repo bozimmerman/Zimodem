@@ -40,7 +40,7 @@ void ZStream::switchTo(WiFiClientNode *conn)
   dcdStatus = HIGH;
   digitalWrite(2,dcdStatus);
   currMode=&streamMode;
-  expectedSerialTime = (1000 / (baudRate / 8))+1;
+  expectedSerialTime = (1000 / (streamBaudRate / 8))+1;
   if(expectedSerialTime < 1)
     expectedSerialTime = 1;
   streamStartTime = 0;
@@ -151,6 +151,12 @@ void ZStream::switchBackToCommandMode(bool logout)
     current = null;
     dcdStatus = LOW;
     digitalWrite(2,dcdStatus);
+    if(baudRate != commandBaudRate)
+    {
+      baudRate=commandBaudRate;
+      Serial.flush();
+      Serial.begin(baudRate);
+    }
     currMode = &commandMode;
 }
 
@@ -204,6 +210,13 @@ int serialBufferBytesRemaining()
 
 void ZStream::loop()
 {
+  if(baudRate != streamBaudRate)
+  {
+    baudRate=streamBaudRate;
+    Serial.flush();
+    Serial.begin(baudRate);
+  }
+  
   WiFiServerNode *serv = servs;
   while(serv != null)
   {

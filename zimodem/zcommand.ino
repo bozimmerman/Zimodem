@@ -13,6 +13,8 @@
    See the License for the specific language governing permissions and
    limitations under the License.
 */
+extern "C" void esp_schedule();
+extern "C" void esp_yield();
 
 byte ZCommand::CRC8(const byte *data, byte len) 
 {
@@ -49,6 +51,8 @@ void ZCommand::setConfigDefaults()
   strcpy(ECS,"+++");
   BS=8;
   EOLN = CRLF;
+  streamBaudRate=baudRate;
+  commandBaudRate=baudRate;
 }
 
 char lc(char c)
@@ -217,6 +221,8 @@ void ZCommand::loadConfig()
     baudRate=atoi(argv[CFG_BAUDRATE].c_str());
   if(baudRate <= 0)
     baudRate=1200;
+  streamBaudRate=baudRate;
+  commandBaudRate=baudRate;
   Serial.begin(baudRate);  //Start Serial
   wifiSSI=argv[CFG_WIFISSI];
   wifiPW=argv[CFG_WIFIPW];
@@ -281,7 +287,9 @@ void ZCommand::showAtStatusMessage()
   Serial.print((int)BS);
   Serial.print("S40=");
   Serial.print(packetSize);
-  Serial.print(autoStreamMode?"S41=1":"S41=0");
+  Serial.print(autoStreamMode ? "S41=1" : "S41=0");
+  Serial.print("S42=");
+  Serial.print(streamBaudRate);
   
   WiFiServerNode *serv = servs;
   while(serv != null)
@@ -300,8 +308,12 @@ ZResult ZCommand::doBaudCommand(int vval, uint8_t *vbuf, int vlen)
     return ZERROR;
   else
   {
-      baudRate=vval;
-      Serial.begin(baudRate);
+    if(streamBaudRate == commandBaudRate)
+      streamBaudRate=vval;
+    commandBaudRate=vval;
+    baudRate=vval;
+    Serial.flush();
+    Serial.begin(baudRate);
   }
   return ZOK;
 }
@@ -1001,6 +1013,12 @@ ZResult ZCommand::doSerialCommand()
                 break;
              case 41:
                 autoStreamMode = (sval > 0);
+                break;
+             case 42:
+                if(sval <= 0)
+                  streamBaudRate=commandBaudRate;
+                else
+                  streamBaudRate=sval;
                 break;
              default:
                 break;
