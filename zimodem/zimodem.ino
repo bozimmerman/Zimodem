@@ -16,7 +16,7 @@
 
 #define TCP_SND_BUF                     4 * TCP_MSS
 #define null 0
-#define ZIMODEM_VERSION "1.5"
+#define ZIMODEM_VERSION "1.6"
 
 #include "pet2asc.h"
 #include "zmode.h"
@@ -36,8 +36,6 @@ static bool wifiConnected =false;
 static String wifiSSI;
 static String wifiPW;
 static int baudRate=1200;
-static int streamBaudRate=1200;
-static int commandBaudRate=1200;
 static int dcdStatus = LOW; 
 static bool logFileOpen = false;
 static File logFile; 

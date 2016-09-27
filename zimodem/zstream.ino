@@ -40,7 +40,7 @@ void ZStream::switchTo(WiFiClientNode *conn)
   dcdStatus = HIGH;
   digitalWrite(2,dcdStatus);
   currMode=&streamMode;
-  expectedSerialTime = (1000 / (streamBaudRate / 8))+1;
+  expectedSerialTime = (1000 / (baudRate / 8))+1;
   if(expectedSerialTime < 1)
     expectedSerialTime = 1;
   streamStartTime = 0;
@@ -71,7 +71,9 @@ char *TOHEX(unsigned long a)
 void ZStream::serialIncoming()
 {
   int serialAvailable = Serial.available();
-  if(serialAvailable > 0)
+  if(serialAvailable == 0)
+    return;
+  if(--serialAvailable >= 0)
   {
     uint8_t c=Serial.read();
     if((c==commandMode.EC)
@@ -91,93 +93,62 @@ void ZStream::serialIncoming()
     else
     {
       if(commandMode.doEcho && (!doBBS))
-        Serial.write(c);
+        enqueSerial(c);
       if(petscii)
         c = petToAsc(c);
-      if(current->isConnected())
-      {
-        if(streamStartTime == 0)
-          streamStartTime = millis();
-
-        //BZ: Requires changing delay(5000) in ESP8266 ClientContext.h
-        current->write(c);
-        //current->flush(); // does this empty the RX buffer?! that's terrible!
-        if(logFileOpen)
-        {
-          if((logFileCtrW > 0)
-          ||(++logFileCtrR > DBG_BYT_CTR)
-          ||((millis()-lastSerialRead)>expectedSerialTime))
-          {
-            logFileCtrR=1;
-            logFileCtrW=0;
-            logFile.println("");
-            logFile.printf("%s Ser: ",TOHEX(millis()-streamStartTime));
-          }
-          lastSerialRead=millis();
-          /*if((c>=32)&&(c<=127))
-          {
-            logFile.print('_');
-            logFile.print((char)c);
-          }
-          else*/
-            logFile.print(TOHEX(c));
-          logFile.print(" ");
-        }
-        delay(0); // a substitute for flush...
-        yield();
-      }
+      socketWrite(c);
     }
-    
-    currentExpiresTimeMs = 0;
-    if(plussesInARow==3)
-      currentExpiresTimeMs=millis()+1000;
   }
+  
+  currentExpiresTimeMs = 0;
+  if(plussesInARow==3)
+    currentExpiresTimeMs=millis()+1000;
 }
 
 void ZStream::switchBackToCommandMode(bool logout)
 {
-    if(disconnectOnExit && logout && (current != null))
+  if(disconnectOnExit && logout && (current != null))
+  {
+    if(!commandMode.suppressResponses)
     {
-      if(!commandMode.suppressResponses)
-      {
-        if(commandMode.numericResponses)
-          Serial.printf("3");
-        else
-          Serial.printf("NO CARRIER");
-        Serial.print(commandMode.EOLN);
-      }
-      delete current;
+      if(commandMode.numericResponses)
+        Serial.printf("3");
+      else
+        Serial.printf("NO CARRIER");
+      Serial.print(commandMode.EOLN);
     }
-    current = null;
-    dcdStatus = LOW;
-    digitalWrite(2,dcdStatus);
-    if(baudRate != commandBaudRate)
-    {
-      baudRate=commandBaudRate;
-      Serial.flush();
-      Serial.begin(baudRate);
-    }
-    currMode = &commandMode;
+    delete current;
+  }
+  current = null;
+  dcdStatus = LOW;
+  digitalWrite(2,dcdStatus);
+  currMode = &commandMode;
 }
 
-void ZStream::serialWrite(uint8_t c)
+void ZStream::socketWrite(uint8_t c)
 {
-  if(streamStartTime == 0)
-    streamStartTime = millis();
-
-  Serial.write(c);
-  if(logFileOpen)
+  if(!logFileOpen)
   {
-    if((logFileCtrR > 0)
-    ||(++logFileCtrW > DBG_BYT_CTR)
-    ||((millis()-lastSerialWrite)>expectedSerialTime))
+    if(current->isConnected())
+      current->write(c);
+  }
+  else
+  {
+    if(streamStartTime == 0)
+      streamStartTime = millis();
+
+    if(current->isConnected())
+      current->write(c);
+    if((logFileCtrW > 0)
+    ||(++logFileCtrR > DBG_BYT_CTR)
+    ||((millis()-lastSerialRead)>expectedSerialTime))
     {
-      logFileCtrR=0;
-      logFileCtrW=1;
+      logFileCtrR=1;
+      logFileCtrW=0;
       logFile.println("");
-      logFile.printf("%s Soc: ",TOHEX(millis()-streamStartTime));
+      logFile.printf("%s Ser: ",TOHEX(millis()-streamStartTime));
     }
-    lastSerialWrite=millis();
+    lastSerialRead=millis();
     /*if((c>=32)&&(c<=127))
     {
       logFile.print('_');
@@ -186,6 +157,44 @@ void ZStream::serialWrite(uint8_t c)
     else*/
       logFile.print(TOHEX(c));
     logFile.print(" ");
+  }
+  delay(0);
+  yield();
+}
+
+void ZStream::serialWrite(uint8_t c)
+{
+  if(!logFileOpen)
+  {
+    Serial.write(c);
+  }
+  else
+  {
+    if(streamStartTime == 0)
+      streamStartTime = millis();
+  
+    Serial.write(c);
+    if(logFileOpen)
+    {
+      if((logFileCtrR > 0)
+      ||(++logFileCtrW > DBG_BYT_CTR)
+      ||((millis()-lastSerialWrite)>expectedSerialTime))
+      {
+        logFileCtrR=0;
+        logFileCtrW=1;
+        logFile.println("");
+        logFile.printf("%s Soc: ",TOHEX(millis()-streamStartTime));
+      }
+      lastSerialWrite=millis();
+      /*if((c>=32)&&(c<=127))
+      {
+        logFile.print('_');
+        logFile.print((char)c);
+      }
+      else*/
+        logFile.print(TOHEX(c));
+      logFile.print(" ");
+    }
   }
 }
     
@@ -208,15 +217,16 @@ int serialBufferBytesRemaining()
   return -amt;
 }
 
+void ZStream::enqueSerial(uint8_t c)
+{
+  TBUF[TBUFtail] = c;
+  TBUFtail++;
+  if(TBUFtail >= BUFSIZE)
+    TBUFtail = 0;
+}
+
 void ZStream::loop()
 {
-  if(baudRate != streamBaudRate)
-  {
-    baudRate=streamBaudRate;
-    Serial.flush();
-    Serial.begin(baudRate);
-  }
-  
   WiFiServerNode *serv = servs;
   while(serv != null)
   {
@@ -284,12 +294,7 @@ void ZStream::loop()
             uint8_t c=current->read();
             if((!telnet || handleAsciiIAC((char *)&c,current))
             && (!petscii || ascToPet((char *)&c,current)))
-            {
-              TBUF[TBUFtail] = c;
-              TBUFtail++;
-              if(TBUFtail >= BUFSIZE)
-                TBUFtail = 0;
-            }
+              enqueSerial(c);
           }
         }
       }

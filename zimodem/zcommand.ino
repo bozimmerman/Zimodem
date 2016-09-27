@@ -51,8 +51,6 @@ void ZCommand::setConfigDefaults()
   strcpy(ECS,"+++");
   BS=8;
   EOLN = CRLF;
-  streamBaudRate=baudRate;
-  commandBaudRate=baudRate;
 }
 
 char lc(char c)
@@ -221,8 +219,6 @@ void ZCommand::loadConfig()
     baudRate=atoi(argv[CFG_BAUDRATE].c_str());
   if(baudRate <= 0)
     baudRate=1200;
-  streamBaudRate=baudRate;
-  commandBaudRate=baudRate;
   Serial.begin(baudRate);  //Start Serial
   wifiSSI=argv[CFG_WIFISSI];
   wifiPW=argv[CFG_WIFIPW];
@@ -288,8 +284,6 @@ void ZCommand::showAtStatusMessage()
   Serial.print("S40=");
   Serial.print(packetSize);
   Serial.print(autoStreamMode ? "S41=1" : "S41=0");
-  Serial.print("S42=");
-  Serial.print(streamBaudRate);
   
   WiFiServerNode *serv = servs;
   while(serv != null)
@@ -308,9 +302,6 @@ ZResult ZCommand::doBaudCommand(int vval, uint8_t *vbuf, int vlen)
     return ZERROR;
   else
   {
-    if(streamBaudRate == commandBaudRate)
-      streamBaudRate=vval;
-    commandBaudRate=vval;
     baudRate=vval;
     Serial.flush();
     Serial.begin(baudRate);
@@ -1014,12 +1005,6 @@ ZResult ZCommand::doSerialCommand()
              case 41:
                 autoStreamMode = (sval > 0);
                 break;
-             case 42:
-                if(sval <= 0)
-                  streamBaudRate=commandBaudRate;
-                else
-                  streamBaudRate=sval;
-                break;
              default:
                 break;
               }
@@ -1340,7 +1325,7 @@ void ZCommand::acceptNewConnection()
           {
             if(autoStreamMode)
             {
-              sendConnectionNotice(streamBaudRate);
+              sendConnectionNotice(baudRate);
               doAnswerCommand(0, (uint8_t *)"", 0, false, "");
               break;
             }

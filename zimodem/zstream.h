@@ -35,8 +35,10 @@ class ZStream : public ZMode
     unsigned long expectedSerialTime = 1000;
 
     void switchBackToCommandMode(bool logout);
+    void socketWrite(uint8_t c);
     void serialWrite(uint8_t c);
     void serialDeque();
+    void enqueSerial(uint8_t c);
 
   public:
     bool doBBS=false;
