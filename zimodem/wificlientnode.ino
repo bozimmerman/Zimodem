@@ -125,7 +125,7 @@ int WiFiClientNode::peek()
 
 void WiFiClientNode::flush()
 {
-  if(host != null)
+  if((host != null)&&(client.available()==0))
     client.flush();
 }
 

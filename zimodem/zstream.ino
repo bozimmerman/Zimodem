@@ -73,7 +73,7 @@ void ZStream::serialIncoming()
   int serialAvailable = Serial.available();
   if(serialAvailable == 0)
     return;
-  if(--serialAvailable >= 0)
+  while(--serialAvailable >= 0)
   {
     uint8_t c=Serial.read();
     if((c==commandMode.EC)
@@ -158,8 +158,9 @@ void ZStream::socketWrite(uint8_t c)
       logFile.print(TOHEX(c));
     logFile.print(" ");
   }
-  delay(0);
-  yield();
+  current->flush(); // rendered safe by available check
+  //delay(0);
+  //yield();
 }
 
 void ZStream::serialWrite(uint8_t c)
