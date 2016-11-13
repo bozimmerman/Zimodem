@@ -428,18 +428,19 @@ ZResult ZCommand::doWiFiCommand(int vval, uint8_t *vbuf, int vlen)
   return ZOK;
 }
 
-ZResult ZCommand::doTransmitCommand(int vval, uint8_t *vbuf, int vlen)
+ZResult ZCommand::doTransmitCommand(int vval, uint8_t *vbuf, int vlen, bool isNumber, const char *dmodifiers)
 {
+  bool doPETSCII = (strchr(dmodifiers,'p')!=null);
   if((vlen==0)||(current==null)||(!current->isConnected()))
     return ZERROR;
   else
-  if(vval>0)
+  if(isNumber && (vval>0))
   {
     uint8_t buf[vval];
     int recvd = Serial.readBytes(buf,vval);
     if(recvd != vval)
       return ZERROR;
-    if(current->doPETSCII)
+    if(current->doPETSCII || doPETSCII)
     {
       for(int i=0;i<recvd;i++)
         buf[i]=petToAsc(buf[i]);
@@ -450,13 +451,14 @@ ZResult ZCommand::doTransmitCommand(int vval, uint8_t *vbuf, int vlen)
   {
     uint8_t buf[vlen];
     memcpy(buf,vbuf,vlen);
-    if(current->doPETSCII)
+    if(current->doPETSCII || doPETSCII)
     {
       for(int i=0;i<vlen;i++)
         buf[i] = petToAsc(buf[i]);
     }
     current->write(buf,vlen);
-    current->write((const uint8_t*)"\r\n",2); // special case
+    current->write(13); // special case
+    current->write(10); // special case
   }
   return ZOK;
 }
@@ -784,7 +786,8 @@ ZResult ZCommand::doSerialCommand()
         }
         else
         if((lastCmd=='d')||(lastCmd=='D')
-        || (lastCmd=='c')||(lastCmd=='C'))
+        || (lastCmd=='c')||(lastCmd=='C')
+        || (lastCmd=='t')||(lastCmd=='T'))
         {
           const char *DMODIFIERS=",lbprtw";
           while((index<len)&&(strchr(DMODIFIERS,lc(sbuf[index]))!=null))
@@ -878,7 +881,7 @@ ZResult ZCommand::doSerialCommand()
         result = doBaudCommand(vval,vbuf,vlen);
         break;
       case 't':
-        result = doTransmitCommand(vval,vbuf,vlen);
+        result = doTransmitCommand(vval,vbuf,vlen,isNumber,dmodifiers.c_str());
         break;
       case 'h':
         result = doHangupCommand(vval,vbuf,vlen,isNumber);
@@ -1135,6 +1138,7 @@ void ZCommand::serialIncoming()
     currentExpiresTimeMs = millis() + 1000;
   if(!crReceived)
     return;
+  delay(200);
   doSerialCommand();
 }
 

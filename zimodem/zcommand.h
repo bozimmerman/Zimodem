@@ -89,7 +89,7 @@ class ZCommand : public ZMode
     ZResult doResetCommand();
     ZResult doNoListenCommand();
     ZResult doBaudCommand(int vval, uint8_t *vbuf, int vlen);
-    ZResult doTransmitCommand(int vval, uint8_t *vbuf, int vlen);
+    ZResult doTransmitCommand(int vval, uint8_t *vbuf, int vlen, bool isNumber, const char *dmodifiers);
     ZResult doLastPacket(int vval, uint8_t *vbuf, int vlen, bool isNumber);
     ZResult doConnectCommand(int vval, uint8_t *vbuf, int vlen, bool isNumber, const char *dmodifiers);
     ZResult doWiFiCommand(int vval, uint8_t *vbuf, int vlen);
