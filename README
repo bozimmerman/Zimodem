@@ -104,6 +104,7 @@ ATS6 ... 39=n : Unimplemented, always returns OK
 ATS40=n : Change the size of the connection packets (n > 0), Defaults to 127 bytes
 ATS41=n : When n > 0, all incoming Server listener connections are immediately sent to Stream mode.  If n=0, connections remain in normal command mode (default).
 +++ : With a 1 second pause with no other characters afterwards, this will disconnect the current opened connection.
+ATS42=n : Set the CRC8 for an expected incoming Transmit command.  e.g. ATS42=123&T"[MESSAGE]" returns error unless 123 is CRC8 of "[MESSAGE]"
 
 ATT"[MESSAGE]" : Transmit the given text string, with \r\n at the end, on the current connection.
 ATTn : Where n > 0, this starts a transmit of exactly n bytes to the current connection.  The \n from entering this command must be followed by the n bytes to transmit.

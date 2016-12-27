@@ -428,7 +428,7 @@ ZResult ZCommand::doWiFiCommand(int vval, uint8_t *vbuf, int vlen)
   return ZOK;
 }
 
-ZResult ZCommand::doTransmitCommand(int vval, uint8_t *vbuf, int vlen, bool isNumber, const char *dmodifiers)
+ZResult ZCommand::doTransmitCommand(int vval, uint8_t *vbuf, int vlen, bool isNumber, const char *dmodifiers, const int crc8)
 {
   bool doPETSCII = (strchr(dmodifiers,'p')!=null);
   if((vlen==0)||(current==null)||(!current->isConnected()))
@@ -439,6 +439,8 @@ ZResult ZCommand::doTransmitCommand(int vval, uint8_t *vbuf, int vlen, bool isNu
     uint8_t buf[vval];
     int recvd = Serial.readBytes(buf,vval);
     if(recvd != vval)
+      return ZERROR;
+    if((crc8 != -1)&&(CRC8(buf,recvd)!=crc8))
       return ZERROR;
     if(current->doPETSCII || doPETSCII)
     {
@@ -451,6 +453,8 @@ ZResult ZCommand::doTransmitCommand(int vval, uint8_t *vbuf, int vlen, bool isNu
   {
     uint8_t buf[vlen];
     memcpy(buf,vbuf,vlen);
+    if((crc8 != -1)&&(CRC8(buf,vlen)!=crc8))
+      return ZERROR;
     if(current->doPETSCII || doPETSCII)
     {
       for(int i=0;i<vlen;i++)
@@ -649,8 +653,6 @@ ZResult ZCommand::doLastPacket(int vval, uint8_t *vbuf, int vlen, bool isNumber)
   }
   if(cnode == null)
     return ZERROR;
-  if(cnode->lastPacketLen == 0) // means it was never used!
-    return ZERROR;
   reSendLastPacket(cnode);
   return ZIGNORE;
 }
@@ -745,6 +747,7 @@ ZResult ZCommand::doSerialCommand()
   memset(nbuf,0,MAX_COMMAND_SIZE);
   eon=0;
   String currentCommand = (char *)sbuf;
+  int crc8=-1;
   
   ZResult result=ZOK;
   int index=0;
@@ -881,7 +884,7 @@ ZResult ZCommand::doSerialCommand()
         result = doBaudCommand(vval,vbuf,vlen);
         break;
       case 't':
-        result = doTransmitCommand(vval,vbuf,vlen,isNumber,dmodifiers.c_str());
+        result = doTransmitCommand(vval,vbuf,vlen,isNumber,dmodifiers.c_str(),crc8);
         break;
       case 'h':
         result = doHangupCommand(vval,vbuf,vlen,isNumber);
@@ -1008,6 +1011,9 @@ ZResult ZCommand::doSerialCommand()
              case 41:
                 autoStreamMode = (sval > 0);
                 break;
+             case 42:
+                 crc8=sval;
+                 break;
              default:
                 break;
               }
@@ -1123,10 +1129,18 @@ ZResult ZCommand::doSerialCommand()
 
 void ZCommand::reSendLastPacket(WiFiClientNode *conn)
 {
-  uint8_t crc=CRC8(conn->lastPacketBuf,conn->lastPacketLen);
-  Serial.printf("[ %d %d %d ]",conn->id,conn->lastPacketLen,(int)crc);
-  Serial.print(EOLN);
-  Serial.write(conn->lastPacketBuf,conn->lastPacketLen);
+  if(conn->lastPacketLen == 0) // never used, or empty
+  {
+    Serial.printf("[ %d %d %d ]",conn->id,conn->lastPacketLen,0);
+    Serial.print(EOLN);
+  }
+  else
+  {
+    uint8_t crc=CRC8(conn->lastPacketBuf,conn->lastPacketLen);
+    Serial.printf("[ %d %d %d ]",conn->id,conn->lastPacketLen,(int)crc);
+    Serial.print(EOLN);
+    Serial.write(conn->lastPacketBuf,conn->lastPacketLen);
+  }
 }
 
 void ZCommand::serialIncoming()
@@ -1138,7 +1152,7 @@ void ZCommand::serialIncoming()
     currentExpiresTimeMs = millis() + 1000;
   if(!crReceived)
     return;
-  delay(200);
+  //delay(200); // uncomment this only when you can explain it.
   doSerialCommand();
 }
 
@@ -1229,6 +1243,12 @@ void ZCommand::sendNextPacket()
   if(flowControlType == FCT_MANUAL)
   {
     XON=false;
+    firstConn = conns;
+    while(firstConn->isConnected())
+    {
+      firstConn->lastPacketLen = 0;
+      firstConn = firstConn->next;
+    }
     Serial.print("[ 0 0 0 ]");
     Serial.print(EOLN);
   }
