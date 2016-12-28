@@ -1152,7 +1152,8 @@ void ZCommand::serialIncoming()
     currentExpiresTimeMs = millis() + 1000;
   if(!crReceived)
     return;
-  //delay(200); // uncomment this only when you can explain it.
+  delay(200); // give a pause after receiving command before responding
+  // the delay doesn't affect xon/xoff because its the periodic transmitter that manages that.
   doSerialCommand();
 }
 
