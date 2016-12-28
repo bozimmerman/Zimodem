@@ -1129,6 +1129,12 @@ ZResult ZCommand::doSerialCommand()
 
 void ZCommand::reSendLastPacket(WiFiClientNode *conn)
 {
+  if(conn == NULL)
+  {
+    Serial.print("[ 0 0 0 ]");
+    Serial.print(EOLN);
+  }
+  else
   if(conn->lastPacketLen == 0) // never used, or empty
   {
     Serial.printf("[ %d %d %d ]",conn->id,conn->lastPacketLen,0);
@@ -1152,7 +1158,7 @@ void ZCommand::serialIncoming()
     currentExpiresTimeMs = millis() + 1000;
   if(!crReceived)
     return;
-  delay(200); // give a pause after receiving command before responding
+  //delay(200); // give a pause after receiving command before responding
   // the delay doesn't affect xon/xoff because its the periodic transmitter that manages that.
   doSerialCommand();
 }
@@ -1245,7 +1251,7 @@ void ZCommand::sendNextPacket()
   {
     XON=false;
     firstConn = conns;
-    while(firstConn->isConnected())
+    while(firstConn != NULL)
     {
       firstConn->lastPacketLen = 0;
       firstConn = firstConn->next;
