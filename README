@@ -72,8 +72,8 @@ ATR3 : Suppresses carriage return (\r $0d) in end of lines.  Will only send line
 
 ATBn : Sets a new serial Baud Rate. Takes effect immediately.
 
-ATW : List all wireless network access points scanned within range.  The response for each entry is the SSID, following by the RSSI, followed by an * character is the connection is encrupted.
-ATWn : Where n > 0, this lists up to n wireless network access points scanned within range.  The response for each entry is the SSID, following by the RSSI, followed by an * character is the connection is encrupted.
+ATW : List all wireless network access points scanned within range.  The response for each entry is the SSID, following by the RSSI, followed by an * character is the connection is encrypted.
+ATWn : Where n > 0, this lists up to n wireless network access points scanned within range.  The response for each entry is the SSID, following by the RSSI, followed by an * character is the connection is encrypted.
 
 ATD : Start a streaming connection between the current opened connection.  Use "+++" to exit back to Command mode.
 ATDn : Where n > 0, this will start a streaming connection between the previously opened connection with an id the same as n.  Use "+++" to exit back to Command mode.
@@ -103,8 +103,9 @@ ATS5=n : Change the Backspace Character	(0-32), ASCII decimal 8 (Backspace)
 ATS6 ... 39=n : Unimplemented, always returns OK
 ATS40=n : Change the size of the connection packets (n > 0), Defaults to 127 bytes
 ATS41=n : When n > 0, all incoming Server listener connections are immediately sent to Stream mode.  If n=0, connections remain in normal command mode (default).
+ATS42=n : Set the CRC8 for an expected incoming Transmit command.  e.g. ATS42=123T"[MESSAGE]" returns error unless 123 is CRC8 of "[MESSAGE]"
+
 +++ : With a 1 second pause with no other characters afterwards, this will disconnect the current opened connection.
-ATS42=n : Set the CRC8 for an expected incoming Transmit command.  e.g. ATS42=123&T"[MESSAGE]" returns error unless 123 is CRC8 of "[MESSAGE]"
 
 ATT"[MESSAGE]" : Transmit the given text string, with \r\n at the end, on the current connection.
 ATTn : Where n > 0, this starts a transmit of exactly n bytes to the current connection.  The \n from entering this command must be followed by the n bytes to transmit.
