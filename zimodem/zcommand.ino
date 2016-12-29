@@ -19,9 +19,23 @@ extern "C" void esp_yield();
 byte ZCommand::CRC8(const byte *data, byte len) 
 {
   byte crc = 0x00;
+  if(logFileOpen)
+      logFile.print("CRC8: ");
+  int c=0;
   while (len--) 
   {
     byte extract = *data++;
+    if(logFileOpen)
+    {
+        logFile.print(TOHEX(extract));
+        if((++c)>20)
+        {
+          logFile.print("\r\ncrc8: ");
+          c=0;
+        }
+        else
+          logFile.print(" ");
+    }
     for (byte tempI = 8; tempI; tempI--) 
     {
       byte sum = (crc ^ extract) & 0x01;
@@ -32,6 +46,8 @@ byte ZCommand::CRC8(const byte *data, byte len)
       extract >>= 1;
     }
   }
+  if(logFileOpen)
+    logFile.printf("\r\nFinal CRC8: %s\r\n",TOHEX(crc));
   return crc;
 }    
 
@@ -755,6 +771,15 @@ ZResult ZCommand::doSerialCommand()
   &&((lc(sbuf[index])!='a')||(lc(sbuf[index+1])!='t')))
       index++;
 
+  if(logFileOpen)
+  {
+      char cmdbuf[len+1];
+      memcpy(cmdbuf,sbuf,len);
+      cmdbuf[len]=0;
+      logFile.print("Command: ");
+      logFile.println(cmdbuf);
+  }
+
   if((index<len-1)
   &&(lc(sbuf[index])=='a')
   &&(lc(sbuf[index+1])=='t'))
@@ -831,6 +856,15 @@ ZResult ZCommand::doSerialCommand()
         if((vlen > 0)&&(isNumber))
           vval=atoi((char *)vbuf);
       }
+      
+      if(logFileOpen)
+      {
+        if(vlen > 0)
+          logFile.printf("Proc: %c %d '%s'\r\n",lastCmd,vval,vbuf);
+        else
+          logFile.printf("Proc: %c %d ''\r\n",lastCmd,vval);
+      }
+
       /*
        * We have cmd and args, time to DO!
        */
@@ -1133,19 +1167,42 @@ void ZCommand::reSendLastPacket(WiFiClientNode *conn)
   {
     Serial.print("[ 0 0 0 ]");
     Serial.print(EOLN);
+    if(logFileOpen)
+        logFile.printf("SER-OUT: [ 0 0 0 ]\r\n");
   }
   else
   if(conn->lastPacketLen == 0) // never used, or empty
   {
     Serial.printf("[ %d %d %d ]",conn->id,conn->lastPacketLen,0);
     Serial.print(EOLN);
+    if(logFileOpen)
+        logFile.printf("SER-OUT: [ %d %d 0 ]\r\n",conn->id,conn->lastPacketLen);
   }
   else
   {
     uint8_t crc=CRC8(conn->lastPacketBuf,conn->lastPacketLen);
     Serial.printf("[ %d %d %d ]",conn->id,conn->lastPacketLen,(int)crc);
     Serial.print(EOLN);
+    if(logFileOpen)
+        logFile.printf("SER-OUT: [ %d %d %d ]\r\n",conn->id,conn->lastPacketLen,(int)crc);
     Serial.write(conn->lastPacketBuf,conn->lastPacketLen);
+    if(logFileOpen)
+    {
+        int c=0;
+        logFile.print("SER-OUT: ");
+        for(int i=0;i<conn->lastPacketLen;i++)
+        {
+            logFile.print(TOHEX(conn->lastPacketBuf[i]));
+            if((++c)>20)
+            {
+                logFile.print("\r\nSER-OUT: ");
+                c=0;
+            }
+            else
+                logFile.print(" ");
+        }
+        logFile.print("\r\n");
+    }
   }
 }
 
