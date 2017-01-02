@@ -16,6 +16,14 @@
 extern "C" void esp_schedule();
 extern "C" void esp_yield();
 
+ZCommand::ZCommand()
+{
+  maskOuts = (char *)malloc(1);
+  maskOuts[0]=0;
+  delimiters = (char *)malloc(1);
+  delimiters[0]=0;
+}
+
 byte ZCommand::CRC8(const byte *data, byte len) 
 {
   byte crc = 0x00;
@@ -67,6 +75,12 @@ void ZCommand::setConfigDefaults()
   strcpy(ECS,"+++");
   BS=8;
   EOLN = CRLF;
+  free(maskOuts);
+  maskOuts = (char *)malloc(1);
+  maskOuts[0]=0;
+  free(delimiters);
+  delimiters = (char *)malloc(1);
+  delimiters[0]=0;
 }
 
 char lc(char c)
@@ -487,14 +501,15 @@ ZResult ZCommand::doDialStreamCommand(int vval, uint8_t *vbuf, int vlen, bool is
 {
   bool doPETSCII = (strchr(dmodifiers,'p')!=null);
   bool doTelnet = (strchr(dmodifiers,'t')!=null);
-  bool doBBS = (strchr(dmodifiers,'b')!=null);
+  bool doEcho = (strchr(dmodifiers,'e')!=null);
+  bool doXonXoff = (strchr(dmodifiers,'x')!=null);
   if(vlen == 0)
   {
     if((current == null)||(!current->isConnected()))
       return ZERROR;
     else
     {
-      streamMode.switchTo(current,false,doPETSCII|| current->doPETSCII,doTelnet);
+      streamMode.switchTo(current,false,doPETSCII|| current->doPETSCII, doTelnet);
     }
   }
   else
@@ -506,7 +521,7 @@ ZResult ZCommand::doDialStreamCommand(int vval, uint8_t *vbuf, int vlen, bool is
     if((c!=null)&&(c->id == vval)&&(c->isConnected()))
     {
       current=c;
-      streamMode.switchTo(c,false,doPETSCII || c->doPETSCII,doTelnet,doBBS);
+      streamMode.switchTo(c,false,doPETSCII || c->doPETSCII,doTelnet,doEcho,doXonXoff);
     }
     else
       return ZERROR;
@@ -529,7 +544,7 @@ ZResult ZCommand::doDialStreamCommand(int vval, uint8_t *vbuf, int vlen, bool is
     else
     {
       current=c;
-      streamMode.switchTo(c,true,doPETSCII,doTelnet,doBBS);
+      streamMode.switchTo(c,true,doPETSCII,doTelnet,doEcho,doXonXoff);
     }
   }
   return ZOK;
@@ -786,6 +801,7 @@ ZResult ZCommand::doSerialCommand()
   {
     index+=2;
     char lastCmd=' ';
+    char secCmd=' ';
     int vstart=0;
     int vlen=0;
     String dmodifiers="";
@@ -798,6 +814,7 @@ ZResult ZCommand::doSerialCommand()
       if((lastCmd=='&')&&(index<len))
       {
         index++;//protect our one and only letter.
+        secCmd = sbuf[vstart];
         vstart++;
       }
       if(index<len)
@@ -840,7 +857,8 @@ ZResult ZCommand::doSerialCommand()
         }
         else
         while((index<len)
-        &&(!((lc(sbuf[index])>='a')&&(lc(sbuf[index])<='z'))))
+        &&(!((lc(sbuf[index])>='a')&&(lc(sbuf[index])<='z')))
+        &&(sbuf[index]!='&'))
         {
           isNumber = (sbuf[index]>='0') && (sbuf[index]<='9') && isNumber;
           vlen++;
@@ -948,7 +966,7 @@ ZResult ZCommand::doSerialCommand()
           showAtStatusMessage();
         break;
       case 'l':
-        doLastPacket(vval,vbuf,vlen,isNumber);
+        result = doLastPacket(vval,vbuf,vlen,isNumber);
         break;
       case 'm':
       case 'y':
@@ -1056,13 +1074,61 @@ ZResult ZCommand::doSerialCommand()
         }
         break;
       case '&':
-        switch(lc(sbuf[vstart-1]))
+        switch(lc(secCmd))
         {
         case 'l':
           loadConfig();
           break;
         case 'w':
           reSaveConfig();
+          break;
+        case 'f':
+          SPIFFS.remove("/zconfig.txt");
+          delay(500);
+          result=doResetCommand();
+          showInitMessage();
+          break;
+        case 'm':
+          if(vval > 0)
+          {
+            int len = strlen(maskOuts);
+            char *newMaskOuts = (char *)malloc(len+2); // 1 for the new char, and 1 for the 0 never counted
+            strcpy(newMaskOuts,maskOuts);
+            newMaskOuts[len] = vval;
+            newMaskOuts[len+1] = 0;
+            free(maskOuts);
+            maskOuts = newMaskOuts;
+          }
+          else
+          {
+            free(maskOuts);
+            maskOuts = (char *)malloc(vlen+1);
+            maskOuts[vlen]=0;
+            if(vlen > 0)
+              memcpy(maskOuts,vbuf,vlen);
+          }
+          result=ZOK;
+          break;
+        case 'd':
+          if(vval > 0)
+          {
+            int len = strlen(delimiters);
+            char *newDelimiters = (char *)malloc(len+2); // 1 for the new char, and 1 for the 0 never counted
+            strcpy(newDelimiters,delimiters);
+            newDelimiters[len] = vval;
+            newDelimiters[len+1] = 0;
+            free(delimiters);
+            delimiters = newDelimiters;
+          }
+          else
+          {
+            free(delimiters);
+            delimiters = (char *)malloc(vlen+1);
+            delimiters[vlen]=0;
+            if(vlen > 0)
+              memcpy(delimiters,vbuf,vlen);
+          }
+          result=ZOK;
           break;
         case 'g':
           if(vval == 0)
@@ -1180,19 +1246,52 @@ void ZCommand::reSendLastPacket(WiFiClientNode *conn)
   }
   else
   {
-    uint8_t crc=CRC8(conn->lastPacketBuf,conn->lastPacketLen);
-    Serial.printf("[ %d %d %d ]",conn->id,conn->lastPacketLen,(int)crc);
+    int bufLen = conn->lastPacketLen;
+    uint8_t *buf = (uint8_t *)malloc(bufLen);
+    memcpy(buf,conn->lastPacketBuf,bufLen);
+
+    if(maskOuts[0] != 0)
+    {
+      int oldLen=bufLen;
+      for(int i=0,o=0;i<oldLen;i++,o++)
+      {
+        if(strchr(maskOuts,buf[i])!=null)
+        {
+          o--;
+          bufLen--;
+        }
+        else
+          buf[o]=buf[i];
+      }
+    }
+    if(nextConn->doPETSCII)
+    {
+      int oldLen=bufLen;
+      for(int i=0, b=0;i<oldLen;i++,b++)
+      {
+        buf[b]=buf[i];
+        if(!ascToPet((char *)&buf[b],conn))
+        {
+          b--;
+          bufLen--;
+        }
+      }
+    }
+    
+    uint8_t crc=CRC8(buf,bufLen);
+    Serial.printf("[ %d %d %d ]",conn->id,bufLen,(int)crc);
     Serial.print(EOLN);
     if(logFileOpen)
-        logFile.printf("SER-OUT: [ %d %d %d ]\r\n",conn->id,conn->lastPacketLen,(int)crc);
-    Serial.write(conn->lastPacketBuf,conn->lastPacketLen);
+        logFile.printf("SER-OUT: [ %d %d %d ]\r\n",conn->id,bufLen,(int)crc);
+    if(bufLen > 0)
+      Serial.write(buf,bufLen);
     if(logFileOpen)
     {
         int c=0;
         logFile.print("SER-OUT: ");
-        for(int i=0;i<conn->lastPacketLen;i++)
+        for(int i=0;i<bufLen;i++)
         {
-            logFile.print(TOHEX(conn->lastPacketBuf[i]));
+            logFile.print(TOHEX(buf[i]));
             if((++c)>20)
             {
                 logFile.print("\r\nSER-OUT: ");
@@ -1203,6 +1302,7 @@ void ZCommand::reSendLastPacket(WiFiClientNode *conn)
         }
         logFile.print("\r\n");
     }
+    free(buf);
   }
 }
 
@@ -1243,20 +1343,37 @@ void ZCommand::sendNextPacket()
         maxBytes = Serial.availableForWrite()-15;
       if(maxBytes > 0)
       {
-        maxBytes = nextConn->read(nextConn->lastPacketBuf,maxBytes);
-        if(nextConn->doPETSCII)
+        if(delimiters[0] != 0)
         {
-          int bytesToRead=maxBytes;
-          for(int i=0, b=0;i<bytesToRead;i++,b++)
+          if((nextConn->lastPacketLen >= packetSize)
+          ||((nextConn->lastPacketLen>0)&&(strchr(delimiters,nextConn->lastPacketBuf[nextConn->lastPacketLen-1]) != null)))
+            nextConn->lastPacketLen = 0;
+          int bytesRemain = maxBytes;
+          while((bytesRemain > 0)
+          &&(nextConn->lastPacketLen < packetSize)
+          &&((nextConn->lastPacketLen==0)||(strchr(delimiters,nextConn->lastPacketBuf[nextConn->lastPacketLen-1]) == null)))
           {
-            nextConn->lastPacketBuf[b]=nextConn->lastPacketBuf[i];
-            if(!ascToPet((char *)&nextConn->lastPacketBuf[b],nextConn))
+            nextConn->lastPacketBuf[nextConn->lastPacketLen++] = nextConn->read();
+            bytesRemain--;
+          }
+          //BUG: PETSCII conversion screws up the last packet
+          if((nextConn->lastPacketLen >= packetSize)
+          ||((nextConn->lastPacketLen>0)&&(strchr(delimiters,nextConn->lastPacketBuf[nextConn->lastPacketLen-1]) != null)))
+            maxBytes = nextConn->lastPacketLen;
+          else
+          {
+            if(flowControlType == FCT_MANUAL)
             {
-              b--;
-              maxBytes--;
+              Serial.print("[ 0 0 0 ]");
+              Serial.print(EOLN);
             }
+            if(flowControlType != FCT_NORMAL)
+              XON=false;
+            return;
           }
         }
+        else
+          maxBytes = nextConn->read(nextConn->lastPacketBuf,maxBytes);
         nextConn->lastPacketLen=maxBytes;
         reSendLastPacket(nextConn);
         if(flowControlType != FCT_NORMAL)

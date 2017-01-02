@@ -58,6 +58,8 @@ class ZCommand : public ZMode
     char *CR="\r";
     char BS=8;
     char ringCounter = 1;
+    char *delimiters;
+    char *maskOuts;
     
     uint8_t nbuf[MAX_COMMAND_SIZE];
     int eon=0;
@@ -109,6 +111,7 @@ class ZCommand : public ZMode
     char EC='+';
     char *ECS="+++";
 
+    ZCommand();
     void loadConfig();
     void serialIncoming();
     void loop();

@@ -16,7 +16,7 @@
 
 #define TCP_SND_BUF                     4 * TCP_MSS
 #define null 0
-#define ZIMODEM_VERSION "1.7"
+#define ZIMODEM_VERSION "1.8"
 
 #include "pet2asc.h"
 #include "zmode.h"

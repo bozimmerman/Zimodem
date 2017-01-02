@@ -48,8 +48,8 @@ ATAn : Causes Zimodem to create a server listening on port n.  When a connection
 ATN0 : Shuts down all listeners, leaving client connections open
 ATNn : if n > 0 then same as ATAn
 
-ATE0 : Turns serial terminal echo off.
-ATE1 : Turns serial terminal echo on.
+ATE0 : Turns serial terminal echo off for command mode.
+ATE1 : Turns serial terminal echo on for command mode.
 
 ATV0 : Turns off verbose responses mode (Uses Terse Numeric response mode)
 ATV1 : Turns on verbose responses mode (Uses Word response mode)
@@ -57,8 +57,8 @@ ATV1 : Turns on verbose responses mode (Uses Word response mode)
 ATX0 : Turns off extended response codes (1/CONNECT instead of 5/CONNECT 2, etc..)
 ATX1 : Turns on extended response codes (5/CONNECT 2 instead of 1/CONNECT, etc..)
 
-ATF0 : Turns off flow control
-ATF1 : Turns on xon/xoff flow control
+ATF0 : Turns off flow control for command mode
+ATF1 : Turns on xon/xoff flow control for command mode
 ATF2 : Turns on xon/xoff flow control, sets XON mode (if necessary), and, in command mode, will immediately go to XOFF when a single connection packet is received. This is very useful when the client wants to ensure it only receives one packet to process.  You can think of this as an alternative way to use xon/xoff by having XOFF automatic between packets.
 ATF3 : Similar to ATF2 except that the default is XOFF, and, in command mode, a XON code from the user will immediately trigger either an empty packet response [ 0 0 0 ], or a real packet if one is available.  After this, as in ATF2, XOFF is automatically set.
 
@@ -80,7 +80,8 @@ ATDn : Where n > 0, this will start a streaming connection between the previousl
 ATD"[HOSTNAME:PORT] : This opens a streaming connection between the terminal and the given host/port. Use "+++" to disconnect and exit back to command mode.
 atdP : Adding a P somewhere after the D, but before the first argument causes connection input to be translated to PETSCII
 atdT : Adding a T somewhere after the D, but before the first argument causes connection input to be translated per TELNET
-atdB : Adding a B somewhere after the D, but before the first argument causes flow control and echo to be disabled only for that streaming session.
+atdE : Adding a E somewhere after the D, but before the first argument causes terminal echo to be enabled that streaming session.
+atdX : Adding a X somewhere after the D, but before the first argument causes XON/XOFF flow control to be enabled that streaming session.
 
 ATC : Shows information about the current network connection in the following format "[CONNECTION STATE] [CONNECTION ID] [CONNECTED TO HOST]:[CONNECTED TO PORT]"
 ATC0 : Lists information about all of the network connections in the following format "[CONNECTION STATE] [CONNECTION ID] [CONNECTED TO HOST]:[CONNECTED TO PORT]", including any Server (ATA) listeners.
@@ -112,7 +113,11 @@ ATTn : Where n > 0, this starts a transmit of exactly n bytes to the current con
 ATTP"[MESSAGE]" : Transmit the given text string, translating petscii to ascii, with \r\n at the end, on the current connection.
 ATTPn : Where n > 0, this starts a transmit of exactly n bytes to the current connection, translating petscii to ascii.  The \n from entering this command must be followed by the n bytes to transmit.
 
-AT&L : Reloads the saved configuration.
-AT&W : Saves the current configuration: WiFi settings(ATW), baud rate (ATB), end of line (ATR) settings, flow control (ATF), echo mode (ATE), extended responses (ATX), verbose responses (ATV), quiet responses (ATQ)
-
+AT&L  : Reloads the saved configuration.
+AT&W  : Saves the current configuration: WiFi settings(ATW), baud rate (ATB), end of line (ATR) settings, flow control (ATF), echo mode (ATE), extended responses (ATX), verbose responses (ATV), quiet responses (ATQ)
+AT&F  : Restores the modem to factory default settings.
+AT&Mn : Adds the byte denoted by n to the list of mask-out bytes.  These are bytes that are not transmitted to the serial port in command mode incoming packets.
+AT&M  : Resets the mask-out bytes list. No bytes will be masked-out.
+AT&Dn : Adds the byte denoted by n to the list of delimiter bytes.  These are bytes that will compose the last byte in a command-mode incoming packet that is still shorter than the limit set by ATS40. This is useful for CR-LF formatted data.  See also AT&Mn on how to also mask out these bytes.
+AT&D  : Resets the delimiter bytes list. No bytes will be delimited, and packets will contain as many bytes as are received and allowed by ATS40.
 AT&G : 1 to turn on internal serial-reception log, 0 to turn off or view.

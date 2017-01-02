@@ -24,10 +24,11 @@ void ZStream::switchTo(WiFiClientNode *conn, bool dodisconnect, bool doPETSCII, 
   telnet=doTelnet;
 }
     
-void ZStream::switchTo(WiFiClientNode *conn, bool dodisconnect, bool doPETSCII, bool doTelnet, bool bbs)
+void ZStream::switchTo(WiFiClientNode *conn, bool dodisconnect, bool doPETSCII, bool doTelnet, bool doEcho, bool doXONXOFF)
 {
   switchTo(conn,dodisconnect,doPETSCII,doTelnet);
-  doBBS=bbs;
+  echoOn=doEcho;
+  xonXoff = doXONXOFF;
 }
 
 void ZStream::switchTo(WiFiClientNode *conn)
@@ -85,14 +86,14 @@ void ZStream::serialIncoming()
       plussesInARow=0;
       lastNonPlusTimeMs=millis();
     }
-    if((c==19)&&(commandMode.doFlowControl) && (!doBBS))
+    if((c==19)&&(xonXoff))
       XON=false;
     else
-    if((c==17)&&(commandMode.doFlowControl) && (!doBBS))
+    if((c==17)&&(xonXoff))
       XON=true;
     else
     {
-      if(commandMode.doEcho && (!doBBS))
+      if(echoOn)
         enqueSerial(c);
       if(petscii)
         c = petToAsc(c);
@@ -278,7 +279,7 @@ void ZStream::loop()
     }
   }
   else
-  if((!commandMode.doFlowControl)||(XON)||(doBBS))
+  if((!xonXoff)||(XON))
   {
     if((current->isConnected()) && (current->available()>0))
     {
