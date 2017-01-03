@@ -21,15 +21,9 @@ class ZStream : public ZMode
     unsigned long lastNonPlusTimeMs = 0;
     unsigned long currentExpiresTimeMs = 0;
     int plussesInARow=0;
-    bool disconnectOnExit=true;
     bool XON=true;
     long nextAlarm = millis() + 5000;
     
-    bool petscii=false;
-    bool telnet=false;
-    bool echoOn = false;
-    bool xonXoff = false;
-
     int logFileCtrW=0;
     int logFileCtrR=0;
     unsigned long lastSerialRead = millis();
@@ -43,11 +37,15 @@ class ZStream : public ZMode
     void serialDeque();
     void enqueSerial(uint8_t c);
 
+    bool isPETSCII();
+    bool isEcho();
+    bool isXonXoff();
+    bool isTelnet();
+    bool isDisconnectedOnStreamExit();
+    
   public:
     
     void switchTo(WiFiClientNode *conn);
-    void switchTo(WiFiClientNode *conn, bool dodisconnect, bool doPETSCII, bool doTelnet);
-    void switchTo(WiFiClientNode *conn, bool dodisconnect, bool doPETSCII, bool doTelnet, bool doEcho, bool doXONXOFF);
 
     void serialIncoming();
     void loop();

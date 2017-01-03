@@ -1,5 +1,5 @@
 /*
-   Copyright 2016-2016 Bo Zimmerman
+   Copyright 2016-2017 Bo Zimmerman
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -47,6 +47,15 @@ enum FlowControlType
   FCT_MANUAL
 };
 
+enum StreamFlag
+{
+  FLAG_DISCONNECT_ON_EXIT=1,
+  FLAG_PETSCII=2,
+  FLAG_TELNET=4,
+  FLAG_ECHO=8,
+  FLAG_XONXOFF=16
+};
+
 class ZCommand : public ZMode
 {
   friend class WiFiClientNode;
@@ -75,6 +84,7 @@ class ZCommand : public ZMode
     WiFiClientNode *nextConn=null;
 
     byte CRC8(const byte *data, byte len);
+    int makeStreamFlagsBitmap(const char *dmodifiers);
 
     bool readSerialStream();
     ZResult doSerialCommand();

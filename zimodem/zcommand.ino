@@ -1,5 +1,5 @@
 /*
-   Copyright 2016-2016 Bo Zimmerman
+   Copyright 2016-2017 Bo Zimmerman
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -58,6 +58,20 @@ byte ZCommand::CRC8(const byte *data, byte len)
     logFile.printf("\r\nFinal CRC8: %s\r\n",TOHEX(crc));
   return crc;
 }    
+
+int ZCommand::makeStreamFlagsBitmap(const char *dmodifiers)
+{
+    int flagsBitmap = 0;
+    if((strchr(dmodifiers,'p')!=null) || (strchr(dmodifiers,'P')!=null))
+      flagsBitmap = flagsBitmap | FLAG_PETSCII;
+    if((strchr(dmodifiers,'t')!=null) || (strchr(dmodifiers,'T')!=null))
+      flagsBitmap = flagsBitmap | FLAG_TELNET;
+    if((strchr(dmodifiers,'e')!=null) || (strchr(dmodifiers,'E')!=null))
+      flagsBitmap = flagsBitmap | FLAG_ECHO;
+    if((strchr(dmodifiers,'x')!=null) || (strchr(dmodifiers,'X')!=null))
+      flagsBitmap = flagsBitmap | FLAG_XONXOFF;
+    return flagsBitmap;
+}  
 
 void ZCommand::setConfigDefaults()
 {
@@ -341,7 +355,6 @@ ZResult ZCommand::doBaudCommand(int vval, uint8_t *vbuf, int vlen)
 
 ZResult ZCommand::doConnectCommand(int vval, uint8_t *vbuf, int vlen, bool isNumber, const char *dmodifiers)
 {
-  bool doPETSCII = (strchr(dmodifiers,'P') != null) || (strchr(dmodifiers,'p') != null);
   if(vlen == 0)
   {
     if(strlen(dmodifiers)>0)
@@ -403,7 +416,8 @@ ZResult ZCommand::doConnectCommand(int vval, uint8_t *vbuf, int vlen, bool isNum
       (*colon)=0;
       port=atoi((char *)(++colon));
     }
-    WiFiClientNode *c = new WiFiClientNode((char *)vbuf,port,doPETSCII);
+    int flagsBitmap = makeStreamFlagsBitmap(dmodifiers);
+    WiFiClientNode *c = new WiFiClientNode((char *)vbuf,port,flagsBitmap);
     if(!c->isConnected())
     {
       delete c;
@@ -460,7 +474,7 @@ ZResult ZCommand::doWiFiCommand(int vval, uint8_t *vbuf, int vlen)
 
 ZResult ZCommand::doTransmitCommand(int vval, uint8_t *vbuf, int vlen, bool isNumber, const char *dmodifiers, const int crc8)
 {
-  bool doPETSCII = (strchr(dmodifiers,'p')!=null);
+  bool doPETSCII = (strchr(dmodifiers,'p')!=null) || (strchr(dmodifiers,'P')!=null);
   if((vlen==0)||(current==null)||(!current->isConnected()))
     return ZERROR;
   else
@@ -472,7 +486,7 @@ ZResult ZCommand::doTransmitCommand(int vval, uint8_t *vbuf, int vlen, bool isNu
       return ZERROR;
     if((crc8 != -1)&&(CRC8(buf,recvd)!=crc8))
       return ZERROR;
-    if(current->doPETSCII || doPETSCII)
+    if(current->isPETSCII() || doPETSCII)
     {
       for(int i=0;i<recvd;i++)
         buf[i]=petToAsc(buf[i]);
@@ -485,7 +499,7 @@ ZResult ZCommand::doTransmitCommand(int vval, uint8_t *vbuf, int vlen, bool isNu
     memcpy(buf,vbuf,vlen);
     if((crc8 != -1)&&(CRC8(buf,vlen)!=crc8))
       return ZERROR;
-    if(current->doPETSCII || doPETSCII)
+    if(current->isPETSCII() || doPETSCII)
     {
       for(int i=0;i<vlen;i++)
         buf[i] = petToAsc(buf[i]);
@@ -497,19 +511,15 @@ ZResult ZCommand::doTransmitCommand(int vval, uint8_t *vbuf, int vlen, bool isNu
   return ZOK;
 }
 
-ZResult ZCommand::doDialStreamCommand(int vval, uint8_t *vbuf, int vlen, bool isNumber,const char *dmodifiers)
+ZResult ZCommand::doDialStreamCommand(int vval, uint8_t *vbuf, int vlen, bool isNumber, const char *dmodifiers)
 {
-  bool doPETSCII = (strchr(dmodifiers,'p')!=null);
-  bool doTelnet = (strchr(dmodifiers,'t')!=null);
-  bool doEcho = (strchr(dmodifiers,'e')!=null);
-  bool doXonXoff = (strchr(dmodifiers,'x')!=null);
   if(vlen == 0)
   {
     if((current == null)||(!current->isConnected()))
       return ZERROR;
     else
     {
-      streamMode.switchTo(current,false,doPETSCII|| current->doPETSCII, doTelnet);
+      streamMode.switchTo(current);
     }
   }
   else
@@ -521,13 +531,14 @@ ZResult ZCommand::doDialStreamCommand(int vval, uint8_t *vbuf, int vlen, bool is
     if((c!=null)&&(c->id == vval)&&(c->isConnected()))
     {
       current=c;
-      streamMode.switchTo(c,false,doPETSCII || c->doPETSCII,doTelnet,doEcho,doXonXoff);
+      streamMode.switchTo(c);
     }
     else
       return ZERROR;
   }
   else
   {
+    int flagsBitmap = makeStreamFlagsBitmap(dmodifiers);
     char *colon=strstr((char *)vbuf,":");
     int port=23;
     if(colon != null)
@@ -535,7 +546,7 @@ ZResult ZCommand::doDialStreamCommand(int vval, uint8_t *vbuf, int vlen, bool is
       (*colon)=0;
       port=atoi((char *)(++colon));
     }
-    WiFiClientNode *c = new WiFiClientNode((char *)vbuf,port,doPETSCII);
+    WiFiClientNode *c = new WiFiClientNode((char *)vbuf,port,flagsBitmap | FLAG_DISCONNECT_ON_EXIT);
     if(!c->isConnected())
     {
       delete c;
@@ -544,7 +555,7 @@ ZResult ZCommand::doDialStreamCommand(int vval, uint8_t *vbuf, int vlen, bool is
     else
     {
       current=c;
-      streamMode.switchTo(c,true,doPETSCII,doTelnet,doEcho,doXonXoff);
+      streamMode.switchTo(c);
     }
   }
   return ZOK;
@@ -577,7 +588,7 @@ ZResult ZCommand::doAnswerCommand(int vval, uint8_t *vbuf, int vlen, bool isNumb
         &&(c->id = lastServerClientId))
         {
           current=c;
-          streamMode.switchTo(c,false,false,false);
+          streamMode.switchTo(c);
           lastServerClientId=0;
           if(ringCounter == 0)
           {
@@ -593,7 +604,7 @@ ZResult ZCommand::doAnswerCommand(int vval, uint8_t *vbuf, int vlen, bool isNumb
   }
   else
   {
-    
+    int flagsBitmap = makeStreamFlagsBitmap(dmodifiers);
     WiFiServerNode *s=servs;
     while(s != null)
     {
@@ -601,7 +612,7 @@ ZResult ZCommand::doAnswerCommand(int vval, uint8_t *vbuf, int vlen, bool isNumb
         return ZOK;
       s=s->next;
     }
-    WiFiServerNode *newServer = new WiFiServerNode(vval);
+    WiFiServerNode *newServer = new WiFiServerNode(vval, flagsBitmap);
     return ZOK;
   }
 }
@@ -834,7 +845,7 @@ ZResult ZCommand::doSerialCommand()
         || (lastCmd=='c')||(lastCmd=='C')
         || (lastCmd=='t')||(lastCmd=='T'))
         {
-          const char *DMODIFIERS=",lbprtw";
+          const char *DMODIFIERS=",lbexprtw";
           while((index<len)&&(strchr(DMODIFIERS,lc(sbuf[index]))!=null))
             dmodifiers += lc((char)sbuf[index++]);
           vstart=index;
@@ -945,13 +956,15 @@ ZResult ZCommand::doSerialCommand()
         result = doDialStreamCommand(vval,vbuf,vlen,isNumber,dmodifiers.c_str());
         break;
       case 'o':
-        if((vlen == 0)&&(!isNumber))
+        if((vlen == 0)||(vval==0))
         {
-          result = ZOK;
-          if(current == null)
+          if((current == null)||(!current->isConnected()))
             result = ZERROR;
           else
+          {
             streamMode.switchTo(current);
+            result = ZOK;
+          }
         }
         else
           result = isNumber ? ZOK : ZERROR;
@@ -1264,7 +1277,7 @@ void ZCommand::reSendLastPacket(WiFiClientNode *conn)
           buf[o]=buf[i];
       }
     }
-    if(nextConn->doPETSCII)
+    if(nextConn->isPETSCII())
     {
       int oldLen=bufLen;
       for(int i=0, b=0;i<oldLen;i++,b++)
@@ -1506,7 +1519,7 @@ void ZCommand::acceptNewConnection()
         if(!found)
         {
           //BZ:newClient.setNoDelay(true);
-          WiFiClientNode *newClientNode = new WiFiClientNode(newClient);
+          WiFiClientNode *newClientNode = new WiFiClientNode(newClient, serv->flagsBitmap);
           int i=0;
           do
           {

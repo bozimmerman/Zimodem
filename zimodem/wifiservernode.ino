@@ -1,5 +1,5 @@
 /*
-   Copyright 2016-2016 Bo Zimmerman
+   Copyright 2016-2017 Bo Zimmerman
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -14,10 +14,11 @@
    limitations under the License.
 */
 
-WiFiServerNode::WiFiServerNode(int newport)
+WiFiServerNode::WiFiServerNode(int newport, int flagsBitmap)
 {
   id=++WiFiNextClientId;
   port=newport;
+  this->flagsBitmap = flagsBitmap;
   server = new WiFiServer(newport);
   //BZ:server->setNoDelay(true);
   server->begin();

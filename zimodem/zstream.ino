@@ -1,5 +1,5 @@
 /*
-   Copyright 2016-2016 Bo Zimmerman
+   Copyright 2016-2017 Bo Zimmerman
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -15,21 +15,6 @@
 */
 
 #define DBG_BYT_CTR 20
-
-void ZStream::switchTo(WiFiClientNode *conn, bool dodisconnect, bool doPETSCII, bool doTelnet)
-{
-  switchTo(conn);
-  disconnectOnExit=dodisconnect;
-  petscii=doPETSCII;
-  telnet=doTelnet;
-}
-    
-void ZStream::switchTo(WiFiClientNode *conn, bool dodisconnect, bool doPETSCII, bool doTelnet, bool doEcho, bool doXONXOFF)
-{
-  switchTo(conn,dodisconnect,doPETSCII,doTelnet);
-  echoOn=doEcho;
-  xonXoff = doXONXOFF;
-}
 
 void ZStream::switchTo(WiFiClientNode *conn)
 {
@@ -69,6 +54,31 @@ char *TOHEX(unsigned long a)
   return HDL;
 }
 
+bool ZStream::isPETSCII()
+{
+  return (current != null) && (current->isPETSCII());
+}
+
+bool ZStream::isEcho()
+{
+  return (current != null) && (current->isEcho());
+}
+
+bool ZStream::isXonXoff()
+{
+  return (current != null) && (current->isXonXoff());
+}
+
+bool ZStream::isTelnet()
+{
+  return (current != null) && (current->isTelnet());
+}
+
+bool ZStream::isDisconnectedOnStreamExit()
+{
+  return (current != null) && (current->isDisconnectedOnStreamExit());
+}
+
 void ZStream::serialIncoming()
 {
   int serialAvailable = Serial.available();
@@ -86,16 +96,16 @@ void ZStream::serialIncoming()
       plussesInARow=0;
       lastNonPlusTimeMs=millis();
     }
-    if((c==19)&&(xonXoff))
+    if((c==19)&&(isXonXoff()))
       XON=false;
     else
-    if((c==17)&&(xonXoff))
+    if((c==17)&&(isXonXoff()))
       XON=true;
     else
     {
-      if(echoOn)
+      if(isEcho())
         enqueSerial(c);
-      if(petscii)
+      if(isPETSCII())
         c = petToAsc(c);
       socketWrite(c);
     }
@@ -108,7 +118,7 @@ void ZStream::serialIncoming()
 
 void ZStream::switchBackToCommandMode(bool logout)
 {
-  if(disconnectOnExit && logout && (current != null))
+  if(logout && (current != null) && isDisconnectedOnStreamExit())
   {
     if(!commandMode.suppressResponses)
     {
@@ -279,7 +289,7 @@ void ZStream::loop()
     }
   }
   else
-  if((!xonXoff)||(XON))
+  if((!isXonXoff())||(XON))
   {
     if((current->isConnected()) && (current->available()>0))
     {
@@ -294,8 +304,8 @@ void ZStream::loop()
           for(int i=0;(i<bytesAvailable) && (current->available()>0);i++)
           {
             uint8_t c=current->read();
-            if((!telnet || handleAsciiIAC((char *)&c,current))
-            && (!petscii || ascToPet((char *)&c,current)))
+            if((!isTelnet() || handleAsciiIAC((char *)&c,current))
+            && (!isPETSCII() || ascToPet((char *)&c,current)))
               enqueSerial(c);
           }
         }

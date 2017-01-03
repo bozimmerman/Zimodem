@@ -1,5 +1,5 @@
 /*
-   Copyright 2016-2016 Bo Zimmerman
+   Copyright 2016-2017 Bo Zimmerman
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -27,15 +27,20 @@ class WiFiClientNode : public Stream
     int port;
     bool wasConnected=false;
     bool serverClient=false;
-    bool doPETSCII=false;
+    int flagsBitmap = 0;
     uint8 lastPacketBuf[256];
     int lastPacketLen=0;
     WiFiClientNode *next = null;
 
-    WiFiClientNode(char *hostIp, int newport, bool PETSCII);
-    WiFiClientNode(WiFiClient newClient);
+    WiFiClientNode(char *hostIp, int newport, int flagsBitmap);
+    WiFiClientNode(WiFiClient newClient, int flagsBitmap);
     ~WiFiClientNode();
     bool isConnected();
+    bool isPETSCII();
+    bool isEcho();
+    bool isXonXoff();
+    bool isTelnet();
+    bool isDisconnectedOnStreamExit();
     size_t write(uint8_t c);
     size_t write(const uint8_t *buf, size_t size);
     int read();

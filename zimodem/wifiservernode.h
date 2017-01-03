@@ -1,5 +1,5 @@
 /*
-   Copyright 2016-2016 Bo Zimmerman
+   Copyright 2016-2017 Bo Zimmerman
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -21,10 +21,11 @@ class WiFiServerNode
   public:
     int port;
     int id;
+    int flagsBitmap = 0;
     WiFiServer *server;
     WiFiServerNode *next = null;
 
-    WiFiServerNode(int port);
+    WiFiServerNode(int port, int flagsBitmap);
     bool hasClient();
     ~WiFiServerNode();
 };

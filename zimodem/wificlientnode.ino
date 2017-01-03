@@ -1,5 +1,5 @@
 /*
-   Copyright 2016-2016 Bo Zimmerman
+   Copyright 2016-2017 Bo Zimmerman
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -28,13 +28,13 @@ void WiFiClientNode::finishConnectionLink()
   }
 }
 
-WiFiClientNode::WiFiClientNode(char *hostIp, int newport, bool PETSCII)
+WiFiClientNode::WiFiClientNode(char *hostIp, int newport, int flagsBitmap)
 {
   port=newport;
   host=new char[strlen(hostIp)+1];
   strcpy(host,hostIp);
   id=++WiFiNextClientId;
-  doPETSCII=PETSCII;
+  this->flagsBitmap = flagsBitmap;
   clientPtr = new WiFiClient();
   client = *clientPtr;
   client.setNoDelay(true);
@@ -48,8 +48,9 @@ WiFiClientNode::WiFiClientNode(char *hostIp, int newport, bool PETSCII)
   }
 }
     
-WiFiClientNode::WiFiClientNode(WiFiClient newClient)
+WiFiClientNode::WiFiClientNode(WiFiClient newClient, int flagsBitmap)
 {
+  this->flagsBitmap = flagsBitmap;
   clientPtr=null;
   newClient.setNoDelay(true);
   port=newClient.localPort();
@@ -100,6 +101,31 @@ WiFiClientNode::~WiFiClientNode()
 bool WiFiClientNode::isConnected()
 {
   return (host != null) && client.connected();
+}
+
+bool WiFiClientNode::isPETSCII()
+{
+  return (flagsBitmap & FLAG_PETSCII) == FLAG_PETSCII;
+}
+
+bool WiFiClientNode::isEcho()
+{
+  return (flagsBitmap & FLAG_ECHO) == FLAG_ECHO;
+}
+
+bool WiFiClientNode::isXonXoff()
+{
+  return (flagsBitmap & FLAG_XONXOFF) == FLAG_XONXOFF;
+}
+
+bool WiFiClientNode::isTelnet()
+{
+  return (flagsBitmap & FLAG_TELNET) == FLAG_TELNET;
+}
+
+bool WiFiClientNode::isDisconnectedOnStreamExit()
+{
+  return (flagsBitmap & FLAG_DISCONNECT_ON_EXIT) == FLAG_DISCONNECT_ON_EXIT;
 }
 
 size_t WiFiClientNode::write(uint8_t c)
