@@ -274,70 +274,85 @@ void ZCommand::loadConfig()
   showInitMessage();
 }
 
-void ZCommand::showAtStatusMessage()
+ZResult ZCommand::doInfoCommand(int vval, uint8_t *vbuf, int vlen, bool isNumber)
 {
-  Serial.print("AT");
-  Serial.print("B");
-  Serial.print(baudRate);
-  Serial.print(doEcho?"E1":"E0");
-  if(suppressResponses)
-    Serial.print("Q1");
-  else
+  if(vval == 0)
   {
-    Serial.print("Q0");
-    Serial.print(numericResponses?"V0":"V1");
-    Serial.print(longResponses?"X1":"X0");
+    showInitMessage();
   }
-  if(!doFlowControl)
-    Serial.print("F0");
   else
-  switch(flowControlType)
+  if(vval == 1)
   {
-  case FCT_NORMAL: 
-    Serial.print("F1");
-    break;
-  case FCT_AUTOOFF:
-    Serial.print("F2");
-    break;
-  case FCT_MANUAL:
-    Serial.print("F3");
-    break;
-  }
-  if(EOLN==CR)
-    Serial.print("R0");
-  else
-  if(EOLN==CRLF)
-    Serial.print("R1");
-  else
-  if(EOLN==LFCR)
-    Serial.print("R2");
-  else
-  if(EOLN==LF)
-    Serial.print("R3");
-
-  Serial.print("S0=");
-  Serial.print((int)ringCounter);
-  Serial.print("S2=");
-  Serial.print((int)EC);
-  Serial.print("S3=");
-  Serial.print((int)CR[0]);
-  Serial.print("S4=");
-  Serial.print((int)LF[0]);
-  Serial.print("S5=");
-  Serial.print((int)BS);
-  Serial.print("S40=");
-  Serial.print(packetSize);
-  Serial.print(autoStreamMode ? "S41=1" : "S41=0");
+    Serial.print("AT");
+    Serial.print("B");
+    Serial.print(baudRate);
+    Serial.print(doEcho?"E1":"E0");
+    if(suppressResponses)
+      Serial.print("Q1");
+    else
+    {
+      Serial.print("Q0");
+      Serial.print(numericResponses?"V0":"V1");
+      Serial.print(longResponses?"X1":"X0");
+    }
+    if(!doFlowControl)
+      Serial.print("F0");
+    else
+    switch(flowControlType)
+    {
+    case FCT_NORMAL: 
+      Serial.print("F1");
+      break;
+    case FCT_AUTOOFF:
+      Serial.print("F2");
+      break;
+    case FCT_MANUAL:
+      Serial.print("F3");
+      break;
+    }
+    if(EOLN==CR)
+      Serial.print("R0");
+    else
+    if(EOLN==CRLF)
+      Serial.print("R1");
+    else
+    if(EOLN==LFCR)
+      Serial.print("R2");
+    else
+    if(EOLN==LF)
+      Serial.print("R3");
   
-  WiFiServerNode *serv = servs;
-  while(serv != null)
-  {
-    Serial.print("A");
-    Serial.print(serv->port);
-    serv=serv->next;
+    Serial.print("S0=");
+    Serial.print((int)ringCounter);
+    Serial.print("S2=");
+    Serial.print((int)EC);
+    Serial.print("S3=");
+    Serial.print((int)CR[0]);
+    Serial.print("S4=");
+    Serial.print((int)LF[0]);
+    Serial.print("S5=");
+    Serial.print((int)BS);
+    Serial.print("S40=");
+    Serial.print(packetSize);
+    Serial.print(autoStreamMode ? "S41=1" : "S41=0");
+    
+    WiFiServerNode *serv = servs;
+    while(serv != null)
+    {
+      Serial.print("A");
+      Serial.print(serv->port);
+      serv=serv->next;
+    }
+    Serial.println("");
   }
-  
-  Serial.println("");
+  else
+  if(vval == 2)
+  {
+    Serial.println(WiFi.localIP().toString().c_str());
+  }
+  else
+    return ZERROR;
+  return ZOK;
 }
 
 ZResult ZCommand::doBaudCommand(int vval, uint8_t *vbuf, int vlen)
@@ -973,10 +988,7 @@ ZResult ZCommand::doSerialCommand()
         result = doConnectCommand(vval,vbuf,vlen,isNumber,dmodifiers.c_str());
         break;
       case 'i':
-        if(vval == 0)
-          showInitMessage();
-        else
-          showAtStatusMessage();
+        result = doInfoCommand(vval,vbuf,vlen,isNumber);
         break;
       case 'l':
         result = doLastPacket(vval,vbuf,vlen,isNumber);

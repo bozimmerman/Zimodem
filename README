@@ -39,6 +39,7 @@ ATZ : closes all open socket connections (preserving the Access Point connection
 ATI : re-shows the startup message, including wifi connection information.
 ATI0 : same as ATI
 ATI1 : Shows the current variable settings, including 'S' registers.
+ATI2 : Shows the Zimodem current IP address
 
 ATA  : If a server listener has generated a RING, then ATA will switch the last rung connection to Stream mode (see ATD).
 ATA/ : Repeats the previous command (no idea why...)

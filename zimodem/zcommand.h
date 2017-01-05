@@ -96,7 +96,6 @@ class ZCommand : public ZMode
     void acceptNewConnection();
     void sendConnectionNotice(int nodeId);
     void sendNextPacket();
-    void showAtStatusMessage();
 
     ZResult doResetCommand();
     ZResult doNoListenCommand();
@@ -109,6 +108,7 @@ class ZCommand : public ZMode
     ZResult doAnswerCommand(int vval, uint8_t *vbuf, int vlen, bool isNumber, const char *dmodifiers);
     ZResult doHangupCommand(int vval, uint8_t *vbuf, int vlen, bool isNumber);
     ZResult doEOLNCommand(int vval, uint8_t *vbuf, int vlen, bool isNumber);
+    ZResult doInfoCommand(int vval, uint8_t *vbuf, int vlen, bool isNumber);
 
   public:
     int packetSize = 127;
