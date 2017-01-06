@@ -17,8 +17,26 @@
 #include <FS.h>
 #include <spiffs/spiffs.h>
 
-
 char petToAsc(char c);
 bool ascToPet(char *c, Stream *stream);
 bool handleAsciiIAC(char *c, Stream *stream);
+
+static void setCharArray(char **target, const char *src)
+{
+  if(src == NULL)
+    return;
+  if(*target != NULL)
+    free(*target);
+  *target = (char *)malloc(strlen(src)+1);
+  strcpy(*target,src);
+}
+
+static void freeCharArray(char **arr)
+{
+  if(*arr == NULL)
+    return;
+  free(*arr);
+  *arr = NULL;
+}
+
 

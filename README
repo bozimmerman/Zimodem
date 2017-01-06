@@ -124,8 +124,9 @@ ATTPn : Where n > 0, this starts a transmit of exactly n bytes to the current co
 AT&L  : Reloads the saved configuration.
 AT&W  : Saves the current configuration: WiFi settings(ATW), baud rate (ATB), end of line (ATR) settings, flow control (ATF), echo mode (ATE), extended responses (ATX), verbose responses (ATV), quiet responses (ATQ)
 AT&F  : Restores the modem to factory default settings.
-AT&Mn : Adds the byte denoted by n to the list of mask-out bytes.  These are bytes that are not transmitted to the serial port in command mode incoming packets.
-AT&M  : Resets the mask-out bytes list. No bytes will be masked-out.
-AT&Dn : Adds the byte denoted by n to the list of delimiter bytes.  These are bytes that will compose the last byte in a command-mode incoming packet that is still shorter than the limit set by ATS40. This is useful for CR-LF formatted data.  See also AT&Mn on how to also mask out these bytes.
-AT&D  : Resets the delimiter bytes list. No bytes will be delimited, and packets will contain as many bytes as are received and allowed by ATS40.
-AT&G : 1 to turn on internal serial-reception log, 0 to turn off or view.
+AT&Gn : n is 1 to turn on internal serial-reception log, n is 0 to turn off or view a previously turned-on log.
+
+AT&Mn : Adds the byte denoted by n to a list of mask-out bytes.  These are bytes that are not transmitted to the serial port in command mode incoming packets.  If this command is followed by a C, N, or A command on the SAME LINE, then the setting will apply ONLY to that connection or listener.
+AT&M  : Resets the mask-out bytes list. No bytes will be masked-out. If this command is followed by a C, N, or A command on the SAME LINE, then the setting will apply ONLY to that connection or listener.
+AT&Dn : Adds the byte denoted by n to a list of delimiter bytes.  These are bytes that will compose the last byte in a command-mode incoming packet that is still shorter than the limit set by ATS40. This is useful for CR-LF formatted data.  If this command is followed by a C, N, or A command on the SAME LINE, then the setting will apply ONLY to that connection or listener.
+AT&D  : Resets the delimiter bytes lis. No bytes will be delimited, and packets will contain as many bytes as are received and allowed by ATS40.  If this command is followed by a C, N, or A command on the SAME LINE, then the setting will apply ONLY to that connection or listener.

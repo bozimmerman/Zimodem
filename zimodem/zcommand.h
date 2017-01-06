@@ -67,8 +67,6 @@ class ZCommand : public ZMode
     char *CR="\r";
     char BS=8;
     char ringCounter = 1;
-    char *delimiters;
-    char *maskOuts;
     
     uint8_t nbuf[MAX_COMMAND_SIZE];
     int eon=0;
@@ -79,6 +77,10 @@ class ZCommand : public ZMode
     FlowControlType flowControlType=FCT_NORMAL;
     unsigned long lastNonPlusTimeMs = 0;
     unsigned long currentExpiresTimeMs = 0;
+    char *tempDelimiters = NULL;
+    char *tempMaskOuts = NULL;
+    char *delimiters = NULL;
+    char *maskOuts = NULL;
     String previousCommand = "";
     String currentCommand = "";
     WiFiClientNode *nextConn=null;

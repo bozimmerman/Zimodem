@@ -18,10 +18,10 @@ extern "C" void esp_yield();
 
 ZCommand::ZCommand()
 {
-  maskOuts = (char *)malloc(1);
-  maskOuts[0]=0;
-  delimiters = (char *)malloc(1);
-  delimiters[0]=0;
+  freeCharArray(&tempMaskOuts);
+  freeCharArray(&tempDelimiters);
+  setCharArray(&delimiters,"");
+  setCharArray(&maskOuts,"");
 }
 
 byte ZCommand::CRC8(const byte *data, byte len) 
@@ -89,12 +89,10 @@ void ZCommand::setConfigDefaults()
   strcpy(ECS,"+++");
   BS=8;
   EOLN = CRLF;
-  free(maskOuts);
-  maskOuts = (char *)malloc(1);
-  maskOuts[0]=0;
-  free(delimiters);
-  delimiters = (char *)malloc(1);
-  delimiters[0]=0;
+  freeCharArray(&tempMaskOuts);
+  freeCharArray(&tempDelimiters);
+  setCharArray(&delimiters,"");
+  setCharArray(&maskOuts,"");
 }
 
 char lc(char c)
@@ -322,6 +320,13 @@ ZResult ZCommand::doInfoCommand(int vval, uint8_t *vbuf, int vlen, bool isNumber
     if(EOLN==LF)
       Serial.print("R3");
   
+    if((delimiters != NULL)&&(delimiters[0]!=0))
+      for(int i=0;i<strlen(delimiters);i++)
+        Serial.printf("&d%d",delimiters[i]);
+    if((maskOuts != NULL)&&(maskOuts[0]!=0))
+      for(int i=0;i<strlen(maskOuts);i++)
+        Serial.printf("&m%d",maskOuts[i]);
+
     Serial.print("S0=");
     Serial.print((int)ringCounter);
     Serial.print("S2=");
@@ -397,7 +402,13 @@ ZResult ZCommand::doConnectCommand(int vval, uint8_t *vbuf, int vlen, bool isNum
       while((c!=null)&&(c->id != vval))
         c=c->next;
       if((c!=null)&&(c->id == vval))
+      {
         current = c;
+        setCharArray(&(c->delimiters),tempDelimiters);
+        setCharArray(&(c->maskOuts),tempMaskOuts);
+        freeCharArray(&tempDelimiters);
+        freeCharArray(&tempMaskOuts);
+      }
       else
         return ZERROR;
     }
@@ -441,6 +452,10 @@ ZResult ZCommand::doConnectCommand(int vval, uint8_t *vbuf, int vlen, bool isNum
     else
     {
       current=c;
+      setCharArray(&(c->delimiters),tempDelimiters);
+      setCharArray(&(c->maskOuts),tempMaskOuts);
+      freeCharArray(&tempDelimiters);
+      freeCharArray(&tempMaskOuts);
       return ZCONNECT;
     }
   }
@@ -546,6 +561,10 @@ ZResult ZCommand::doDialStreamCommand(int vval, uint8_t *vbuf, int vlen, bool is
     if((c!=null)&&(c->id == vval)&&(c->isConnected()))
     {
       current=c;
+      setCharArray(&(c->delimiters),tempDelimiters);
+      setCharArray(&(c->maskOuts),tempMaskOuts);
+      freeCharArray(&tempDelimiters);
+      freeCharArray(&tempMaskOuts);
       streamMode.switchTo(c);
     }
     else
@@ -570,6 +589,10 @@ ZResult ZCommand::doDialStreamCommand(int vval, uint8_t *vbuf, int vlen, bool is
     else
     {
       current=c;
+      setCharArray(&(c->delimiters),tempDelimiters);
+      setCharArray(&(c->maskOuts),tempMaskOuts);
+      freeCharArray(&tempDelimiters);
+      freeCharArray(&tempMaskOuts);
       streamMode.switchTo(c);
     }
   }
@@ -628,6 +651,10 @@ ZResult ZCommand::doAnswerCommand(int vval, uint8_t *vbuf, int vlen, bool isNumb
       s=s->next;
     }
     WiFiServerNode *newServer = new WiFiServerNode(vval, flagsBitmap);
+    setCharArray(&(newServer->delimiters),tempDelimiters);
+    setCharArray(&(newServer->maskOuts),tempMaskOuts);
+    freeCharArray(&tempDelimiters);
+    freeCharArray(&tempMaskOuts);
     return ZOK;
   }
 }
@@ -1116,42 +1143,42 @@ ZResult ZCommand::doSerialCommand()
         case 'm':
           if(vval > 0)
           {
-            int len = strlen(maskOuts);
-            char *newMaskOuts = (char *)malloc(len+2); // 1 for the new char, and 1 for the 0 never counted
-            strcpy(newMaskOuts,maskOuts);
+            int len = (tempMaskOuts != NULL) ? strlen(tempMaskOuts) : 0;
+            char newMaskOuts[len+2]; // 1 for the new char, and 1 for the 0 never counted
+            if(len > 0)
+              strcpy(newMaskOuts,tempMaskOuts);
             newMaskOuts[len] = vval;
             newMaskOuts[len+1] = 0;
-            free(maskOuts);
-            maskOuts = newMaskOuts;
+            setCharArray(&tempMaskOuts,newMaskOuts);
           }
           else
           {
-            free(maskOuts);
-            maskOuts = (char *)malloc(vlen+1);
-            maskOuts[vlen]=0;
+            char newMaskOuts[vlen+1];
+            newMaskOuts[vlen]=0;
             if(vlen > 0)
-              memcpy(maskOuts,vbuf,vlen);
+              memcpy(newMaskOuts,vbuf,vlen);
+            setCharArray(&tempMaskOuts,newMaskOuts);
           }
           result=ZOK;
           break;
         case 'd':
           if(vval > 0)
           {
-            int len = strlen(delimiters);
-            char *newDelimiters = (char *)malloc(len+2); // 1 for the new char, and 1 for the 0 never counted
-            strcpy(newDelimiters,delimiters);
+            int len = (tempDelimiters != NULL) ? strlen(tempDelimiters) : 0;
+            char newDelimiters [len+2]; // 1 for the new char, and 1 for the 0 never counted
+            if(len > 0)
+              strcpy(newDelimiters,tempDelimiters);
             newDelimiters[len] = vval;
             newDelimiters[len+1] = 0;
-            free(delimiters);
-            delimiters = newDelimiters;
+            setCharArray(&tempDelimiters,newDelimiters);
           }
           else
           {
-            free(delimiters);
-            delimiters = (char *)malloc(vlen+1);
-            delimiters[vlen]=0;
+            char newDelimiters[vlen+1];
+            newDelimiters[vlen]=0;
             if(vlen > 0)
-              memcpy(delimiters,vbuf,vlen);
+              memcpy(newDelimiters,vbuf,vlen);
+            setCharArray(&tempDelimiters,newDelimiters);
           }
           result=ZOK;
           break;
@@ -1208,6 +1235,11 @@ ZResult ZCommand::doSerialCommand()
       }
     }
 
+    setCharArray(&delimiters,tempDelimiters);
+    freeCharArray(&tempDelimiters);
+    setCharArray(&maskOuts,tempMaskOuts);
+    freeCharArray(&tempMaskOuts);
+  
     if(result != ZIGNORE_SPECIAL)
       previousCommand = currentCommand;
     if(suppressResponses)
@@ -1275,12 +1307,13 @@ void ZCommand::reSendLastPacket(WiFiClientNode *conn)
     uint8_t *buf = (uint8_t *)malloc(bufLen);
     memcpy(buf,conn->lastPacketBuf,bufLen);
 
-    if(maskOuts[0] != 0)
+    if((conn->maskOuts[0] != 0) || (maskOuts[0] != 0))
     {
       int oldLen=bufLen;
       for(int i=0,o=0;i<oldLen;i++,o++)
       {
-        if(strchr(maskOuts,buf[i])!=null)
+        if((strchr(conn->maskOuts,buf[i])!=null)
+        ||(strchr(maskOuts,buf[i])!=null))
         {
           o--;
           bufLen--;
@@ -1368,23 +1401,33 @@ void ZCommand::sendNextPacket()
         maxBytes = Serial.availableForWrite()-15;
       if(maxBytes > 0)
       {
-        if(delimiters[0] != 0)
+        if((nextConn->delimiters[0] != 0) || (delimiters[0] != 0))
         {
-          if((nextConn->lastPacketLen >= packetSize)
-          ||((nextConn->lastPacketLen>0)&&(strchr(delimiters,nextConn->lastPacketBuf[nextConn->lastPacketLen-1]) != null)))
-            nextConn->lastPacketLen = 0;
+          int lastLen = nextConn->lastPacketLen;
+          uint8_t *lastBuf = nextConn->lastPacketBuf;
+          
+          if((lastLen >= packetSize)
+          ||((lastLen>0)
+              &&((strchr(nextConn->delimiters,lastBuf[lastLen-1]) != null)
+                ||(strchr(delimiters,lastBuf[lastLen-1]) != null))))
+            lastLen = 0;
           int bytesRemain = maxBytes;
           while((bytesRemain > 0)
-          &&(nextConn->lastPacketLen < packetSize)
-          &&((nextConn->lastPacketLen==0)||(strchr(delimiters,nextConn->lastPacketBuf[nextConn->lastPacketLen-1]) == null)))
+          &&(lastLen < packetSize)
+          &&((lastLen==0)
+            ||((strchr(nextConn->delimiters,lastBuf[lastLen-1]) == null)
+              &&(strchr(delimiters,lastBuf[lastLen-1]) == null))))
           {
-            nextConn->lastPacketBuf[nextConn->lastPacketLen++] = nextConn->read();
+            lastBuf[lastLen++] = nextConn->read();
             bytesRemain--;
           }
+          nextConn->lastPacketLen = lastLen;
           //BUG: PETSCII conversion screws up the last packet
-          if((nextConn->lastPacketLen >= packetSize)
-          ||((nextConn->lastPacketLen>0)&&(strchr(delimiters,nextConn->lastPacketBuf[nextConn->lastPacketLen-1]) != null)))
-            maxBytes = nextConn->lastPacketLen;
+          if((lastLen >= packetSize)
+          ||((lastLen>0)
+            &&((strchr(nextConn->delimiters,lastBuf[lastLen-1]) != null)
+              ||(strchr(delimiters,lastBuf[lastLen-1]) != null))))
+            maxBytes = lastLen;
           else
           {
             if(flowControlType == FCT_MANUAL)
@@ -1532,6 +1575,8 @@ void ZCommand::acceptNewConnection()
         {
           //BZ:newClient.setNoDelay(true);
           WiFiClientNode *newClientNode = new WiFiClientNode(newClient, serv->flagsBitmap);
+          setCharArray(&(newClientNode->delimiters),serv->delimiters);
+          setCharArray(&(newClientNode->maskOuts),serv->maskOuts);
           int i=0;
           do
           {
@@ -1595,12 +1640,11 @@ void ZCommand::loop()
     }
   }
   
+  acceptNewConnection();
   if((!doFlowControl)||(XON))
   {
-    acceptNewConnection();
-    
     sendNextPacket();
-    
   } //TODO: consider local buffering with XOFF, until then, trust the socket buffers.
+  
 }
 

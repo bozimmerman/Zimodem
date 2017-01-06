@@ -28,6 +28,8 @@ class WiFiClientNode : public Stream
     bool wasConnected=false;
     bool serverClient=false;
     int flagsBitmap = 0;
+    char *delimiters = NULL;
+    char *maskOuts = NULL;
     uint8 lastPacketBuf[256];
     int lastPacketLen=0;
     WiFiClientNode *next = null;

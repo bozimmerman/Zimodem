@@ -22,6 +22,8 @@ class WiFiServerNode
     int port;
     int id;
     int flagsBitmap = 0;
+    char *delimiters = NULL;
+    char *maskOuts = NULL;
     WiFiServer *server;
     WiFiServerNode *next = null;
 

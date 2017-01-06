@@ -38,6 +38,8 @@ WiFiClientNode::WiFiClientNode(char *hostIp, int newport, int flagsBitmap)
   clientPtr = new WiFiClient();
   client = *clientPtr;
   client.setNoDelay(true);
+  setCharArray(&delimiters,"");
+  setCharArray(&maskOuts,"");
   if(!client.connect(hostIp, port))
   {
     // deleted when it returns and is deleted
@@ -54,6 +56,8 @@ WiFiClientNode::WiFiClientNode(WiFiClient newClient, int flagsBitmap)
   clientPtr=null;
   newClient.setNoDelay(true);
   port=newClient.localPort();
+  setCharArray(&delimiters,"");
+  setCharArray(&maskOuts,"");
   String remoteIPStr = newClient.remoteIP().toString();
   const char *remoteIP=remoteIPStr.c_str();
   host=new char[remoteIPStr.length()+1];
@@ -95,6 +99,8 @@ WiFiClientNode::~WiFiClientNode()
     commandMode.current = conns;
   if(commandMode.nextConn == this)
     commandMode.nextConn = conns;
+  freeCharArray(&delimiters);
+  freeCharArray(&maskOuts);
   next=null;
 }
 

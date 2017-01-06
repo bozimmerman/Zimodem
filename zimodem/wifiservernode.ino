@@ -18,6 +18,8 @@ WiFiServerNode::WiFiServerNode(int newport, int flagsBitmap)
 {
   id=++WiFiNextClientId;
   port=newport;
+  setCharArray(&delimiters,"");
+  setCharArray(&maskOuts,"");
   this->flagsBitmap = flagsBitmap;
   server = new WiFiServer(newport);
   //BZ:server->setNoDelay(true);
@@ -35,26 +37,28 @@ WiFiServerNode::WiFiServerNode(int newport, int flagsBitmap)
 
 WiFiServerNode::~WiFiServerNode()
 {
-    if(server != null)
-    {
-      server->stop();
-      server->close();
-      delete server;
-    }
-    if(servs == null)
-    {
-    }
-    else
-    if(servs == this)
-      servs = next;
-    else
-    {
-      WiFiServerNode *last = servs;
-      while(last->next != this)
-        last = last->next;
-      if(last != null)
-        last->next = next;
-    }
+  if(server != null)
+  {
+    server->stop();
+    server->close();
+    delete server;
+  }
+  if(servs == null)
+  {
+  }
+  else
+  if(servs == this)
+    servs = next;
+  else
+  {
+    WiFiServerNode *last = servs;
+    while(last->next != this)
+      last = last->next;
+    if(last != null)
+      last->next = next;
+  }
+  freeCharArray(&delimiters);
+  freeCharArray(&maskOuts);
 }
 
 bool WiFiServerNode::hasClient()
