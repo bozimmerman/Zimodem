@@ -76,7 +76,8 @@ int ZCommand::makeStreamFlagsBitmap(const char *dmodifiers)
 void ZCommand::setConfigDefaults()
 {
   doEcho=true;
-  doFlowControl=false;
+  flowControlType=FCT_DISABLED;
+  XON=true;
   suppressResponses=false;
   numericResponses=false;
   longResponses=true;
@@ -123,7 +124,7 @@ ZResult ZCommand::doResetCommand()
   parseConfigOptions(argv);
   eon=0;
   XON=true;
-  flowControlType=FCT_NORMAL;
+  flowControlType=FCT_DISABLED;
   setBaseConfigOptions(argv);
   memset(nbuf,0,MAX_COMMAND_SIZE);
   return ZOK;
@@ -154,17 +155,7 @@ void ZCommand::reSaveConfig()
   SPIFFS.remove("/zconfig.txt");
   delay(500);
   File f = SPIFFS.open("/zconfig.txt", "w");
-  int flowControl = doFlowControl;
-  switch(flowControlType)
-  {
-  case FCT_MANUAL:
-    flowControl = 3;
-    break;
-  case FCT_AUTOOFF:
-    flowControl = 2;
-    break;
-  }
-  f.printf("%s,%s,%d,%s,%d,%d,%d,%d,%d",wifiSSI.c_str(),wifiPW.c_str(),baudRate,EOLN.c_str(),flowControl,doEcho,suppressResponses,numericResponses,longResponses);
+  f.printf("%s,%s,%d,%s,%d,%d,%d,%d,%d",wifiSSI.c_str(),wifiPW.c_str(),baudRate,EOLN.c_str(),flowControlType,doEcho,suppressResponses,numericResponses,longResponses);
   f.close();
   delay(500);
   if(SPIFFS.exists("/zconfig.txt"))
@@ -196,24 +187,13 @@ void ZCommand::setBaseConfigOptions(String configArguments[])
   if(configArguments[CFG_FLOWCONTROL].length()>0)
   {
     int x = atoi(configArguments[CFG_FLOWCONTROL].c_str());
-    switch(x)
-    {
-      case 2:
-        doFlowControl =true;
-        flowControlType = FCT_AUTOOFF;
-        XON=true;
-        break;
-      case 3:
-        doFlowControl =true;
-        flowControlType = FCT_MANUAL;
-        XON=false;
-        break;
-      default:
-        doFlowControl = x;
-        flowControlType = FCT_NORMAL;
-        XON=true;
-        break;
-    }
+    if((x>=0)&&(x<FCT_INVALID))
+      flowControlType=(FlowControlType)x;
+    else
+      x=FCT_DISABLED;
+    XON=true;
+    if(flowControlType == FCT_MANUAL)
+      XON=false;
   }
   if(configArguments[CFG_ECHO].length()>0)
     doEcho = atoi(configArguments[CFG_ECHO].c_str());
@@ -293,11 +273,11 @@ ZResult ZCommand::doInfoCommand(int vval, uint8_t *vbuf, int vlen, bool isNumber
       Serial.print(numericResponses?"V0":"V1");
       Serial.print(longResponses?"X1":"X0");
     }
-    if(!doFlowControl)
-      Serial.print("F0");
-    else
     switch(flowControlType)
     {
+    case FCT_DISABLED:
+      Serial.print("F0");
+      break;
     case FCT_NORMAL: 
       Serial.print("F1");
       break;
@@ -791,12 +771,12 @@ bool ZCommand::readSerialStream()
     {
       if(c!=EC)
         lastNonPlusTimeMs=millis();
-      if((c==19)&&(doFlowControl))
+      if((c==19)&&(flowControlType != FCT_DISABLED))
       {
         XON=false;
       }
       else
-      if((c==17)&&(doFlowControl))
+      if((c==17)&&(flowControlType != FCT_DISABLED))
       {
         XON=true;
         if(flowControlType == FCT_MANUAL)
@@ -960,20 +940,13 @@ ZResult ZCommand::doSerialCommand()
           doEcho=(vval > 0);
         break;
       case 'f':
-        if(!isNumber)
+        if((!isNumber)||(vval>=FCT_INVALID))
           result=ZERROR;
         else
         {
-          flowControlType = FCT_NORMAL;
-          if(vval == 2)
-            flowControlType = FCT_AUTOOFF;
-          else
-          if(vval == 3)
-          {
-            flowControlType = FCT_MANUAL;
-            XON=false;
-          }
-          doFlowControl = (vval > 0);
+            flowControlType = (FlowControlType)vval;
+            if(flowControlType == FCT_MANUAL)
+              XON=false;
         }
         break;
       case 'x':
@@ -1380,15 +1353,18 @@ void ZCommand::serialIncoming()
 
 void ZCommand::sendNextPacket()
 {
+  if(Serial.availableForWrite()<100)
+    return;
+
   WiFiClientNode *firstConn = nextConn;
-  if(firstConn == null)
-    firstConn = conns;
   if((nextConn == null)||(nextConn->next == null))
+  {
+    firstConn = null;
     nextConn = conns;
+  }
   else
     nextConn = nextConn->next;
-
-  while(XON && (nextConn != null))
+  while(((flowControlType==FCT_DISABLED)||XON) && (nextConn != null))
   {
     if((nextConn->isConnected())
     && (nextConn->available()>0))
@@ -1434,8 +1410,10 @@ void ZCommand::sendNextPacket()
             {
               Serial.print("[ 0 0 0 ]");
               Serial.print(EOLN);
+              XON=false;
             }
-            if(flowControlType != FCT_NORMAL)
+            else
+            if(flowControlType == FCT_AUTOOFF)
               XON=false;
             return;
           }
@@ -1444,16 +1422,18 @@ void ZCommand::sendNextPacket()
           maxBytes = nextConn->read(nextConn->lastPacketBuf,maxBytes);
         nextConn->lastPacketLen=maxBytes;
         reSendLastPacket(nextConn);
-        if(flowControlType != FCT_NORMAL)
+        if(flowControlType == FCT_AUTOOFF)
         {
           XON=false;
         }
+        else
         if(flowControlType == FCT_MANUAL)
         {
+          XON=false;
           return;
         }
+        break;
       }
-      break;
     }
     else
     if(!nextConn->isConnected())
@@ -1481,9 +1461,9 @@ void ZCommand::sendNextPacket()
         break; // messes up the order, so just leave and start over
       }
     }
-    
+
     if(nextConn->next == null)
-      nextConn = conns;
+      nextConn = null; // will become CONNs
     else
       nextConn = nextConn->next;
     if(nextConn == firstConn)
@@ -1641,10 +1621,9 @@ void ZCommand::loop()
   }
   
   acceptNewConnection();
-  if((!doFlowControl)||(XON))
+  if((flowControlType==FCT_DISABLED)||(XON))
   {
     sendNextPacket();
   } //TODO: consider local buffering with XOFF, until then, trust the socket buffers.
-  
 }
 

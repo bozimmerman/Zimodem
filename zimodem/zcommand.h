@@ -42,9 +42,11 @@ enum ConfigOptions
 
 enum FlowControlType
 {
-  FCT_NORMAL,
-  FCT_AUTOOFF,
-  FCT_MANUAL
+  FCT_DISABLED=0,
+  FCT_NORMAL=1,
+  FCT_AUTOOFF=2,
+  FCT_MANUAL=3,
+  FCT_INVALID=4
 };
 
 enum StreamFlag
