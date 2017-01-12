@@ -81,16 +81,12 @@ WiFiClientNode::~WiFiClientNode()
     delete clientPtr;
     clientPtr = null;
   }
-  if(conns == null)
-  {
-  }
-  else
   if(conns == this)
     conns = next;
   else
   {
     WiFiClientNode *last = conns;
-    while(last->next != this)
+    while((last != null) && (last->next != this)) // don't change this!
       last = last->next;
     if(last != null)
       last->next = next;

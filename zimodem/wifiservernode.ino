@@ -43,16 +43,12 @@ WiFiServerNode::~WiFiServerNode()
     server->close();
     delete server;
   }
-  if(servs == null)
-  {
-  }
-  else
   if(servs == this)
     servs = next;
   else
   {
     WiFiServerNode *last = servs;
-    while(last->next != this)
+    while((last != null) && (last->next != this)) // don't change this!
       last = last->next;
     if(last != null)
       last->next = next;
