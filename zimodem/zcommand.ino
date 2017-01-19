@@ -357,6 +357,8 @@ ZResult ZCommand::doConnectCommand(int vval, uint8_t *vbuf, int vlen, bool isNum
 {
   if(vlen == 0)
   {
+    if(logFileOpen)
+      logFile.printf("ConnCheck: CURRENT\r\n");
     if(strlen(dmodifiers)>0)
       return ZERROR;
     if(current == null)
@@ -374,7 +376,12 @@ ZResult ZCommand::doConnectCommand(int vval, uint8_t *vbuf, int vlen, bool isNum
   else
   if((vval >= 0)&&(isNumber))
   {
-    if(strlen(dmodifiers)>0)
+    if(logFileOpen)
+      if(vval == 0)
+        logFile.printf("ConnList0:\r\n");
+      else
+        logFile.printf("ConnSwitchTo: %d\r\n",vval);
+    if(strlen(dmodifiers)>0) // would be nice to allow petscii/telnet changes here, but need more flags
       return ZERROR;
     WiFiClientNode *c=conns;
     if(vval > 0)
@@ -415,6 +422,8 @@ ZResult ZCommand::doConnectCommand(int vval, uint8_t *vbuf, int vlen, bool isNum
   }
   else
   {
+    if(logFileOpen)
+        logFile.printf("Connnect-Start:\r\n");
     char *colon=strstr((char *)vbuf,":");
     int port=23;
     if(colon != null)
@@ -423,14 +432,20 @@ ZResult ZCommand::doConnectCommand(int vval, uint8_t *vbuf, int vlen, bool isNum
       port=atoi((char *)(++colon));
     }
     int flagsBitmap = makeStreamFlagsBitmap(dmodifiers);
+    if(logFileOpen)
+        logFile.printf("Connnecting: %s %d %d\r\n",(char *)vbuf,port,flagsBitmap);
     WiFiClientNode *c = new WiFiClientNode((char *)vbuf,port,flagsBitmap);
     if(!c->isConnected())
     {
+      if(logFileOpen)
+          logFile.printf("Connnect: FAIL\r\n");
       delete c;
       return ZERROR;
     }
     else
     {
+      if(logFileOpen)
+          logFile.printf("Connnect: SUCCESS: %d\r\n",c->id);
       current=c;
       setCharArray(&(c->delimiters),tempDelimiters);
       setCharArray(&(c->maskOuts),tempMaskOuts);
@@ -1230,6 +1245,8 @@ ZResult ZCommand::doSerialCommand()
       case ZOK:
         if(index >= len)
         {
+          if(logFileOpen)
+              logFile.printf("Response: OK\r\n");
           if(numericResponses)
             Serial.print("0");
           else
@@ -1238,6 +1255,8 @@ ZResult ZCommand::doSerialCommand()
         }
         break;
       case ZERROR:
+        if(logFileOpen)
+            logFile.printf("Response: ERROR\r\n");
         if(numericResponses)
           Serial.print("4");
         else
@@ -1246,6 +1265,8 @@ ZResult ZCommand::doSerialCommand()
         // on error, cut and run
         return ZERROR;
       case ZCONNECT:
+        if(logFileOpen)
+            logFile.printf("Response: Connected\r\n");
         sendConnectionNotice((current == null) ? baudRate : current->id);
         break;
       default:
@@ -1253,7 +1274,6 @@ ZResult ZCommand::doSerialCommand()
       }
     }
   }
-
   return result;
 }
 
