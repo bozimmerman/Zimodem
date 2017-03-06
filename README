@@ -1,21 +1,21 @@
-Zimodem (C)2016-2017 Bo Zimmerman
+64Net WiFi Firmware (C)2016-2017 Bo Zimmerman
 Please read the LICENSE file for license information
 Please read the NOTICE file for credits information
 
 Intro:
 ------
-This firmware code, hereafter "Zimodem", provides an api for communication between a serial terminal and the ESP8266.  It simulates the old-style Hayes "AT" commands, so that the ESP8266 appears to the terminal as if it were a Hayes modem.  These "AT" commands may then be issued to the ESP8266 in order to force it to connect to a wireless access point, and from there to make one or more manageable connections to the internet.  It also includes a streaming serial "telnet" mode, and server/port listener capabilities.
+This firmware code, "64Net WiFi Firmware", provides an api for communication between a serial terminal and the ESP8266.  It simulates the old-style Hayes "AT" commands, so that the ESP8266 appears to the terminal as if it were a Hayes modem.  These "AT" commands may then be issued to the ESP8266 in order to force it to connect to a wireless access point, and from there to make one or more manageable connections to the internet.  It also includes a streaming serial "telnet" mode, and server/port listener capabilities.
 
-The default baud rate that Zimodem establishes is 1200.  Be sure to use the commands below to set this to the proper baud rate for your terminal/host computer.
+The default baud rate that the firmware establishes is 1200.  Be sure to use the commands below to set this to the proper baud rate for your terminal/host computer.  If you plan on using the Commodore 8-bit utilities, keep the firmware baud rate saved at 1200.
 
 Building:
 ---------
-Zimodem was built using Arduino IDE rev1.6.11 with the Arduino Generic ESP8266 Module installed from the head dev at https://github.com/esp8266/Arduino.  Using that version of the library not the official Boards Manager distribution (via Additional Boards Manager URL http://arduino.esp8266.com/stable/package_esp8266com_index.json) was important to resolving several problems (specifically 300ms/byte socket write times).  How you get there from here was tricky.  I followed the standard instructions for installing an ESP board, found where it dropped the package (on Windows 10, it was in:
+This firmware was built using Arduino IDE rev1.6.11 with the Arduino Generic ESP8266 Module installed from the head dev at https://github.com/esp8266/Arduino.  Using that version of the library not the official Boards Manager distribution (via Additional Boards Manager URL http://arduino.esp8266.com/stable/package_esp8266com_index.json) was important to resolving several problems (specifically 300ms/byte socket write times).  How you get there from here was tricky.  I followed the standard instructions for installing an ESP board, found where it dropped the package (on Windows 10, it was in:
 c:\users\<myname>\AppData\Local\Arduino15\packages\esp8266\hardware\esp8266\... I dropped the new stuff from github in there instead of the old stuff, and then went into the new "tools" directory and ran get.py.
 
 Using:
 ------
-Upon initialization, or any time the ESP8266 is reset, Zimodem will display its version, and some information about the host hardware, and then read a configuration file from the internal SPIFFS to re-establish the previously set baud rate, and to attempt to re-connect to the previously connected wireless router.  The first time it is run, Zimodem will set a baud rate of 1200 and display INITALIZED to let you know that no previous wifi configuration was found.  Once the serial terminal displays READY, it is ready to receive commands.  
+Upon initialization, or any time the ESP8266 is reset, the modem will display its version, and some information about the host hardware, and then read a configuration file from the internal SPIFFS to re-establish the previously set baud rate, and to attempt to re-connect to the previously connected wireless router.  The first time it is run, the firmware will set a baud rate of 1200 and display INITALIZED to let you know that no previous wifi configuration was found.  Once the serial terminal displays READY, it is ready to receive commands.  
 
 The first command you'll probably want to enter is ATW to list your wireless routers, and then ATW"<<wireless router ssi>>,<<wireless password>>" to connect to the router, then AT&W to save it.
 
@@ -39,7 +39,8 @@ ATZ : closes all open socket connections (preserving the Access Point connection
 ATI : re-shows the startup message, including wifi connection information.
 ATI0 : same as ATI
 ATI1 : Shows the current variable settings, including 'S' registers.
-ATI2 : Shows the Zimodem current IP address
+ATI2 : Shows the modem's current IP address
+ATI3 : Shows the modem's current Wireless Router connection
 
 ATA  : If a server listener has generated a RING, then ATA will switch the last rung connection to Stream mode (see ATD).
 ATA/ : Repeats the previous command (no idea why...)
@@ -79,6 +80,7 @@ ATBn : Sets a new serial Baud Rate. Takes effect immediately.
 
 ATW : List all wireless network access points scanned within range.  The response for each entry is the SSID, following by the RSSI, followed by an * character is the connection is encrypted.
 ATWn : Where n > 0, this lists up to n wireless network access points scanned within range.  The response for each entry is the SSID, following by the RSSI, followed by an * character is the connection is encrypted.
+ATW"[SSI],[PASSWORD]" : Connects to the wireless access point with the given SSI, using the given password.
 
 ATD : Start a streaming connection between the current opened connection.  Use "+++" to exit back to Command mode.
 ATDn : Where n > 0, this will start a streaming connection between the previously opened connection with an id the same as n.  Use "+++" to exit back to Command mode.
@@ -113,7 +115,7 @@ ATS6 ... 39=n : Unimplemented, always returns OK
 ATS40=n : Change the size of the connection packets (n > 0), Defaults to 127 bytes
 ATS41=n : When n > 0, all incoming Server listener connections are immediately sent to Stream mode.  If n=0, connections remain in normal command mode (default).
 ATS42=n : Set the CRC8 for an expected incoming Transmit command.  e.g. ATS42=123T"[MESSAGE]" returns error unless 123 is CRC8 of "[MESSAGE]"
-
+ATS43=n : Sets a standby baud rate n for the next incoming or outgoing connection only.  ATZ clears.
 +++ : With a 1 second pause with no other characters afterwards, this will disconnect the current opened connection.
 
 ATT"[MESSAGE]" : Transmit the given text string, with \r\n at the end, on the current connection.

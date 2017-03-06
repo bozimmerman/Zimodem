@@ -16,7 +16,7 @@
 
 #define TCP_SND_BUF                     4 * TCP_MSS
 #define null 0
-#define ZIMODEM_VERSION "1.8"
+#define ZIMODEM_VERSION "2.0"
 
 #include "pet2asc.h"
 #include "zmode.h"
@@ -32,10 +32,20 @@ static ZMode *currMode = null;
 static ZStream streamMode;
 static ZCommand commandMode;
 
+enum BaudState
+{
+  BS_NORMAL,
+  BS_SWITCH_TEMP_NEXT,
+  BS_SWITCHED_TEMP,
+  BS_SWITCH_NORMAL_NEXT
+};
+
 static bool wifiConnected =false;
 static String wifiSSI;
 static String wifiPW;
 static int baudRate=1200;
+static BaudState baudState = BS_NORMAL; 
+static int tempBaud = -1; // -1 do nothing
 static int dcdStatus = LOW; 
 static bool logFileOpen = false;
 static File logFile; 
@@ -59,10 +69,62 @@ static bool connectWifi(const char* ssid, const char* password)
   return wifiConnected;
 }
 
+static void checkBaudChange()
+{
+  switch(baudState)
+  {
+    case BS_SWITCH_TEMP_NEXT:
+      delay(500); // give the client half a sec to catch up
+      Serial.begin(tempBaud);  //Change baud rate
+      baudState = BS_SWITCHED_TEMP;
+      break;
+    case BS_SWITCH_NORMAL_NEXT:
+      delay(500); // give the client half a sec to catch up
+      Serial.begin(baudRate);  //Change baud rate
+      baudState = BS_NORMAL;
+      break;
+    default:
+      break;
+  }
+}
+
+static int checkOpenConnections()
+{
+  int num = 0;
+  WiFiClientNode *conn = conns;
+  while(conn != null)
+  {
+    if(conn->isConnected())
+      num++;
+    conn = conn->next;
+  }
+  if(num == 0)
+  {
+    if(dcdStatus == HIGH)
+    {
+      dcdStatus = LOW;
+      digitalWrite(2,dcdStatus);
+      if(baudState == BS_SWITCHED_TEMP)
+        baudState = BS_SWITCH_NORMAL_NEXT;
+    }
+  }
+  else
+  {
+    if(dcdStatus == LOW)
+    {
+      dcdStatus = HIGH;
+      digitalWrite(2,dcdStatus);
+      if((tempBaud > 0) && (baudState == BS_NORMAL))
+        baudState = BS_SWITCH_TEMP_NEXT;
+    }
+  }
+  return num;
+}
+
 static void showInitMessage()
 {
   Serial.print(commandMode.EOLN);
-  Serial.print("ZiModem v");
+  Serial.print("64Net WiFi Firmware v");
   Serial.setTimeout(60000);
   Serial.print(ZIMODEM_VERSION);
   Serial.print(commandMode.EOLN);
@@ -99,7 +161,6 @@ void setup()
 
 void loop() 
 {
-  
   if(Serial.available())
   {
     currMode->serialIncoming();

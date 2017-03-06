@@ -23,13 +23,12 @@ void ZStream::switchTo(WiFiClientNode *conn)
   lastNonPlusTimeMs = 0;
   plussesInARow=0;
   XON=true;
-  dcdStatus = HIGH;
-  digitalWrite(2,dcdStatus);
   currMode=&streamMode;
   expectedSerialTime = (1000 / (baudRate / 8))+1;
   if(expectedSerialTime < 1)
     expectedSerialTime = 1;
   streamStartTime = 0;
+  checkBaudChange();
 }
 
 static char HD[3];
@@ -131,8 +130,6 @@ void ZStream::switchBackToCommandMode(bool logout)
     delete current;
   }
   current = null;
-  dcdStatus = LOW;
-  digitalWrite(2,dcdStatus);
   currMode = &commandMode;
 }
 
@@ -312,6 +309,7 @@ void ZStream::loop()
       }
     }
     serialDeque();
-   }
+  }
+  checkBaudChange();
 }
 

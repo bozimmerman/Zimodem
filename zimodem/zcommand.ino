@@ -90,6 +90,7 @@ void ZCommand::setConfigDefaults()
   strcpy(ECS,"+++");
   BS=8;
   EOLN = CRLF;
+  tempBaud = -1;
   freeCharArray(&tempMaskOuts);
   freeCharArray(&tempDelimiters);
   setCharArray(&delimiters,"");
@@ -328,12 +329,22 @@ ZResult ZCommand::doInfoCommand(int vval, uint8_t *vbuf, int vlen, bool isNumber
       Serial.print(serv->port);
       serv=serv->next;
     }
+    if(tempBaud > 0)
+    {
+      Serial.print("S43=");
+      Serial.print(tempBaud);
+    }
     Serial.println("");
   }
   else
   if(vval == 2)
   {
     Serial.println(WiFi.localIP().toString().c_str());
+  }
+  else
+  if(vval == 3)
+  {
+    Serial.println(wifiSSI.c_str());
   }
   else
     return ZERROR;
@@ -1106,6 +1117,12 @@ ZResult ZCommand::doSerialCommand()
              case 42:
                  crc8=sval;
                  break;
+             case 43:
+                 if(sval > 0)
+                   tempBaud = sval;
+                 else
+                   tempBaud = -1;
+                 break;
              default:
                 break;
               }
@@ -1473,6 +1490,7 @@ void ZCommand::sendNextPacket()
             return;
           }
         }
+        checkOpenConnections();
       }
       if(nextConn->serverClient)
       {
@@ -1628,7 +1646,7 @@ void ZCommand::loop()
           if(numericResponses)
             Serial.printf("3");
           else
-            Serial.printf("NO CARRIER %d %s:%d%s",current->id,current->host,current->port);
+            Serial.printf("NO CARRIER %d %s:%d",current->id,current->host,current->port);
           Serial.print(EOLN);
         }
         delete current;
@@ -1645,5 +1663,6 @@ void ZCommand::loop()
   {
     sendNextPacket();
   } //TODO: consider local buffering with XOFF, until then, trust the socket buffers.
+  checkBaudChange();
 }
 

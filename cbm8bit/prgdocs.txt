@@ -1,0 +1,315 @@
+/********************************
+/* 64Net WiFi Firmware Software *
+/* for the Commodore 64 and 128 *
+/********************************
+/////////////////////////////////
+
+This disk includes applications written to work with the 64Net WiFi modem running firmware version 2.0 or better.  If this is your first time using the modem, you should start with the configure64-128 program to get your modem connected to the internet.  You can then use the FTP, TELNET, IRC, and WGET programs whenever you wish to communicate with the internet.  The disk includes three machine language binaries (pml64.bin, pml128.bin, and up9600.bin) which are required for use with the configure, wget, irc, ftp, and telnet programs provided.
+
+You can also use any Commodore compatible terminal programs, such as Novaterm or CCGMS for the C64, or Desterm for the C128 in 128 mode.  When using one of these programs, you should consult the manual on the 64Net WiFi Firmware command mode for instructions on how to use the Hayes-like commands to connect your modem to the internet.
+
+The disk also includes the source assembly code for the pml64, pml128, up9600, and demo SwiftLink Kernal Wedge binaries.  These source files are in LADS format.  The disk also includes the LADS assembler for the C64 to re-assemble the binaries from the source files.  To use the LADS assembler, you should use a C64 or C128 in C64 mode, and load the LADS assembler using LOAD"LADS",8,1.  Once the assembler is loaded, clear the screen and type the name of the source file to assemble in the upper-lefthand corner of the screen.  Once that is done, use SYS11000 to begin the assembly.
+
+Below you will find information on the application programs included disk FTP, TELNET, IRC, and WGET, as well as instructions on using the PML64, PML128, and UP9600 machine language libraries from BASIC or machine language.
+
+
+CONFIGURE64-128
+*************************************
+
+The Configure program is for setting up or altering the WiFi Hotspot, also known as a Wireless Internet Router, that your modem uses to communicate with the internet.  It is written in BASIC, but uses the PML64.BIN or PML128.BIN libraries for speed (see below).  This program requires that your 64Net WiFi Modem be configured for 1200 baud on reset, which is the default factory configuration.
+
+When the program runs, it will initialize the 64Net modem with certain commands.  If you receive an error at this point, or if the program hangs for longer than a minute, hit Run/Stop-Restore, push the Reset button on your 64Net modem, turn your computer off and on again, and then load and run it again.
+
+After initialization, the program will scan the area for WiFi Hotspots and provide you a list to select from.  If you do not see your own wireless router listed, or do not know the name, consult your ISP's internet equipment documentation.  After you have selected the appropriate hotspot, you will be prompted for the password.  After the password is entered, the program will test the settings and, if successful, save the settings to the flash memory in your modem  it will be remembered even after the computer is turned off.
+
+When complete, you can use the X command to quit.
+
+
+FTP64-128
+*************************************
+
+File Transfer Protocol program supports a minimal number of features to connect to FTP Servers all over the internet in order to download and/or upload programs.  It is written in BASIC, but uses the PML64.BIN or PML128.BIN libraries for speed (see below).  It uses the UP9600.BIN
+
+This program requires that your 64Net WiFi Modem be configured for 1200 baud on reset, which is the default factory configuration.  If you run it on a breadbox Commodore 64 or 64C with UP9600 enabled on the modem (default), it will operate at 9600 baud during your session.  If you run it on a Commodore 128 in C128 mode and 80 columns, it will operate at 2400 baud during your session.  If you run it on a Commodore 128 in C64 mode, or C128 mode and 40 columns, it will remain at 1200 baud speed.
+
+When you start the program, it will initialize your 64Net modem with certain commands.  If you receive an error at this point, or if the program hangs for longer than a minute, hit Run/Stop-Restore, push the Reset button on your 64Net modem, turn your computer on and off, and then load and run it again.
+
+After initialization, you will be given a menu where you can enter the host name of the ftp server to connect to, and the login and password to use.  If you plan to login with the name "anonymous", you should use your email address as your password.  The last option on the menu is the drive number to upload files from and download files to.  When all options are correct, hit ENTER to connect.
+
+At the FTP prompt, you may enter one of the following commands:
+
+DIR : list the files in the current directory
+CD [DIRECTORY OR PATH] : change to a new directory
+QUIT : exit the ftp program
+HELP : show the commands supported by the client and the server
+GET [FILENAME,P] : download the program with the name filename as a PRG.  Use ,S for SEQ.
+PUT [FILENAME,P] : upload the program with the name filename which is a PRG file. Use ,S for SEQ.
+
+
+WGET64-128
+*************************************
+
+WGET program is for downloading files and pages from a standard HTTP web address (URL).  It is written in BASIC, but uses the PML64.BIN or PML128.BIN libraries for speed (see below).  It uses the UP9600.BIN
+
+This program requires that your 64Net WiFi Modem be configured for 1200 baud on reset, which is the default factory configuration.  If you run it on a breadbox Commodore 64 or 64C with UP9600 enabled on the modem (default), it will operate at 9600 baud during your session.  If you run it on a Commodore 128 in C128 mode and 80 columns, it will operate at 2400 baud during your session.  If you run it on a Commodore 128 in C64 mode, or C128 mode and 40 columns, it will remain at 1200 baud speed.
+
+When you start the program, it will initialize your 64Net modem with certain commands.  If you receive an error at this point, or if the program hangs for longer than a minute, hit Run/Stop-Restore, push the Reset button on your 64Net modem, turn your computer on and off, and then load and run it again.
+
+After initialization, you will be given a menu where you can enter the url of the file or page to download, the unit number of the disk drive to download the file or page to, and the name of the file to write to the disk.  Your filename should end with ,P to create a PRG file, and ,S to create a SEQ file.  For example, a filename of "mypage,s" will create a file called "mypage" of type SEQ.  When all options are correct, hit ENTER to connect and begin the download.  When the download completes, the program will exit.
+
+
+IRC64-128
+*************************************
+
+IRC program is for chatting with people on free internet IRC Servers.  It is written in BASIC, but uses the PML64.BIN or PML128.BIN libraries for speed (see below).  This program requires that your 64Net WiFi Modem be configured for 1200 baud on reset, which is the default factory configuration. 
+
+When you start the program, it will initialize your 64Net modem with certain commands.  If you receive an error at this point, or if the program hangs for longer than a minute, hit Run/Stop-Restore, push the Reset button on your 64Net modem, turn your computer on and off, and then load and run it again.
+
+After initialization, you will be asked to enter the host name of the IRC Server to connect to.  Next you will be prompted for for the port number that the IRC listens on at that host address.  The program will then attempt to connect to the host and port.  If successful, you will be prompted to enter a nickname, which is the name you will be known by during chatting.  If your nickname is already in use by someone else, you will eventually be prompted to enter a new one.  Either way, the program will display the servers MOTD and other information.  This could take several minutes.  It's best to just wait until you see the message "End of MOTD" to begin typing.
+
+After the MOTD message, you may type at any time.  If you have joined a chat channel, you will automatically see messages as they appear in the channel.  When you begin typing, all messages from the server are suspended until you hit RETURN.  Since the IRC client will appear idle while you are typing, it is best to spend as little time as necessary in messaage and command entry mode.  You may enter ? followed by RETURN to see the IRC commands supported by this client.  
+
+Commands include:
+/QUIT : exit the IRC chat program
+/JOIN #channelname : join the new channel named "#channelname"
+* Anything else entered will be assumed to be a message to sent to the channel you have already joined.
+
+TELNET64-128
+*************************************
+
+TELNET program is for communicating with a TELNET server as a terminal, or with a TELNET-like server such as a Multi-User Dungeon game (a MUD).  It is written in BASIC, but uses the PML64.BIN or PML128.BIN libraries for speed (see below).  This program requires that your 64Net WiFi Modem be configured for 1200 baud on reset, which is the default factory configuration. 
+
+When you start the program, it will initialize your 64Net modem with certain commands.  If you receive an error at this point, or if the program hangs for longer than a minute, hit Run/Stop-Restore, push the Reset button on your 64Net modem, turn your computer on and off, and then load and run it again.
+
+After initialization, you will be shown a menu with the following options:
+
+Dial from Phonebook: 
+This will let you connect to a server saved in your phonebook on disk.  See below for information about terminal mode while connected to a server
+
+Modify Phonebook:
+This will let you add or modify servers to save in your phonebook on disk.  These can be then "Dialed" to quickly later on.
+
+Quick Connect:
+This will let you manually enter a server host name and port to immediately connect to.  See below for information about terminal mode while connected to a server.
+
+Terminal Mode: 
+This will put you into terminal mode without connecting to any server.  In this case, you would be in the modem firmware's Command Mode.  You should consult the documentation for the 64Net WiFi Firmware for more information on this mode.  Use the F1 key or the C128's ESC key to exit terminal mode.
+
+Quit:
+Exit the TELNET program
+
+When you have connected to a server, you will be in ANSI terminal mode.  You can exit the server and disconnect at any time by hitting the F1 key on your C64, or the ESC key on your C128.  When connected to a server, the modem will translate as much ASCII/ANSI into viewable PETSCII for your Commodore computer as the default font will allow.  You will notice that underscores look like back-arrows.  ANSI colors will be translated to Commodore PETSCII colors wherever possible.  Your own keystrokes will also be translated to ASCII/ANSI as you type.  
+
+This version of the TELNET program does not support any flow control, or scrollback, which is why the baud rate is kept at 1200, to provide a readable pace.
+
+PML64.BIN and PML128.BIN
+*************************************
+
+These files, for the C64 and C128 respectively, are machine language support files for performing certain common 64Net modem functions from BASIC.  PML64.BIN loads to $C000 (49152), and PML128.BIN to $1300 (4864).  They are functionally identical.
+
+To use them from BASIC, make sure to follow two important rules: 1. Load the appropriate binary into memory (pml64.bin or pml128.bin).  and 2. Initialize the variable p$, by giving it some value, as early in your program as possible.  For example: P$="" would be fine.
+
+Throughout this section, I will refer to the variable ML to refer to the starting address of the library.  For the C64, this is always 49152, and for the C128, this is 4864.  So, when I say ML+3, I mean 49155 on the C64, and 4867 on the C128.
+
+---------
+BUF1LIN
+
+Usage:
+sys ML
+
+Pre-requisites: 
+P$ must be initialized in BASIC
+Channel 5 must be OPEN to the modem
+
+Outputs:
+P$ contains the string line read from the modem, if any
+ML + 19 is 0 to denote success, or 255 for a timeout
+ML + 26 contains the CRC8 value of the received string
+
+Description:
+Reads from the open modem channel until a carriage return (13) is seen, or until 255 characters are read, or until a timeout occurs.  The characters are returned in the BASIC variable P%, although character values 10 and 0 are always ignored.  The timeout is about 12 seconds.
+
+---------
+BUFXLIN
+
+Usage:
+sys ML+3
+
+Pre-requisites: 
+P$ must be initialized in BASIC
+Channel 5 must be OPEN to the modem
+ML + 18 contains the number of bytes to read
+
+Outputs:
+P$ contains the X bytes read from the modem if any
+ML + 18 contains the number of bytes NOT read (0 on success)
+ML + 19 is 255 for a timeout, or any other value for the index of the last carriage return (13) in the returned buffer.
+ML + 26 contains the CRC8 value of the received bytes
+
+Reads from the open modem channel until the number of bytes in ML+18 have been read, or until 253 bytes are read, or until a timeout occurs.  The bytes are returned in the BASIC variable P$.  The timeout is about 12 seconds.
+
+---------
+GETPACKET
+
+Usage:
+sys ML+6
+
+Pre-requisites: 
+P$ must be initialized in BASIC
+Channel 5 must be OPEN to the modem
+
+Outputs:
+ML + 18 contains the number of bytes read
+ML + 19 is 255 for a timeout or packet formatting error
+ML + 20 is the packet/channel ID that sent the data
+ML + 22 is the size of the packet received (0=none)
+ML + 24 is the EXPECTED CRC8 of the packet data sent by the modem
+ML + 26 contains the CRC8 value of the received string
+
+Reads a special 64Net WiFi Firmware formatted Packet from modem channel. This function will block until it times out, or a packet is received, so it's best used with the ATF3 flow control to ensure that every time XON is sent to the modem, a single packet header is guarenteed to be sent to the computer. When this method returns, ML+19 should be checked for an error, ML+22 for a non-0 to see if any data was received, or ML+20 to make sure it matches the expected channel (this can be 0 for a non-response when using ATF3).  You can also optionally compare ML+26 to ML+24 to check for RS232 errors.
+
+---------
+CRCP
+
+Usage:
+sys ML+9
+
+Pre-requisites: 
+P$ contains the string to calculate the CRC of
+
+Outputs:
+ML + 26 contains the CRC8 value of the received string
+
+Description:
+Calculates the CRC8 of P$ and returns it.
+
+---------
+BUFAP
+
+Usage:
+sys ML+12
+
+Pre-requisites: 
+P$ must be initialized in BASIC
+ML + 32 contains the channel number to read from
+The above channel must be open
+
+Outputs:
+P$ contains the string line read from the channel, if any
+ML + 26 contains the CRC8 value of the received string
+
+Description:
+Reads from the open channel whose number is contained in ML+32 until no more characters are available, or until 254 characters are read.  The characters are returned in the BASIC variable P$.
+
+UP9600.BIN
+*************************************
+
+This file for the Commodore 64 (not the Commodore 128 in 64 mode) is a machine language kernal wedge that supports the 9600 baud UP9600 feature of the 64Net WiFi Modem.  It resides in memory at $C800 (51200), and must be initialized before use by calling SYS 51200.
+
+Once initialized, the normal BASIC commands for using the modem will be modified to support UP9600 modems.  The OPEN command can now be opened for 9600 baud use by entering OPEN 5,2,0,CHR$(14), as 14 is the baud rate code for 9600 baud.  GET, PRINT, INPUT and other commands can then be used to read and write to the modem at speed.  If the modem channel is opened at any other baud rate, the wedge will remain inactive and the normal CBM Kernal will operate.
+
+Machine language KERNAL routines are likewise wedged to support the UP9600 baud rates.  OPEN, CLOSE, CHKIN, CKOUT, CHRIN, GETIN, and CHROUT are all supported.  As with BASIC, the wedge only operates when the OPEN command has been issued with a baud rate code of 14.  Obviously, the modem must also already be set to 9600 baud for any of this to work.
+
+It should be noted that, due to the way the driver works, IEC/Disk access cannot occur at the exact same time as the modem is receiving data.  The driver tries to prevent disk issues by disabling itself whenever an IEC/Disk channel is selected, but this should be born in mind in your application development.
+
+It should also be noted that there is no built-in flow control for ANY of this. If the modem is bombarded by more than 255 bytes before any can be read off the buffer, you will lose data.
+
+Below is a slightly more detailed explanation of the routines in UP9600.BIN.  Throughout this section, I will refer to the variable UM to refer to the starting address of the library, which is 51200 or $C800.  So, if you see UM+3, it means 51203.
+
+
+INIT
+----------
+
+Usage:
+sys UM
+
+Pre-requisites: 
+None
+
+Outputs:
+None
+
+Description:
+Initializes the wedge by replacing the standard KERNAL vectors for OPEN, CLOSE, CHKIN, CKOUT, CHRIN, GETIN, and CHROUT with its own routines.
+
+INSTALL
+----------
+
+Usage:
+sys UM+3
+
+Pre-requisites: 
+Memory location 247 and 248 point to a 256 byte input buffer
+
+Outputs:
+Memory location 789 has something other than the value 234 if this call is successful.
+
+Post-requisites:
+You should put a non-zero value into memory location UM+19, such as 1, after calling this function, for the KERNAL wedge to recognize that the driver is waiting for 9600 baud data from the modem.
+
+Description:
+Checks for the presence of UP9600 hardware, and if found, Installs and Enables the UP9600 baud driver.  This should only be called once, ever. It is called by the OPEN BASIC and KERNAL command automatically.  If the driver is disabled with the DISABLE call, then call ENABLE below to re-enable it.
+
+ENABLE
+----------
+
+Usage:
+sys UM+6
+
+Pre-requisites: 
+INSTALL must have been called
+Memory location 247 and 248 point to a 256 byte input buffer
+
+Outputs:
+Memory location 789 has something other than the value 234 if this call is successful.
+
+Description:
+Enables or Re-Enables the UP9600 baud driver.  It is called by INSTALL automatically.
+
+DISABLE
+----------
+
+Usage:
+sys UM+9
+
+Pre-requisites: 
+ENABLE or INSTALL must have been called
+
+Outputs:
+Memory location 789 has the value 234 when this completes.
+
+Description:
+Disables the UP9600 baud driver, allowing IEC/Disk access to be performed.
+
+RSOUT
+----------
+
+Usage:
+sys UM+12
+
+Pre-requisites:
+INSTALL or ENABLE must have called
+The accumulator .A contains the byte to transmit
+
+Outputs:
+None
+
+Description:
+Transmits a byte at 9600 baud, in real time.  
+
+RSIN
+----------
+
+Usage:
+sys UM+15
+
+Pre-requisites:
+INSTALL or ENABLE must have called
+
+Outputs:
+The accumulator .A contains the byte received, if any.
+The Carry flag is Set if there was an error, Clear if a byte is in the accumulator.
+
+Description:
+Reads a byte from the 9600 baud input buffer.
+

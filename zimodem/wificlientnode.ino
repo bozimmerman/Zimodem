@@ -26,6 +26,7 @@ void WiFiClientNode::finishConnectionLink()
       last = last->next;
     last->next = this;
   }
+  checkOpenConnections();
 }
 
 WiFiClientNode::WiFiClientNode(char *hostIp, int newport, int flagsBitmap)
@@ -98,6 +99,7 @@ WiFiClientNode::~WiFiClientNode()
   freeCharArray(&delimiters);
   freeCharArray(&maskOuts);
   next=null;
+  checkOpenConnections();
 }
 
 bool WiFiClientNode::isConnected()
