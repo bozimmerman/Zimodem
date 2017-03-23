@@ -286,3 +286,8 @@ bool ascToPet(char *c, Stream *stream)
   return true;
 }
 
+char ascToPetcii(char c)
+{
+  return ascToPetTable[c];
+}
+

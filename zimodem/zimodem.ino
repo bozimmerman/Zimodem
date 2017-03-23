@@ -16,7 +16,7 @@
 
 #define TCP_SND_BUF                     4 * TCP_MSS
 #define null 0
-#define ZIMODEM_VERSION "2.0"
+#define ZIMODEM_VERSION "2.3"
 
 #include "pet2asc.h"
 #include "zmode.h"
@@ -119,32 +119,6 @@ static int checkOpenConnections()
     }
   }
   return num;
-}
-
-static void showInitMessage()
-{
-  Serial.print(commandMode.EOLN);
-  Serial.print("64Net WiFi Firmware v");
-  Serial.setTimeout(60000);
-  Serial.print(ZIMODEM_VERSION);
-  Serial.print(commandMode.EOLN);
-  Serial.printf("sdk=%s core=%s cpu@%d",ESP.getSdkVersion(),ESP.getCoreVersion().c_str(),ESP.getCpuFreqMHz());
-  Serial.print(commandMode.EOLN);
-  Serial.printf("chipid=%d size=%dk rsize=%dk speed=%dm",ESP.getFlashChipId(),(ESP.getFlashChipSize()/1024),(ESP.getFlashChipRealSize()/1024),(ESP.getFlashChipSpeed()/1000000));
-  Serial.print(commandMode.EOLN);
-  if(wifiSSI.length()>0)
-  {
-    if(wifiConnected)
-      Serial.print("CONNECTED TO " + wifiSSI + " (" + WiFi.localIP().toString().c_str() + ")");
-    else
-      Serial.print("ERROR ON " + wifiSSI);
-  }
-  else
-    Serial.print("INITIALIZED");
-  Serial.print(commandMode.EOLN);
-  Serial.print("READY.");
-  Serial.print(commandMode.EOLN);
-  Serial.flush();
 }
 
 void setup() 

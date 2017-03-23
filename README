@@ -1,10 +1,10 @@
-64Net WiFi Firmware (C)2016-2017 Bo Zimmerman
+C64Net WiFi Firmware (C)2016-2017 Bo Zimmerman
 Please read the LICENSE file for license information
 Please read the NOTICE file for credits information
 
 Intro:
 ------
-This firmware code, "64Net WiFi Firmware", provides an api for communication between a serial terminal and the ESP8266.  It simulates the old-style Hayes "AT" commands, so that the ESP8266 appears to the terminal as if it were a Hayes modem.  These "AT" commands may then be issued to the ESP8266 in order to force it to connect to a wireless access point, and from there to make one or more manageable connections to the internet.  It also includes a streaming serial "telnet" mode, and server/port listener capabilities.
+This firmware code, "C64Net WiFi Firmware", provides an api for communication between a serial terminal and the ESP8266.  It simulates the old-style Hayes "AT" commands, so that the ESP8266 appears to the terminal as if it were a Hayes modem.  These "AT" commands may then be issued to the ESP8266 in order to force it to connect to a wireless access point, and from there to make one or more manageable connections to the internet.  It also includes a streaming serial "telnet" mode, and server/port listener capabilities.
 
 The default baud rate that the firmware establishes is 1200.  Be sure to use the commands below to set this to the proper baud rate for your terminal/host computer.  If you plan on using the Commodore 8-bit utilities, keep the firmware baud rate saved at 1200.
 
@@ -41,6 +41,7 @@ ATI0 : same as ATI
 ATI1 : Shows the current variable settings, including 'S' registers.
 ATI2 : Shows the modem's current IP address
 ATI3 : Shows the modem's current Wireless Router connection
+ATI4 : Shows only the firmware current version
 
 ATA  : If a server listener has generated a RING, then ATA will switch the last rung connection to Stream mode (see ATD).
 ATA/ : Repeats the previous command (no idea why...)
@@ -114,8 +115,9 @@ ATS5=n : Change the Backspace Character	(0-32), ASCII decimal 8 (Backspace)
 ATS6 ... 39=n : Unimplemented, always returns OK
 ATS40=n : Change the size of the connection packets (n > 0), Defaults to 127 bytes
 ATS41=n : When n > 0, all incoming Server listener connections are immediately sent to Stream mode.  If n=0, connections remain in normal command mode (default).
-ATS42=n : Set the CRC8 for an expected incoming Transmit command.  e.g. ATS42=123T"[MESSAGE]" returns error unless 123 is CRC8 of "[MESSAGE]"
+ATS42=n : Set the CRC8 for an expected incoming Transmit command.  e.g. ATS42=123T"[MESSAGE]" returns error unless 123 is CRC8 of "[MESSAGE]".
 ATS43=n : Sets a standby baud rate n for the next incoming or outgoing connection only.  ATZ clears.
+ATS44=n : Sets an automatic delay of n milliseconds after most bytes written to the Serial port.  This is for computers that support a baud rate, but can't really keep up, and you don't want to use flow control.
 +++ : With a 1 second pause with no other characters afterwards, this will disconnect the current opened connection.
 
 ATT"[MESSAGE]" : Transmit the given text string, with \r\n at the end, on the current connection.
@@ -124,11 +126,18 @@ ATTP"[MESSAGE]" : Transmit the given text string, translating petscii to ascii, 
 ATTPn : Where n > 0, this starts a transmit of exactly n bytes to the current connection, translating petscii to ascii.  The \n from entering this command must be followed by the n bytes to transmit.
 
 AT&L  : Reloads the saved configuration.
-AT&W  : Saves the current configuration: WiFi settings(ATW), baud rate (ATB), end of line (ATR) settings, flow control (ATF), echo mode (ATE), extended responses (ATX), verbose responses (ATV), quiet responses (ATQ)
+AT&W  : Saves the current configuration: WiFi settings(ATW), baud rate (ATB), end of line (ATR) settings, flow control (ATF), echo mode (ATE), extended responses (ATX), verbose responses (ATV), quiet responses (ATQ), and PETSCII mode (AT&P1)
 AT&F  : Restores the modem to factory default settings.
-AT&Gn : n is 1 to turn on internal serial-reception log, n is 0 to turn off or view a previously turned-on log.
+AT&On : n is 1 to turn on internal serial-reception log, n is 0 to turn off or view a previously turned-on log.
+AT&H  : Shows a help file from the web, or brief help otherwise.
+AT&U  : Checks the firmware home page to see if a new version is available.
+AT&U6502 : Will update the firmware from the home page on the web and resets the modem.
+AT&Pn : Where n > 0, all command mode input and output will be translated to/from PETSCII before internal processing.  This will not affect received packet data, or the stream mode.
+
 
 AT&Mn : Adds the byte denoted by n to a list of mask-out bytes.  These are bytes that are not transmitted to the serial port in command mode incoming packets.  If this command is followed by a C, N, or A command on the SAME LINE, then the setting will apply ONLY to that connection or listener.
 AT&M  : Resets the mask-out bytes list. No bytes will be masked-out. If this command is followed by a C, N, or A command on the SAME LINE, then the setting will apply ONLY to that connection or listener.
 AT&Dn : Adds the byte denoted by n to a list of delimiter bytes.  These are bytes that will compose the last byte in a command-mode incoming packet that is still shorter than the limit set by ATS40. This is useful for CR-LF formatted data.  If this command is followed by a C, N, or A command on the SAME LINE, then the setting will apply ONLY to that connection or listener.
 AT&D  : Resets the delimiter bytes lis. No bytes will be delimited, and packets will contain as many bytes as are received and allowed by ATS40.  If this command is followed by a C, N, or A command on the SAME LINE, then the setting will apply ONLY to that connection or listener.
+
+AT&G"[HOSTNAME]:[PORT]/[FILENAME]" : Streams a file from an HTTP source on the internet.  Initial output is "OK" followed by an end of line followed by the length of the file data in ASCII, followed by end of line, followed by an 8-bit sum of all the bytes in the forthcoming file, followed by end of line, followed by the bytes of the file.  An ASCII 3 (CNTRL-C) received during the transfer will abort. The S44 register can be used to create artificial delays in this output.  XON/XOFF Flow control also remains in effect with, on a byte-by-byte basis for the auto and manual flow control systems.

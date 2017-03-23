@@ -205,6 +205,8 @@ void ZStream::serialWrite(uint8_t c)
       logFile.print(" ");
     }
   }
+  if(commandMode.delayMs > 0)
+    delay(commandMode.delayMs);
 }
     
 void ZStream::serialDeque()

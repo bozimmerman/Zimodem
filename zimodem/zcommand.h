@@ -37,7 +37,8 @@ enum ConfigOptions
   CFG_RESP_SUPP=6,
   CFG_RESP_NUM=7,
   CFG_RESP_LONG=8,
-  CFG_LAST=8,
+  CFG_PETSCIIMODE=9,
+  CFG_LAST=9,
 };
 
 enum FlowControlType
@@ -72,6 +73,7 @@ class ZCommand : public ZMode
     
     uint8_t nbuf[MAX_COMMAND_SIZE];
     int eon=0;
+    bool petsciiMode = false;
     int lastServerClientId = 0;
     WiFiClientNode *current = null;
     bool XON=true;
@@ -90,6 +92,7 @@ class ZCommand : public ZMode
     byte CRC8(const byte *data, byte len);
     int makeStreamFlagsBitmap(const char *dmodifiers);
 
+    void showInitMessage();
     bool readSerialStream();
     ZResult doSerialCommand();
     void setConfigDefaults();
@@ -100,6 +103,10 @@ class ZCommand : public ZMode
     void acceptNewConnection();
     void sendConnectionNotice(int nodeId);
     void sendNextPacket();
+    void Serialprint(const char *expr);
+    bool doWebGet(const char *hostIp, int port, const char *filename, const char *req);
+    bool doWebGetBytes(const char *hostIp, int port, const char *req, uint8_t *buf, int *bufSize);
+    bool doWebGetStream(const char *hostIp, int port, const char *req, WiFiClient &c, uint32_t *responseSize);
 
     ZResult doResetCommand();
     ZResult doNoListenCommand();
@@ -113,6 +120,8 @@ class ZCommand : public ZMode
     ZResult doHangupCommand(int vval, uint8_t *vbuf, int vlen, bool isNumber);
     ZResult doEOLNCommand(int vval, uint8_t *vbuf, int vlen, bool isNumber);
     ZResult doInfoCommand(int vval, uint8_t *vbuf, int vlen, bool isNumber);
+    ZResult doWebStream(int vval, uint8_t *vbuf, int vlen, bool isNumber, const char *filename, bool cache);
+    ZResult doUpdateFirmware(int vval, uint8_t *vbuf, int vlen, bool isNumber);
 
   public:
     int packetSize = 127;
@@ -124,6 +133,7 @@ class ZCommand : public ZMode
     String EOLN;
     char EC='+';
     char *ECS="+++";
+    int delayMs=0;
 
     ZCommand();
     void loadConfig();

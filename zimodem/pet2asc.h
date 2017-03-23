@@ -19,6 +19,7 @@
 
 char petToAsc(char c);
 bool ascToPet(char *c, Stream *stream);
+char ascToPetcii(char c);
 bool handleAsciiIAC(char *c, Stream *stream);
 
 static void setCharArray(char **target, const char *src)

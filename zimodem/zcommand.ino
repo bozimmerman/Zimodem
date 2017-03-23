@@ -24,6 +24,20 @@ ZCommand::ZCommand()
   setCharArray(&maskOuts,"");
 }
 
+void ZCommand::Serialprint(const char *expr)
+{
+  if(!petsciiMode)
+    Serial.print(expr);
+  else
+  {
+    for(int i=0;expr[i]!=0;i++)
+    {
+      Serial.write(ascToPetcii(expr[i]));
+    }
+  }
+}
+
+
 byte ZCommand::CRC8(const byte *data, byte len) 
 {
   byte crc = 0x00;
@@ -57,7 +71,7 @@ byte ZCommand::CRC8(const byte *data, byte len)
   if(logFileOpen)
     logFile.printf("\r\nFinal CRC8: %s\r\n",TOHEX(crc));
   return crc;
-}    
+}
 
 int ZCommand::makeStreamFlagsBitmap(const char *dmodifiers)
 {
@@ -78,6 +92,8 @@ void ZCommand::setConfigDefaults()
   doEcho=true;
   flowControlType=FCT_DISABLED;
   XON=true;
+  petsciiMode=false;
+  delayMs=0;
   suppressResponses=false;
   numericResponses=false;
   longResponses=true;
@@ -125,6 +141,8 @@ ZResult ZCommand::doResetCommand()
   parseConfigOptions(argv);
   eon=0;
   XON=true;
+  petsciiMode=false;
+  delayMs=0;
   flowControlType=FCT_DISABLED;
   setBaseConfigOptions(argv);
   memset(nbuf,0,MAX_COMMAND_SIZE);
@@ -156,7 +174,7 @@ void ZCommand::reSaveConfig()
   SPIFFS.remove("/zconfig.txt");
   delay(500);
   File f = SPIFFS.open("/zconfig.txt", "w");
-  f.printf("%s,%s,%d,%s,%d,%d,%d,%d,%d",wifiSSI.c_str(),wifiPW.c_str(),baudRate,EOLN.c_str(),flowControlType,doEcho,suppressResponses,numericResponses,longResponses);
+  f.printf("%s,%s,%d,%s,%d,%d,%d,%d,%d,%d",wifiSSI.c_str(),wifiPW.c_str(),baudRate,EOLN.c_str(),flowControlType,doEcho,suppressResponses,numericResponses,longResponses,petsciiMode);
   f.close();
   delay(500);
   if(SPIFFS.exists("/zconfig.txt"))
@@ -169,7 +187,7 @@ void ZCommand::reSaveConfig()
     {
       for(int i=0;i<str.length();i++)
       {
-        if((str[i]==',')&&(argn<9))
+        if((str[i]==',')&&(argn<=CFG_LAST))
           argn++;
       }
     }
@@ -204,6 +222,8 @@ void ZCommand::setBaseConfigOptions(String configArguments[])
     numericResponses = atoi(configArguments[CFG_RESP_NUM].c_str());
   if(configArguments[CFG_RESP_LONG].length()>0)
     longResponses = atoi(configArguments[CFG_RESP_LONG].c_str());
+  if(configArguments[CFG_PETSCIIMODE].length()>0)
+    petsciiMode = atoi(configArguments[CFG_PETSCIIMODE].c_str());
 }
 
 void ZCommand::parseConfigOptions(String configArguments[])
@@ -217,7 +237,7 @@ void ZCommand::parseConfigOptions(String configArguments[])
     int argn=0;
     for(int i=0;i<str.length();i++)
     {
-      if((str[i]==',')&&(argn<9))
+      if((str[i]==',')&&(argn<=CFG_LAST))
         argn++;
       else
         configArguments[argn] += str[i];
@@ -262,44 +282,44 @@ ZResult ZCommand::doInfoCommand(int vval, uint8_t *vbuf, int vlen, bool isNumber
   else
   if(vval == 1)
   {
-    Serial.print("AT");
-    Serial.print("B");
+    Serialprint("AT");
+    Serialprint("B");
     Serial.print(baudRate);
-    Serial.print(doEcho?"E1":"E0");
+    Serialprint(doEcho?"E1":"E0");
     if(suppressResponses)
-      Serial.print("Q1");
+      Serialprint("Q1");
     else
     {
-      Serial.print("Q0");
-      Serial.print(numericResponses?"V0":"V1");
-      Serial.print(longResponses?"X1":"X0");
+      Serialprint("Q0");
+      Serialprint(numericResponses?"V0":"V1");
+      Serialprint(longResponses?"X1":"X0");
     }
     switch(flowControlType)
     {
     case FCT_DISABLED:
-      Serial.print("F0");
+      Serialprint("F0");
       break;
     case FCT_NORMAL: 
-      Serial.print("F1");
+      Serialprint("F1");
       break;
     case FCT_AUTOOFF:
-      Serial.print("F2");
+      Serialprint("F2");
       break;
     case FCT_MANUAL:
-      Serial.print("F3");
+      Serialprint("F3");
       break;
     }
     if(EOLN==CR)
-      Serial.print("R0");
+      Serialprint("R0");
     else
     if(EOLN==CRLF)
-      Serial.print("R1");
+      Serialprint("R1");
     else
     if(EOLN==LFCR)
-      Serial.print("R2");
+      Serialprint("R2");
     else
     if(EOLN==LF)
-      Serial.print("R3");
+      Serialprint("R3");
   
     if((delimiters != NULL)&&(delimiters[0]!=0))
       for(int i=0;i<strlen(delimiters);i++)
@@ -308,43 +328,54 @@ ZResult ZCommand::doInfoCommand(int vval, uint8_t *vbuf, int vlen, bool isNumber
       for(int i=0;i<strlen(maskOuts);i++)
         Serial.printf("&m%d",maskOuts[i]);
 
-    Serial.print("S0=");
+    Serialprint("S0=");
     Serial.print((int)ringCounter);
-    Serial.print("S2=");
+    Serialprint("S2=");
     Serial.print((int)EC);
-    Serial.print("S3=");
+    Serialprint("S3=");
     Serial.print((int)CR[0]);
-    Serial.print("S4=");
+    Serialprint("S4=");
     Serial.print((int)LF[0]);
-    Serial.print("S5=");
+    Serialprint("S5=");
     Serial.print((int)BS);
-    Serial.print("S40=");
+    Serialprint("S40=");
     Serial.print(packetSize);
-    Serial.print(autoStreamMode ? "S41=1" : "S41=0");
+    Serialprint(autoStreamMode ? "S41=1" : "S41=0");
     
     WiFiServerNode *serv = servs;
     while(serv != null)
     {
-      Serial.print("A");
+      Serialprint("A");
       Serial.print(serv->port);
       serv=serv->next;
     }
     if(tempBaud > 0)
     {
-      Serial.print("S43=");
+      Serialprint("S43=");
       Serial.print(tempBaud);
     }
-    Serial.println("");
+    Serialprint("S44=");
+    Serial.print(delayMs);
+    Serialprint(petsciiMode ? "&P1" : "&P0");
+    Serial.print(EOLN);
   }
   else
   if(vval == 2)
   {
-    Serial.println(WiFi.localIP().toString().c_str());
+    Serialprint(WiFi.localIP().toString().c_str());
+    Serial.print(EOLN);
   }
   else
   if(vval == 3)
   {
-    Serial.println(wifiSSI.c_str());
+    Serialprint(wifiSSI.c_str());
+    Serial.print(EOLN);
+  }
+  else
+  if(vval == 4)
+  {
+    Serialprint(ZIMODEM_VERSION);
+    Serial.print(EOLN);
   }
   else
     return ZERROR;
@@ -377,9 +408,15 @@ ZResult ZCommand::doConnectCommand(int vval, uint8_t *vbuf, int vlen, bool isNum
     else
     {
       if(current->isConnected())
-        Serial.printf("CONNECTED %d %s:%d",current->id,current->host,current->port);
+      {
+        Serialprint("CONNECTED ");
+        Serial.printf("%d %s:%d",current->id,current->host,current->port);
+      }
       else
-        Serial.printf("NO CARRIER %d %s:%d",current->id,current->host,current->port);
+      {
+        Serialprint("NO CARRIER ");
+        Serial.printf("%d %s:%d",current->id,current->host,current->port);
+      }
       Serial.print(EOLN);
       return ZIGNORE;
     }
@@ -416,16 +453,23 @@ ZResult ZCommand::doConnectCommand(int vval, uint8_t *vbuf, int vlen, bool isNum
       while(c!=null)
       {
         if(c->isConnected())
-          Serial.printf("CONNECTED %d %s:%d",c->id,c->host,c->port);
+        {
+          Serialprint("CONNECTED ");
+          Serial.printf("%d %s:%d",c->id,c->host,c->port);
+        }
         else
-          Serial.printf("NO CARRIER %d %s:%d",c->id,c->host,c->port);
+        {
+          Serialprint("NO CARRIER ");
+          Serial.printf("%d %s:%d",c->id,c->host,c->port);
+        }
         Serial.print(EOLN);
         c=c->next;
       }
       WiFiServerNode *s=servs;
       while(s!=null)
       {
-        Serial.printf("LISTENING %d *:%d",s->id,s->port);
+        Serialprint("LISTENING ");
+        Serial.printf("%d *:%d",s->id,s->port);
         Serial.print(EOLN);
         s=s->next;
       }
@@ -468,6 +512,306 @@ ZResult ZCommand::doConnectCommand(int vval, uint8_t *vbuf, int vlen, bool isNum
   return ZOK;
 }
 
+bool ZCommand::doWebGetStream(const char *hostIp, int port, const char *req, WiFiClient &c, uint32_t *responseSize)
+{
+  *responseSize = 0;
+  if(WiFi.status() != WL_CONNECTED)
+    return false;
+  c.setNoDelay(true);
+  if(!c.connect(hostIp, port))
+  {
+    c.stop();
+    return false;
+  }
+  c.printf("GET /%s HTTP/1.1\r\n",req);
+  c.printf("User-Agent: C64Net Firmware\r\n",hostIp);
+  c.printf("Host: %s\r\n",hostIp);
+  c.printf("Connection: close\r\n\r\n");
+  String ln = "";
+  uint32_t respLength = 0;
+  int respCode = -1;
+  while(c.connected())
+  {
+    yield();
+    if(c.available()<=0)
+      continue;
+      
+    char ch = (char)c.read();
+    if(ch == '\r')
+      continue;
+    else
+    if(ch == '\n')
+    {
+      if(ln.length()==0)
+        break;
+      if(respCode < 0)
+      {
+        int sp = ln.indexOf(' ');
+        if(sp<=0)
+          break;
+        ln.remove(0,sp+1);
+        sp = ln.indexOf(' ');
+        if(sp<=0)
+          break;
+        ln.remove(sp);
+        respCode = atoi(ln.c_str());
+      }
+      else
+      if(ln.startsWith("Content-length: ")
+      ||ln.startsWith("Content-Length: "))
+      {
+        ln.remove(0,16);
+        respLength = atoi(ln.c_str());
+      }
+      ln = "";
+    }
+    else
+      ln.concat(ch);
+  }
+  *responseSize = respLength;
+  if((!c.connected())
+  ||(respCode != 200)
+  ||(respLength <= 0))
+  {
+    c.stop();
+    return false;
+  }
+  return true;
+}
+
+bool ZCommand::doWebGet(const char *hostIp, int port, const char *filename, const char *req)
+{
+  uint32_t respLength=0;
+  WiFiClient c;
+  if(!doWebGetStream(hostIp, port, req, c, &respLength))
+    return false;
+    
+  File f = SPIFFS.open(filename, "w");
+  while((respLength>0) && (c.connected()))
+  {
+    if(c.available()>=0)
+    {
+      f.write(c.read());
+      respLength--;
+    }
+    else
+      yield();
+  }
+  f.flush();
+  f.close();
+  c.stop();
+  return (respLength == 0);
+}
+
+bool ZCommand::doWebGetBytes(const char *hostIp, int port, const char *req, uint8_t *buf, int *bufSize)
+{
+  WiFiClient c;
+  uint32_t respLength=0;
+  if(!doWebGetStream(hostIp, port, req, c, &respLength))
+    return false;
+  if((!c.connected())
+  ||(respLength > *bufSize))
+  {
+    c.stop();
+    return false;
+  }
+  *bufSize = (int)respLength;
+  int index=0;
+  while((respLength>0) && (c.connected()))
+  {
+    if(c.available()>=0)
+    {
+      buf[index++] = c.read();
+      respLength--;
+    }
+    else
+      yield();
+  }
+  c.stop();
+  return (respLength == 0);
+}
+
+ZResult ZCommand::doWebStream(int vval, uint8_t *vbuf, int vlen, bool isNumber, const char *filename, bool cache)
+{
+  char *portB=strchr((char *)vbuf,':');
+  bool success = true;
+  if(portB == NULL)
+     success = false;
+  else
+  {
+    char *hostIp = (char *)vbuf;
+    *portB = 0;
+    portB++;
+    char *req = strchr(portB,'/');
+    if(req == NULL)
+      success = false;
+    else
+    {
+      *req = 0;
+      req++;
+      int port = atoi(portB);
+      if(port <=0)
+        success = false;
+      else
+      {
+        if(cache)
+        {
+          if(!SPIFFS.exists(filename))
+          {
+            if(!doWebGet(hostIp, port, filename, req))
+              return ZERROR;
+          }
+        }
+        else
+        if(!doWebGet(hostIp, port, filename, req))
+          return ZERROR;
+        int chk8=0;
+        if(!cache)
+        {
+          File f = SPIFFS.open(filename, "r");
+          int len = f.size();
+          for(int i=0;i<len;i++)
+          {
+            chk8+=f.read();
+            if(chk8>255)
+              chk8-=256;
+          }
+          f.close();
+        }
+        File f = SPIFFS.open(filename, "r");
+        int len = f.size();
+        if(!cache)
+        {
+          Serialprint("OK");
+          const char *eoln=EOLN.c_str();
+          Serial.printf("%s%d%s%d%s",eoln,len,eoln,chk8,eoln);
+        }
+        boolean xon=true;
+        if(!cache)
+        {
+          switch(flowControlType)
+          {
+            case FCT_NORMAL:
+              break;
+            case FCT_AUTOOFF:
+              break;
+            case FCT_MANUAL:
+              xon=false;
+              break;
+            case FCT_INVALID:
+              break;
+          }
+        }
+        while(len > 0)
+        {
+          if(xon || (cache))
+          {
+            --len;
+            Serial.write(f.read());
+            if(delayMs > 0)
+              delay(delayMs);
+          }
+          if(Serial.available()>0)
+          {
+            char ch=Serial.read();
+            if(ch == 3)
+              return ZOK;
+            if(!cache)
+            {
+              switch(flowControlType)
+              {
+                case FCT_NORMAL:
+                  if((!xon) && (ch == 17))
+                    xon=true;
+                  else
+                  if((xon) && (ch == 19))
+                    xon=false;
+                  break;
+                case FCT_AUTOOFF:
+                case FCT_MANUAL:
+                  if((!xon) && (ch == 17))
+                    xon=true;
+                  else
+                    xon=false;
+                  break;
+                case FCT_INVALID:
+                  break;
+              }
+            }
+          }
+          while(Serial.availableForWrite()<10)
+          {
+            delay(1);
+            yield();
+          }
+          yield();
+        }
+      }
+    }
+  }
+  return ZIGNORE;
+}
+
+ZResult ZCommand::doUpdateFirmware(int vval, uint8_t *vbuf, int vlen, bool isNumber)
+{
+  uint8_t buf[255];
+  int bufSize = 254;
+  if((!doWebGetBytes("www.zimmers.net", 80, "/otherprojs/c64net-latest-version.txt", buf, &bufSize))||(bufSize<=0))
+    return ZERROR;
+  Serialprint("Local firmware version ");
+  Serial.print(ZIMODEM_VERSION);
+  Serial.print(".");
+  Serial.print(EOLN);
+  
+  if((strlen(ZIMODEM_VERSION)==bufSize) && memcmp(buf,ZIMODEM_VERSION,strlen(ZIMODEM_VERSION))==0)
+  {
+    Serialprint("Your modem is up-to-date.");
+    Serial.print(EOLN);
+  }
+  else
+  {
+    Serialprint("Latest available version is ");
+    buf[bufSize]=0;
+    Serial.print((char *)buf);
+    Serial.print(".");
+    Serial.print(EOLN);
+  }
+  if(vval != 6502)
+    return ZOK;
+  
+  Serialprint("Updating...");
+  uint32_t respLength=0;
+  WiFiClient c;
+  char firmwareName[100];
+  sprintf(firmwareName,"/otherprojs/c64net-firmware-%s.bin",buf);
+  if(!doWebGetStream("www.zimmers.net", 80, firmwareName, c, &respLength))
+  {
+    Serial.print(EOLN);
+    return ZERROR;
+  }
+  
+  if(!Update.begin(respLength))
+    return ZERROR;
+
+  Serial.print(".");
+  if(Update.writeStream(c) != respLength)
+  {
+    Serial.print(EOLN);
+    return ZERROR;
+  }
+  Serial.print(".");
+  if(!Update.end())
+  {
+    Serial.print(EOLN);
+    return ZERROR;
+  }
+  Serial.print("Done");
+  Serial.print(EOLN.c_str());
+  Serial.print("Press the Reset button on your modem.");
+  ESP.restart();
+  return ZOK;
+}
+
 ZResult ZCommand::doWiFiCommand(int vval, uint8_t *vbuf, int vlen)
 {
   if((vlen==0)||(vval>0))
@@ -477,7 +821,7 @@ ZResult ZCommand::doWiFiCommand(int vval, uint8_t *vbuf, int vlen)
       n=vval;
     for (int i = 0; i < n; ++i)
     {
-      Serial.print(WiFi.SSID(i));
+      Serialprint(WiFi.SSID(i).c_str());
       Serial.print(" (");
       Serial.print(WiFi.RSSI(i));
       Serial.print(")");
@@ -835,6 +1179,12 @@ ZResult ZCommand::doSerialCommand()
   uint8_t sbuf[len];
   memcpy(sbuf,nbuf,len);
   memset(nbuf,0,MAX_COMMAND_SIZE);
+  if(petsciiMode)
+  {
+    for(int i=0;i<len;i++)
+      sbuf[i]=petToAsc(sbuf[i]);
+  }
+      
   eon=0;
   String currentCommand = (char *)sbuf;
   int crc8=-1;
@@ -1115,14 +1465,17 @@ ZResult ZCommand::doSerialCommand()
                 autoStreamMode = (sval > 0);
                 break;
              case 42:
-                 crc8=sval;
-                 break;
+               crc8=sval;
+               break;
              case 43:
-                 if(sval > 0)
-                   tempBaud = sval;
-                 else
-                   tempBaud = -1;
-                 break;
+               if(sval > 0)
+                 tempBaud = sval;
+               else
+                 tempBaud = -1;
+               break;
+             case 44:
+               delayMs=sval;
+               break;
              default:
                 break;
               }
@@ -1187,7 +1540,7 @@ ZResult ZCommand::doSerialCommand()
           }
           result=ZOK;
           break;
-        case 'g':
+        case 'o':
           if(vval == 0)
           {
             if(logFileOpen)
@@ -1207,7 +1560,11 @@ ZResult ZCommand::doSerialCommand()
               while(i < numRead)
               {
                 if(Serial.availableForWrite() > 0)
+                {
                   Serial.write(buf[i++]);
+                  if(delayMs > 0)
+                    delay(delayMs);
+                }
                 else
                   delay(1);
                 yield();
@@ -1228,6 +1585,46 @@ ZResult ZCommand::doSerialCommand()
             logFile = SPIFFS.open("/logfile.txt", "w");              
             result=ZOK;
           }
+          break;
+        case 'h':
+        {
+          char filename[50];
+          sprintf(filename,"/c64net-help-%s.txt",ZIMODEM_VERSION);
+          if(vval == 6502)
+          {
+            SPIFFS.remove(filename);
+            result=ZOK;
+          }
+          else
+          {
+            int oldDelay = delayMs;
+            delayMs = vval;
+            uint8_t buf[100];
+            sprintf((char *)buf,"www.zimmers.net:80/otherprojs%s",filename);
+            Serialprint("Control-C to Abort.");
+            Serialprint(EOLN.c_str());
+            result = doWebStream(0,buf,strlen((char *)buf),false,filename,true);
+            delayMs = oldDelay;
+            if(result == ZERROR)
+            {
+              Serialprint("Not Connected.");
+              Serialprint(EOLN.c_str());
+              Serialprint("Use ATW to list access points.");
+              Serialprint(EOLN.c_str());
+              Serialprint("ATW\"[SSI],[PASSWORD]\" to connect.");
+              Serialprint(EOLN.c_str());
+            }
+          }
+          break;
+        }
+        case 'g':
+          result = doWebStream(vval,vbuf,vlen,isNumber,"/temp.web",false);
+          break;
+        case 'p':
+          petsciiMode = vval > 0;
+          break;
+        case 'u':
+          result=doUpdateFirmware(vval,vbuf,vlen,isNumber);
           break;
         default:
           result=ZERROR;
@@ -1267,7 +1664,7 @@ ZResult ZCommand::doSerialCommand()
           if(numericResponses)
             Serial.print("0");
           else
-            Serial.print("OK");
+            Serialprint("OK");
           Serial.print(EOLN);
         }
         break;
@@ -1277,7 +1674,7 @@ ZResult ZCommand::doSerialCommand()
         if(numericResponses)
           Serial.print("4");
         else
-          Serial.print("ERROR");
+          Serialprint("ERROR");
         Serial.print(EOLN);
         // on error, cut and run
         return ZERROR;
@@ -1292,6 +1689,35 @@ ZResult ZCommand::doSerialCommand()
     }
   }
   return result;
+}
+
+void ZCommand::showInitMessage()
+{
+  Serial.print(commandMode.EOLN);
+  Serialprint("C64Net WiFi Firmware v");
+  Serial.setTimeout(60000);
+  Serialprint(ZIMODEM_VERSION);
+  Serial.print(commandMode.EOLN);
+  char s[100];
+  sprintf(s,"sdk=%s core=%s cpu@%d",ESP.getSdkVersion(),ESP.getCoreVersion().c_str(),ESP.getCpuFreqMHz());
+  Serialprint(s);
+  Serial.print(commandMode.EOLN);
+  sprintf(s,"chipid=%d size=%dk rsize=%dk speed=%dm",ESP.getFlashChipId(),(ESP.getFlashChipSize()/1024),(ESP.getFlashChipRealSize()/1024),(ESP.getFlashChipSpeed()/1000000));
+  Serialprint(s);
+  Serial.print(commandMode.EOLN);
+  if(wifiSSI.length()>0)
+  {
+    if(wifiConnected)
+      Serialprint(("CONNECTED TO " + wifiSSI + " (" + WiFi.localIP().toString().c_str() + ")").c_str());
+    else
+      Serialprint(("ERROR ON " + wifiSSI).c_str());
+  }
+  else
+    Serialprint("INITIALIZED");
+  Serial.print(commandMode.EOLN);
+  Serialprint("READY.");
+  Serial.print(commandMode.EOLN);
+  Serial.flush();
 }
 
 void ZCommand::reSendLastPacket(WiFiClientNode *conn)
@@ -1352,7 +1778,17 @@ void ZCommand::reSendLastPacket(WiFiClientNode *conn)
     if(logFileOpen)
         logFile.printf("SER-OUT: [ %d %d %d ]\r\n",conn->id,bufLen,(int)crc);
     if(bufLen > 0)
-      Serial.write(buf,bufLen);
+    {
+      if(delay == 0)
+        Serial.write(buf,bufLen);
+      else
+      for(int i=0;i<bufLen;i++)
+      {
+        Serial.write(buf[i]); 
+        if(delayMs > 0)
+          delay(delayMs);
+      }
+    }
     if(logFileOpen)
     {
         int c=0;
@@ -1483,7 +1919,10 @@ void ZCommand::sendNextPacket()
           if(numericResponses)
             Serial.printf("3");
           else
-            Serial.printf("NO CARRIER %d",nextConn->id);
+          {
+            Serialprint("NO CARRIER ");
+            Serial.print(nextConn->id);
+          }
           Serial.print(EOLN);
           if(flowControlType == FCT_MANUAL)
           {
@@ -1556,7 +1995,7 @@ void ZCommand::sendConnectionNotice(int id)
   }
   else
   {
-    Serial.print("CONNECT");
+    Serialprint("CONNECT");
     if(longResponses)
     {
       Serial.print(" ");
@@ -1602,7 +2041,7 @@ void ZCommand::acceptNewConnection()
               Serial.print("2");
             else
             {
-              Serial.print("RING");
+              Serialprint("RING");
               if(longResponses)
               {
                 Serial.print(" ");
@@ -1646,7 +2085,10 @@ void ZCommand::loop()
           if(numericResponses)
             Serial.printf("3");
           else
-            Serial.printf("NO CARRIER %d %s:%d",current->id,current->host,current->port);
+          {
+            Serialprint("NO CARRIER ");
+            Serial.printf("%d %s:%d",current->id,current->host,current->port);
+          }
           Serial.print(EOLN);
         }
         delete current;

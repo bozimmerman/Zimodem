@@ -1,3 +1,11 @@
   *. Support a larger incoming network buffer.
+  *. Baud rate test commend
+  *. ATWP for transmitting and receiving PETSCII
+  *. ATW0 should be same as ATW
+  *. Hardware flow control
+  *. SLIP support?
+  *. PPP support?
+  *. Network printer support?
+  
   
   
