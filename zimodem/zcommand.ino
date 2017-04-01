@@ -90,6 +90,7 @@ void ZCommand::setConfigDefaults()
 {
   doEcho=true;
   flowControlType=FCT_DISABLED;
+  binType=BTYPE_NORMAL;
   XON=true;
   petsciiMode=false;
   delayMs=0;
@@ -142,6 +143,7 @@ ZResult ZCommand::doResetCommand()
   XON=true;
   petsciiMode=false;
   delayMs=0;
+  binType=BTYPE_NORMAL;
   flowControlType=FCT_DISABLED;
   setBaseConfigOptions(argv);
   memset(nbuf,0,MAX_COMMAND_SIZE);
@@ -719,6 +721,7 @@ ZResult ZCommand::doWebStream(int vval, uint8_t *vbuf, int vlen, bool isNumber, 
           if(flowControlType == FCT_MANUAL)
             XON=false;
         }
+        int mark = Serial.availableForWrite();
         int bct=0;
         int lct=0;
         if(logFileOpen)
@@ -773,6 +776,11 @@ ZResult ZCommand::doWebStream(int vval, uint8_t *vbuf, int vlen, bool isNumber, 
                 break;
               }
             }
+            while(Serial.availableForWrite()<mark)
+            {
+              delay(1);
+              yield();
+            }
             if(delayMs > 0)
               delay(delayMs);
           }
@@ -806,11 +814,6 @@ ZResult ZCommand::doWebStream(int vval, uint8_t *vbuf, int vlen, bool isNumber, 
                   break;
               }
             }
-          }
-          while(Serial.availableForWrite()<10)
-          {
-            delay(1);
-            yield();
           }
           yield();
         }
