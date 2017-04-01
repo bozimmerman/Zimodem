@@ -50,7 +50,34 @@ char *TOHEX(unsigned long a)
     a = a >> 4;
   }
   HDL[8] = 0;
-  return HDL;
+  char *H=HDL;
+  if((strlen(H)>2) && (strstr(H,"00")==H))
+    H+=2;
+  return H;
+}
+
+char *TOHEX(unsigned int a)
+{
+  for(int i=3;i>=0;i--)
+  {
+    HDL[i] = "0123456789ABCDEF"[a & 0x0f];
+    a = a >> 4;
+  }
+  HDL[4] = 0;
+  char *H=HDL;
+  if((strlen(H)>2) && (strstr(H,"00")==H))
+    H+=2;
+  return H;
+}
+
+char *TOHEX(int a)
+{
+  return TOHEX((unsigned int)a);
+}
+
+char *TOHEX(long a)
+{
+  return TOHEX((unsigned long)a);
 }
 
 bool ZStream::isPETSCII()

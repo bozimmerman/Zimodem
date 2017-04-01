@@ -59,6 +59,14 @@ enum StreamFlag
   FLAG_XONXOFF=16
 };
 
+enum BinType
+{
+  BTYPE_NORMAL=0,
+  BTYPE_HEX=1,
+  BTYPE_DEC=2,
+  BTYPE_INVALID=3
+};
+
 class ZCommand : public ZMode
 {
   friend class WiFiClientNode;
@@ -71,7 +79,9 @@ class ZCommand : public ZMode
     char BS=8;
     char ringCounter = 1;
     
+    BinType binType = BTYPE_NORMAL;
     uint8_t nbuf[MAX_COMMAND_SIZE];
+    char hbuf[MAX_COMMAND_SIZE];
     int eon=0;
     bool petsciiMode = false;
     int lastServerClientId = 0;
@@ -101,6 +111,7 @@ class ZCommand : public ZMode
     void reSaveConfig();
     void reSendLastPacket(WiFiClientNode *conn);
     void acceptNewConnection();
+    void headerOut(const int channel, const int sz, const int crc8);
     void sendConnectionNotice(int nodeId);
     void sendNextPacket();
     void Serialprint(const char *expr);
