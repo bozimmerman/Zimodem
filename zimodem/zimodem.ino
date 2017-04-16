@@ -16,7 +16,7 @@
 
 #define TCP_SND_BUF                     4 * TCP_MSS
 #define null 0
-#define ZIMODEM_VERSION "2.5"
+#define ZIMODEM_VERSION "2.6"
 
 #include "pet2asc.h"
 #include "zmode.h"
@@ -48,6 +48,8 @@ static int baudRate=1200;
 static BaudState baudState = BS_NORMAL; 
 static int tempBaud = -1; // -1 do nothing
 static int dcdStatus = LOW; 
+static int DCD_HIGH = HIGH;
+static int DCD_LOW = LOW;
 static bool logFileOpen = false;
 static File logFile; 
 static const int BUFSIZE = 4096;
@@ -101,9 +103,9 @@ static int checkOpenConnections()
   }
   if(num == 0)
   {
-    if(dcdStatus == HIGH)
+    if(dcdStatus == DCD_HIGH)
     {
-      dcdStatus = LOW;
+      dcdStatus = DCD_LOW;
       digitalWrite(2,dcdStatus);
       if(baudState == BS_SWITCHED_TEMP)
         baudState = BS_SWITCH_NORMAL_NEXT;
@@ -113,9 +115,9 @@ static int checkOpenConnections()
   }
   else
   {
-    if(dcdStatus == LOW)
+    if(dcdStatus == DCD_LOW)
     {
-      dcdStatus = HIGH;
+      dcdStatus = DCD_HIGH;
       digitalWrite(2,dcdStatus);
       if((tempBaud > 0) && (baudState == BS_NORMAL))
         baudState = BS_SWITCH_TEMP_NEXT;
@@ -131,6 +133,7 @@ void setup()
   SPIFFS.begin();
   commandMode.loadConfig();
   PhoneBookEntry::loadPhonebook();
+  dcdStatus = DCD_LOW;
   pinMode(0,OUTPUT);
   digitalWrite(0,dcdStatus);
   pinMode(2,OUTPUT);

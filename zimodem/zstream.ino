@@ -114,7 +114,7 @@ void ZStream::serialIncoming()
   {
     uint8_t c=Serial.read();
     if((c==commandMode.EC)
-    &&((plussesInARow>0)||((millis()-lastNonPlusTimeMs)>1000)))
+    &&((plussesInARow>0)||((millis()-lastNonPlusTimeMs)>800)))
       plussesInARow++;
     else
     if(c!=commandMode.EC)
@@ -139,7 +139,7 @@ void ZStream::serialIncoming()
   
   currentExpiresTimeMs = 0;
   if(plussesInARow==3)
-    currentExpiresTimeMs=millis()+1000;
+    currentExpiresTimeMs=millis()+800;
 }
 
 void ZStream::switchBackToCommandMode(bool logout)

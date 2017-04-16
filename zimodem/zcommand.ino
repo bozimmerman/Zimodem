@@ -176,7 +176,8 @@ void ZCommand::reSaveConfig()
   delay(500);
   File f = SPIFFS.open("/zconfig.txt", "w");
   const char *eoln = EOLN.c_str();
-  f.printf("%s,%s,%d,%s,%d,%d,%d,%d,%d,%d",wifiSSI.c_str(),wifiPW.c_str(),baudRate,eoln,flowControlType,doEcho,suppressResponses,numericResponses,longResponses,petsciiMode);
+  int dcdMode = (DCD_HIGH == HIGH) ? 0 : 1;
+  f.printf("%s,%s,%d,%s,%d,%d,%d,%d,%d,%d,%d",wifiSSI.c_str(),wifiPW.c_str(),baudRate,eoln,flowControlType,doEcho,suppressResponses,numericResponses,longResponses,petsciiMode,dcdMode);
   f.close();
   delay(500);
   if(SPIFFS.exists("/zconfig.txt"))
@@ -228,6 +229,20 @@ void ZCommand::setBaseConfigOptions(String configArguments[])
     longResponses = atoi(configArguments[CFG_RESP_LONG].c_str());
   if(configArguments[CFG_PETSCIIMODE].length()>0)
     petsciiMode = atoi(configArguments[CFG_PETSCIIMODE].c_str());
+  if(configArguments[CFG_DCDMODE].length()>0)
+  {
+    int dcdMode = atoi(configArguments[CFG_DCDMODE].c_str());
+    if(dcdMode == 1)
+    {
+      DCD_HIGH=LOW;
+      DCD_LOW=HIGH;
+    }
+    else
+    {
+      DCD_HIGH=HIGH;
+      DCD_LOW=LOW;
+    }
+  }
 }
 
 void ZCommand::parseConfigOptions(String configArguments[])
@@ -369,6 +384,8 @@ ZResult ZCommand::doInfoCommand(int vval, uint8_t *vbuf, int vlen, bool isNumber
       Serialprint("S45=");
       Serial.print(binType);
     }
+    if(DCD_HIGH != HIGH)
+      Serialprint("S46=1");
     Serialprint(petsciiMode ? "&P1" : "&P0");
     Serial.print(EOLN);
   }
@@ -1677,6 +1694,18 @@ ZResult ZCommand::doSerialCommand()
                  binType=(BinType)sval;
                else
                  result=ZERROR;
+               break;
+             case 46:
+               if(sval <=0)
+               {
+                 DCD_HIGH = HIGH;
+                 DCD_LOW = LOW;
+               }
+               else
+               {
+                 DCD_HIGH = LOW;
+                 DCD_LOW = HIGH;
+               }
                break;
              default:
                 break;

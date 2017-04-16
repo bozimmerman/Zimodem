@@ -1,4 +1,4 @@
-C64Net WiFi Firmware 2.5 (C)2016-2017 Bo Zimmerman
+C64Net WiFi Firmware 2.6 (C)2016-2017 Bo Zimmerman
 Please read the LICENSE file for license information
 Please read the NOTICE file for credits information
 
@@ -128,6 +128,7 @@ ATS42=n : Set the CRC8 for an expected incoming Transmit command.  e.g. ATS42=12
 ATS43=n : Sets a standby baud rate n for the next incoming or outgoing connection only.  ATZ clears.
 ATS44=n : Sets an automatic delay of n milliseconds after most bytes written to the Serial port.  This is for computers that support a baud rate, but can't really keep up, and you don't want to use flow control.
 ATS45=n : Changes how packet and at&g data is delivered.  0 is normal binary with normal headers, 1 is 78 char HEX digit streams followed by EOLN with hex digit headers, 2 is decimal digits followed by EOLN, with decimal digit headers.
+ATS46=n : Changes DCD status. n=0 is default DCD=HIGH=online. n=1 is DCD=LOW=online
 +++ : With a 1 second pause with no other characters afterwards, this will disconnect the current opened connection.
 
 ATT"[MESSAGE]" : Transmit the given text string, with \r\n at the end, on the current connection.
