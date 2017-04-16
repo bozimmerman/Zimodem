@@ -267,6 +267,7 @@ void ZCommand::loadConfig()
   if(baudRate <= 0)
     baudRate=1200;
   Serial.begin(baudRate);  //Start Serial
+  writeClear=Serial.availableForWrite();
   wifiSSI=argv[CFG_WIFISSI];
   wifiPW=argv[CFG_WIFIPW];
   if(wifiSSI.length()>0)

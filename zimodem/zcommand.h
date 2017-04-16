@@ -146,6 +146,7 @@ class ZCommand : public ZMode
     char EC='+';
     char *ECS="+++";
     int delayMs=0;
+    int writeClear=0;
 
     ZCommand();
     void loadConfig();

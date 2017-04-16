@@ -238,7 +238,9 @@ void ZStream::serialWrite(uint8_t c)
     
 void ZStream::serialDeque()
 {
-  if((TBUFhead != TBUFtail)&&(Serial.availableForWrite()>0))
+  if((TBUFhead != TBUFtail)
+  &&(Serial.availableForWrite()>0)
+  &&((commandMode.writeClear<=0)||(Serial.availableForWrite()>=commandMode.writeClear)))
   {
     serialWrite(TBUF[TBUFhead]);
     TBUFhead++;
@@ -261,6 +263,11 @@ void ZStream::enqueSerial(uint8_t c)
   TBUFtail++;
   if(TBUFtail >= BUFSIZE)
     TBUFtail = 0;
+}
+
+void ZStream::clearSerialBuffer()
+{
+  TBUFtail=TBUFhead;
 }
 
 void ZStream::loop()

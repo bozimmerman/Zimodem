@@ -107,6 +107,8 @@ static int checkOpenConnections()
       digitalWrite(2,dcdStatus);
       if(baudState == BS_SWITCHED_TEMP)
         baudState = BS_SWITCH_NORMAL_NEXT;
+      if(currMode == &commandMode)
+        streamMode.clearSerialBuffer();
     }
   }
   else

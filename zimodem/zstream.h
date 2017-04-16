@@ -46,7 +46,8 @@ class ZStream : public ZMode
   public:
     
     void switchTo(WiFiClientNode *conn);
-
+    void clearSerialBuffer();
+    
     void serialIncoming();
     void loop();
 };
