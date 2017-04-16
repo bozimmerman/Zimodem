@@ -834,6 +834,11 @@ ZResult ZCommand::doUpdateFirmware(int vval, uint8_t *vbuf, int vlen, bool isNum
   int bufSize = 254;
   if((!doWebGetBytes("www.zimmers.net", 80, "/otherprojs/c64net-latest-version.txt", buf, &bufSize))||(bufSize<=0))
     return ZERROR;
+    
+  while((bufSize>0)
+  &&((buf[bufSize-1]==10)||(buf[bufSize-1]==13)))
+    bufSize--;
+  
   Serialprint("Local firmware version ");
   Serial.print(ZIMODEM_VERSION);
   Serial.print(".");
@@ -865,7 +870,7 @@ ZResult ZCommand::doUpdateFirmware(int vval, uint8_t *vbuf, int vlen, bool isNum
     Serial.print(EOLN);
     return ZERROR;
   }
-  
+
   if(!Update.begin(respLength))
     return ZERROR;
 
@@ -898,11 +903,11 @@ ZResult ZCommand::doWiFiCommand(int vval, uint8_t *vbuf, int vlen)
     for (int i = 0; i < n; ++i)
     {
       Serialprint(WiFi.SSID(i).c_str());
-      Serial.print(" (");
+      Serialprint(" (");
       Serial.print(WiFi.RSSI(i));
-      Serial.print(")");
-      Serial.print((WiFi.encryptionType(i) == ENC_TYPE_NONE)?" ":"*");
-      Serial.print(EOLN);
+      Serialprint(")");
+      Serialprint((WiFi.encryptionType(i) == ENC_TYPE_NONE)?" ":"*");
+      Serialprint(EOLN.c_str());
       delay(10);
     }
   }
@@ -967,7 +972,7 @@ ZResult ZCommand::doTransmitCommand(int vval, uint8_t *vbuf, int vlen, bool isNu
   return ZOK;
 }
 
-ZResult ZCommand::doDialStreamCommand(int vval, uint8_t *vbuf, int vlen, bool isNumber, const char *dmodifiers)
+ZResult ZCommand::doDialStreamCommand(unsigned long vval, uint8_t *vbuf, int vlen, bool isNumber, const char *dmodifiers)
 {
   if(vlen == 0)
   {
@@ -981,6 +986,21 @@ ZResult ZCommand::doDialStreamCommand(int vval, uint8_t *vbuf, int vlen, bool is
   else
   if((vval >= 0)&&(isNumber))
   {
+    PhoneBookEntry *phb = phonebook;
+    while(phb != null)
+    {
+      if(phb->number == vval)
+      {
+        int addrLen=strlen(phb->address);
+        uint8_t *vbuf = new uint8_t[addrLen+1];
+        strcpy((char *)vbuf,phb->address);
+        ZResult res = doDialStreamCommand(0,vbuf,addrLen,false,phb->modifiers);
+        free(vbuf);
+        return res;
+      }
+      phb = phb->next;
+    }
+    
     WiFiClientNode *c=conns;
     while((c!=null)&&(c->id != vval))
       c=c->next;
@@ -1022,6 +1042,90 @@ ZResult ZCommand::doDialStreamCommand(int vval, uint8_t *vbuf, int vlen, bool is
       streamMode.switchTo(c);
     }
   }
+  return ZOK;
+}
+
+ZResult ZCommand::doPhonebookCommand(unsigned long vval, uint8_t *vbuf, int vlen, bool isNumber, const char *dmodifiers)
+{
+  if((vlen==0)||(isNumber))
+  {
+    PhoneBookEntry *phb=phonebook;
+    char nbuf[30];
+    while(phb != null)
+    {
+      if((!isNumber)
+      ||(vval==0)
+      ||(vval == phb->number))
+      {
+        if((strlen(dmodifiers)==0) 
+        || (modifierCompare(dmodifiers,phb->modifiers)==0))
+        {
+          sprintf(nbuf,"%lu",phb->number);
+          Serialprint(nbuf);
+          for(int i=0;i<10-strlen(nbuf);i++)
+            Serialprint(" ");
+          Serialprint(" ");
+          Serialprint(phb->modifiers);
+          for(int i=1;i<5-strlen(phb->modifiers);i++)
+            Serialprint(" ");
+          Serialprint(" ");
+          Serialprint(phb->address);
+          Serialprint(EOLN.c_str());
+          delay(10);
+        }
+      }
+      phb=phb->next;
+    }
+    return ZOK;
+  }
+  char *eq=strchr((char *)vbuf,'=');
+  if(eq == NULL)
+    return ZERROR;
+  for(char *cptr=(char *)vbuf;cptr!=eq;cptr++)
+  {
+    if(strchr("0123456789",*cptr) < 0)
+      return ZERROR;
+  }
+  char *rest=eq+1;
+  *eq=0;
+  if(strlen((char *)vbuf)>9)
+    return ZERROR;
+
+  unsigned long number = atol((char *)vbuf);
+  PhoneBookEntry *found=null;
+  PhoneBookEntry *phb=phonebook;
+  while(phb != null)
+  {
+    if(phb->number == number)
+    {
+      found=phb;
+      break;
+    }
+    phb = phb->next;
+  }
+  if((strcmp("DELETE",rest)==0)
+  ||(strcmp("delete",rest)==0))
+  {
+    if(found==null)
+      return ZERROR;
+    delete found;
+    return ZOK;
+  }
+  char *comma = strchr(rest,',');
+  if(comma != NULL)
+    return ZERROR;
+  char *colon = strchr(rest,':');
+  if(colon == NULL)
+    return ZERROR;
+  for(char *cptr=colon;*cptr!=0;cptr++)
+  {
+    if(strchr("0123456789",*cptr) < 0)
+      return ZERROR;
+  }
+  if(found != null)
+    delete found;
+  PhoneBookEntry *newEntry = new PhoneBookEntry(number,rest,dmodifiers);
+  PhoneBookEntry::savePhonebook();
   return ZOK;
 }
 
@@ -1317,6 +1421,7 @@ ZResult ZCommand::doSerialCommand()
         else
         if((lastCmd=='d')||(lastCmd=='D')
         || (lastCmd=='c')||(lastCmd=='C')
+        || (lastCmd=='p')||(lastCmd=='P')
         || (lastCmd=='t')||(lastCmd=='T'))
         {
           const char *DMODIFIERS=",lbexprtw";
@@ -1350,22 +1455,22 @@ ZResult ZCommand::doSerialCommand()
           index++;
         }
       }
-      int vval=0;
+      long vval=0;
       uint8_t vbuf[vlen+1];
       memset(vbuf,0,vlen+1);
       if(vlen>0)
       {
         memcpy(vbuf,sbuf+vstart,vlen);
         if((vlen > 0)&&(isNumber))
-          vval=atoi((char *)vbuf);
+          vval=atol((char *)vbuf);
       }
       
       if(logFileOpen)
       {
         if(vlen > 0)
-          logFile.printf("Proc: %c %d '%s'\r\n",lastCmd,vval,vbuf);
+          logFile.printf("Proc: %c %lu '%s'\r\n",lastCmd,vval,vbuf);
         else
-          logFile.printf("Proc: %c %d ''\r\n",lastCmd,vval);
+          logFile.printf("Proc: %c %lu ''\r\n",lastCmd,vval);
       }
 
       /*
@@ -1421,6 +1526,9 @@ ZResult ZCommand::doSerialCommand()
         break;
       case 'd':
         result = doDialStreamCommand(vval,vbuf,vlen,isNumber,dmodifiers.c_str());
+        break;
+      case 'p':
+        result = doPhonebookCommand(vval,vbuf,vlen,isNumber,dmodifiers.c_str());
         break;
       case 'o':
         if((vlen == 0)||(vval==0))
@@ -1576,6 +1684,8 @@ ZResult ZCommand::doSerialCommand()
           break;
         case 'f':
           SPIFFS.remove("/zconfig.txt");
+          SPIFFS.remove("/zphonebook.txt");
+          PhoneBookEntry::clearPhonebook();
           delay(500);
           result=doResetCommand();
           showInitMessage();

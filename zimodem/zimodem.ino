@@ -16,7 +16,7 @@
 
 #define TCP_SND_BUF                     4 * TCP_MSS
 #define null 0
-#define ZIMODEM_VERSION "2.4"
+#define ZIMODEM_VERSION "2.5"
 
 #include "pet2asc.h"
 #include "zmode.h"
@@ -27,6 +27,7 @@
 
 static WiFiClientNode *conns = null;
 static WiFiServerNode *servs = null;
+static PhoneBookEntry *phonebook = null;
 
 static ZMode *currMode = null;
 static ZStream streamMode;
@@ -127,6 +128,7 @@ void setup()
   currMode = &commandMode;
   SPIFFS.begin();
   commandMode.loadConfig();
+  PhoneBookEntry::loadPhonebook();
   pinMode(0,OUTPUT);
   digitalWrite(0,dcdStatus);
   pinMode(2,OUTPUT);

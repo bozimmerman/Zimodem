@@ -52,3 +52,21 @@ class WiFiClientNode : public Stream
     int read(uint8_t *buf, size_t size);
 };
 
+class PhoneBookEntry
+{
+  public:
+    unsigned long number;
+    const char *address;
+    const char *modifiers;
+    PhoneBookEntry *next = null;
+    
+    PhoneBookEntry(unsigned long phnum, const char *addr, const char *mod);
+    ~PhoneBookEntry();
+
+    static void loadPhonebook();
+    static void clearPhonebook();
+    static void savePhonebook();
+};
+
+
+

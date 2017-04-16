@@ -1,4 +1,4 @@
-C64Net WiFi Firmware (C)2016-2017 Bo Zimmerman
+C64Net WiFi Firmware 2.5 (C)2016-2017 Bo Zimmerman
 Please read the LICENSE file for license information
 Please read the NOTICE file for credits information
 
@@ -90,6 +90,7 @@ ATDP"[HOSTNAME]:[PORT]" : Adding a P modifier causes connection input to be tran
 ATDT"[HOSTNAME]:[PORT]" : Adding a T modifier causes connection input to be translated per TELNET during the streaming session.
 ATDE"[HOSTNAME]:[PORT]" : Adding a E modifier causes terminal echo to be enabled that streaming session.
 ATDX"[HOSTNAME]:[PORT]" : Adding a X modifier causes XON/XOFF flow control to be enabled that streaming session.
+ATDnnnnnnn : Where n=0-9, if the digits exist in the phonebook (see ATP), it will try connect to that host, with those modifiers, from the phonebook.
 
 ATC : Shows information about the current network connection in the following format "[CONNECTION STATE] [CONNECTION ID] [CONNECTED TO HOST]:[CONNECTED TO PORT]"
 ATC0 : Lists information about all of the network connections in the following format "[CONNECTION STATE] [CONNECTION ID] [CONNECTED TO HOST]:[CONNECTED TO PORT]", including any Server (ATA) listeners.
@@ -105,6 +106,14 @@ ATH0 : Hangs up (disconnects and deletes) the current opened connection.
 ATHn : Hangs up (disconnects and deletes) the open connection with the given id.  Closing a Server (ATA) listener does not close any connections received from that listener.
 
 ATO : Re-enters a Streaming session (see ATD) under the previous settings, with the current (previous) connection.
+
+ATP : Lists all existing phonebook entries, with the format phone number followed by ATD modifiers, followed by the host and port
+ATP"[NUMBER]=[HOSTNAME]:[PORT]" : Adds or Modifies an entry to the phonebook with the given 7 digit number, host, and port. Use ATDnnnnn.. to connect.
+ATPP"[NUMBER]=[HOSTNAME]:[PORT]" : Adding a P modifier causes connection input to be translated to PETSCII  when connected to that entry.
+ATPT"[NUMBER]=[HOSTNAME]:[PORT]" : Adding a T modifier causes connection input to be translated per TELNET  when connected to that entry.
+ATPE"[NUMBER]=[HOSTNAME]:[PORT]" : Adding a E modifier causes terminal echo to be enabled when connected to that entry.
+ATPX"[NUMBER]=[HOSTNAME]:[PORT]" : Adding a X modifier causes XON/XOFF flow control to be enabled when connected to that entry.
+ATP"[NUMBER]=DELETE" : Removes the phonebook entry with the given number.
 
 ATS0=n : Changes the number of RING messages received before a CONNECT response is sent, on incoming Server listeners.
 ATS1=n : Unimplemented, always returns OK

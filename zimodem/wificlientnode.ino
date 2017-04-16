@@ -180,5 +180,125 @@ size_t WiFiClientNode::write(const uint8_t *buf, size_t size)
   return client.write(buf,size);
 }
 
+PhoneBookEntry::PhoneBookEntry(unsigned long phnum, const char *addr, const char *mod)
+{
+  number=phnum;
+  address = new char[strlen(addr)+1];
+  strcpy((char *)address,addr);
+  modifiers = new char[strlen(mod)+1];
+  strcpy((char *)modifiers,mod);
+  
+  if(phonebook == null)
+    phonebook = this;
+  else
+  {
+    PhoneBookEntry *last = phonebook;
+    while(last->next != null)
+      last = last->next;
+    last->next = this;
+  }
+}
+
+PhoneBookEntry::~PhoneBookEntry()
+{
+  if(phonebook == this)
+    phonebook = next;
+  else
+  {
+    PhoneBookEntry *last = phonebook;
+    while((last != null) && (last->next != this)) // don't change this!
+      last = last->next;
+    if(last != null)
+      last->next = next;
+  }
+  freeCharArray((char **)&address);
+  freeCharArray((char **)&modifiers);
+  next=null;
+}
+
+void PhoneBookEntry::loadPhonebook()
+{
+  clearPhonebook();
+  if(SPIFFS.exists("/zphonebook.txt"))
+  {
+    File f = SPIFFS.open("/zphonebook.txt", "r");
+    while(f.available()>0)
+    {
+      String str="";
+      char c=f.read();
+      while((c != '\n') && (f.available()>0))
+      {
+        str += c;
+        c=f.read();
+      }
+      int argn=0;
+      String configArguments[3];
+      for(int i=0;i<3;i++)
+        configArguments[i]="";
+      for(int i=0;i<str.length();i++)
+      {
+        if((str[i]==',')&&(argn<=2))
+          argn++;
+        else
+          configArguments[argn] += str[i];
+      }
+      PhoneBookEntry *phb = new PhoneBookEntry(atol(configArguments[0].c_str()),configArguments[1].c_str(),configArguments[2].c_str());
+    }
+    f.close();
+  }
+}
+
+void PhoneBookEntry::clearPhonebook()
+{
+  PhoneBookEntry *phb = phonebook;
+  while(phonebook != null)
+    delete phonebook;
+}
+
+void PhoneBookEntry::savePhonebook()
+{
+  SPIFFS.remove("/zphonebook.txt");
+  delay(500);
+  File f = SPIFFS.open("/zphonebook.txt", "w");
+  int ct=0;
+  PhoneBookEntry *phb=phonebook;
+  while(phb != null)
+  {
+    f.printf("%ul,%s,%s\n",phb->number,phb->address,phb->modifiers);
+    phb = phb->next;
+    ct++;
+  }
+  f.close();
+  delay(500);
+  if(SPIFFS.exists("/zphonebook.txt"))
+  {
+    File f = SPIFFS.open("/zphonebook.txt", "r");
+    while(f.available()>0)
+    {
+      String str="";
+      char c=f.read();
+      while((c != '\n') && (f.available()>0))
+      {
+        str += c;
+        c=f.read();
+      }
+      int argn=0;
+      if(str.length()>0)
+      {
+        for(int i=0;i<str.length();i++)
+        {
+          if((str[i]==',')&&(argn<=2))
+            argn++;
+        }
+      }
+      if(argn!=2)
+      {
+        delay(100);
+        savePhonebook();
+      }
+    }
+    f.close();
+  }
+}
 
 
