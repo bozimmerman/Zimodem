@@ -1109,6 +1109,7 @@ ZResult ZCommand::doPhonebookCommand(unsigned long vval, uint8_t *vbuf, int vlen
     if(found==null)
       return ZERROR;
     delete found;
+    PhoneBookEntry::savePhonebook();
     return ZOK;
   }
   char *comma = strchr(rest,',');
@@ -1424,7 +1425,7 @@ ZResult ZCommand::doSerialCommand()
         || (lastCmd=='p')||(lastCmd=='P')
         || (lastCmd=='t')||(lastCmd=='T'))
         {
-          const char *DMODIFIERS=",lbexprtw";
+          const char *DMODIFIERS=",lbexprtw+";
           while((index<len)&&(strchr(DMODIFIERS,lc(sbuf[index]))!=null))
             dmodifiers += lc((char)sbuf[index++]);
           vstart=index;
@@ -1443,14 +1444,18 @@ ZResult ZCommand::doSerialCommand()
             index=len;
           }
           for(int i=vstart;i<vstart+vlen;i++)
-              isNumber = (sbuf[i]>='0') && (sbuf[i]<='9') && isNumber;
+          {
+            char c=sbuf[i];
+            isNumber = ((c=='-') || ((c>='0')&&(c<='9'))) && isNumber;
+          }
         }
         else
         while((index<len)
         &&(!((lc(sbuf[index])>='a')&&(lc(sbuf[index])<='z')))
         &&(sbuf[index]!='&'))
         {
-          isNumber = (sbuf[index]>='0') && (sbuf[index]<='9') && isNumber;
+          char c=sbuf[index];
+          isNumber = ((c=='-')||((c>='0') && (c<='9'))) && isNumber;
           vlen++;
           index++;
         }
@@ -1462,7 +1467,13 @@ ZResult ZCommand::doSerialCommand()
       {
         memcpy(vbuf,sbuf+vstart,vlen);
         if((vlen > 0)&&(isNumber))
-          vval=atol((char *)vbuf);
+        {
+          String finalNum="";
+          for(uint8_t *v=vbuf;v<(vbuf+vlen);v++)
+            if((*v>='0')&&(*v<='9'))
+              finalNum += (char)*v;
+          vval=atol(finalNum.c_str());
+        }
       }
       
       if(logFileOpen)
