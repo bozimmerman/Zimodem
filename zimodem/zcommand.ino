@@ -94,6 +94,8 @@ void ZCommand::setConfigDefaults()
   XON=true;
   petsciiMode=false;
   delayMs=0;
+  DCD_HIGH=HIGH;
+  DCD_LOW=LOW;
   suppressResponses=false;
   numericResponses=false;
   longResponses=true;
@@ -137,7 +139,7 @@ ZResult ZCommand::doResetCommand()
     delete s;
   }
   setConfigDefaults();
-  String argv[10];
+  String argv[CFG_LAST+1];
   parseConfigOptions(argv);
   eon=0;
   XON=true;
@@ -275,7 +277,7 @@ void ZCommand::loadConfig()
     reSaveConfig();
     Serial.begin(1200);  //Start Serial
   }
-  String argv[10];
+  String argv[CFG_LAST+1];
   parseConfigOptions(argv);
   if(argv[CFG_BAUDRATE].length()>0)
     baudRate=atoi(argv[CFG_BAUDRATE].c_str());

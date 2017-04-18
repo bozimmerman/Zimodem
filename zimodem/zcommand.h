@@ -39,7 +39,7 @@ enum ConfigOptions
   CFG_RESP_LONG=8,
   CFG_PETSCIIMODE=9,
   CFG_DCDMODE=10,
-  CFG_LAST=10,
+  CFG_LAST=10
 };
 
 enum FlowControlType
