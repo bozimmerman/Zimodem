@@ -1322,9 +1322,18 @@ ZResult ZCommand::doEOLNCommand(int vval, uint8_t *vbuf, int vlen, bool isNumber
 bool ZCommand::readSerialStream()
 {
   bool crReceived=false;
+  int logCharNum=0;
   while(Serial.available()>0)
   {
     uint8_t c=Serial.read();
+    if(logFileOpen)
+    {
+      if(logCharNum==0)
+        logFile.print("SER-IN: ");
+      logFile.print(TOHEX(c));
+      logFile.print(" ");
+      logCharNum++;
+    }
     if((c==CR[0])||(c==LF[0]))
     {
       if(eon == 0)
@@ -1371,6 +1380,8 @@ bool ZCommand::readSerialStream()
       }
     }
   }
+  if(logFileOpen && (logCharNum>0))
+    logFile.println("");
   return crReceived;
 }
 
@@ -1417,6 +1428,8 @@ ZResult ZCommand::doSerialCommand()
     String dmodifiers="";
     while(index<len)
     {
+      while((index<len)&&(sbuf[index]==' ')||(sbuf[index]=='\t'))
+        index++;
       lastCmd=lc(sbuf[index++]);
       vstart=index;
       vlen=0;
@@ -1426,6 +1439,11 @@ ZResult ZCommand::doSerialCommand()
         index++;//protect our one and only letter.
         secCmd = sbuf[vstart];
         vstart++;
+      }
+      while((index<len)&&(sbuf[index]==' ')||(sbuf[index]=='\t'))
+      {
+        vstart++;
+        index++;
       }
       if(index<len)
       {
