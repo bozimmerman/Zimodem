@@ -1,6 +1,6 @@
+  *. Support switching between CONNECT 1 and CONNECT 1200 messages
   *. Support a larger incoming network buffer.
   *. Baud rate test commend
-  *. ATWP for transmitting and receiving PETSCII
   *. ATW0 should be same as ATW
   *. Hardware flow control
   *. SLIP support?
