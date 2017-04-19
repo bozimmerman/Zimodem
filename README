@@ -27,6 +27,8 @@ If you want to connect to a remote telnet server, eg coffeemud.net, port 23, you
 
 If you are using a Commodore Graphics terminal program and want to connect to a Commodore BBS, eg cottonwoodbbs.dyndns.org port 6502, you'll want to enter ATD"cottonwoodbbs.dyndns.org:6502".
 
+If you want to use Q-Link, you need to add a phone number alias first.  To do this, enter ATP"5551212=q-link.net:5190". Then select "Hayes compatible" 1200 baud modem in the Q-Link client.
+
 If you want to run a Commodore BBS program using the modem, you'll want to configure the BBS program to the same idle baud rate that your modem is using (1200 baud by default), configure it for a Hayes style modem (or the C=1670), and use an initialization string of "ATR0E0S0=1S41=1A6400" plus any other recommended settings from the BBS program. This creates a listener at port 6400 that switches directly to stream mode on the first ring, with no linefeed carriage returns, and no keystroke echo.  Your BBS program may require you add certain other settings, such as V0 or X1.. which you should also do.
 
 Command Set:
