@@ -1032,6 +1032,7 @@ ZResult ZCommand::doDialStreamCommand(unsigned long vval, uint8_t *vbuf, int vle
       freeCharArray(&tempDelimiters);
       freeCharArray(&tempMaskOuts);
       streamMode.switchTo(c);
+      return ZCONNECT;
     }
     else
       return ZERROR;
@@ -1060,6 +1061,7 @@ ZResult ZCommand::doDialStreamCommand(unsigned long vval, uint8_t *vbuf, int vle
       freeCharArray(&tempDelimiters);
       freeCharArray(&tempMaskOuts);
       streamMode.switchTo(c);
+      return ZCONNECT;
     }
   }
   return ZOK;
@@ -1428,7 +1430,8 @@ ZResult ZCommand::doSerialCommand()
     String dmodifiers="";
     while(index<len)
     {
-      while((index<len)&&(sbuf[index]==' ')||(sbuf[index]=='\t'))
+      while((index<len)
+      &&((sbuf[index]==' ')||(sbuf[index]=='\t')))
         index++;
       lastCmd=lc(sbuf[index++]);
       vstart=index;
@@ -1440,7 +1443,8 @@ ZResult ZCommand::doSerialCommand()
         secCmd = sbuf[vstart];
         vstart++;
       }
-      while((index<len)&&(sbuf[index]==' ')||(sbuf[index]=='\t'))
+      while((index<len)
+      &&((sbuf[index]==' ')||(sbuf[index]=='\t')))
       {
         vstart++;
         index++;
@@ -1466,6 +1470,9 @@ ZResult ZCommand::doSerialCommand()
           const char *DMODIFIERS=",lbexprtw+";
           while((index<len)&&(strchr(DMODIFIERS,lc(sbuf[index]))!=null))
             dmodifiers += lc((char)sbuf[index++]);
+          while((index<len)
+          &&((sbuf[index]==' ')||(sbuf[index]=='\t')))
+            index++;
           vstart=index;
           if(sbuf[index]=='\"')
           {
