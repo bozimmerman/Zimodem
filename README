@@ -139,7 +139,7 @@ ATTP"[MESSAGE]" : Transmit the given text string, translating petscii to ascii, 
 ATTPn : Where n > 0, this starts a transmit of exactly n bytes to the current connection, translating petscii to ascii.  The \n from entering this command must be followed by the n bytes to transmit.
 
 AT&L  : Reloads the saved configuration.
-AT&W  : Saves the current configuration: WiFi settings(ATW), baud rate (ATB), end of line (ATR) settings, flow control (ATF), echo mode (ATE), extended responses (ATX), verbose responses (ATV), quiet responses (ATQ), and PETSCII mode (AT&P1)
+AT&W  : Saves the current configuration: WiFi settings(ATW), baud rate (ATB), end of line (ATR) settings, flow control (ATF), echo mode (ATE), extended responses (ATX), verbose responses (ATV), quiet responses (ATQ), PETSCII mode (AT&P1), and DCD status (ATS46)
 AT&F  : Restores the modem to factory default settings.
 AT&On : n is 1 to turn on internal serial-reception log, n is 0 to turn off or view a previously turned-on log.
 AT&H  : Shows a help file from the web, or brief help otherwise.
