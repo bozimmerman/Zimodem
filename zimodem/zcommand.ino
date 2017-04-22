@@ -2320,17 +2320,7 @@ void ZCommand::acceptNewConnection()
           int i=0;
           do
           {
-            if(numericResponses)
-              Serial.print("2");
-            else
-            {
-              Serialprint("RING");
-              if(longResponses)
-              {
-                Serial.print(" ");
-                Serial.print(newClientNode->id);
-              }
-            }
+            Serialprint(numericResponses?"2":"RING");
             Serial.print(EOLN);
           }
           while((++i)<ringCounter);
