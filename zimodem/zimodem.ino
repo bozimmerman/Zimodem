@@ -44,6 +44,7 @@ enum BaudState
 static bool wifiConnected =false;
 static String wifiSSI;
 static String wifiPW;
+static SerialConfig serialConfig = SERIAL_8N1;
 static int baudRate=1200;
 static BaudState baudState = BS_NORMAL; 
 static int tempBaud = -1; // -1 do nothing
@@ -78,12 +79,12 @@ static void checkBaudChange()
   {
     case BS_SWITCH_TEMP_NEXT:
       delay(500); // give the client half a sec to catch up
-      Serial.begin(tempBaud);  //Change baud rate
+      Serial.begin(tempBaud, serialConfig);  //Change baud rate
       baudState = BS_SWITCHED_TEMP;
       break;
     case BS_SWITCH_NORMAL_NEXT:
       delay(500); // give the client half a sec to catch up
-      Serial.begin(baudRate);  //Change baud rate
+      Serial.begin(baudRate, serialConfig);  //Change baud rate
       baudState = BS_NORMAL;
       break;
     default:

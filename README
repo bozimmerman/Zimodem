@@ -1,4 +1,4 @@
-C64Net WiFi Firmware 2.6 (C)2016-2017 Bo Zimmerman
+C64Net WiFi Firmware 2.7 (C)2016-2017 Bo Zimmerman
 Please read the LICENSE file for license information
 Please read the NOTICE file for credits information
 
@@ -80,6 +80,7 @@ ATR2 : Sends \n\r ($0a0d) as end of line string.
 ATR3 : Suppresses carriage return (\r $0d) in end of lines.  Will only send linefeed (\n $0a).
 
 ATBn : Sets a new serial Baud Rate. Takes effect immediately.
+ATB"n,xYz" : Sets baud rate n, bits x, parity (E,O,M, or N) for Y, and stop bits z.
 
 ATW : List all wireless network access points scanned within range.  The response for each entry is the SSID, following by the RSSI, followed by an * character is the connection is encrypted.
 ATWn : Where n > 0, this lists up to n wireless network access points scanned within range.  The response for each entry is the SSID, following by the RSSI, followed by an * character is the connection is encrypted.

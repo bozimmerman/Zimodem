@@ -179,7 +179,10 @@ void ZCommand::reSaveConfig()
   File f = SPIFFS.open("/zconfig.txt", "w");
   const char *eoln = EOLN.c_str();
   int dcdMode = (DCD_HIGH == HIGH) ? 0 : 1;
-  f.printf("%s,%s,%d,%s,%d,%d,%d,%d,%d,%d,%d",wifiSSI.c_str(),wifiPW.c_str(),baudRate,eoln,flowControlType,doEcho,suppressResponses,numericResponses,longResponses,petsciiMode,dcdMode);
+  f.printf("%s,%s,%d,%s,%d,%d,%d,%d,%d,%d,%d,%d", 
+            wifiSSI.c_str(), wifiPW.c_str(), baudRate, eoln,
+            flowControlType, doEcho, suppressResponses, numericResponses,
+            longResponses, petsciiMode, dcdMode, serialConfig);
   f.close();
   delay(500);
   if(SPIFFS.exists("/zconfig.txt"))
@@ -275,7 +278,7 @@ void ZCommand::loadConfig()
   {
     SPIFFS.format();
     reSaveConfig();
-    Serial.begin(1200);  //Start Serial
+    Serial.begin(1200, SERIAL_8N1);  //Start Serial
   }
   String argv[CFG_LAST+1];
   parseConfigOptions(argv);
@@ -283,7 +286,11 @@ void ZCommand::loadConfig()
     baudRate=atoi(argv[CFG_BAUDRATE].c_str());
   if(baudRate <= 0)
     baudRate=1200;
-  Serial.begin(baudRate);  //Start Serial
+  if(argv[CFG_UART].length()>0)
+    serialConfig = (SerialConfig)atoi(argv[CFG_UART].c_str());
+  if(serialConfig <= 0)
+    serialConfig = SERIAL_8N1;
+  Serial.begin(baudRate, serialConfig);  //Start Serial
   writeClear=Serial.availableForWrite();
   wifiSSI=argv[CFG_WIFISSI];
   wifiPW=argv[CFG_WIFIPW];
@@ -417,13 +424,70 @@ ZResult ZCommand::doInfoCommand(int vval, uint8_t *vbuf, int vlen, bool isNumber
 ZResult ZCommand::doBaudCommand(int vval, uint8_t *vbuf, int vlen)
 {
   if(vval<=0)
-    return ZERROR;
+  {
+    char *commaLoc=strchr((char *)vbuf,',');
+    if(commaLoc == NULL)
+      return ZERROR;
+    char *conStr=commaLoc+1;
+    if(strlen(conStr)!=3)
+      return ZERROR;
+    *commaLoc=0;
+    int baudChk=atoi((char *)vbuf);
+    if((baudChk<128)||(baudChk>115200))
+      return ZERROR;
+    if((conStr[0]<'5')||(conStr[0]>'8'))
+      return ZERROR;
+    if((conStr[2]!='1')&&(conStr[2]!='2'))
+      return ZERROR;
+    char *parPtr=strchr("oemn",lc(conStr[1]));
+    if(parPtr==NULL)
+      return ZERROR;
+    char parity=*parPtr;
+    int configChk=0;
+    switch(conStr[0])
+    {
+    case '5':
+      configChk = UART_NB_BIT_5;
+      break;
+    case '6':
+      configChk = UART_NB_BIT_6;
+      break;
+    case '7':
+      configChk = UART_NB_BIT_7;
+      break;
+    case '8':
+      configChk = UART_NB_BIT_8;
+      break;
+    }
+    if(conStr[2]=='1')
+      configChk = configChk | UART_NB_STOP_BIT_1;
+    else
+    if(conStr[2]=='2')
+      configChk = configChk | UART_NB_STOP_BIT_2;
+    switch(parity)
+    {
+      case 'o':
+        configChk = configChk | UART_PARITY_ODD;
+        break;
+      case 'e':
+        configChk = configChk | UART_PARITY_EVEN;
+        break;
+      case 'm':
+        configChk = configChk | UART_PARITY_MASK;
+        break;
+      case 'n':
+        configChk = configChk | UART_PARITY_NONE;
+        break;
+    }
+    serialConfig=(SerialConfig)configChk;
+    baudRate=baudChk;
+  }
   else
   {
     baudRate=vval;
-    Serial.flush();
-    Serial.begin(baudRate);
   }
+  Serial.flush();
+  Serial.begin(baudRate, serialConfig);
   return ZOK;
 }
 
