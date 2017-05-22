@@ -36,13 +36,7 @@
         <PostBuildCommands />
     </BuildEvents>
     <BuildList>
-        <FileName>cbmbbs64-128.bas</FileName>
-        <FileName>configure64-128.bas</FileName>
-        <FileName>ftp64-128.bas</FileName>
-        <FileName>irc64-128.bas</FileName>
-        <FileName>telnet64-128.bas</FileName>
         <FileName>weather.bas</FileName>
-        <FileName>wget64-128.bas</FileName>
         <FileName>pml64.asm</FileName>
         <FileName>pml128.asm</FileName>
         <FileName>swiftdrvr.asm</FileName>
@@ -50,6 +44,12 @@
         <FileName>up9600.asm</FileName>
         <FileName>x-xfer128.asm</FileName>
         <FileName>x-xfer64.asm</FileName>
+        <FileName>cbmbbs64-128.bas</FileName>
+        <FileName>configure64-128.bas</FileName>
+        <FileName>ftp64-128.bas</FileName>
+        <FileName>irc64-128.bas</FileName>
+        <FileName>telnet64-128.bas</FileName>
+        <FileName>wget64-128.bas</FileName>
     </BuildList>
     <DetermineBuildOrder>0</DetermineBuildOrder>
     <PaddingByte>0</PaddingByte>
@@ -63,7 +63,7 @@
             <Breakpoints />
             <Bookmarks />
             <Topmost>False</Topmost>
-            <FileOpen>True</FileOpen>
+            <FileOpen>False</FileOpen>
         </SourceFile>
         <SourceFile>
             <Name>configure64-128.bas</Name>
@@ -107,7 +107,7 @@
             <Breakpoints />
             <Bookmarks />
             <Topmost>False</Topmost>
-            <FileOpen>True</FileOpen>
+            <FileOpen>False</FileOpen>
         </SourceFile>
         <SourceFile>
             <Name>pml64.asm</Name>
@@ -118,7 +118,7 @@
             <Breakpoints />
             <Bookmarks />
             <Topmost>False</Topmost>
-            <FileOpen>True</FileOpen>
+            <FileOpen>False</FileOpen>
         </SourceFile>
         <SourceFile>
             <Name>swiftdrvr.asm</Name>
@@ -129,7 +129,7 @@
             <Breakpoints />
             <Bookmarks />
             <Topmost>False</Topmost>
-            <FileOpen>True</FileOpen>
+            <FileOpen>False</FileOpen>
         </SourceFile>
         <SourceFile>
             <Name>telnet64-128.bas</Name>
@@ -151,7 +151,7 @@
             <Breakpoints />
             <Bookmarks />
             <Topmost>False</Topmost>
-            <FileOpen>True</FileOpen>
+            <FileOpen>False</FileOpen>
         </SourceFile>
         <SourceFile>
             <Name>up9600.asm</Name>
@@ -162,7 +162,7 @@
             <Breakpoints />
             <Bookmarks />
             <Topmost>False</Topmost>
-            <FileOpen>True</FileOpen>
+            <FileOpen>False</FileOpen>
         </SourceFile>
         <SourceFile>
             <Name>weather.bas</Name>
@@ -172,7 +172,7 @@
             <Regions />
             <Breakpoints />
             <Bookmarks />
-            <Topmost>False</Topmost>
+            <Topmost>True</Topmost>
             <FileOpen>True</FileOpen>
         </SourceFile>
         <SourceFile>
@@ -195,7 +195,7 @@
             <Breakpoints />
             <Bookmarks />
             <Topmost>False</Topmost>
-            <FileOpen>True</FileOpen>
+            <FileOpen>False</FileOpen>
         </SourceFile>
         <SourceFile>
             <Name>x-xfer64.asm</Name>
@@ -206,7 +206,7 @@
             <Breakpoints />
             <Bookmarks />
             <Topmost>False</Topmost>
-            <FileOpen>True</FileOpen>
+            <FileOpen>False</FileOpen>
         </SourceFile>
     </SourceFiles>
 </Project>

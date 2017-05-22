@@ -1,7 +1,7 @@
 !--------------------------------------------------
-!- Sunday, May 14, 2017 10:01:09 PM
+!- Monday, May 22, 2017 2:09:59 AM
 !- Import of : 
-!- c:\src\zimodem\cbm8bit\telnet64-128.prg
+!- c:\src\zimodem\cbm8bit\src\telnet64-128.prg
 !- Commodore 64
 !--------------------------------------------------
 1 REM TELNET64/128  1200B 1.8+
@@ -117,12 +117,13 @@
 5030 IFA<>20THENPRINTA$;"{reverse on} {reverse off}{left}";:P$=P$+A$:GOTO5010
 5040 IFP$=""THEN5010
 5050 P$=LEFT$(P$,LEN(P$)-1):PRINT" {left*2} {left}{reverse on} {reverse off}{left}";:GOTO5010
-6000 IF(PEEK(56577)AND16)=0THENRETURN
-6010 FORI=1TO4:TT=TI+100:PRINT#5,"+";
-6020 IFTI<TTTHEN6020
-6030 PRINT".";:NEXTI:PRINT#5,"ath":TT=TI+200
-6040 SYSML+12:IFTI<TTTHEN6040
-6050 RETURN
+6000 TT=TI+200:IF(PEEK(56577)AND16)=0THENRETURN
+6010 IFTI<TTTHEN6010
+6020 PRINT#5,"+++";:TT=TI+200:PRINT".";
+6030 IFTI<TTTHEN6030
+6040 PRINT".";:PRINT#5,"ath":TT=TI+200
+6050 SYSML+12:IFTI<TTTHEN6050
+6060 RETURN
 39999 STOP
 40000 OPEN1,8,15:OPEN8,8,8,"telnetml.bin,p,r":LN=41000:DN=0
 40010 INPUT#1,E:IFE<>0THENCLOSE8:CLOSE1:STOP

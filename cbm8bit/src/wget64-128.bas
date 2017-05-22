@@ -1,7 +1,7 @@
 !--------------------------------------------------
-!- Sunday, May 14, 2017 10:01:22 PM
+!- Monday, May 22, 2017 2:10:02 AM
 !- Import of : 
-!- c:\src\zimodem\cbm8bit\wget64-128.prg
+!- c:\src\zimodem\cbm8bit\src\wget64-128.prg
 !- Commodore 64
 !--------------------------------------------------
 1 REM WGET4/128  1200B 1.8+

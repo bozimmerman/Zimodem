@@ -1,7 +1,7 @@
 !--------------------------------------------------
-!- Sunday, May 14, 2017 10:00:41 PM
+!- Monday, May 22, 2017 2:09:36 AM
 !- Import of : 
-!- c:\src\zimodem\cbm8bit\cbmbbs64-128.prg
+!- c:\src\zimodem\cbm8bit\src\cbmbbs64-128.prg
 !- Commodore 64
 !--------------------------------------------------
 1 REM CBMBBS64/128  1200B 1.8+
