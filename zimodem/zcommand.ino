@@ -2195,8 +2195,8 @@ void ZCommand::sendNextPacket()
       int maxBytes=packetSize;
       if(availableBytes<maxBytes)
         maxBytes=availableBytes;
-      if(maxBytes > Serial.availableForWrite()-15)
-        maxBytes = Serial.availableForWrite()-15;
+      //if(maxBytes > Serial.availableForWrite()-15) // how much we read should depend on how much we can IMMEDIATELY write
+      //maxBytes = Serial.availableForWrite()-15;    // .. this is because resendLastPacket ensures everything goes out
       if(maxBytes > 0)
       {
         if((nextConn->delimiters[0] != 0) || (delimiters[0] != 0))
