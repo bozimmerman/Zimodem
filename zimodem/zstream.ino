@@ -326,12 +326,15 @@ void ZStream::loop()
   {
     if((current->isConnected()) && (current->available()>0))
     {
-      if(serialBufferBytesRemaining() > 1)
+      int bufferRemaining=serialBufferBytesRemaining();
+      if(bufferRemaining > 1)
       {
         int maxBytes=  BUFSIZE; //baudRate / 100; //watchdog'll get you if you're in here too long
         int bytesAvailable = current->available();
         if(bytesAvailable > maxBytes)
           bytesAvailable = maxBytes;
+        if(bytesAvailable > bufferRemaining)
+          bytesAvailable = bufferRemaining;
         if(bytesAvailable>0)
         {
           for(int i=0;(i<bytesAvailable) && (current->available()>0);i++)
