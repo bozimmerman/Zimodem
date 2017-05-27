@@ -251,10 +251,16 @@ void ZStream::serialDeque()
 
 int serialBufferBytesRemaining()
 {
-  int amt = TBUFtail - TBUFhead;
-  if(amt >= 0)
-    return BUFSIZE - amt;
-  return -amt;
+  if(TBUFtail == TBUFhead)
+    return BUFSIZE-1;
+  else
+  if(TBUFtail > TBUFhead)
+  {
+    int used = TBUFtail - TBUFhead;
+    return BUFSIZE - used -1;
+  }
+  else
+    return TBUFhead - TBUFtail - 1;
 }
 
 void ZStream::enqueSerial(uint8_t c)
