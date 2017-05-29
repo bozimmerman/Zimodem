@@ -972,7 +972,7 @@ ZResult ZCommand::doUpdateFirmware(int vval, uint8_t *vbuf, int vlen, bool isNum
   }
   Serial.print("Done");
   Serial.print(EOLN);
-  Serial.print("Press the Reset button on your modem.");
+  Serial.print("Please wait for modem to restart...");
   ESP.restart();
   return ZOK;
 }
