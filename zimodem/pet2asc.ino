@@ -276,18 +276,18 @@ bool ansiColorToPetsciiColor(char *c, Stream *stream)
 
 char petToAsc(char c)
 {
-  return petToAscTable[c];
+  return pgm_read_byte_near(petToAscTable + (int)c);
 }
 
 bool ascToPet(char *c, Stream *stream)
 {
   if(!ansiColorToPetsciiColor(c,stream))
-    *c = ascToPetTable[*c];
+    *c = pgm_read_byte_near(ascToPetTable + (int)(*c));
   return true;
 }
 
 char ascToPetcii(char c)
 {
-  return ascToPetTable[c];
+  return pgm_read_byte_near(ascToPetTable + (int)c);
 }
 
