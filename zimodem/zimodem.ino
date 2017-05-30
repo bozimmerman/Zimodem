@@ -16,7 +16,7 @@
 
 #define TCP_SND_BUF                     4 * TCP_MSS
 #define null 0
-#define ZIMODEM_VERSION "2.63"
+#define ZIMODEM_VERSION "2.64"
 
 #include "pet2asc.h"
 #include "zmode.h"
@@ -135,8 +135,7 @@ void setup()
   commandMode.loadConfig();
   PhoneBookEntry::loadPhonebook();
   dcdStatus = DCD_LOW;
-  pinMode(0,OUTPUT);
-  digitalWrite(0,dcdStatus);
+  pinMode(0,INPUT);
   pinMode(2,OUTPUT);
   digitalWrite(2,dcdStatus);
 }

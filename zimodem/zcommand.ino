@@ -914,6 +914,11 @@ ZResult ZCommand::doWebStream(int vval, uint8_t *vbuf, int vlen, bool isNumber, 
 
 ZResult ZCommand::doUpdateFirmware(int vval, uint8_t *vbuf, int vlen, bool isNumber)
 {
+  Serialprint("Local firmware version ");
+  Serial.print(ZIMODEM_VERSION);
+  Serial.print(".");
+  Serial.print(EOLN);
+  
   uint8_t buf[255];
   int bufSize = 254;
   if((!doWebGetBytes("www.zimmers.net", 80, "/otherprojs/c64net-latest-version.txt", buf, &bufSize))||(bufSize<=0))
@@ -922,11 +927,6 @@ ZResult ZCommand::doUpdateFirmware(int vval, uint8_t *vbuf, int vlen, bool isNum
   while((bufSize>0)
   &&((buf[bufSize-1]==10)||(buf[bufSize-1]==13)))
     bufSize--;
-  
-  Serialprint("Local firmware version ");
-  Serial.print(ZIMODEM_VERSION);
-  Serial.print(".");
-  Serial.print(EOLN);
   
   if((strlen(ZIMODEM_VERSION)==bufSize) && memcmp(buf,ZIMODEM_VERSION,strlen(ZIMODEM_VERSION))==0)
   {
@@ -1798,6 +1798,33 @@ ZResult ZCommand::doSerialCommand()
                  DCD_LOW = HIGH;
                }
                break;
+             case 92:
+                 if(sval <=0)
+                 {
+                  int r = digitalRead(2);
+                  Serial.printf("DCD=%d, DCD-R=%d, DCD_HIGH=%d, HIGH=%d, LOW=%d%s",dcdStatus,r,DCD_HIGH,HIGH,LOW,EOLN.c_str());
+                 }
+                 else
+                 {
+                  sval -= 1;
+                  digitalWrite(2,sval);
+                  Serial.printf("DCD FORCED %s.%s",(sval==LOW)?"LOW":(sval==HIGH)?"HIGH":"UNK",EOLN.c_str());
+                 }
+                 break;
+             case 90: case 91: case 93: case 94: case 95: case 96: case 97: case 98: case 99:
+             {
+                 int pinNum=snum-90;
+                 int r = digitalRead(pinNum);
+                 if(sval <=0)
+                  Serial.printf("READ=%d, HIGH=%d, LOW=%d%s",pinNum,HIGH,LOW,EOLN.c_str());
+                 else
+                 {
+                  sval -= 1;
+                  digitalWrite(pinNum,sval);
+                  Serial.printf("Pin %d FORCED %s.%s",pinNum,(sval==LOW)?"LOW":(sval==HIGH)?"HIGH":"UNK",EOLN.c_str());
+                 }
+                 break;
+             }
              default:
                 break;
               }
