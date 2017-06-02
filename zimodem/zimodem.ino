@@ -16,7 +16,7 @@
 
 #define TCP_SND_BUF                     4 * TCP_MSS
 #define null 0
-#define ZIMODEM_VERSION "2.64"
+#define ZIMODEM_VERSION "2.65"
 
 #include "pet2asc.h"
 #include "zmode.h"
@@ -52,6 +52,7 @@ static int dcdStatus = LOW;
 static int DCD_HIGH = HIGH;
 static int DCD_LOW = LOW;
 static bool logFileOpen = false;
+static bool enableRtsCts = false;
 static File logFile; 
 static const int BUFSIZE = 4096;
 static uint8_t TBUF[BUFSIZE];
@@ -138,6 +139,7 @@ void setup()
   pinMode(0,INPUT);
   pinMode(2,OUTPUT);
   digitalWrite(2,dcdStatus);
+  enableRtsCts = digitalRead(0) == HIGH;
 }
 
 void loop() 

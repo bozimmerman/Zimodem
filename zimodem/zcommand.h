@@ -45,11 +45,12 @@ enum ConfigOptions
 
 enum FlowControlType
 {
-  FCT_DISABLED=0,
+  FCT_RTSCTS=0,
   FCT_NORMAL=1,
   FCT_AUTOOFF=2,
   FCT_MANUAL=3,
-  FCT_INVALID=4
+  FCT_DISABLED=4,
+  FCT_INVALID=5
 };
 
 enum StreamFlag
@@ -90,7 +91,6 @@ class ZCommand : public ZMode
     WiFiClientNode *current = null;
     bool XON=true;
     bool autoStreamMode=false;
-    FlowControlType flowControlType=FCT_NORMAL;
     unsigned long lastNonPlusTimeMs = 0;
     unsigned long currentExpiresTimeMs = 0;
     char *tempDelimiters = NULL;
@@ -138,6 +138,7 @@ class ZCommand : public ZMode
     ZResult doUpdateFirmware(int vval, uint8_t *vbuf, int vlen, bool isNumber);
 
   public:
+    FlowControlType flowControlType=FCT_NORMAL;
     int packetSize = 127;
     bool suppressResponses;
     bool numericResponses;

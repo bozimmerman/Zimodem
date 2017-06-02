@@ -310,6 +310,8 @@ void ZStream::loop()
     serv=serv->next;
   }
   
+  if((commandMode.flowControlType == FCT_RTSCTS)&&(enableRtsCts))
+    XON=(digitalRead(0) == HIGH);
   if((current==null)||(!current->isConnected()))
   {
     switchBackToCommandMode(true);
@@ -345,6 +347,10 @@ void ZStream::loop()
         {
           for(int i=0;(i<bytesAvailable) && (current->available()>0);i++)
           {
+            if((commandMode.flowControlType == FCT_RTSCTS)
+            &&(enableRtsCts)
+            &&(!(XON=(digitalRead(0) == HIGH))))
+              break;
             uint8_t c=current->read();
             if((!isTelnet() || handleAsciiIAC((char *)&c,current))
             && (!isPETSCII() || ascToPet((char *)&c,current)))
@@ -353,7 +359,8 @@ void ZStream::loop()
         }
       }
     }
-    serialDeque();
+    if((!isXonXoff())||(XON))
+      serialDeque();
   }
   checkBaudChange();
 }

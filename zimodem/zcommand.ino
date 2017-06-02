@@ -89,7 +89,7 @@ int ZCommand::makeStreamFlagsBitmap(const char *dmodifiers)
 void ZCommand::setConfigDefaults()
 {
   doEcho=true;
-  flowControlType=FCT_DISABLED;
+  flowControlType=FCT_RTSCTS;
   binType=BTYPE_NORMAL;
   XON=true;
   petsciiMode=false;
@@ -146,7 +146,7 @@ ZResult ZCommand::doResetCommand()
   petsciiMode=false;
   delayMs=0;
   binType=BTYPE_NORMAL;
-  flowControlType=FCT_DISABLED;
+  flowControlType=FCT_RTSCTS;
   setBaseConfigOptions(argv);
   memset(nbuf,0,MAX_COMMAND_SIZE);
   return ZOK;
@@ -221,6 +221,8 @@ void ZCommand::setBaseConfigOptions(String configArguments[])
     else
       x=FCT_DISABLED;
     XON=true;
+    if((flowControlType == FCT_RTSCTS) && (enableRtsCts))
+      XON = (digitalRead(0)==HIGH);
     if(flowControlType == FCT_MANUAL)
       XON=false;
   }
@@ -325,7 +327,7 @@ ZResult ZCommand::doInfoCommand(int vval, uint8_t *vbuf, int vlen, bool isNumber
     }
     switch(flowControlType)
     {
-    case FCT_DISABLED:
+    case FCT_RTSCTS:
       Serialprint("F0");
       break;
     case FCT_NORMAL: 
@@ -336,6 +338,9 @@ ZResult ZCommand::doInfoCommand(int vval, uint8_t *vbuf, int vlen, bool isNumber
       break;
     case FCT_MANUAL:
       Serialprint("F3");
+      break;
+    case FCT_DISABLED:
+      Serialprint("F4");
       break;
     }
     if(EOLN==CR)
@@ -802,6 +807,8 @@ ZResult ZCommand::doWebStream(int vval, uint8_t *vbuf, int vlen, bool isNumber, 
         if(flowControl)
         {
           XON=true;
+          if((flowControlType == FCT_MANUAL)&&(enableRtsCts))
+            XON=(digitalRead(0) == HIGH);
           if(flowControlType == FCT_MANUAL)
             XON=false;
         }
@@ -860,7 +867,10 @@ ZResult ZCommand::doWebStream(int vval, uint8_t *vbuf, int vlen, bool isNumber, 
                 break;
               }
             }
-            while(Serial.availableForWrite()<mark)
+            while((Serial.availableForWrite()<mark)
+            ||((flowControlType == FCT_RTSCTS) 
+                && (enableRtsCts)
+                &&(!(XON = (digitalRead(0)==HIGH)))))
             {
               delay(1);
               yield();
@@ -896,9 +906,14 @@ ZResult ZCommand::doWebStream(int vval, uint8_t *vbuf, int vlen, bool isNumber, 
                   break;
                 case FCT_INVALID:
                   break;
+                case FCT_RTSCTS:
+                  // done below
+            	  break;
               }
             }
           }
+          if((flowControlType == FCT_MANUAL)&&(enableRtsCts))
+            XON=(digitalRead(0) == HIGH);
           yield();
         }
         if(bct > 0)
@@ -1417,12 +1432,19 @@ bool ZCommand::readSerialStream()
     {
       if(c!=EC)
         lastNonPlusTimeMs=millis();
-      if((c==19)&&(flowControlType != FCT_DISABLED))
+      
+      if((c==19)
+      &&((flowControlType == FCT_NORMAL)
+         ||(flowControlType == FCT_AUTOOFF)
+         ||(flowControlType == FCT_MANUAL)))
       {
         XON=false;
       }
       else
-      if((c==17)&&(flowControlType != FCT_DISABLED))
+      if((c==17)
+      &&((flowControlType == FCT_NORMAL)
+         ||(flowControlType == FCT_AUTOOFF)
+         ||(flowControlType == FCT_MANUAL)))
       {
         XON=true;
         if(flowControlType == FCT_MANUAL)
@@ -1624,6 +1646,8 @@ ZResult ZCommand::doSerialCommand()
             flowControlType = (FlowControlType)vval;
             if(flowControlType == FCT_MANUAL)
               XON=false;
+            if((flowControlType == FCT_RTSCTS)&&(enableRtsCts))
+              XON=(digitalRead(0) == HIGH);
         }
         break;
       case 'x':
@@ -1798,33 +1822,6 @@ ZResult ZCommand::doSerialCommand()
                  DCD_LOW = HIGH;
                }
                break;
-             case 92:
-                 if(sval <=0)
-                 {
-                  int r = digitalRead(2);
-                  Serial.printf("DCD=%d, DCD-R=%d, DCD_HIGH=%d, HIGH=%d, LOW=%d%s",dcdStatus,r,DCD_HIGH,HIGH,LOW,EOLN.c_str());
-                 }
-                 else
-                 {
-                  sval -= 1;
-                  digitalWrite(2,sval);
-                  Serial.printf("DCD FORCED %s.%s",(sval==LOW)?"LOW":(sval==HIGH)?"HIGH":"UNK",EOLN.c_str());
-                 }
-                 break;
-             case 90: case 91: case 93: case 94: case 95: case 96: case 97: case 98: case 99:
-             {
-                 int pinNum=snum-90;
-                 int r = digitalRead(pinNum);
-                 if(sval <=0)
-                  Serial.printf("READ=%d, HIGH=%d, LOW=%d%s",pinNum,HIGH,LOW,EOLN.c_str());
-                 else
-                 {
-                  sval -= 1;
-                  digitalWrite(pinNum,sval);
-                  Serial.printf("Pin %d FORCED %s.%s",pinNum,(sval==LOW)?"LOW":(sval==HIGH)?"HIGH":"UNK",EOLN.c_str());
-                 }
-                 break;
-             }
              default:
                 break;
               }
@@ -1910,7 +1907,10 @@ ZResult ZCommand::doSerialCommand()
               int i=0;
               while(i < numRead)
               {
-                if(Serial.availableForWrite() > 0)
+                if((Serial.availableForWrite() > 0)
+                ||((flowControlType == FCT_RTSCTS) 
+                    && (enableRtsCts)
+                    &&(!(XON = (digitalRead(0)==HIGH)))))
                 {
                   Serial.write(buf[i++]);
                   if(delayMs > 0)
@@ -1974,6 +1974,34 @@ ZResult ZCommand::doSerialCommand()
         case 'p':
           petsciiMode = vval > 0;
           break;
+        case 'n':
+             if(isNumber && (vval >=0) && (vval <=9))
+             {
+               int pinNum = vval;
+               int r = digitalRead(pinNum);
+               Serial.printf("Pin %d READ=%s.%s",pinNum,r==HIGH?"HIGH":"LOW",EOLN.c_str());
+             }
+             else
+             if(!isNumber)
+             {
+                char *eq = strchr((char *)vbuf,'=');
+                if(eq == 0)
+                  result = ZERROR;
+                else
+                {
+                  *eq = 0;
+                  int pinNum = atoi((char *)vbuf);
+                  int sval = atoi(eq+1);
+                  if((pinNum < 0) || (pinNum > 9) || (sval < 0) || (sval > 1))
+                    result = ZERROR;
+                  else
+                  {
+                    digitalWrite(pinNum,sval);
+                    Serial.printf("Pin %d FORCED %s.%s",pinNum,(sval==LOW)?"LOW":(sval==HIGH)?"HIGH":"UNK",EOLN.c_str());
+                  }
+                }
+             }
+             break;
         case 'u':
           result=doUpdateFirmware(vval,vbuf,vlen,isNumber);
           break;
@@ -2171,7 +2199,10 @@ void ZCommand::reSendLastPacket(WiFiClientNode *conn)
       }
       if(delayMs > 0)
         delay(delayMs);
-      while(Serial.availableForWrite()<10)
+      while((Serial.availableForWrite()<10)
+      ||((flowControlType == FCT_RTSCTS) 
+          && (enableRtsCts)
+          &&(!(XON = (digitalRead(0)==HIGH)))))
       {
         delay(1);
         yield();
@@ -2314,6 +2345,8 @@ void ZCommand::sendNextPacket()
       }
     }
 
+    if((flowControlType == FCT_RTSCTS) && (enableRtsCts))
+      XON = (digitalRead(0)==HIGH);
     if(nextConn->next == null)
       nextConn = null; // will become CONNs
     else
@@ -2437,6 +2470,8 @@ void ZCommand::acceptNewConnection()
 
 void ZCommand::loop()
 {
+  if((flowControlType == FCT_RTSCTS) && (enableRtsCts))
+    XON = (digitalRead(0)==HIGH);
   if((currentExpiresTimeMs > 0) && (millis() > currentExpiresTimeMs))
   {
     currentExpiresTimeMs = 0;
@@ -2464,6 +2499,8 @@ void ZCommand::loop()
     }
   }
   
+  if((flowControlType == FCT_RTSCTS) && (enableRtsCts))
+    XON = (digitalRead(0)==HIGH);
   acceptNewConnection();
   if((flowControlType==FCT_DISABLED)||(XON))
   {
