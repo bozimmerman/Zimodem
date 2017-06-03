@@ -83,6 +83,7 @@ class ZCommand : public ZMode
     char ringCounter = 1;
     
     BinType binType = BTYPE_NORMAL;
+    FlowControlType flowControlType=FCT_NORMAL;
     uint8_t nbuf[MAX_COMMAND_SIZE];
     char hbuf[MAX_COMMAND_SIZE];
     int eon=0;
@@ -138,7 +139,6 @@ class ZCommand : public ZMode
     ZResult doUpdateFirmware(int vval, uint8_t *vbuf, int vlen, bool isNumber);
 
   public:
-    FlowControlType flowControlType=FCT_NORMAL;
     int packetSize = 127;
     bool suppressResponses;
     bool numericResponses;
@@ -155,6 +155,7 @@ class ZCommand : public ZMode
     void loadConfig();
     void serialIncoming();
     void loop();
+    bool serialHalted();
 };
 
 

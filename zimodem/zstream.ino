@@ -310,8 +310,8 @@ void ZStream::loop()
     serv=serv->next;
   }
   
-  if((commandMode.flowControlType == FCT_RTSCTS)&&(enableRtsCts))
-    XON=(digitalRead(0) == HIGH);
+  if(commandMode.serialHalted())
+    XON=false;
   if((current==null)||(!current->isConnected()))
   {
     switchBackToCommandMode(true);
@@ -347,9 +347,7 @@ void ZStream::loop()
         {
           for(int i=0;(i<bytesAvailable) && (current->available()>0);i++)
           {
-            if((commandMode.flowControlType == FCT_RTSCTS)
-            &&(enableRtsCts)
-            &&(!(XON=(digitalRead(0) == HIGH))))
+            if(!(XON = !commandMode.serialHalted()))
               break;
             uint8_t c=current->read();
             if((!isTelnet() || handleAsciiIAC((char *)&c,current))

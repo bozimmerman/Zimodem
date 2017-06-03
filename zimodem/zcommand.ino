@@ -221,8 +221,7 @@ void ZCommand::setBaseConfigOptions(String configArguments[])
     else
       x=FCT_DISABLED;
     XON=true;
-    if((flowControlType == FCT_RTSCTS) && (enableRtsCts))
-      XON = (digitalRead(0)==HIGH);
+    serialHalted(); // sets XON-based rtscts
     if(flowControlType == FCT_MANUAL)
       XON=false;
   }
@@ -751,6 +750,11 @@ bool ZCommand::doWebGetBytes(const char *hostIp, int port, const char *req, uint
   return (respLength == 0);
 }
 
+bool ZCommand::serialHalted()
+{
+  return (flowControlType == FCT_RTSCTS) && enableRtsCts && (!(XON=(digitalRead(0)==HIGH)));
+}
+
 ZResult ZCommand::doWebStream(int vval, uint8_t *vbuf, int vlen, bool isNumber, const char *filename, bool cache)
 {
   char *portB=strchr((char *)vbuf,':');
@@ -807,8 +811,7 @@ ZResult ZCommand::doWebStream(int vval, uint8_t *vbuf, int vlen, bool isNumber, 
         if(flowControl)
         {
           XON=true;
-          if((flowControlType == FCT_MANUAL)&&(enableRtsCts))
-            XON=(digitalRead(0) == HIGH);
+          serialHalted(); // sets xon-based rtscts
           if(flowControlType == FCT_MANUAL)
             XON=false;
         }
@@ -867,10 +870,7 @@ ZResult ZCommand::doWebStream(int vval, uint8_t *vbuf, int vlen, bool isNumber, 
                 break;
               }
             }
-            while((Serial.availableForWrite()<mark)
-            ||((flowControlType == FCT_RTSCTS) 
-                && (enableRtsCts)
-                &&(!(XON = (digitalRead(0)==HIGH)))))
+            while((Serial.availableForWrite()<mark) && (!serialHalted()))
             {
               delay(1);
               yield();
@@ -912,8 +912,7 @@ ZResult ZCommand::doWebStream(int vval, uint8_t *vbuf, int vlen, bool isNumber, 
               }
             }
           }
-          if((flowControlType == FCT_MANUAL)&&(enableRtsCts))
-            XON=(digitalRead(0) == HIGH);
+          serialHalted(); // sets xon-based rtscts
           yield();
         }
         if(bct > 0)
@@ -1646,8 +1645,7 @@ ZResult ZCommand::doSerialCommand()
             flowControlType = (FlowControlType)vval;
             if(flowControlType == FCT_MANUAL)
               XON=false;
-            if((flowControlType == FCT_RTSCTS)&&(enableRtsCts))
-              XON=(digitalRead(0) == HIGH);
+            serialHalted(); // sets xon-based rtscts
         }
         break;
       case 'x':
@@ -1907,10 +1905,7 @@ ZResult ZCommand::doSerialCommand()
               int i=0;
               while(i < numRead)
               {
-                if((Serial.availableForWrite() > 0)
-                ||((flowControlType == FCT_RTSCTS) 
-                    && (enableRtsCts)
-                    &&(!(XON = (digitalRead(0)==HIGH)))))
+                if((Serial.availableForWrite() > 0) && (!serialHalted()))
                 {
                   Serial.write(buf[i++]);
                   if(delayMs > 0)
@@ -2199,10 +2194,7 @@ void ZCommand::reSendLastPacket(WiFiClientNode *conn)
       }
       if(delayMs > 0)
         delay(delayMs);
-      while((Serial.availableForWrite()<10)
-      ||((flowControlType == FCT_RTSCTS) 
-          && (enableRtsCts)
-          &&(!(XON = (digitalRead(0)==HIGH)))))
+      while((Serial.availableForWrite()<10) && (!serialHalted()))
       {
         delay(1);
         yield();
@@ -2345,8 +2337,7 @@ void ZCommand::sendNextPacket()
       }
     }
 
-    if((flowControlType == FCT_RTSCTS) && (enableRtsCts))
-      XON = (digitalRead(0)==HIGH);
+    serialHalted(); // sets xon-based rtscts
     if(nextConn->next == null)
       nextConn = null; // will become CONNs
     else
@@ -2470,8 +2461,7 @@ void ZCommand::acceptNewConnection()
 
 void ZCommand::loop()
 {
-  if((flowControlType == FCT_RTSCTS) && (enableRtsCts))
-    XON = (digitalRead(0)==HIGH);
+  serialHalted(); // sets xon-based rtscts
   if((currentExpiresTimeMs > 0) && (millis() > currentExpiresTimeMs))
   {
     currentExpiresTimeMs = 0;
@@ -2499,8 +2489,7 @@ void ZCommand::loop()
     }
   }
   
-  if((flowControlType == FCT_RTSCTS) && (enableRtsCts))
-    XON = (digitalRead(0)==HIGH);
+  serialHalted(); // sets xon-based rtscts
   acceptNewConnection();
   if((flowControlType==FCT_DISABLED)||(XON))
   {
