@@ -1951,7 +1951,8 @@ ZResult ZCommand::doSerialCommand()
             Serial.print(EOLN);
             result = doWebStream(0,buf,strlen((char *)buf),false,filename,true);
             delayMs = oldDelay;
-            if(result == ZERROR)
+            if((result == ZERROR)
+            &&(WiFi.status() != WL_CONNECTED))
             {
               Serialprint("Not Connected.");
               Serial.print(EOLN);
