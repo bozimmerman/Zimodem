@@ -50,6 +50,7 @@
         <FileName>irc64-128.bas</FileName>
         <FileName>telnet64-128.bas</FileName>
         <FileName>wget64-128.bas</FileName>
+        <FileName>cometmode.bas</FileName>
     </BuildList>
     <DetermineBuildOrder>0</DetermineBuildOrder>
     <PaddingByte>0</PaddingByte>
@@ -64,6 +65,17 @@
             <Bookmarks />
             <Topmost>False</Topmost>
             <FileOpen>False</FileOpen>
+        </SourceFile>
+        <SourceFile>
+            <Name>cometmode.bas</Name>
+            <PrgName />
+            <FileType>1</FileType>
+            <IncludeInBuild>True</IncludeInBuild>
+            <Regions />
+            <Breakpoints />
+            <Bookmarks />
+            <Topmost>False</Topmost>
+            <FileOpen>True</FileOpen>
         </SourceFile>
         <SourceFile>
             <Name>configure64-128.bas</Name>
@@ -172,7 +184,7 @@
             <Regions />
             <Breakpoints />
             <Bookmarks />
-            <Topmost>True</Topmost>
+            <Topmost>False</Topmost>
             <FileOpen>True</FileOpen>
         </SourceFile>
         <SourceFile>
