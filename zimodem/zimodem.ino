@@ -18,8 +18,16 @@
 #define null 0
 #define ZIMODEM_VERSION "2.65"
 
+class ZMode
+{
+  public:
+    virtual void serialIncoming();
+    virtual void loop();
+};
+
 #include "pet2asc.h"
-#include "zmode.h"
+#include "zlog.h"
+#include "zserout.h"
 #include "wificlientnode.h"
 #include "wifiservernode.h"
 #include "zstream.h"
@@ -51,13 +59,7 @@ static int tempBaud = -1; // -1 do nothing
 static int dcdStatus = LOW; 
 static int DCD_HIGH = HIGH;
 static int DCD_LOW = LOW;
-static bool logFileOpen = false;
 static bool enableRtsCts = false;
-static File logFile; 
-static const int BUFSIZE = 4096;
-static uint8_t TBUF[BUFSIZE];
-static int TBUFhead=0;
-static int TBUFtail=0;
 
 static bool connectWifi(const char* ssid, const char* password)
 {

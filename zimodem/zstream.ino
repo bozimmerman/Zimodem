@@ -31,55 +31,6 @@ void ZStream::switchTo(WiFiClientNode *conn)
   checkBaudChange();
 }
 
-static char HD[3];
-static char HDL[9];
-
-char *TOHEX(uint8_t a)
-{
-  HD[0] = "0123456789ABCDEF"[(a >> 4) & 0x0f];
-  HD[1] = "0123456789ABCDEF"[a & 0x0f];
-  HD[2] = 0;
-  return HD;
-}
-
-char *TOHEX(unsigned long a)
-{
-  for(int i=7;i>=0;i--)
-  {
-    HDL[i] = "0123456789ABCDEF"[a & 0x0f];
-    a = a >> 4;
-  }
-  HDL[8] = 0;
-  char *H=HDL;
-  if((strlen(H)>2) && (strstr(H,"00")==H))
-    H+=2;
-  return H;
-}
-
-char *TOHEX(unsigned int a)
-{
-  for(int i=3;i>=0;i--)
-  {
-    HDL[i] = "0123456789ABCDEF"[a & 0x0f];
-    a = a >> 4;
-  }
-  HDL[4] = 0;
-  char *H=HDL;
-  if((strlen(H)>2) && (strstr(H,"00")==H))
-    H+=2;
-  return H;
-}
-
-char *TOHEX(int a)
-{
-  return TOHEX((unsigned int)a);
-}
-
-char *TOHEX(long a)
-{
-  return TOHEX((unsigned long)a);
-}
-
 bool ZStream::isPETSCII()
 {
   return (current != null) && (current->isPETSCII());
@@ -244,7 +195,7 @@ void ZStream::serialDeque()
   {
     serialWrite(TBUF[TBUFhead]);
     TBUFhead++;
-    if(TBUFhead >= BUFSIZE)
+    if(TBUFhead >= SER_WRITE_BUFSIZE)
       TBUFhead = 0;
   }
 }
@@ -252,12 +203,12 @@ void ZStream::serialDeque()
 int serialBufferBytesRemaining()
 {
   if(TBUFtail == TBUFhead)
-    return BUFSIZE-1;
+    return SER_WRITE_BUFSIZE-1;
   else
   if(TBUFtail > TBUFhead)
   {
     int used = TBUFtail - TBUFhead;
-    return BUFSIZE - used -1;
+    return SER_WRITE_BUFSIZE - used -1;
   }
   else
     return TBUFhead - TBUFtail - 1;
@@ -267,7 +218,7 @@ void ZStream::enqueSerial(uint8_t c)
 {
   TBUF[TBUFtail] = c;
   TBUFtail++;
-  if(TBUFtail >= BUFSIZE)
+  if(TBUFtail >= SER_WRITE_BUFSIZE)
     TBUFtail = 0;
 }
 
@@ -337,7 +288,7 @@ void ZStream::loop()
       int bufferRemaining=serialBufferBytesRemaining();
       if(bufferRemaining > 1)
       {
-        int maxBytes=  BUFSIZE; //baudRate / 100; //watchdog'll get you if you're in here too long
+        int maxBytes=  SER_WRITE_BUFSIZE; //baudRate / 100; //watchdog'll get you if you're in here too long
         int bytesAvailable = current->available();
         if(bytesAvailable > maxBytes)
           bytesAvailable = maxBytes;
