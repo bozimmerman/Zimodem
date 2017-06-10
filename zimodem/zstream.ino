@@ -22,7 +22,9 @@ void ZStream::switchTo(WiFiClientNode *conn)
   currentExpiresTimeMs = 0;
   lastNonPlusTimeMs = 0;
   plussesInARow=0;
-  XON=true;
+  serial.setXON(true);
+  serial.setPetsciiMode(isPETSCII());
+  serial.setFlowControlType(isXonXoff()?FCT_NORMAL:FCT_RTSCTS);
   currMode=&streamMode;
   expectedSerialTime = (1000 / (baudRate / 8))+1;
   if(expectedSerialTime < 1)
@@ -74,14 +76,14 @@ void ZStream::serialIncoming()
       lastNonPlusTimeMs=millis();
     }
     if((c==19)&&(isXonXoff()))
-      XON=false;
+      serial.setXON(false);
     else
     if((c==17)&&(isXonXoff()))
-      XON=true;
+      serial.setXON(true);
     else
     {
       if(isEcho())
-        enqueSerial(c);
+        enqueSerialOut(c);
       if(isPETSCII())
         c = petToAsc(c);
       socketWrite(c);
@@ -100,10 +102,10 @@ void ZStream::switchBackToCommandMode(bool logout)
     if(!commandMode.suppressResponses)
     {
       if(commandMode.numericResponses)
-        Serial.printf("3");
+        serial.prints("3");
       else
-        Serial.printf("NO CARRIER");
-      Serial.print(commandMode.EOLN);
+        serial.prints("NO CARRIER");
+      serial.prints(commandMode.EOLN);
     }
     delete current;
   }
@@ -121,54 +123,6 @@ void ZStream::socketWrite(uint8_t c)
   }
   //delay(0);
   //yield();
-}
-
-void ZStream::serialWrite(uint8_t c)
-{
-  Serial.write(c);
-  logSerialOut(c);
-  if(commandMode.delayMs > 0)
-    delay(commandMode.delayMs);
-}
-    
-void ZStream::serialDeque()
-{
-  if((TBUFhead != TBUFtail)
-  &&(Serial.availableForWrite()>0)
-  &&((commandMode.writeClear<=0)||(Serial.availableForWrite()>=commandMode.writeClear)))
-  {
-    serialWrite(TBUF[TBUFhead]);
-    TBUFhead++;
-    if(TBUFhead >= SER_WRITE_BUFSIZE)
-      TBUFhead = 0;
-  }
-}
-
-int serialBufferBytesRemaining()
-{
-  if(TBUFtail == TBUFhead)
-    return SER_WRITE_BUFSIZE-1;
-  else
-  if(TBUFtail > TBUFhead)
-  {
-    int used = TBUFtail - TBUFhead;
-    return SER_WRITE_BUFSIZE - used -1;
-  }
-  else
-    return TBUFhead - TBUFtail - 1;
-}
-
-void ZStream::enqueSerial(uint8_t c)
-{
-  TBUF[TBUFtail] = c;
-  TBUFtail++;
-  if(TBUFtail >= SER_WRITE_BUFSIZE)
-    TBUFtail = 0;
-}
-
-void ZStream::clearSerialBuffer()
-{
-  TBUFtail=TBUFhead;
 }
 
 void ZStream::loop()
@@ -205,8 +159,6 @@ void ZStream::loop()
     serv=serv->next;
   }
   
-  if(commandMode.serialHalted())
-    XON=false;
   if((current==null)||(!current->isConnected()))
   {
     switchBackToCommandMode(true);
@@ -225,35 +177,32 @@ void ZStream::loop()
     }
   }
   else
-  if((!isXonXoff())||(XON))
+  if(serial.isSerialOut())
   {
     if((current->isConnected()) && (current->available()>0))
     {
-      int bufferRemaining=serialBufferBytesRemaining();
-      if(bufferRemaining > 1)
+      int bufferRemaining=serialOutBufferBytesRemaining();
+      if(bufferRemaining > 0)
       {
-        int maxBytes=  SER_WRITE_BUFSIZE; //baudRate / 100; //watchdog'll get you if you're in here too long
         int bytesAvailable = current->available();
-        if(bytesAvailable > maxBytes)
-          bytesAvailable = maxBytes;
         if(bytesAvailable > bufferRemaining)
           bytesAvailable = bufferRemaining;
         if(bytesAvailable>0)
         {
           for(int i=0;(i<bytesAvailable) && (current->available()>0);i++)
           {
-            if(!(XON = !commandMode.serialHalted()))
+            if(serial.isSerialCancelled())
               break;
             uint8_t c=current->read();
             if((!isTelnet() || handleAsciiIAC((char *)&c,current))
             && (!isPETSCII() || ascToPet((char *)&c,current)))
-              enqueSerial(c);
+              enqueSerialOut(c);
           }
         }
       }
     }
-    if((!isXonXoff())||(XON))
-      serialDeque();
+    if(serial.isSerialOut())
+      serialOutDeque();
   }
   checkBaudChange();
 }

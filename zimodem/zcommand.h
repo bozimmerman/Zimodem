@@ -43,16 +43,6 @@ enum ConfigOptions
   CFG_LAST=11
 };
 
-enum FlowControlType
-{
-  FCT_RTSCTS=0,
-  FCT_NORMAL=1,
-  FCT_AUTOOFF=2,
-  FCT_MANUAL=3,
-  FCT_DISABLED=4,
-  FCT_INVALID=5
-};
-
 enum StreamFlag
 {
   FLAG_DISCONNECT_ON_EXIT=1,
@@ -81,16 +71,15 @@ class ZCommand : public ZMode
     char *CR="\r";
     char BS=8;
     char ringCounter = 1;
-    
+
+    ZSerial serial;
+    bool packetXOn = true;
     BinType binType = BTYPE_NORMAL;
-    FlowControlType flowControlType=FCT_NORMAL;
     uint8_t nbuf[MAX_COMMAND_SIZE];
     char hbuf[MAX_COMMAND_SIZE];
     int eon=0;
-    bool petsciiMode = false;
     int lastServerClientId = 0;
     WiFiClientNode *current = null;
-    bool XON=true;
     bool autoStreamMode=false;
     unsigned long lastNonPlusTimeMs = 0;
     unsigned long currentExpiresTimeMs = 0;
@@ -117,7 +106,6 @@ class ZCommand : public ZMode
     void headerOut(const int channel, const int sz, const int crc8);
     void sendConnectionNotice(int nodeId);
     void sendNextPacket();
-    void Serialprint(const char *expr);
     bool doWebGet(const char *hostIp, int port, const char *filename, const char *req);
     bool doWebGetBytes(const char *hostIp, int port, const char *req, uint8_t *buf, int *bufSize);
     bool doWebGetStream(const char *hostIp, int port, const char *req, WiFiClient &c, uint32_t *responseSize);
@@ -144,18 +132,14 @@ class ZCommand : public ZMode
     bool numericResponses;
     bool longResponses;
     boolean doEcho;
-    bool doFlowControl;
     String EOLN;
     char EC='+';
     char *ECS="+++";
-    int delayMs=0;
-    int writeClear=0;
 
     ZCommand();
     void loadConfig();
     void serialIncoming();
     void loop();
-    bool serialHalted();
 };
 
 

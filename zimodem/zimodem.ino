@@ -17,6 +17,8 @@
 #define TCP_SND_BUF                     4 * TCP_MSS
 #define null 0
 #define ZIMODEM_VERSION "2.65"
+#define PIN_DCD 2
+#define PIN_CTS 0
 
 class ZMode
 {
@@ -59,7 +61,6 @@ static int tempBaud = -1; // -1 do nothing
 static int dcdStatus = LOW; 
 static int DCD_HIGH = HIGH;
 static int DCD_LOW = LOW;
-static bool enableRtsCts = false;
 
 static bool connectWifi(const char* ssid, const char* password)
 {
@@ -110,11 +111,11 @@ static int checkOpenConnections()
     if(dcdStatus == DCD_HIGH)
     {
       dcdStatus = DCD_LOW;
-      digitalWrite(2,dcdStatus);
+      digitalWrite(PIN_DCD,dcdStatus);
       if(baudState == BS_SWITCHED_TEMP)
         baudState = BS_SWITCH_NORMAL_NEXT;
       if(currMode == &commandMode)
-        streamMode.clearSerialBuffer();
+        clearSerialOutBuffer();
     }
   }
   else
@@ -122,7 +123,7 @@ static int checkOpenConnections()
     if(dcdStatus == DCD_LOW)
     {
       dcdStatus = DCD_HIGH;
-      digitalWrite(2,dcdStatus);
+      digitalWrite(PIN_DCD,dcdStatus);
       if((tempBaud > 0) && (baudState == BS_NORMAL))
         baudState = BS_SWITCH_TEMP_NEXT;
     }
@@ -138,10 +139,11 @@ void setup()
   commandMode.loadConfig();
   PhoneBookEntry::loadPhonebook();
   dcdStatus = DCD_LOW;
-  pinMode(0,INPUT);
-  pinMode(2,OUTPUT);
+  pinMode(PIN_CTS,INPUT);
+  pinMode(PIN_DCD,OUTPUT);
   digitalWrite(2,dcdStatus);
-  enableRtsCts = digitalRead(0) == HIGH;
+  flushSerial();
+  enableRtsCts = digitalRead(PIN_CTS) == HIGH;
 }
 
 void loop() 

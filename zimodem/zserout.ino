@@ -94,6 +94,62 @@ bool ZSerial::isPetsciiMode()
   return petsciiMode;
 }
 
+void ZSerial::setFlowControlType(FlowControlType type)
+{
+  flowControlType = type;
+}
+
+FlowControlType ZSerial::getFlowControlType()
+{
+  return flowControlType;
+}
+
+void ZSerial::setXON(bool isXON)
+{
+  XON = isXON;
+}
+
+bool ZSerial::isXON()
+{
+  return XON;
+}
+
+bool ZSerial::isSerialOut()
+{
+  switch(flowControlType)
+  {
+  case FCT_RTSCTS:
+    if(enableRtsCts)
+      return (digitalRead(PIN_CTS) == HIGH);
+    return true;
+  case FCT_NORMAL:
+  case FCT_AUTOOFF:
+  case FCT_MANUAL:
+    break;
+  case FCT_DISABLED:
+    return true;
+  case FCT_INVALID:
+    return true;
+  }
+  return XON;
+}
+
+bool ZSerial::isSerialCancelled()
+{
+  if(flowControlType == FCT_RTSCTS)
+  {
+    if(enableRtsCts)
+      return (digitalRead(PIN_CTS) == LOW);
+  }
+  return false;
+}
+
+bool ZSerial::isSerialHalted()
+{
+  return !isSerialOut();
+}
+
+
 void ZSerial::prints(const char *expr)
 {
   if(!petsciiMode)
@@ -145,19 +201,49 @@ void ZSerial::printb(uint8_t c)
   enqueSerialOut(c);
 }
 
+void ZSerial::write(uint8_t c)
+{
+  enqueSerialOut(c);
+}
+
+void ZSerial::prints(String str)
+{
+  prints(str.c_str());
+}
+
+
 void ZSerial::printf(const char* format, ...) 
 {
-    int ret;
-    va_list arglist;
-    va_start(arglist, format);
-    vsprintf(FBUF, format, arglist);
-    prints(FBUF);
-    va_end(arglist);
+  int ret;
+  va_list arglist;
+  va_start(arglist, format);
+  vsprintf(FBUF, format, arglist);
+  prints(FBUF);
+  va_end(arglist);
+}
+
+void ZSerial::flushAlways()
+{
+  while(TBUFtail != TBUFhead)
+  {
+    Serial.flush();
+    serialOutDeque();
+    yield();
+    delay(1);
+  }
+  Serial.flush();
 }
 
 void ZSerial::flush()
 {
-  flushSerial();  
+  while((TBUFtail != TBUFhead) && (isSerialOut()))
+  {
+    Serial.flush();
+    serialOutDeque();
+    yield();
+    delay(1);
+  }
+  Serial.flush();
 }
 
 int ZSerial::availableForWrite()
@@ -165,4 +251,37 @@ int ZSerial::availableForWrite()
   return serialOutBufferBytesRemaining();
 }
 
+char ZSerial::drainForXonXoff()
+{
+  char ch = '\0';
+  while(Serial.available()>0)
+  {
+    ch=Serial.read();
+    logSerialIn(ch);
+    if(ch == 3)
+      break;
+    switch(flowControlType)
+    {
+      case FCT_NORMAL:
+        if((!XON) && (ch == 17))
+          XON=true;
+        else
+        if((XON) && (ch == 19))
+          XON=false;
+        break;
+      case FCT_AUTOOFF:
+      case FCT_MANUAL:
+        if((!XON) && (ch == 17))
+          XON=true;
+        else
+          XON=false;
+        break;
+      case FCT_INVALID:
+        break;
+      case FCT_RTSCTS:
+        break;
+    }
+  }
+  return ch;
+}
 

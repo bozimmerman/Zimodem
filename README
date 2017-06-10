@@ -66,10 +66,11 @@ ATV1 : Turns on verbose responses mode (Uses Word response mode)
 ATX0 : Turns off extended response codes (1/CONNECT instead of 5/CONNECT 2, etc..)
 ATX1 : Turns on extended response codes (5/CONNECT 2 instead of 1/CONNECT, etc..)
 
-ATF0 : Turns off flow control for command mode
-ATF1 : Turns on xon/xoff flow control for command mode
+ATF0 : Turns on rts/cts flow control.
+ATF1 : Turns on xon/xoff flow control.
 ATF2 : Turns on xon/xoff flow control, sets XON mode (if necessary), and, in command mode, will immediately go to XOFF when a single connection packet is received. This is very useful when the client wants to ensure it only receives one packet to process.  You can think of this as an alternative way to use xon/xoff by having XOFF automatic between packets.
 ATF3 : Similar to ATF2 except that the default is XOFF, and, in command mode, a XON code from the user will immediately trigger either an empty packet response [ 0 0 0 ], or a real packet if one is available.  After this, as in ATF2, XOFF is automatically set.
+ATF4 : Turns off flow control for command mode
 
 ATQ0 : Turns off quiet mode (Sends response codes)
 ATQ1 : Turns on quiet mode (Stops sending response codes)
