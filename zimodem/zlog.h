@@ -14,17 +14,28 @@
    limitations under the License.
 */
 
-static int logFileCtrR=0;
-static int logFileCtrW=0;
+enum LogMode
+{
+  NADA=0,
+  SocketIn=1,
+  SocketOut=2,
+  SerialIn=3,
+  SerialOut=4
+};
+
 static unsigned long expectedSerialTime = 1000;
-static unsigned long lastSerialWrite = millis();
-static unsigned long lastSerialRead = millis();
-static unsigned long streamStartTime = millis();
+
 static bool logFileOpen = false;
 static File logFile; 
 
-static void logSerialOut(uint8_t c);
-static void logSocketOut(uint8_t c);
+static void logSerialOut(const uint8_t c);
+static void logSocketOut(const uint8_t c);
+static void logSerialIn(const uint8_t c);
+static void logSocketIn(const uint8_t c);
+static void logPrint(const char* msg);
+static void logPrintln(const char* msg);
+static void logPrintf(const char* format, ...);
+static void logPrintfln(const char* format, ...);
 static char *TOHEX(long a);
 static char *TOHEX(int a);
 static char *TOHEX(unsigned int a);

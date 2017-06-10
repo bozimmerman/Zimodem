@@ -27,7 +27,6 @@ void ZStream::switchTo(WiFiClientNode *conn)
   expectedSerialTime = (1000 / (baudRate / 8))+1;
   if(expectedSerialTime < 1)
     expectedSerialTime = 1;
-  streamStartTime = 0;
   checkBaudChange();
 }
 
@@ -64,6 +63,7 @@ void ZStream::serialIncoming()
   while(--serialAvailable >= 0)
   {
     uint8_t c=Serial.read();
+    logSerialIn(c);
     if((c==commandMode.EC)
     &&((plussesInARow>0)||((millis()-lastNonPlusTimeMs)>800)))
       plussesInARow++;
@@ -113,76 +113,20 @@ void ZStream::switchBackToCommandMode(bool logout)
 
 void ZStream::socketWrite(uint8_t c)
 {
-  if(!logFileOpen)
+  if(current->isConnected())
   {
-    if(current->isConnected())
-      current->write(c);
+    current->write(c);
+    logSocketOut(c);
+    current->flush(); // rendered safe by available check
   }
-  else
-  {
-    if(streamStartTime == 0)
-      streamStartTime = millis();
-
-    if(current->isConnected())
-      current->write(c);
-    if((logFileCtrW > 0)
-    ||(++logFileCtrR > DBG_BYT_CTR)
-    ||((millis()-lastSerialRead)>expectedSerialTime))
-    {
-      logFileCtrR=1;
-      logFileCtrW=0;
-      logFile.println("");
-      logFile.printf("%s Ser: ",TOHEX(millis()-streamStartTime));
-    }
-    lastSerialRead=millis();
-    /*if((c>=32)&&(c<=127))
-    {
-      logFile.print('_');
-      logFile.print((char)c);
-    }
-    else*/
-      logFile.print(TOHEX(c));
-    logFile.print(" ");
-  }
-  current->flush(); // rendered safe by available check
   //delay(0);
   //yield();
 }
 
 void ZStream::serialWrite(uint8_t c)
 {
-  if(!logFileOpen)
-  {
-    Serial.write(c);
-  }
-  else
-  {
-    if(streamStartTime == 0)
-      streamStartTime = millis();
-  
-    Serial.write(c);
-    if(logFileOpen)
-    {
-      if((logFileCtrR > 0)
-      ||(++logFileCtrW > DBG_BYT_CTR)
-      ||((millis()-lastSerialWrite)>expectedSerialTime))
-      {
-        logFileCtrR=0;
-        logFileCtrW=1;
-        logFile.println("");
-        logFile.printf("%s Soc: ",TOHEX(millis()-streamStartTime));
-      }
-      lastSerialWrite=millis();
-      /*if((c>=32)&&(c<=127))
-      {
-        logFile.print('_');
-        logFile.print((char)c);
-      }
-      else*/
-        logFile.print(TOHEX(c));
-      logFile.print(" ");
-    }
-  }
+  Serial.write(c);
+  logSerialOut(c);
   if(commandMode.delayMs > 0)
     delay(commandMode.delayMs);
 }

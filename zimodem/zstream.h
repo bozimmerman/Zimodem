@@ -24,13 +24,6 @@ class ZStream : public ZMode
     bool XON=true;
     long nextAlarm = millis() + 5000;
     
-    int logFileCtrW=0;
-    int logFileCtrR=0;
-    unsigned long lastSerialRead = millis();
-    unsigned long lastSerialWrite = millis();
-    unsigned long streamStartTime = millis();
-    unsigned long expectedSerialTime = 1000;
-
     void switchBackToCommandMode(bool logout);
     void socketWrite(uint8_t c);
     void serialWrite(uint8_t c);

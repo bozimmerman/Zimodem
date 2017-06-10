@@ -17,6 +17,11 @@
 static char HD[3];
 static char HDL[9];
 
+static long logStartTime = millis();
+static long lastLogTime = millis();
+static long logCurCount = 0;
+static LogMode logMode = NADA;
+
 static char *TOHEX(uint8_t a)
 {
   HD[0] = "0123456789ABCDEF"[(a >> 4) & 0x0f];
@@ -63,58 +68,120 @@ static char *TOHEX(long a)
   return TOHEX((unsigned long)a);
 }
 
-static void logSerialOut(uint8_t c)
+static void logInternalOut(const LogMode m, const uint8_t c)
 {
   if(logFileOpen)
   {
-    if(streamStartTime == 0)
-      streamStartTime = millis();
-      
-    if((logFileCtrR > 0)
-    ||(++logFileCtrW > DBG_BYT_CTR)
-    ||((millis()-lastSerialWrite)>expectedSerialTime))
+    if((m != logMode)
+    ||(++logCurCount > DBG_BYT_CTR)
+    ||((millis()-lastLogTime)>expectedSerialTime))
     {
-      logFileCtrR=0;
-      logFileCtrW=1;
+      logMode = m;
       logFile.println("");
-      logFile.printf("%s Soc: ",TOHEX(millis()-streamStartTime));
+      switch(m)
+      {
+      case NADA:
+        break;
+      case SocketIn:
+        logFile.printf("%s SocI: ",TOHEX(millis()-logStartTime));
+        break;
+      case SocketOut:
+        logFile.printf("%s SocO: ",TOHEX(millis()-logStartTime));
+        break;
+      case SerialIn:
+        logFile.printf("%s SerI: ",TOHEX(millis()-logStartTime));
+        break;
+      case SerialOut:
+        logFile.printf("%s SerO: ",TOHEX(millis()-logStartTime));
+        break;
+      }
     }
-    lastSerialWrite=millis();
-    /*if((c>=32)&&(c<=127))
-    {
-      logFile.print('_');
-      logFile.print((char)c);
-    }
-    else*/
-      logFile.print(TOHEX(c));
+    lastLogTime=millis();
+    logFile.print(TOHEX(c));
     logFile.print(" ");
   }
 }
 
-static void logSocketOut(uint8_t c)
+static void logSerialOut(const uint8_t c)
+{
+  logInternalOut(SerialOut,c);
+}
+
+static void logSocketOut(const uint8_t c)
+{
+  logInternalOut(SocketOut,c);
+}
+
+static void logSerialIn(const uint8_t c)
+{
+  logInternalOut(SerialIn,c);
+}
+
+static void logSocketIn(const uint8_t c)
+{
+  logInternalOut(SocketIn,c);
+}
+
+static void logPrintfln(const char* format, ...) 
 {
   if(logFileOpen)
   {
-    if(streamStartTime == 0)
-      streamStartTime = millis();
-
-    if((logFileCtrW > 0)
-    ||(++logFileCtrR > DBG_BYT_CTR)
-    ||((millis()-lastSerialRead)>expectedSerialTime))
+    if(logMode != NADA)
     {
-      logFileCtrR=1;
-      logFileCtrW=0;
       logFile.println("");
-      logFile.printf("%s Ser: ",TOHEX(millis()-streamStartTime));
+      logMode = NADA;
     }
-    lastSerialRead=millis();
-    /*if((c>=32)&&(c<=127))
-    {
-      logFile.print('_');
-      logFile.print((char)c);
-    }
-    else*/
-      logFile.print(TOHEX(c));
-    logFile.print(" ");
+    int ret;
+    va_list arglist;
+    va_start(arglist, format);
+    vsprintf(FBUF, format, arglist);
+    logFile.println(FBUF);
+    va_end(arglist);
   }
 }
+
+static void logPrintf(const char* format, ...) 
+{
+  if(logFileOpen)
+  {
+    if(logMode != NADA)
+    {
+      logFile.println("");
+      logMode = NADA;
+    }
+    int ret;
+    va_list arglist;
+    va_start(arglist, format);
+    vsprintf(FBUF, format, arglist);
+    logFile.print(FBUF);
+    va_end(arglist);
+  }
+}
+
+static void logPrint(const char* msg)
+{
+  if(logFileOpen)
+  {
+    if(logMode != NADA)
+    {
+      logFile.println("");
+      logMode = NADA;
+    }
+    logFile.print(msg);
+  }
+}
+
+static void logPrintln(const char* msg)
+{
+  if(logFileOpen)
+  {
+    if(logMode != NADA)
+    {
+      logFile.println("");
+      logMode = NADA;
+    }
+    logFile.println(msg);
+  }
+}
+
+

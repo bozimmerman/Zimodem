@@ -40,8 +40,7 @@ void ZCommand::Serialprint(const char *expr)
 byte ZCommand::CRC8(const byte *data, byte len) 
 {
   byte crc = 0x00;
-  if(logFileOpen)
-      logFile.print("CRC8: ");
+  logPrint("CRC8: ");
   int c=0;
   while (len--) 
   {
@@ -67,8 +66,7 @@ byte ZCommand::CRC8(const byte *data, byte len)
       extract >>= 1;
     }
   }
-  if(logFileOpen)
-    logFile.printf("\r\nFinal CRC8: %s\r\n",TOHEX(crc));
+  logPrintfln("\r\nFinal CRC8: %s",TOHEX(crc));
   return crc;
 }
 
@@ -499,8 +497,7 @@ ZResult ZCommand::doConnectCommand(int vval, uint8_t *vbuf, int vlen, bool isNum
 {
   if(vlen == 0)
   {
-    if(logFileOpen)
-      logFile.printf("ConnCheck: CURRENT\r\n");
+    logPrintln("ConnCheck: CURRENT");
     if(strlen(dmodifiers)>0)
       return ZERROR;
     if(current == null)
@@ -524,11 +521,10 @@ ZResult ZCommand::doConnectCommand(int vval, uint8_t *vbuf, int vlen, bool isNum
   else
   if((vval >= 0)&&(isNumber))
   {
-    if(logFileOpen)
       if(vval == 0)
-        logFile.printf("ConnList0:\r\n");
+        logPrintln("ConnList0:\r\n");
       else
-        logFile.printf("ConnSwitchTo: %d\r\n",vval);
+        logPrintfln("ConnSwitchTo: %d",vval);
     if(strlen(dmodifiers)>0) // would be nice to allow petscii/telnet changes here, but need more flags
       return ZERROR;
     WiFiClientNode *c=conns;
@@ -577,8 +573,7 @@ ZResult ZCommand::doConnectCommand(int vval, uint8_t *vbuf, int vlen, bool isNum
   }
   else
   {
-    if(logFileOpen)
-        logFile.printf("Connnect-Start:\r\n");
+    logPrintln("Connnect-Start:");
     char *colon=strstr((char *)vbuf,":");
     int port=23;
     if(colon != null)
@@ -587,20 +582,17 @@ ZResult ZCommand::doConnectCommand(int vval, uint8_t *vbuf, int vlen, bool isNum
       port=atoi((char *)(++colon));
     }
     int flagsBitmap = makeStreamFlagsBitmap(dmodifiers);
-    if(logFileOpen)
-        logFile.printf("Connnecting: %s %d %d\r\n",(char *)vbuf,port,flagsBitmap);
+    logPrintfln("Connnecting: %s %d %d",(char *)vbuf,port,flagsBitmap);
     WiFiClientNode *c = new WiFiClientNode((char *)vbuf,port,flagsBitmap);
     if(!c->isConnected())
     {
-      if(logFileOpen)
-          logFile.printf("Connnect: FAIL\r\n");
+      logPrintln("Connnect: FAIL");
       delete c;
       return ZERROR;
     }
     else
     {
-      if(logFileOpen)
-          logFile.printf("Connnect: SUCCESS: %d\r\n",c->id);
+      logPrintfln("Connnect: SUCCESS: %d",c->id);
       current=c;
       setCharArray(&(c->delimiters),tempDelimiters);
       setCharArray(&(c->maskOuts),tempMaskOuts);
@@ -627,8 +619,6 @@ void ZCommand::headerOut(const int channel, const int sz, const int crc8)
     break;
   }
   Serialprint(hbuf);
-  if(logFileOpen)
-      logFile.printf("%sSER-OUT: %s",EOLN.c_str(),hbuf);
 }
 
 bool ZCommand::doWebGetStream(const char *hostIp, int port, const char *req, WiFiClient &c, uint32_t *responseSize)
@@ -817,9 +807,6 @@ ZResult ZCommand::doWebStream(int vval, uint8_t *vbuf, int vlen, bool isNumber, 
         }
         int mark = Serial.availableForWrite();
         int bct=0;
-        int lct=0;
-        if(logFileOpen)
-          logFile.print("SER-OUT: ");
         while(len>0)
         {
           if((!flowControl) || XON)
@@ -847,29 +834,6 @@ ZResult ZCommand::doWebStream(int vval, uint8_t *vbuf, int vlen, bool isNumber, 
                 Serial.printf("%d%s",c,EOLN.c_str());
                 break;
             }
-            if(logFileOpen)
-            {
-              switch(streamType)
-              {
-              case BTYPE_NORMAL:
-              case BTYPE_HEX:
-                logFile.printf("%s ",TOHEX((uint8_t)c));
-                if((++lct)>=39)
-                {
-                  lct=0;
-                  logFile.printf("%sSER-OUT: ",EOLN.c_str());
-                }
-                break;
-              case BTYPE_DEC:
-                logFile.printf("%d ",c);
-                if((++lct)>=39)
-                {
-                  lct=0;
-                  logFile.printf("%sSER-OUT: ",EOLN.c_str());
-                }
-                break;
-              }
-            }
             while((Serial.availableForWrite()<mark) && (!serialHalted()))
             {
               delay(1);
@@ -881,6 +845,7 @@ ZResult ZCommand::doWebStream(int vval, uint8_t *vbuf, int vlen, bool isNumber, 
           while(Serial.available()>0)
           {
             char ch=Serial.read();
+            logSerialIn(ch);
             if(ch == 3)
             {
               f.close();
@@ -917,8 +882,6 @@ ZResult ZCommand::doWebStream(int vval, uint8_t *vbuf, int vlen, bool isNumber, 
         }
         if(bct > 0)
           Serial.print(EOLN);
-        if(logFileOpen && (lct > 0))
-          logFile.println("");
         f.close();
       }
     }
@@ -1041,6 +1004,11 @@ ZResult ZCommand::doTransmitCommand(int vval, uint8_t *vbuf, int vlen, bool isNu
   {
     uint8_t buf[vval];
     int recvd = Serial.readBytes(buf,vval);
+    if(logFileOpen)
+    {
+      for(int i=0;i<recvd;i++)
+        logSerialIn(buf[i]);
+    }
     if(recvd != vval)
       return ZERROR;
     if((crc8 != -1)&&(CRC8(buf,recvd)!=crc8))
@@ -1051,6 +1019,11 @@ ZResult ZCommand::doTransmitCommand(int vval, uint8_t *vbuf, int vlen, bool isNu
         buf[i]=petToAsc(buf[i]);
     }
     current->write(buf,recvd);
+    if(logFileOpen)
+    {
+      for(int i=0;i<recvd;i++)
+        logSocketOut(buf[i]);
+    }
   }
   else
   {
@@ -1066,6 +1039,13 @@ ZResult ZCommand::doTransmitCommand(int vval, uint8_t *vbuf, int vlen, bool isNu
     current->write(buf,vlen);
     current->write(13); // special case
     current->write(10); // special case
+    if(logFileOpen)
+    {
+      for(int i=0;i<vlen;i++)
+        logSocketOut(buf[i]);
+      logSocketOut(13);
+      logSocketOut(10);
+    }
   }
   return ZOK;
 }
@@ -1402,18 +1382,10 @@ ZResult ZCommand::doEOLNCommand(int vval, uint8_t *vbuf, int vlen, bool isNumber
 bool ZCommand::readSerialStream()
 {
   bool crReceived=false;
-  int logCharNum=0;
   while(Serial.available()>0)
   {
     uint8_t c=Serial.read();
-    if(logFileOpen)
-    {
-      if(logCharNum==0)
-        logFile.print("SER-IN: ");
-      logFile.print(TOHEX(c));
-      logFile.print(" ");
-      logCharNum++;
-    }
+    logSerialIn(c);
     if((c==CR[0])||(c==LF[0]))
     {
       if(eon == 0)
@@ -1467,8 +1439,6 @@ bool ZCommand::readSerialStream()
       }
     }
   }
-  if(logFileOpen && (logCharNum>0))
-    logFile.println("");
   return crReceived;
 }
 
@@ -1496,11 +1466,10 @@ ZResult ZCommand::doSerialCommand()
 
   if(logFileOpen)
   {
-      char cmdbuf[len+1];
-      memcpy(cmdbuf,sbuf,len);
-      cmdbuf[len]=0;
-      logFile.print("Command: ");
-      logFile.println(cmdbuf);
+    char cmdbuf[len+1];
+    memcpy(cmdbuf,sbuf,len);
+    cmdbuf[len]=0;
+    logPrintfln("Command: %s",cmdbuf);
   }
 
   if((index<len-1)
@@ -1606,13 +1575,10 @@ ZResult ZCommand::doSerialCommand()
         }
       }
       
-      if(logFileOpen)
-      {
-        if(vlen > 0)
-          logFile.printf("Proc: %c %lu '%s'\r\n",lastCmd,vval,vbuf);
-        else
-          logFile.printf("Proc: %c %lu ''\r\n",lastCmd,vval);
-      }
+      if(vlen > 0)
+        logPrintfln("Proc: %c %lu '%s'",lastCmd,vval,vbuf);
+      else
+        logPrintfln("Proc: %c %lu ''",lastCmd,vval);
 
       /*
        * We have cmd and args, time to DO!
@@ -2034,8 +2000,7 @@ ZResult ZCommand::doSerialCommand()
       case ZOK:
         if(index >= len)
         {
-          if(logFileOpen)
-              logFile.printf("Response: OK\r\n");
+          logPrintln("Response: OK");
           if(numericResponses)
             Serial.print("0");
           else
@@ -2044,8 +2009,7 @@ ZResult ZCommand::doSerialCommand()
         }
         break;
       case ZERROR:
-        if(logFileOpen)
-            logFile.printf("Response: ERROR\r\n");
+        logPrintln("Response: ERROR");
         if(numericResponses)
           Serial.print("4");
         else
@@ -2054,8 +2018,7 @@ ZResult ZCommand::doSerialCommand()
         // on error, cut and run
         return ZERROR;
       case ZCONNECT:
-        if(logFileOpen)
-            logFile.printf("Response: Connected\r\n");
+        logPrintln("Response: Connected!");
         sendConnectionNotice((current == null) ? baudRate : current->id);
         break;
       default:
@@ -2146,10 +2109,7 @@ void ZCommand::reSendLastPacket(WiFiClientNode *conn)
     uint8_t crc=CRC8(buf,bufLen);
     headerOut(conn->id,bufLen,(int)crc);
     int bct=0;
-    int lct=0;
     int i=0;
-    if(logFileOpen)
-      logFile.print("SER-OUT: ");
     while(i < bufLen)
     {
       uint8_t c=buf[i++];
@@ -2170,29 +2130,6 @@ void ZCommand::reSendLastPacket(WiFiClientNode *conn)
           Serial.printf("%d%s",c,EOLN.c_str());
           break;
       }
-      if(logFileOpen)
-      {
-        switch(binType)
-        {
-        case BTYPE_NORMAL:
-        case BTYPE_HEX:
-          logFile.printf("%s ",TOHEX(c));
-          if((++lct)>=39)
-          {
-            lct=0;
-            logFile.printf("%sSER-OUT: ",EOLN.c_str());
-          }
-          break;
-        case BTYPE_DEC:
-          logFile.printf("%d ",c);
-          if((++lct)>=39)
-          {
-            lct=0;
-            logFile.printf("%sSER-OUT: ",EOLN.c_str());
-          }
-          break;
-        }
-      }
       if(delayMs > 0)
         delay(delayMs);
       while((Serial.availableForWrite()<10) && (!serialHalted()))
@@ -2204,8 +2141,6 @@ void ZCommand::reSendLastPacket(WiFiClientNode *conn)
     }
     if(bct > 0)
       Serial.print(EOLN);
-    if(logFileOpen && (lct > 0))
-      logFile.println("");
     free(buf);
   }
 }
