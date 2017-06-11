@@ -864,7 +864,20 @@ ZResult ZCommand::doUpdateFirmware(int vval, uint8_t *vbuf, int vlen, bool isNum
   int bufSize = 254;
   if((!doWebGetBytes("www.zimmers.net", 80, "/otherprojs/c64net-latest-version.txt", buf, &bufSize))||(bufSize<=0))
     return ZERROR;
-    
+
+  if((!isNumber)&&(vlen>2))
+  {
+    if(vbuf[0]=='=')
+    {
+      for(int i=1;i<vlen;i++)
+        buf[i-1]=vbuf[i];
+      buf[vlen-1]=0;
+      bufSize=vlen-1;
+      isNumber=true;
+      vval=6502;
+    }
+  }
+  
   while((bufSize>0)
   &&((buf[bufSize-1]==10)||(buf[bufSize-1]==13)))
     bufSize--;

@@ -147,6 +147,7 @@ AT&On : n is 1 to turn on internal serial-reception log, n is 0 to turn off or v
 AT&H  : Shows a help file from the web, or brief help otherwise.
 AT&U  : Checks the firmware home page to see if a new version is available.
 (BETA) AT&U6502 : Will update the firmware from the home page on the web.
+(BETA) AT&U=x : Will update the firmware from the web to custom version x.
 AT&Pn : Where n > 0, all command mode input and output will be translated to/from PETSCII before internal processing.  This will not affect received packet data, or the stream mode.
 
 

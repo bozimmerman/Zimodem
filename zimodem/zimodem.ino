@@ -16,7 +16,7 @@
 
 #define TCP_SND_BUF                     4 * TCP_MSS
 #define null 0
-#define ZIMODEM_VERSION "2.65"
+#define ZIMODEM_VERSION "2.7"
 #define PIN_DCD 2
 #define PIN_CTS 0
 
@@ -82,11 +82,13 @@ static void checkBaudChange()
   switch(baudState)
   {
     case BS_SWITCH_TEMP_NEXT:
+      flushSerial(); // blocking, but very very necessary
       delay(500); // give the client half a sec to catch up
       Serial.begin(tempBaud, serialConfig);  //Change baud rate
       baudState = BS_SWITCHED_TEMP;
       break;
     case BS_SWITCH_NORMAL_NEXT:
+      flushSerial(); // blocking, but very very necessary
       delay(500); // give the client half a sec to catch up
       Serial.begin(baudRate, serialConfig);  //Change baud rate
       baudState = BS_NORMAL;
