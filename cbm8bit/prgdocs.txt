@@ -13,16 +13,63 @@ The disk also includes the source assembly code for the pml64, pml128, up9600 bi
 Below you will find information on the application programs included on this disk, as well as instructions on using the PML64, PML128, and UP9600 machine language libraries from BASIC or machine language.
 
 
+BUT I DON'T HAVE THE DISK?!
+*************************************
+Bootstrap software downloader for Commodore 64 with c64wifi modem with firmware rev 2.4 and better.  Before you type in and run this program, you should make sure your modem is connected to a wifi hotspot.  You can use any C64/C128 terminal program, set to 1200 baud, in ASCII mode.  From inside the terminal mode of your program, you can type ATW to get a list of local wifi hotspots.  You can then use ATW"<hotspot name/ssid>,<password>" to connect.  You should then enter AT&W to save the new settings.
+
+Once your modem is connected to wifi, type in the following program and save it to a disk:
+
+10 open5,2,0,chr$(8):poke665,73:poke666,3
+15 a3$=chr$(3):print#5,a3$;
+20 input"enter filename";f$:iff$=""thenstop
+30 input"enter drive";dv:ifdv<8thenstop
+35 print#5,a3$;
+40 get#5,a$:ifa$<>""then40
+50 print#5,"atze0r0&p1f1s45=2s44=80"
+60 input#5,a$:ifa$<>"OK"then60
+70 print#5,"at&g";chr$(34);"www.zimmers.net:80/otherprojs/";f$;chr$(34)
+75 print#5,chr$(19);
+80 input#5,b$:ifb$="["then100
+90 printb$:print"reset computer and check wifi":close5:stop
+100 input#5,ch,ln,c8,b$:ifb$<>"]"thenprint#5,a3$:goto90
+110 n8=0:open8,dv,8,"@0:"+f$+",p,w":print"reading...";
+120 m=49152:ni=i+(ln/20):print#5,chr$(17);:fori=1toln
+130 input#5,a:n8=n8+a:ifn8>255thenn8=n8-256
+140 pokem,a:m=m+1:ifm>53240thengosub200:m=49152
+145 ifi>nithenni=i+(ln/20):printint(i/ln*100);"%",
+150 next:print#5,a3$;"atz":ifn8<>c8thenprint"checksum fail. try again."
+160 print"100 %",:gosub200:close8:close5:print"done":poke49152,0:poke51200,0
+199 end
+200 print#5,chr$(19);:print:print"writing...":ti$="000000":tt=ti+200
+205 ifti<ttthen205
+210 forx=49152tom-1:print#8,chr$(peek(x));:nextx
+220 ifi<lnthenprint"reading...";:tt=ti+200
+225 ifti<ttthen225
+230 print#5,chr$(17);:return
+
+The program above should be run 3 times.  Once with each of these filenames:
+1. pml64.bin
+2. up9600.bin
+3. ftp64-128
+
+Next, load and run ftp64-128 and connect to ftp.zimmers.net anonymously.  Once you are logged in, enter the following commands:
+1. cd pub/projects/c64wifi
+2. ls
+3. get pml128.bin,p
+4. get telnet64-128,p
+5. ... repeat for all the files you saw in step 2.
+6. ... repeat step 2 if you forget which files remain
+
 CONFIGURE64-128
 *************************************
 
-The Configure program is for setting up or altering the WiFi Hotspot, also known as a Wireless Internet Router, that your modem uses to communicate with the internet.  It is written in BASIC, but uses the PML64.BIN or PML128.BIN libraries for speed (see below).  This program requires that your C64Net WiFi Modem be configured for 1200 baud on reset, which is the default factory configuration.
+The Configure program is for setting up or altering the WiFi Hotspot, also known as a Wireless Internet Router, that your modem uses to communicate with the internet.  It also allows you to modify the modems built in phone book.  It is written in BASIC, but uses the PML64.BIN or PML128.BIN libraries for speed (see below).  This program requires that your C64Net WiFi Modem be configured for 1200 baud on reset, which is the default factory configuration.
 
 When the program runs, it will initialize the C64Net modem with certain commands.  If you receive an error at this point, or if the program hangs for longer than a minute, try turning your computer off and on again to clear memory and reset the modem, and then load and run it again.
 
-After initialization, the program will scan the area for WiFi Hotspots and provide you a list to select from.  If you do not see your own wireless router listed, or do not know the name, consult your ISP's internet equipment documentation.  After you have selected the appropriate hotspot, you will be prompted for the password.  After the password is entered, the program will test the settings and, if successful, save the settings to the flash memory in your modem  it will be remembered even after the computer is turned off.
+After initialization, the program will scan the area for WiFi Hotspots and provide you a list to select from.  If you do not see your own wireless router listed, or do not know the name, consult your ISP's internet equipment documentation.  After you have selected the appropriate hotspot, you will be prompted for the password.  After the password is entered, the program will test the settings and, if successful, save the settings to the flash memory in your modem  it will be remembered even after the computer is turned off.  When wifi configuration is complete, and the modem passes the connection test, you can modify the modems internal phone book. 
 
-When wifi configuration is complete, you can use the X command to quit.
+The modems internal phone book maintains a list of numbers and associated internet addresses and configurations.  These numbers can then be used by third party software to 'dial' to those sites using the modems ATD command.  A phone number, in this case, is any large number, preferably 7 digits or more, that is assigned to a particuler internet host and port.  Each host can then be configured for ASCII-PETSCII translation, TELNET code translation, XON/XOFF flow control, and/or local ECHO (half vs full duplex).  Every modification you make is saved to the modem and available after reboots.  This system can be used to connect to the online Q-Link service online using the existing Q-Link software.
 
 
 FTP64-128
@@ -100,8 +147,6 @@ Exit the TELNET program
 
 When you have connected to a server, you will be in ANSI terminal mode.  You can exit the server and disconnect at any time by hitting the F1 key on your C64, or the ESC key on your C128.  When connected to a server, the modem will translate as much ASCII/ANSI into mostly viewable PETSCII for your Commodore computer.  However, you will notice that underscores look like back-arrows.  ANSI colors will be translated to Commodore PETSCII colors wherever possible.  Your own keystrokes will also be translated to ASCII/ANSI as you type.  
 
-This version of the TELNET program does not support any flow control, or scrollback, which is why the baud rate is kept at 1200, to provide a readable pace.
-
 CBMBBS64-128
 *************************************
 
@@ -128,7 +173,21 @@ Exit the CBMBBS program
 
 When you have connected to a server, you will be in CBM PETSCII/Graphics mode.  You can exit the server and disconnect at any time by hitting the F1 key on your C64, or the ESC key on your C128.  
 
-This version of the CBM BBS program does not support any flow control, or scrollback, which is why the baud rate is kept at 1200, to provide a readable pace.  It also does not yet support file transfers, but that will come eventually.
+WEATHER
+*************************************
+Weather is a two player online game originally written for the Commodore PET.  This program requires that both players have C64Net WiFi Modems configured for 1200 baud on reset, which is the default factory configuration. 
+
+When running the program, the system will ask for one player to act as the host, and the other as the client. The host computer then waits for a connection from the client computer, after which the game can commence.  The host player must be familiar with opening firewall ports in order to allow the client to connect to their computer.
+
+In the game, both players compete against each other in this artillary like contest that involves attacking each others houses with the forces of nature.  
+
+
+COMETMODE
+*************************************
+The COMET64 was a user-port based wireless internet modem similar to the C64Net WiFi modem.   The modem would, when turned on, connect to http://www.commodoreserver.com/ where, if you had an account, you could upload disks.  If you loaded the COMET64 driver onto your Commodore 64, you could then access the disks on commodoreserver.com using normal LOAD commands on device 2 (instead of the normal 8 or 9, etc).
+
+The COMETMODE program will emulate the COMET64 by connecting to commodoreserver.com, switching the modem to 2400 baud, and finally loading and installing the official 2400 baud COMET64 driver so that LOAD"$",2 commands will work. This program requires that your C64Net WiFi Modem be configured for 1200 baud on reset, which is the default factory configuration. If the drive becomes inactive, locks up, or you otherwise need to run the COMETMODE program again, make sure you hit the reset button on your modem to put it back into default configuration.
+
 
 PML64.BIN and PML128.BIN
 *************************************
@@ -239,8 +298,6 @@ Once initialized, the normal BASIC commands for using the modem will be modified
 Machine language KERNAL routines are likewise wedged to support the UP9600 baud rates.  OPEN, CLOSE, CHKIN, CKOUT, CHRIN, GETIN, and CHROUT are all supported.  As with BASIC, the wedge only operates when the OPEN command has been issued with a baud rate code of 14.  Obviously, the modem must also already be set to 9600 baud for any of this to work.
 
 It should be noted that, due to the way the driver works, IEC/Disk access cannot occur at the exact same time as the modem is receiving data.  The driver tries to prevent disk issues by disabling itself whenever an IEC/Disk channel is selected, but this should be kept in mind in your application development.
-
-It should also be noted that there is no built-in flow control for ANY of this. If the modem is bombarded by more than 255 bytes before any can be read off the buffer, you will lose data.
 
 Below is a slightly more detailed explanation of the routines in UP9600.BIN.  Throughout this section, I will refer to the variable UM to refer to the starting address of the library, which is 51200 or $C800.  So, if you see UM+3, it means 51203.
 
