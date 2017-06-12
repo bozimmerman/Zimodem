@@ -46,7 +46,6 @@
         <FileName>x-xfer64.asm</FileName>
         <FileName>cbmbbs64-128.bas</FileName>
         <FileName>configure64-128.bas</FileName>
-        <FileName>ftp64-128.bas</FileName>
         <FileName>irc64-128.bas</FileName>
         <FileName>telnet64-128.bas</FileName>
         <FileName>wget64-128.bas</FileName>
@@ -79,17 +78,6 @@
         </SourceFile>
         <SourceFile>
             <Name>configure64-128.bas</Name>
-            <PrgName />
-            <FileType>1</FileType>
-            <IncludeInBuild>True</IncludeInBuild>
-            <Regions />
-            <Breakpoints />
-            <Bookmarks />
-            <Topmost>False</Topmost>
-            <FileOpen>True</FileOpen>
-        </SourceFile>
-        <SourceFile>
-            <Name>ftp64-128.bas</Name>
             <PrgName />
             <FileType>1</FileType>
             <IncludeInBuild>True</IncludeInBuild>

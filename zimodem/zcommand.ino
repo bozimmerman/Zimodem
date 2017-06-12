@@ -780,7 +780,10 @@ ZResult ZCommand::doWebStream(int vval, uint8_t *vbuf, int vlen, bool isNumber, 
         File f = SPIFFS.open(filename, "r");
         int len = f.size();
         if(!cache)
+        {
           headerOut(0,len,chk8);
+          serial.flush(); // stupid important because otherwise apps that go xoff miss the header info
+        }
         bool flowControl=!cache;
         BinType streamType = cache?BTYPE_NORMAL:binType;
         int bct=0;
@@ -834,13 +837,13 @@ ZResult ZCommand::doWebStream(int vval, uint8_t *vbuf, int vlen, bool isNumber, 
               serialOutDeque();
               yield();
             }
+            if(serial.drainForXonXoff()==3)
+            {
+              serial.setXON(true);
+              f.close();
+              return ZOK;
+            }
             delay(1);
-          }
-          if(serial.drainForXonXoff()==3)
-          {
-            serial.setXON(true);
-            f.close();
-            return ZOK;
           }
           yield();
         }
