@@ -283,14 +283,14 @@ NMIBYTRY
         STA (RECPTR),Y
         INY
         STY WRRPTR
-        ; SEC;;START BUFFER FULL CHK
-        ; TYA
-        ; SBC RDRPTR
-        ; CMP #200
-        ; BCC NMIBYTR2
-        ; LDA $DD01;; MORE THAN 200 BYTES IN THE RECEIVE BUFFER
-        ; AND #$FD;; THEN DISABLE RTS
-        ; STA $DD01
+        SEC;;START BUFFER FULL CHK
+        TYA
+        SBC RDRPTR
+        CMP #200
+        BCC NMIBYTR2
+        LDA $DD01;; MORE THAN 200 BYTES IN THE RECEIVE BUFFER
+        AND #$FD;; THEN DISABLE RTS
+        STA $DD01
 NMIBYTR2
         PLA
         TAY
@@ -350,15 +350,18 @@ RSIN
         LDA (RECPTR),Y
         INY
         STY RDRPTR
-        ; PHA;;BEGIN BUFFER EMPTYING CHK
-        ; TYA
-        ; SEC
-        ; SBC WRRPTR
-        ; CMP #206;;256-50
-        ; BCC RSIN2
-        ; LDA #2:ORA $DD01:STA $DD01;; ENABLE RTS
+        PHA;;BEGIN BUFFER EMPTYING CHK
+        TYA
+        SEC
+        SBC WRRPTR
+        CMP #206;;256-50
+        BCC RSIN2
+        LDA #2
+        ORA $DD01
+        STA $DD01;; ENABLE RTS
         CLC
-        ; RSIN2 PLA
+RSIN2
+        PLA
 RSIN3
         RTS
         ;  ******************************
@@ -517,13 +520,13 @@ ENABL2
         LDA #$FF
         STA $DD01; PB0-7 DEFAULT TO 1
         STA $DC0C; SP1 DEFAULTS TO 1
-        ; SEC
-        ; LDA WRRPTR
-        ; SBC RDRPTR
-        ; CMP #200
-        ; BCS ENABLE2;; DON'T ENABLE RTS IF REC-BUFFER IS FULL
-        ; LDA #2;; ENABLE RTS
-        ; STA $DD03;; (THE RTS LINE IS THE ONLY OUTPUT)
+        SEC
+        LDA WRRPTR
+        SBC RDRPTR
+        CMP #200
+        BCS ENABLE2;; DON'T ENABLE RTS IF REC-BUFFER IS FULL
+        LDA #2;; ENABLE RTS
+        STA $DD03;; (THE RTS LINE IS THE ONLY OUTPUT)
 ENABLE2
         CLI
         PLA

@@ -44,12 +44,13 @@
         <FileName>up9600.asm</FileName>
         <FileName>x-xfer128.asm</FileName>
         <FileName>x-xfer64.asm</FileName>
-        <FileName>cbmbbs64-128.bas</FileName>
         <FileName>configure64-128.bas</FileName>
+        <FileName>cometmode.bas</FileName>
+        <FileName>cbmbbs64-128.bas</FileName>
+        <FileName>ftp64-128.bas</FileName>
         <FileName>irc64-128.bas</FileName>
         <FileName>telnet64-128.bas</FileName>
         <FileName>wget64-128.bas</FileName>
-        <FileName>cometmode.bas</FileName>
     </BuildList>
     <DetermineBuildOrder>0</DetermineBuildOrder>
     <PaddingByte>0</PaddingByte>
@@ -63,7 +64,7 @@
             <Breakpoints />
             <Bookmarks />
             <Topmost>False</Topmost>
-            <FileOpen>False</FileOpen>
+            <FileOpen>True</FileOpen>
         </SourceFile>
         <SourceFile>
             <Name>cometmode.bas</Name>
@@ -78,6 +79,17 @@
         </SourceFile>
         <SourceFile>
             <Name>configure64-128.bas</Name>
+            <PrgName />
+            <FileType>1</FileType>
+            <IncludeInBuild>True</IncludeInBuild>
+            <Regions />
+            <Breakpoints />
+            <Bookmarks />
+            <Topmost>False</Topmost>
+            <FileOpen>False</FileOpen>
+        </SourceFile>
+        <SourceFile>
+            <Name>ftp64-128.bas</Name>
             <PrgName />
             <FileType>1</FileType>
             <IncludeInBuild>True</IncludeInBuild>
@@ -150,8 +162,8 @@
             <Regions />
             <Breakpoints />
             <Bookmarks />
-            <Topmost>False</Topmost>
-            <FileOpen>False</FileOpen>
+            <Topmost>True</Topmost>
+            <FileOpen>True</FileOpen>
         </SourceFile>
         <SourceFile>
             <Name>up9600.asm</Name>
@@ -162,7 +174,7 @@
             <Breakpoints />
             <Bookmarks />
             <Topmost>False</Topmost>
-            <FileOpen>False</FileOpen>
+            <FileOpen>True</FileOpen>
         </SourceFile>
         <SourceFile>
             <Name>weather.bas</Name>
@@ -173,7 +185,7 @@
             <Breakpoints />
             <Bookmarks />
             <Topmost>False</Topmost>
-            <FileOpen>True</FileOpen>
+            <FileOpen>False</FileOpen>
         </SourceFile>
         <SourceFile>
             <Name>wget64-128.bas</Name>
