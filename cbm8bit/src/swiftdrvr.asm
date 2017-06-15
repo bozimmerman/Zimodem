@@ -87,7 +87,7 @@ DOOP2
         ; DA #>RECVBUFF:;TA RBUFF+1
         ; INTERNAL CLOCK, 8N1, BAUD BELOW
         LDY #$00
-         LDA ($BB),Y
+        LDA ($BB),Y
         ORA #%00010000
         STA CONTROL
         ; NO PAR, NO ECHO, NO XMIT INT, YES RECV INT

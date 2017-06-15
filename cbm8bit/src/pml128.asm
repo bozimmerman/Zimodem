@@ -14,29 +14,29 @@
         NOP
         NOP
 NUMX
-        ; .BYTE 0
+        BYTE 0
 CRXFLG
-        ; .BYTE 0
+        BYTE 0
 PEE0
-        ; .BYTE 0 0
+        BYTE 0,0
 PEE1
-        ; .BYTE 0 0
+        BYTE 0,0
 PEE2
-        ; .BYTE 0 0
+        BYTE 0,0
 CRC8
-        ; .BYTE 0
+        BYTE 0
 CRCX
-        ; .BYTE 0
+        BYTE 0
 CRCE
-        ; .BYTE 0
+        BYTE 0
 CRCS
-        ; .BYTE 0
+        BYTE 0
 TIMEOUT
-        ; .BYTE 0 0
+        BYTE 0,0
 BUFAPX
-        ; .BYTE 5
+        BYTE 5
 DEBUG
-        ; .BYTE 0 0
+        BYTE 0,0
 SETPSTR
         LDA $2F
         STA $FB
@@ -426,14 +426,14 @@ BUFAP1
         BCC BUFALP
         JMP BUF1DUN
 PBACK
-        ; .BYTE 0 0
+        BYTE 0,0
 BUFTMR
-        ; .BYTE 0
+        BYTE 0
 BUF1DX
-        ; .BYTE 0
+        BYTE 0
 BUFX
-        ; .BYTE 0 0
+        BYTE 0,0
 BUF1
-        ; .BYTE 0
+        BYTE 0
 PRINT
         NOP; :F$="PML128.BAS":OPEN1,8,15,"S0:PML128*":SAVEF$,8:VERIFYF$,8
