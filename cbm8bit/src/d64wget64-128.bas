@@ -159,10 +159,10 @@
 2240 IFCL=0THENPRINT"{reverse on}{pink}Headers complete. No content. Done.{reverse off}{light blue}":END
 2250 PRINT"{reverse on}{light green}Headers complete."
 2260 PRINT"{reverse on}Receiving"+STR$(CL)+" bytes{reverse off}{light blue}"
-2270 OPEN1,UN,15,"i0:":OPEN3,UN,3,"#":T=0:S=0:OS=1
+2270 OPEN1,UN,15,"i0:":OPEN3,UN,3,"#":T=1:S=0:OS=1
 2290 REM
 2300 PRINT#1,"b-p";3;0:TB=0:BR=256
-2305 PRINT"               {left*15}"+STR$(T)+", "+STR$(S)
+2305 PRINT"               {left*15}"+STR$(T)+","+STR$(S)
 2310 IFOS>1ANDOS<=LEN(P$)THENPRINT#3,MID$(P$,OS);:BR=BR-(LEN(P$)-OS+1)
 2320 GOSUB930:IFP0<>PORP1=0ORP0=0THEN2320
 2330 IFP1<BRTHENPRINT#3,P$;:BR=BR-P1:OS=1:GOTO2320

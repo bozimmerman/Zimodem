@@ -537,10 +537,10 @@ ENABLE2
         RTS
         ;  TABLE OF TIMER VALUES FOR PAL AND NTSC VERSION
 ILOTAB
-        ; .BYTE 149 37
+        BYTE 149,37
         ; 
 IHITAB
-        ; .BYTE 66 64
+        BYTE 66,64
         ;  *******************************************************
         ;  DISABLE SERIAL INTERFACE
 DISABLE
