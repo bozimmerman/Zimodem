@@ -48,7 +48,7 @@ ATI4 : Shows only the firmware current version
 ATA  : If a server listener has generated a RING, then ATA will switch the last rung connection to Stream mode (see ATD).
 ATA/ : Repeats the previous command (no idea why...)
 
-ATAn : Causes Zimodem to create a server listening on port n.  When a connection is received, the terminal will generate 1 or more RINGs according to the ATS0 register, followed by a normal CONNECT respose. At this point, all other commands related to connections may be used normally, unless ATS41 is > 0, in which case incoming connections are automatically sent to Stream mode as per ATD or ATA. Listeners are listed along with other connections using ATC0.
+ATAn : Causes the modem to create a server listening on port n.  When a connection is received, the terminal will generate 1 or more RINGs according to the ATS0 register, followed by a normal CONNECT respose. At this point, all other commands related to connections may be used normally, unless ATS41 is > 0, in which case incoming connections are automatically sent to Stream mode as per ATD or ATA. Listeners are listed along with other connections using ATC0.
 ATAPn"[HOSTNAME]:[PORT]" : Adding a P modifier causes all incoming connection input to be translated to PETSCII
 ATATn"[HOSTNAME]:[PORT]" : Adding a T modifier causes connection streaming input to be translated per TELNET when the changed to Stream mode
 ATAEn"[HOSTNAME]:[PORT]" : Adding a E modifier causes connection terminal echo to be enabled when the changed to Stream mode

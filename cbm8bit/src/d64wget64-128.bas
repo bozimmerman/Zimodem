@@ -1,7 +1,7 @@
 !--------------------------------------------------
-!- Wednesday, June 14, 2017 1:32:36 AM
+!- Friday, June 16, 2017 11:05:13 PM
 !- Import of : 
-!- z:\unsorted\64net\d64wget64-128.prg
+!- c:\src\zimodem\cbm8bit\src\d64wget64-128.prg
 !- Commodore 64
 !--------------------------------------------------
 1 REM D64WGET4/128  1200B 1.8+
@@ -53,7 +53,7 @@
 410 IFX=1THENPRINT"Enter URL: http://";:GOSUB5000:UR$=P$:GOTO300
 420 IFX=2THENPRINT"Enter output device/unit: ";:GOSUB5000:UN=VAL(P$):GOTO300
 440 IFX<>LHTHENP$=HH$(X-LW):PRINT"Modify: ";P$:GOSUB5005:HH$(X-LW)=P$:GOTO300
-450 II=-1:FORI=0TO20:IFHH$(I)=""ANDII=0THENII=I
+450 II=-1:FORI=0TO20:IFHH$(I)=""ANDII<0THENII=I
 460 NEXT:IFII>=0THENPRINT"New Header: ";:GOSUB5000:HH$(II)=P$
 470 GOTO 300
 597 REM --------------------------------
@@ -105,7 +105,11 @@
 998 REM THE MAIN LOOP                  !
 999 REM -------------------------------
 1000 IFLEN(UR$)=0THEN300
-1010 I=0
+1010 I=0:PRINT"{down*2}The disk in drive";UN;"will be over-"
+1011 PRINT"written.  Are you sure (y/n)? ";:GOSUB5000
+1012 IFLEFT$(P$,1)="y"ORLEFT$(P$,1)="Y"THEN1020
+1013 IFLEFT$(P$,1)<>"n"ANDLEFT$(P$,1)<>"N"THEN1010
+1015 CLOSE5:STOP
 1020 IFMID$(UR$,I+1,1)<>"/"THENI=I+1:IFI<LEN(UR$)THEN1020
 1030 H1$=LEFT$(UR$,I):P1$=MID$(UR$,I+1):IFP1$=""THENP1$="/"
 1040 I=0
@@ -134,7 +138,7 @@
 1220 P$="Host: "+HO$:GOSUB600
 1225 P$="Connection: Keep-Alive":GOSUB600
 1230 P$="User-Agent: C=WGET":GOSUB600
-1235 P$="Content-length: 0":GOSUB600
+1235 P$="Content-Length: 0":GOSUB600
 1240 P$="Accept: */*":GOSUB600
 1300 FORI=0TO20
 1310 IFHH$(I)=""THEN1330
@@ -160,18 +164,17 @@
 2240 IFCL=0THENPRINT"{reverse on}{pink}Headers complete. No content. Done.{reverse off}{light blue}":END
 2250 PRINT"{reverse on}{light green}Headers complete."
 2260 PRINT"{reverse on}Receiving"+STR$(CL)+" bytes{reverse off}{light blue}"
-2270 OPEN1,UN,15,"i0:":OPEN3,UN,3,"#":T=1:S=0:OS=1
+2270 OPEN1,UN,15,"i0:":OPEN3,UN,3,"#":T=1:S=0:OS=1:INPUT#1,E,E$,E1,E2
 2290 REM
 2300 PRINT#1,"b-p";3;0:TB=0:BR=256
-2305 PRINT"                 {left*17}Writing:"+STR$(T)+","+STR$(S)
-2308 PRINT"{up}";
+2305 PRINT"               {left*15}"+STR$(T)+","+STR$(S):PRINT"{up}";
 2310 IFOS>1ANDOS<=LEN(P$)THENPRINT#3,MID$(P$,OS);:BR=BR-(LEN(P$)-OS+1)
 2320 GOSUB930:IFP0<>PORP1=0ORP0=0THEN2320
 2330 IFP1<BRTHENPRINT#3,P$;:BR=BR-P1:OS=1:GOTO2320
 2340 PRINT#3,LEFT$(P$,BR);:OS=BR+1:IFP1=BRTHENOS=1
-2350 PRINT#1,"u2";3;0;T;S:INPUT#1,E:REME$,E1,E2
-2361 IFE<66ANDS<255THENS=S+1:GOTO2300
-2362 IFE<70ANDS>0THENT=T+1:S=0:GOTO2350
+2350 PRINT#1,"u2";3;0;T;S:INPUT#1,E,E$,E1,E2:S=S+1
+2360 PRINT#1,"u1";3;0;T;S:INPUT#1,E,E$,E1,E2:IFE<66ANDS<255THEN2300
+2370 IFE<70ANDS>0THENT=T+1:S=0:GOTO2360
 2380 PRINT:PRINT"{reverse on}{light green}Done.{reverse off}{light blue}":CLOSE3:CLOSE1
 2390 PRINT#5,"ath0":PRINT#5,"atz":TT=TI+100
 2400 IFTI<TTTHEN2400

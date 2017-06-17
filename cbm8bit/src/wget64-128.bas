@@ -1,11 +1,11 @@
 !--------------------------------------------------
-!- Wednesday, June 14, 2017 1:32:36 AM
+!- Friday, June 16, 2017 11:05:06 PM
 !- Import of : 
-!- z:\unsorted\64net\wget64-128.prg
+!- c:\src\zimodem\cbm8bit\src\wget64-128.prg
 !- Commodore 64
 !--------------------------------------------------
 1 REM WGET4/128  1200B 1.8+
-2 REM UPDATED 06/13/2017 03:54P
+2 REM UPDATED 06/15/2017 03:54P
 10 POKE254,PEEK(186):IFPEEK(254)<8THENPOKE254,8
 12 IFPEEK(65532)=61THENPOKE58,254:CLR
 15 OPEN5,2,0,CHR$(8):DIMPP$(25):P$="ok":POKE186,PEEK(254):XB=1200:BA=1200
@@ -54,7 +54,7 @@
 420 IFX=2THENPRINT"Enter output device/unit: ";:GOSUB5000:UN=VAL(P$):GOTO300
 430 IFX=3THENPRINT"Enter output file: ";:GOSUB5000:OF$=P$:GOTO300
 440 IFX<>LHTHENP$=HH$(X-LW):PRINT"Modify: ";P$:GOSUB5005:HH$(X-LW)=P$:GOTO300
-450 II=-1:FORI=0TO20:IFHH$(I)=""ANDII=0THENII=I
+450 II=-1:FORI=0TO20:IFHH$(I)=""ANDII<0THENII=I
 460 NEXT:IFII>=0THENPRINT"New Header: ";:GOSUB5000:HH$(II)=P$
 470 GOTO 300
 597 REM --------------------------------

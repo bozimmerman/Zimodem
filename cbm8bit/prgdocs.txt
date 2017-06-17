@@ -4,7 +4,7 @@
 /********************************
 /////////////////////////////////
 
-This disk includes applications written to work with the C64Net WiFi modem running firmware version 2.0 or better.  If this is your first time using the modem, you should start with the configure64-128 program to get your modem connected to the internet.  You can then use the FTP, TELNET, IRC, and WGET programs whenever you wish to communicate with the internet.  The disk includes three machine language binaries (pml64.bin, pml128.bin, and up9600.bin) which are required for the several programs provided.
+This disk includes applications written to work with the C64Net WiFi modem running firmware version 2.0 or better.  If this is your first time using the modem, you should start with the configure64-128 program to get your modem connected to the internet.  You can then use the FTP, TELNET, IRC, WGET, and other programs whenever you wish to communicate with the internet.  The disk includes three machine language binaries (pml64.bin, pml128.bin, and up9600.bin) which are required for the several programs provided.
 
 You can also use any Commodore compatible terminal programs with the C64Net WiFi modem, such as Novaterm or CCGMS for the C64, or Desterm for the C128 in 128 mode.  When using one of these programs, you should consult the manual on the C64Net WiFi Firmware command mode for instructions on how to use the Hayes-like commands to connect your modem to the internet.
 
@@ -172,6 +172,17 @@ Quit:
 Exit the CBMBBS program
 
 When you have connected to a server, you will be in CBM PETSCII/Graphics mode.  You can exit the server and disconnect at any time by hitting the F1 key on your C64, or the ESC key on your C128.  
+
+D64WGET64-128
+*************************************
+
+D64WGET program is for downloading and writing full emulator disk images (such as .D64, .D71, .D81, .DNP, etc) files from a standard HTTP web address (URL) and write them to a formatted, blank diskette.  It is written in BASIC, but uses the UP9600.BIN and PML64.BIN or PML128.BIN libraries for speed (see below).
+
+This program requires that your C64Net WiFi Modem be configured for 1200 baud on reset, which is the default factory configuration.  If you run it on a breadbox Commodore 64 or 64C with UP9600 enabled on the modem (default), it will operate at 9600 baud during your session.  If you run it on a Commodore 128 in C128 mode and 80 columns, it will operate at 2400 baud during your session.  If you run it on a Commodore 128 in C64 mode, or C128 mode and 40 columns, it will remain at 1200 baud speed.
+
+When you start the program, it will initialize your C64Net modem with certain commands.  If you receive an error at this point, or if the program hangs for longer than a minute, try turning your computer off and on again to clear memory and reset the modem, and then load and run it again.
+
+After initialization, you will be given a menu where you can enter the url of the disk image file to download and write, and the unit number of the disk drive containing the formatted blank disk to write the image to.  When all options are correct, hit RETURN and answer Y to the confirmation to connect and begin the download disk disk write.  When the download completes, which could take awhile, the program will exit.
 
 WEATHER
 *************************************
