@@ -49,7 +49,8 @@ enum StreamFlag
   FLAG_PETSCII=2,
   FLAG_TELNET=4,
   FLAG_ECHO=8,
-  FLAG_XONXOFF=16
+  FLAG_XONXOFF=16,
+  FLAG_SECURE=32
 };
 
 enum BinType

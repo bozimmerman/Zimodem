@@ -76,6 +76,8 @@ static void logInternalOut(const LogMode m, const uint8_t c)
     ||(++logCurCount > DBG_BYT_CTR)
     ||((millis()-lastLogTime)>expectedSerialTime))
     {
+      logCurCount=0;
+      
       logMode = m;
       logFile.println("");
       switch(m)

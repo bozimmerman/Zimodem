@@ -16,7 +16,7 @@
 
 #define TCP_SND_BUF                     4 * TCP_MSS
 #define null 0
-#define ZIMODEM_VERSION "2.7"
+#define ZIMODEM_VERSION "2.8"
 #define PIN_DCD 2
 #define PIN_CTS 0
 

@@ -68,6 +68,8 @@ int ZCommand::makeStreamFlagsBitmap(const char *dmodifiers)
       flagsBitmap = flagsBitmap | FLAG_ECHO;
     if((strchr(dmodifiers,'x')!=null) || (strchr(dmodifiers,'X')!=null))
       flagsBitmap = flagsBitmap | FLAG_XONXOFF;
+    if((strchr(dmodifiers,'s')!=null) || (strchr(dmodifiers,'S')!=null))
+      flagsBitmap = flagsBitmap | FLAG_SECURE;
     return flagsBitmap;
 }  
 
@@ -1521,9 +1523,11 @@ ZResult ZCommand::doSerialCommand()
         if((lastCmd=='d')||(lastCmd=='D')
         || (lastCmd=='c')||(lastCmd=='C')
         || (lastCmd=='p')||(lastCmd=='P')
+        || (lastCmd=='a')||(lastCmd=='A')
         || (lastCmd=='t')||(lastCmd=='T'))
         {
-          const char *DMODIFIERS=",lbexprtw+";
+          const char *DMODIFIERS=",expts+";
+          //const char *DMODIFIERS=",lbexprtw+";
           while((index<len)&&(strchr(DMODIFIERS,lc(sbuf[index]))!=null))
             dmodifiers += lc((char)sbuf[index++]);
           while((index<len)
@@ -2419,6 +2423,8 @@ void ZCommand::acceptNewConnection()
     serv=serv->next;
   }
 }
+
+static int lastPinRead = 0;
 
 void ZCommand::loop()
 {

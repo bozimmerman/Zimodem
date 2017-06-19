@@ -36,7 +36,12 @@ WiFiClientNode::WiFiClientNode(char *hostIp, int newport, int flagsBitmap)
   strcpy(host,hostIp);
   id=++WiFiNextClientId;
   this->flagsBitmap = flagsBitmap;
-  clientPtr = new WiFiClient();
+  /*
+  if((flagsBitmap&FLAG_SECURE)==FLAG_SECURE)
+    clientPtr = new WiFiClientSecure();
+  else
+  */
+    clientPtr = new WiFiClient();
   client = *clientPtr;
   client.setNoDelay(true);
   setCharArray(&delimiters,"");
@@ -47,6 +52,20 @@ WiFiClientNode::WiFiClientNode(char *hostIp, int newport, int flagsBitmap)
   }
   else
   {
+    /*
+    if((flagsBitmap&FLAG_SECURE)==FLAG_SECURE)
+    {
+      const char* fingerprint = "CF 05 98 89 CA FF 8E D8 5E 5C E0 C2 E4 F7 E6 C3 C7 50 DD 5C";
+      if (((WiFiClientSecure *)clientPtr)->verify(fingerprint, hostIp)) 
+      {
+        Serial.println("certificate matches");
+      } 
+      else 
+      {
+        Serial.println("certificate doesn't match");
+      }
+    }
+    */
     finishConnectionLink();
   }
 }
