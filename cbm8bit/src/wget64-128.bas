@@ -1,26 +1,26 @@
 !--------------------------------------------------
-!- Tuesday, June 20, 2017 3:33:22 AM
+!- Thursday, June 22, 2017 5:06:12 PM
 !- Import of : 
-!- c:\src\zimodem\cbm8bit\src\wget64-128.prg
+!- d:\dev\zimodem\cbm8bit\src\wget64-128.prg
 !- Commodore 64
 !--------------------------------------------------
 1 REM WGET4/128  1200B 1.8+
 2 REM UPDATED 06/20/2017 02:54A
-10 POKE254,PEEK(186):POKE253,PEEK(56579):IFPEEK(254)<8THENPOKE254,8
+10 POKE254,PEEK(186):IFPEEK(254)<8THENPOKE254,8
 12 IFPEEK(65532)=61THENPOKE58,254:CLR
 15 OPEN5,2,0,CHR$(8):DIMPP$(25):P$="ok":POKE186,PEEK(254):XB=1200:BA=1200
 20 CR$=CHR$(13):PRINTCHR$(14);:SY=PEEK(65532):POKE53280,254:POKE53281,246
-30 PRINT"{light blue}":IFSY=226THENML=49152:POKE665,73:POKE666,3:UM=ML+2048:XB=9600
+30 PRINT"{light blue}":IFSY=226THENML=49152:POKE665,73-(PEEK(678)*30):UM=ML+2048:XB=9600
 40 IFSY=226ANDPEEK(ML+1)<>209THENCLOSE5:LOAD"pml64.bin",PEEK(254),1:RUN
 45 IFSY=226ANDUM>0ANDPEEK(UM)<>76THENCLOSE5:LOAD"up9600.bin",PEEK(254),1:RUN
 50 IFSY=61THENML=4864:POKE981,15:P=PEEK(215)AND128:IFP=128THENSYS30643:XB=2400
-60 IFSY=61ANDPEEK(ML)<>76THENCLOSE5:LOAD"pml128.bin",PEEK(254),1:RUN
+60 IFSY=61ANDPEEK(ML+1)<>217THENCLOSE5:LOAD"pml128.bin",PEEK(254),1:RUN
 80 IFSY=226ANDUM>0THENSYSUM:SYSUM+3:X=PEEK(789):SYSUM+9:IFX=234THENXB=1200
-100 POKE56579,PEEK(253)
+100 POKE56579,0
 101 REM
 102 REM
 110 P$="a"
-120 PRINT"{clear}{down*2}WGET v1.1":PRINT"Requires 64Net WiFi firmware 2.0+"
+120 PRINT"{clear}{down*2}WGET v1.2":PRINT"Requires 64Net WiFi firmware 2.0+"
 140 PRINT"By Bo Zimmerman (bo@zimmers.net)":PRINT:PRINT
 197 REM --------------------------------
 198 REM GET STARTED                    !
@@ -39,8 +39,8 @@
 250 DIM HH$(20):UR$="www.zimmers.net/index.html":OT$="":OF$="@0:wget-output,s"
 300 REM GET INFO
 310 PRINT:PRINT"{down}Request Parms:"
-320 PRINT " *) Type       : GET"
-321 PRINT " 1) Url        : http://";UR$
+320 PRINT " *) Type{space*7}: GET"
+321 PRINT " 1) Url{space*8}: http://";UR$
 322 PRINT " 2) Output Unit:";UN
 323 PRINT " 3) Output File: ";OF$
 329 LW=3
@@ -168,7 +168,7 @@
 2330 TL=TL+LEN(P$)
 2340 IFLEN(P$)>0THENPRINT#8,P$;
 2350 TP=INT(TL/CL*100.0)
-2360 PRINT"               {left*15}"+STR$(TL)+" ("+STR$(TP)+"% )"
+2360 PRINT"{space*15}{left*15}"+STR$(TL)+" ("+STR$(TP)+"% )"
 2370 PRINT"{up}";:IFTL<CLTHEN2300
 2380 PRINT:PRINT"{reverse on}{light green}Done.{reverse off}{light blue}":CLOSE8:CLOSE1
 2390 PRINT#5,"ath0":PRINT#5,"atz":TT=TI+100

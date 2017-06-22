@@ -1,7 +1,7 @@
 !--------------------------------------------------
-!- Thursday, June 22, 2017 3:17:19 AM
+!- Thursday, June 22, 2017 5:06:02 PM
 !- Import of : 
-!- c:\src\zimodem\cbm8bit\src\ftp64-128.prg
+!- d:\dev\zimodem\cbm8bit\src\ftp64-128.prg
 !- Commodore 64
 !--------------------------------------------------
 1 REM FTP64/128  1200B 2.0+
@@ -22,7 +22,7 @@
 101 REM
 102 REM
 110 REM
-120 PRINT"{clear}{down*2}FTP v1.2":PRINT"Requires 64Net WiFi firmware 2.0+"
+120 PRINT"{clear}{down*2}FTP v1.3":PRINT"Requires 64Net WiFi firmware 2.0+"
 130 PRINT"1200 baud version"
 140 PRINT"By Bo Zimmerman (bo@zimmers.net)":PRINT:PRINT
 197 REM --------------------------------
@@ -47,9 +47,9 @@
 299 REMHO$="192.168.1.112":PO=21
 300 REM GET INFO
 310 PRINT:PRINT"{down}Request Parms:"
-321 PRINT " 1) Url        : ftp://";HO$
-322 PRINT " 2) Username   : ";UN$
-323 PRINT " 3) Password   : ";PA$
+321 PRINT " 1) Url{space*8}: ftp://";HO$
+322 PRINT " 2) Username{space*3}: ";UN$
+323 PRINT " 3) Password{space*3}: ";PA$
 324 PRINT " 4) Disk Device:";UN
 329 LH=4
 370 IFHO$=""THENPRINT:P$="1":GOTO400
@@ -240,7 +240,7 @@
 6250 CLOSE8:CLOSE1:PRINT#5,"ath"+MID$(STR$(SP),2):GOSUB900:IFP$<>"ok"THEN6250
 6260 GOSUB800:IFP$<>""THENPRINTP$:GOTO6260
 6299 RETURN
-6500 PRINT"{up}               {left*15}"+STR$(TT):RETURN
+6500 PRINT"{up}{space*15}{left*15}"+STR$(TT):RETURN
 7000 FX=0:X$=",p,r":P$="TYPE I":GOSUB600:GOSUB850:IFP$=""THEN7000
 7010 FX$=RIGHT$(F$,2)
 7015 IFLEFT$(F$,1)=" "THENF$=MID$(F$,2):GOTO7015

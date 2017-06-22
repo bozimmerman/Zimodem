@@ -1,19 +1,20 @@
 !--------------------------------------------------
-!- Tuesday, June 20, 2017 3:33:18 AM
+!- Thursday, June 22, 2017 5:06:09 PM
 !- Import of : 
-!- c:\src\zimodem\cbm8bit\src\telnet64-128.prg
+!- d:\dev\zimodem\cbm8bit\src\telnet64-128.prg
 !- Commodore 64
 !--------------------------------------------------
 1 REM TELNET64/128  1200B 1.8+
-2 REM UPDATED 06/20/2017 02:54A
+2 REM UPDATED 06/21/2017 02:54P
 10 POKE254,PEEK(186):IFPEEK(254)<8THENPOKE254,8
 12 IFPEEK(65532)=61THENPOKE58,254:CLR
-15 OPEN5,2,0,CHR$(8):DIMPP$(25):P$="ok":POKE186,PEEK(254)
+15 OPEN5,2,0,CHR$(8):DIMPP$(25):P$="ok":POKE186,PEEK(254):BA=1200:XB=1200
 20 CR$=CHR$(13):PRINTCHR$(14);:SY=PEEK(65532):POKE53280,254:POKE53281,246
-30 PRINT"{light blue}":IFSY=226THENML=49152:POKE665,73:POKE666,3
+30 PRINT"{light blue}":IFSY=226THENML=49152:POKE665,73-(PEEK(678)*30)
 40 IFSY=226ANDPEEK(ML+1)<>209THENCLOSE5:LOAD"pml64.bin",PEEK(254),1:RUN
-50 IFSY=61THENML=4864:POKE981,15:P=PEEK(215)AND128:IFP=128THENSYS30643
-60 IFSY=61ANDPEEK(ML)<>76THENCLOSE5:LOAD"pml128.bin",PEEK(254),1:RUN
+50 IFSY=61THENML=4864:POKE981,15:S8=PEEK(215)AND128:IFS8=128THENSYS30643
+60 IFSY=61ANDPEEK(ML+1)<>217THENCLOSE5:LOAD"pml128.bin",PEEK(254),1:RUN
+61 IFSY=61ANDS8=128THENXB=2400
 70 TM=ML+2000
 80 I=TM
 90 READA%:IFSY=61AND(A%=155ORA%=156)THENREADB%:POKEI,A%-131:I=I+1:A%=10
@@ -22,7 +23,7 @@
 101 REM
 102 REM
 110 P$="a"
-120 PRINT"{clear}{down*2}TELNET v1.1":PRINT"Requires 64Net WiFi firmware 1.8+"
+120 PRINT"{clear}{down*2}TELNET v1.2":PRINT"Requires 64Net WiFi firmware 1.8+"
 130 PRINT"1200 baud version"
 140 PRINT"By Bo Zimmerman (bo@zimmers.net)":PRINT:PRINT
 197 REM --------------------------------
@@ -80,12 +81,12 @@
 2110 HO$=HO$(X-1):PO=PO(X-1)
 2300 PRINT"{reverse on}{light green}Connecting to ";HO$;":";MID$(STR$(PO),2);"...{reverse off}{light blue}"
 2310 GET#5,A$:IFA$<>""THEN2310
-2320 PRINT#5,CR$;"athctexp";QU$;HO$;":";MID$(STR$(PO),2);QU$;CR$;
+2320 PRINT#5,CR$;"atf3hctep";QU$;HO$;":";MID$(STR$(PO),2);QU$;CR$;
 2330 GOSUB900:IFLEN(P$)>7ANDLEFT$(P$,7)="connect"THEN2400
 2340 PRINT"{reverse on}{red}Unable to connect to ";HO$;":";MID$(STR$(PO),2)
 2350 RETURN
 2400 PRINT"{reverse on}{light green}* Connected. ";
-2420 PRINT#5,CR$;"ato";CR$;
+2420 PRINT#5,CR$;"atf0o";CR$;
 2430 IFSY=226THENPRINT"Hit F1 to exit.{light gray}"
 2440 IFSY=61THENPRINT"Hit ESC to exit.{light gray}"
 2450 POKE53280,0:POKE53281,0:SYSTM:POKE53280,254:POKE53281,246:
