@@ -84,6 +84,8 @@ void ZCommand::setConfigDefaults()
   serialDelayMs=0;
   DCD_HIGH=HIGH;
   DCD_LOW=LOW;
+  CTS_HIGH=HIGH;
+  CTS_LOW=LOW;
   suppressResponses=false;
   numericResponses=false;
   longResponses=true;
@@ -168,10 +170,11 @@ void ZCommand::reSaveConfig()
   File f = SPIFFS.open("/zconfig.txt", "w");
   const char *eoln = EOLN.c_str();
   int dcdMode = (DCD_HIGH == HIGH) ? 0 : 1;
-  f.printf("%s,%s,%d,%s,%d,%d,%d,%d,%d,%d,%d,%d", 
+  int ctsMode = (CTS_HIGH == HIGH) ? 0 : 1;
+  f.printf("%s,%s,%d,%s,%d,%d,%d,%d,%d,%d,%d,%d,%d", 
             wifiSSI.c_str(), wifiPW.c_str(), baudRate, eoln,
             serial.getFlowControlType(), doEcho, suppressResponses, numericResponses,
-            longResponses, serial.isPetsciiMode(), dcdMode, serialConfig);
+            longResponses, serial.isPetsciiMode(), dcdMode, serialConfig, ctsMode);
   f.close();
   delay(500);
   if(SPIFFS.exists("/zconfig.txt"))
@@ -236,6 +239,20 @@ void ZCommand::setBaseConfigOptions(String configArguments[])
     {
       DCD_HIGH=HIGH;
       DCD_LOW=LOW;
+    }
+  }
+  if(configArguments[CFG_CTSMODE].length()>0)
+  {
+    int cstMode = atoi(configArguments[CFG_CTSMODE].c_str());
+    if(cstMode == 1)
+    {
+      CTS_HIGH=LOW;
+      CTS_LOW=HIGH;
+    }
+    else
+    {
+      CTS_HIGH=HIGH;
+      CTS_LOW=LOW;
     }
   }
 }
@@ -387,6 +404,8 @@ ZResult ZCommand::doInfoCommand(int vval, uint8_t *vbuf, int vlen, bool isNumber
     }
     if(DCD_HIGH != HIGH)
       serial.prints("S46=1");
+    if(CTS_HIGH != HIGH)
+      serial.prints("S47=1");
     serial.prints(serial.isPetsciiMode() ? "&P1" : "&P0");
     serial.prints(EOLN);
   }
@@ -480,8 +499,8 @@ ZResult ZCommand::doBaudCommand(int vval, uint8_t *vbuf, int vlen)
   }
   Serial.flush();
   Serial.begin(baudRate, serialConfig);
-  if(!enableRtsCts)
-    enableRtsCts=digitalRead(PIN_CTS);
+  //if(!enableRtsCts)
+  //  enableRtsCts=(digitalRead(PIN_CTS) == CTS_HIGH);
   return ZOK;
 }
 
@@ -1793,6 +1812,18 @@ ZResult ZCommand::doSerialCommand()
                  DCD_LOW = HIGH;
                }
                break;
+             case 47:
+               if(sval <=0)
+               {
+                 CTS_HIGH = HIGH;
+                 CTS_LOW = LOW;
+               }
+               else
+               {
+                 CTS_HIGH = LOW;
+                 CTS_LOW = HIGH;
+               }
+               break;
              default:
                 break;
               }
@@ -1961,9 +1992,9 @@ ZResult ZCommand::doSerialCommand()
              {
                int pinNum = vval;
                int r = digitalRead(pinNum);
-               if(pinNum == PIN_CTS)
-                 serial.printf("Pin %d READ=%s %s.%s",pinNum,r==HIGH?"HIGH":"LOW",enableRtsCts?"ACTIVE":"INACTIVE",EOLN.c_str());
-               else
+               //if(pinNum == PIN_CTS)
+               //  serial.printf("Pin %d READ=%s %s.%s",pinNum,r==HIGH?"HIGH":"LOW",enableRtsCts?"ACTIVE":"INACTIVE",EOLN.c_str());
+               //else
                  serial.printf("Pin %d READ=%s.%s",pinNum,r==HIGH?"HIGH":"LOW",EOLN.c_str());
              }
              else

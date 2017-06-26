@@ -119,9 +119,9 @@ bool ZSerial::isSerialOut()
   switch(flowControlType)
   {
   case FCT_RTSCTS:
-    if(enableRtsCts)
-      return (digitalRead(PIN_CTS) == HIGH);
-    return true;
+    //if(enableRtsCts)
+    return (digitalRead(PIN_CTS) == CTS_HIGH);
+    //return true;
   case FCT_NORMAL:
   case FCT_AUTOOFF:
   case FCT_MANUAL:
@@ -138,8 +138,8 @@ bool ZSerial::isSerialCancelled()
 {
   if(flowControlType == FCT_RTSCTS)
   {
-    if(enableRtsCts)
-      return (digitalRead(PIN_CTS) == LOW);
+    //if(enableRtsCts)
+    return (digitalRead(PIN_CTS) == CTS_LOW);
   }
   return false;
 }

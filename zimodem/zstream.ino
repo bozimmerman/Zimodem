@@ -26,9 +26,6 @@ void ZStream::switchTo(WiFiClientNode *conn)
   serial.setPetsciiMode(isPETSCII());
   serial.setFlowControlType(isXonXoff()?FCT_NORMAL:FCT_RTSCTS);
   currMode=&streamMode;
-  expectedSerialTime = (1000 / (baudRate / 8))+1;
-  if(expectedSerialTime < 1)
-    expectedSerialTime = 1;
   checkBaudChange();
 }
 

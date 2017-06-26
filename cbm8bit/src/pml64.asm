@@ -374,6 +374,7 @@ BUFALP
         JSR $FFB7
         CMP #$00
         BEQ BUFAP1
+        INC BUF1DX
         STA CRXFLG
         JMP BUF1DUN
 BUFAP1

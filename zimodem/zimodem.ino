@@ -61,6 +61,8 @@ static int tempBaud = -1; // -1 do nothing
 static int dcdStatus = LOW; 
 static int DCD_HIGH = HIGH;
 static int DCD_LOW = LOW;
+static int CTS_HIGH = HIGH;
+static int CTS_LOW = LOW;
 
 static bool connectWifi(const char* ssid, const char* password)
 {
@@ -145,7 +147,7 @@ void setup()
   pinMode(PIN_DCD,OUTPUT);
   digitalWrite(2,dcdStatus);
   flushSerial();
-  enableRtsCts = digitalRead(PIN_CTS) == HIGH;
+  //enableRtsCts = digitalRead(PIN_CTS) == CTS_HIGH;
 }
 
 void loop() 
