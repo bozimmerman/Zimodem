@@ -17,8 +17,6 @@
 #define TCP_SND_BUF                     4 * TCP_MSS
 #define null 0
 #define ZIMODEM_VERSION "2.8"
-#define PIN_DCD 2
-#define PIN_CTS 0
 
 class ZMode
 {
@@ -26,6 +24,8 @@ class ZMode
     virtual void serialIncoming();
     virtual void loop();
 };
+static int PIN_DCD = 2;
+static int PIN_CTS = 0;
 
 #include "pet2asc.h"
 #include "zlog.h"
@@ -137,7 +137,12 @@ static int checkOpenConnections()
 
 void setup() 
 {
-  delay(10);
+  if((ESP.getFlashChipSize()/1024)==4096) // assume this is a striketerm/esp12e
+  {
+    PIN_CTS=5;
+    pinMode(4,OUTPUT);
+    digitalWrite(4,HIGH);
+  }
   currMode = &commandMode;
   SPIFFS.begin();
   commandMode.loadConfig();
