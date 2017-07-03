@@ -17,16 +17,16 @@ BUT I DON'T HAVE THE DISK?!
 *************************************
 Bootstrap software downloader for Commodore 64 with c64wifi modem with firmware rev 2.4 and better.  Before you type in and run this program, you should make sure your modem is connected to a wifi hotspot.  You can use any C64/C128 terminal program, set to 1200 baud, in ASCII mode.  From inside the terminal mode of your program, you can type ATW to get a list of local wifi hotspots.  You can then use ATW"<hotspot name/ssid>,<password>" to connect.  You should then enter AT&W to save the new settings.
 
-Once your modem is connected to wifi, type in the following program and save it to a disk:
+Once your modem is connected to wifi, switch your C64 to lowercase mode by pressing shift-C= and then type in the following program and save it to a disk:
 
-10 open5,2,0,chr$(8):poke665,73:poke666,3
+10 open5,2,0,chr$(8):poke665,73
 15 a3$=chr$(3):print#5,a3$;
 20 input"enter filename";f$:iff$=""thenstop
 30 input"enter drive";dv:ifdv<8thenstop
 35 print#5,a3$;
 40 get#5,a$:ifa$<>""then40
 50 print#5,"atze0r0&p1f1s45=2s44=80"
-60 input#5,a$:ifa$<>"OK"then60
+60 input#5,a$:ifa$<>"OK"anda$<>"ok"then60
 70 print#5,"at&g";chr$(34);"www.zimmers.net:80/otherprojs/";f$;chr$(34)
 75 print#5,chr$(19);
 80 input#5,b$:ifb$="["then100
@@ -47,7 +47,12 @@ Once your modem is connected to wifi, type in the following program and save it 
 225 ifti<ttthen225
 230 print#5,chr$(17);:return
 
-The program above should be run 3 times.  Once with each of these filenames:
+If you are in Europe or are using a C64 that uses the PAL standard, change line 10 to read:
+10 open5,2,0,chr$(8):poke665,43
+ .. and change line 50 to read:
+50 print#5,"atze0r0&p1f1s45=2s44=90"
+
+The program should be run 3 times.  Once with each of these filenames:
 1. pml64.bin
 2. up9600.bin
 3. ftp64-128
