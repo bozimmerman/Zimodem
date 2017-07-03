@@ -19,13 +19,13 @@ Bootstrap software downloader for Commodore 64 with c64wifi modem with firmware 
 
 Once your modem is connected to wifi, switch your C64 to lowercase mode by pressing shift-C= and then type in the following program and save it to a disk:
 
-10 open5,2,0,chr$(8):poke665,73
+10 open5,2,0,chr$(8):pa=peek(678)*10:poke665,73-(pa*3)
 15 a3$=chr$(3):print#5,a3$;
 20 input"enter filename";f$:iff$=""thenstop
 30 input"enter drive";dv:ifdv<8thenstop
 35 print#5,a3$;
 40 get#5,a$:ifa$<>""then40
-50 print#5,"atze0r0&p1f1s45=2s44=80"
+50 dl$=mid$(str$(80+pa),2):print#5,"atze0r0&p1f1s45=2s44="+dl$
 60 input#5,a$:ifa$<>"OK"anda$<>"ok"then60
 70 print#5,"at&g";chr$(34);"www.zimmers.net:80/otherprojs/";f$;chr$(34)
 75 print#5,chr$(19);
@@ -46,11 +46,6 @@ Once your modem is connected to wifi, switch your C64 to lowercase mode by press
 220 ifi<lnthenprint"reading...";:tt=ti+200
 225 ifti<ttthen225
 230 print#5,chr$(17);:return
-
-If you are in Europe or are using a C64 that uses the PAL standard, change line 10 to read:
-10 open5,2,0,chr$(8):poke665,43
- .. and change line 50 to read:
-50 print#5,"atze0r0&p1f1s45=2s44=90"
 
 The program should be run 3 times.  Once with each of these filenames:
 1. pml64.bin
