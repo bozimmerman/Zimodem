@@ -15,17 +15,22 @@ Below you will find information on the application programs included on this dis
 
 BUT I DON'T HAVE THE DISK?!
 *************************************
-Bootstrap software downloader for Commodore 64 with c64wifi modem with firmware rev 2.4 and better.  Before you type in and run this program, you should make sure your modem is connected to a wifi hotspot.  You can use any C64/C128 terminal program, set to 1200 baud, in ASCII mode.  From inside the terminal mode of your program, you can type ATW to get a list of local wifi hotspots.  You can then use ATW"<hotspot name/ssid>,<password>" to connect.  You should then enter AT&W to save the new settings.
+Bootstrap software downloader for Commodore 64 with c64wifi modem with firmware rev 2.4 and better. Before you type in and run this program, you should make sure your modem is connected to a wifi hotspot.  You can use any C64/C128 terminal program, set to 1200 baud, in ASCII mode.  From inside the terminal mode of your program, you can type ATW to get a list of local wifi hotspots.  You can then use ATW"<hotspot name/ssid>,<password>" to connect.  You should then enter AT&W to save the new settings.  If you don't have access to a terminal program, you can type this little program in, save, and run it, and then enter the commands mentioned above.
+
+10 open5,2,0,chr$(8):poke665,73-(peek(678)*30)
+20 get#5,a$:ifa$<>""thenprinta$;
+30 geta$:ifa$<>""thenprinta$;
+40 goto20
 
 Once your modem is connected to wifi, switch your C64 to lowercase mode by pressing shift-C= and then type in the following program and save it to a disk:
 
-10 open5,2,0,chr$(8):pa=peek(678)*10:poke665,73-(pa*3)
+10 open5,2,0,chr$(8):pa=peek(678)*30:poke665,73-pa
 15 a3$=chr$(3):print#5,a3$;
 20 input"enter filename";f$:iff$=""thenstop
 30 input"enter drive";dv:ifdv<8thenstop
 35 print#5,a3$;
 40 get#5,a$:ifa$<>""then40
-50 dl$=mid$(str$(80+pa),2):print#5,"atze0r0&p1f1s45=2s44="+dl$
+50 dl$=mid$(str$(99+pa),2):print#5,"atze0r0&p1f1s45=2s44="+dl$
 60 input#5,a$:ifa$<>"OK"anda$<>"ok"then60
 70 print#5,"at&g";chr$(34);"www.zimmers.net:80/otherprojs/";f$;chr$(34)
 75 print#5,chr$(19);
@@ -48,9 +53,11 @@ Once your modem is connected to wifi, switch your C64 to lowercase mode by press
 230 print#5,chr$(17);:return
 
 The program should be run 3 times.  Once with each of these filenames:
-1. pml64.bin
+1. pml64.bin   (that's pee em el, not pee em one)
 2. up9600.bin
 3. ftp64-128
+
+If you have any problems or errors here, such as the program doing nothing after the "enter drive" prompt, or it freezing at a certain download percentage, or getting a "file data" error or some other error, then do the following:  First, hold down the RUN/STOP key and sharply strike the RESTORE key at the same time.  You should see a "READY." prompt. Now enter: "close8" and hit RETURN.  This should properly close the file if it was open, and turn the light on your disk drive off.  Next, you should turn your computer off and turn it back on to reset it.  Then re-load the little downloader program above and run it again.  Don't get frustrated.  This dumb little program is only to bootstrap you.  Once you have the files "ftp64-128", "pml64.bin", and "up9600.bin", things will go much smoother and sweeter.
 
 Next, load and run ftp64-128 and connect to ftp.zimmers.net anonymously.  Once you are logged in, enter the following commands:
 1. cd pub/projects/c64wifi
@@ -191,13 +198,6 @@ Weather is a two player online game originally written for the Commodore PET.  T
 When running the program, the system will ask for one player to act as the host, and the other as the client. The host computer then waits for a connection from the client computer, after which the game can commence.  The host player must be familiar with opening firewall ports in order to allow the client to connect to their computer.
 
 In the game, both players compete against each other in this artillary like contest that involves attacking each others houses with the forces of nature.  
-
-
-COMETMODE
-*************************************
-The COMET64 was a user-port based wireless internet modem similar to the C64Net WiFi modem.   The modem would, when turned on, connect to http://www.commodoreserver.com/ where, if you had an account, you could upload disks.  If you loaded the COMET64 driver onto your Commodore 64, you could then access the disks on commodoreserver.com using normal LOAD commands on device 2 (instead of the normal 8 or 9, etc).
-
-The COMETMODE program will emulate the COMET64 by connecting to commodoreserver.com, switching the modem to 2400 baud, and finally loading and installing the official 2400 baud COMET64 driver so that LOAD"$",2 commands will work. This program requires that your C64Net WiFi Modem be configured for 1200 baud on reset, which is the default factory configuration. If the drive becomes inactive, locks up, or you otherwise need to run the COMETMODE program again, make sure you hit the reset button on your modem to put it back into default configuration.
 
 
 PML64.BIN and PML128.BIN
