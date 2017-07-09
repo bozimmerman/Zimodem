@@ -8,7 +8,7 @@ This disk includes applications written to work with the C64Net WiFi modem runni
 
 You can also use any Commodore compatible terminal programs with the C64Net WiFi modem, such as Novaterm or CCGMS for the C64, or Desterm for the C128 in 128 mode.  When using one of these programs, you should consult the manual on the C64Net WiFi Firmware command mode for instructions on how to use the Hayes-like commands to connect your modem to the internet.
 
-The disk also includes the source assembly code for the pml64, pml128, up9600 binaries, and the demo SwiftLink Kernal Wedge driver binary.  These source files are in LADS format.  The disk also includes the LADS assembler for the C64 to re-assemble the binaries from the source files.  To use the LADS assembler, you should use a C64 or C128 in C64 mode, and load the LADS assembler using LOAD"LADS",8,1.  Once the assembler is loaded, clear the screen and type the name of the source file to assemble in the upper left-hand corner of the screen.  Once that is done, use SYS11000 to begin the assembly, which will create the .bin files.
+The disk also includes the source assembly code for the pml64, pml128, up9600, rds64, and the demo SwiftLink Kernal Wedge driver binary.  These source files are in LADS format.  The disk also includes the LADS assembler for the C64 to re-assemble the binaries from the source files.  To use the LADS assembler, you should use a C64 or C128 in C64 mode, and load the LADS assembler using LOAD"LADS",8,1.  Once the assembler is loaded, clear the screen and type the name of the source file to assemble in the upper left-hand corner of the screen.  Once that is done, use SYS11000 to begin the assembly, which will create the .bin files.
 
 Below you will find information on the application programs included on this disk, as well as instructions on using the PML64, PML128, and UP9600 machine language libraries from BASIC or machine language.
 
@@ -116,7 +116,7 @@ After initialization, you will be given a menu where you can enter the url of th
 IRC64-128
 *************************************
 
-IRC program is for chatting with people on free internet IRC Servers.  It is written in BASIC, but uses the PML64.BIN or PML128.BIN libraries for speed (see below). This program requires that your C64Net WiFi Modem be configured for 1200 baud on reset, which is the default factory configuration. 
+IRC program is for chatting with people on free internet IRC Servers.  It is written in BASIC, but uses the PML64.BIN or PML128.BIN libraries for speed (see below). This program requires that your C64Net WiFi Modem be configured for 1200 baud on reset, which is the default factory configuration. If you run it on a breadbox Commodore 64 or 64C with UP9600 enabled on the modem (default), it will operate at 9600 baud during your session.  If you run it on a Commodore 128 in C128 mode and 80 columns, it will operate at 2400 baud during your session.  If you run it on a Commodore 128 in C64 mode, or C128 mode and 40 columns, it will remain at 1200 baud speed.
 
 When you start the program, it will initialize your C64Net modem with certain commands.  If you receive an error at this point, or if the program hangs for longer than a minute, try turning your computer off and on again to clear memory and reset the modem, and then load and run it again.
 
@@ -190,7 +190,25 @@ This program requires that your C64Net WiFi Modem be configured for 1200 baud on
 
 When you start the program, it will initialize your C64Net modem with certain commands.  If you receive an error at this point, or if the program hangs for longer than a minute, try turning your computer off and on again to clear memory and reset the modem, and then load and run it again.
 
-After initialization, you will be given a menu where you can enter the url of the disk image file to download and write, and the unit number of the disk drive containing the formatted blank disk to write the image to.  When all options are correct, hit RETURN and answer Y to the confirmation to connect and begin the download disk disk write.  When the download completes, which could take awhile, the program will exit.
+After initialization, you will be given a menu where you can enter the url of the disk image file to download and write, and the unit number of the disk drive containing the formatted blank disk to write the image to.  When all options are correct, hit RETURN and answer Y to the confirmation to connect and begin the download and disk write.  When the download completes, which could take awhile, the program will exit.
+
+TELNETD64
+*************************************
+TELNETD program is for controlling your C64 remotely over the internet.  It is written mostly in machine language which is contained in the file "RDS64.BIN", with the source code in "RDS64.BAS".  The program TELNETD64 is written in BASIC, and is for configuring and launching your server.
+
+This program requires that your C64Net WiFi Modem be configured for 1200 baud on reset, which is the default factory configuration.
+
+When you start the program, it will load "rds64.bin" and prompt you for certain server settings, such as how much time to allow users to remain on your computer in a single session (Time Limit), the amount of time to allow users to remain online when they haven't been typing anything (the Idle Time), remain online when they aren't typing anything, the security flag, the port to listen on, and the modem initialization string.  You should be cautious with modifying that last, as it may affect the servers functionality.
+
+After the prompts, the c64 will start up the server itself.  The server will initialize your C64Net modem with the above modem initialization string.  If you receive an error at this point, or if the program hangs for longer than a minute, try turning your computer off and on again to clear memory and reset the modem, and then load and run it again.
+
+Once the server is started, you will be right back to the normal BASIC "READY." prompt.  When a user connects, they will be able to type in commands, which you can watch them do.  If the security flag was turned on, then certain BASIC commands, such as "POKE" and "SYS" will be disabled, as will the ability to OPEN channel 2 (the modem).  Should the user violate the idle or session time limit, they will be immediately disconnected.
+
+You should be careful with what disk drives you leave connected and which disks you leave in those drives, as online users may be able to modify them.  You should also be aware that this program is in an Alpha state.  For example, a C64 with JiffyDOS will work with the TELNETD software, but any attempts to use JiffyDos "@" commands will hang up the server.  It is also possible there are other ways to hang the server up, even with security turned on.  If you discover any new ways, please email the author.
+
+To connect to your server from the internet, you should set your ISP router to forward connections to the TELNETD64 port (default 6400) to the ip address of your modem.
+
+The only way to shut down your server is either to reset the computer, or turn it off and back on again.
 
 WEATHER
 *************************************
@@ -409,4 +427,9 @@ The Carry flag is Set if there was an error, Clear if a byte is in the accumulat
 
 Description:
 Reads a byte from the 9600 baud input buffer.
+
+RDS64.BIN
+*************************************
+
+This file is the machine language portion of the TELNETD server.  It resides as $c000 and can be activated with SYS49152.
 

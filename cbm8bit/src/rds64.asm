@@ -1,84 +1,90 @@
 * = 49152
-        ; remote desktop server
-        ; v1.0 02/23/2017
-        ; for c64net/zimodem v2.7+
-        ;
-        ; .o
-        jmp init; +0
-        jmp resmio; +3
-        jmp resmio; +6
-        jmp resmio; +9
-        jmp resmio; +12
-        ; ; ; ; ; public regs ; ; ; ; ; ;
+; remote desktop server
+; v1.0 07/07/2017 03:23p
+; for c64net/zimodem v2.7+
+;
+        ;.o
+        ;.d rds64.bin
+        jmp init;+0
+        jmp resmio;+3
+        jmp resmio;+6
+        jmp resmio;+9
+        jmp resmio;+12
+; ; ; ; ; public regs ; ; ; ; ; ;
 stat1s
-        byte 0;+15
+        bytes 0;+15
 subst1s
-        byte 0;+16
+        bytes 0;+16
 disable
-        byte 0;+17
+        bytes 0;+17
 stopflg
-        byte 0;+18
+        bytes 0;+18
 pausetm
-        byte 0;+19
+        bytes 0;+19
 timeflg
-        byte 0;+20
-        ; idlhors .byte 0;+21
+        bytes 0;+20
 idlmins
-        byte 4;+21
-        ; tmohors .byte 0;+23
+        bytes 4;+21
+tmohors
+        bytes 0;+22
 tmomins
-        byte 85;+24
-timsbyt
-        byte 0,0
-timswat
-        byte 4
+        bytes 85;+23
+secflag
+        bytes 1;+24
 savabyt
-        byte 0,0
+        bytes 0,0
 buf12fl
-        byte 0
+        bytes 0
 lastdcd
-        byte 0
+        bytes 0
 idlchvt
-        byte 0,0
+        bytes 0,0
+timsbyt
+        bytes 0,0
+timswat
+        bytes 4
 rbuf = $ce00
 tbuf = $cf00
-        ; ; ; ; ; string table ; ; ; ; ; ;
+; ; ; ; ; string table ; ; ; ; ; ;
 eight
-        byte 8,0
+        bytes 8,0
 strinit1
-        byte 13
-        byte "athq0v1x1z0f0e0"
-        byte 13,0
+        bytes 13
+        text "athzq0v1x1f0e0n0r0"
+        bytes 13,0,0,0,0,0,0,0,0,0,0,0
 strinit2
-        byte 13
-        byte "ate0n0r0v1f0s0=1s41=1a6400"
-        byte 13,0
+        bytes 13
+        text "ats0=1s41=1a"
+str2cont
+        text "6400"
+        bytes 13,0,0,0
 strok
-        byte "ok"
-        byte 0
+        text "ok"
+        bytes 0
 stripis
-        byte "server ip addr "
-        byte 0
+        text "server ip addr "
+        bytes 0
 strinit3
-        byte 13
-        byte "atv0i2"
-        byte 13,0
+        bytes 13
+        text "atv0i2"
+        bytes 13,0
 strinit4
-        byte " port 6400"
+        text " port "
+        bytes 0
 strinit5
-        byte 13,0
+        bytes 13,0
 strinit0
-        byte "telnetd 1.0 init."
+        text "telnetd 1.0 init."
 strinitx
-        byte "."
-        byte 0
+        text "."
+        bytes 0
 stratha0
-        byte "+++"
-        byte 0
+        text "+++"
+        bytes 0
 stratha1
-        byte "ath"
-        byte 13,0
-        ; ; ; ; check methods ; ; ; ; ;
+        text "ath"
+        bytes 13,0
+; ; ; ; check methods ; ; ; ; ;
 clrclk1
         lda $dc0f
         and #$7f
@@ -94,7 +100,7 @@ clrclk2
         and #$7f
         sta $dd0f
         lda #$00
-        sta $dd0b
+        sta $dd0b;comments are great
         sta $dd0a
         sta $dd09
         sta $dd08
@@ -111,6 +117,15 @@ chkidl10
         rts
 chktmo2
         lda $dd0b
+        cmp tmohors
+        beq chktmo2m
+        php
+        lda $dd0a
+        lda $dd09
+        lda $dd08
+        plp
+        rts
+chktmo2m
         lda $dd0a
         pha
         lda $dd09
@@ -129,7 +144,7 @@ chkpas1
         rts
 chkidle
         jmp (idlchvt)
-        ; ; ; ; welcome message ; ; ; ; ;
+; ; ; ; welcome message ; ; ; ; ;
 welcome
         tya
         pha
@@ -171,6 +186,7 @@ outmxl
         bne outmxl
 outmxd
         rts
+; ; ; ; timeout setup ; ; ; ; ;
 timein
         lda #<chkidl1
         sta idlchvt
@@ -181,8 +197,9 @@ timein
         lda #$00
         sta disable
         sta timeflg
+        sta stopflg
         rts
-        ; ; ; ; timeout handlr ; ; ; ; ;
+; ; ; ; timeout handlr ; ; ; ; ;
 timeout
         tya
         pha
@@ -230,7 +247,7 @@ timeoudn
         pla
         tay
         rts
-        ; ; ; ; fill input buf ; ; ; ; ;
+; ; ; ; fill input buf ; ; ; ; ;
 buffill
         jsr clrbuf1
         ldy #$00
@@ -302,7 +319,7 @@ buffifn
         sta buf1,y
         sty buf1dx
         rts
-        ; ; ; ; modem read str ; ; ; ; ;
+; ; ; ; modem read str ; ; ; ; ;
 buflaln
         lda #$02
         jsr $f04d
@@ -350,7 +367,7 @@ buflaot
         sta buf1,x
         stx buf1dx
         rts
-        ; ; ; ; buffer compare ; ; ; ; ;
+; ; ; ; buffer compare ; ; ; ; ;
 bufcmp
         stx $fb
         sty $fc
@@ -366,7 +383,7 @@ bufcmpn
         ldy #$ff
 bufcmpy
         rts
-        ; ; ; ; scn out string ; ; ; ; ;
+; ; ; ; scn out string ; ; ; ; ;
 outsstr
         stx $fb
         sty $fc
@@ -380,7 +397,7 @@ clrbufl
         dex
         bne clrbufl
         rts
-        ; ; ; ; one liners  ; ; ; ; ;
+; ; ; ; one liners  ; ; ; ; ;
 clrrecb
         lda $029c
         sta $029b
@@ -392,7 +409,7 @@ dcdchk
 resmio
         jsr $f04f
         jmp $ffcc
-        ; ; ; ; mdm out string  ; ; ; ; ;
+; ; ; ; mdm out string  ; ; ; ; ;
 outmstr
         stx $fb
         sty $fc
@@ -408,7 +425,7 @@ outmst1
         bne outmst1
 outmst2
         rts
-        ; ; ; ; delay timers  ; ; ; ; ;
+; ; ; ; delay timers  ; ; ; ; ;
 retims
         lda $a1
         sta timsbyt
@@ -433,7 +450,7 @@ timsgod
 timsbad
         ldx #$ff
         rts
-        ; ; ; ; ; init ; ; ; ; ; ;
+; ; ; ; ; init ; ; ; ; ; ;
 init
         lda #$00
         sta stat1s
@@ -448,9 +465,9 @@ init
         ldx #<eight
         ldy #>eight
         jsr $ffbd
-        jsr $f409; open=ffc0
-        ; check for error
-        ; if error, set stat1s, rts
+        jsr $f409;; open=ffc0
+; check for error
+; if error, set stat1s, rts
         lda #<rbuf
         sta $f7
         lda #>rbuf
@@ -459,7 +476,7 @@ init
         sta $f9
         lda #>tbuf
         sta $fa
-        ; baud correction
+; baud correction
         lda 678
         bne initb1
         lda #73
@@ -521,13 +538,31 @@ initb4
         ldx #<strinit4
         ldy #>strinit4
         jsr outsstr
+        ldx #<str2cont
+        ldy #>str2cont
+        jsr outsstr
         ldy #$00
 initl1
         lda $0314,y
         sta savvtr,y
         iny
         cpy #33
+        bcs initfix
+        tya
+        adc #<savvtr
+        cmp #$00
+        bne initl2
+        lda #$02
+        sta $d020
+        sta $d021
+        rts
+initl2
+        lda $0314,y
+        sta savvtr,y
+        iny
+        cpy #33
         bcc initl1
+initfix
         sei
         lda #<intrpt
         sta $0314
@@ -545,9 +580,9 @@ initl1
         sta $031c
         lda #>closet
         sta $031d
-        lda #<chkin 
+        lda #<chkin
         sta $031e
-        lda #<chkin 
+        lda #<chkin
         sta $031f
         lda #<chkout
         sta $0320
@@ -565,8 +600,8 @@ initl1
         sta $0326
         lda #>chrout
         sta $0327
-        ; lda #<getin:sta $032a
-        ; lda #>getin:sta $032b
+;lda #<getin:sta $032a
+;lda #>getin:sta $032b
         lda #<stopt
         sta $0328
         lda #>stopt
@@ -584,20 +619,27 @@ initl1
         lda #>ssave
         sta $0333
         ldy #$00
-initl2
+        lda #<savbtr
+        cmp #$ff
+        bne initl3
+        lda #$02
+        sta $d020
+        sta $d021
+        rts
+initl3
         lda $0308,y
         sta savbtr,y
         iny
-        cpy #$02
-        bcc initl2
+        lda $0308,y
+        sta savbtr,y
         lda #<tokein
         sta $0308
         lda #>tokein
         sta $0309
         lda #$73
-        sta tokein+1
+        sta tokein0+1
         lda #$00
-        sta tokein+2
+        sta tokein0+2
         lda savbtr
         clc
         adc #$03
@@ -605,15 +647,19 @@ initl2
         lda savbtr+1
         adc #$00
         sta tokenot+2
-        ; lda #$7f:sta $dd0d
-        ; lda #$80:bit $dd0d
-        ; lda #<nmirtn:sta $0318
-        ; lda #>nmirtn:sta $0319
+;lda #$7f:sta $dd0d
+;lda #$80:bit $dd0d
+;lda #<nmirtn:sta $0318
+;lda #>nmirtn:sta $0319
         cli
         jsr $f409
         jmp $ffcc
-        ; ; ; ; ; tokein 0308 ; ; ; ; ; ;
+; ; ; ; ; tokein 0308 ; ; ; ; ; ;
 tokein
+        lda secflag
+        bne tokein0
+        jmp (savbtr)
+tokein0
         jsr $ffd2
         bne tokein1
 tokenot
@@ -637,7 +683,7 @@ tokeinb
         lda #$99
         cmp #$00
         jmp tokenot
-        ; ; ; ; ; chrout ffd2 ; ; ; ; ; ;
+; ; ; ; ; chrout ffd2 ; ; ; ; ; ;
 chrout
         pha
         sta savabyt
@@ -666,7 +712,7 @@ chrout
 chrono
         pla
         jmp (savvtr+18)
-        ; ; ; ; ; stopt ff30 ; ; ; ; ; ;
+; ; ; ; ; stopt ff30 ; ; ; ; ; ;
 stopt
         lda stopflg
         bne stopone
@@ -683,15 +729,15 @@ stopone
         sta $c6
         plp
         rts
-        ; ; ; ; ; chrin ffcf ; ; ; ; ; ;
+; ; ; ; ; chrin ffcf ; ; ; ; ; ;
 chrin
         lda $99
         bne chrino
         jsr dcdchk
         beq chrino
-        ; txa:pha:tya:pha
-        ; jsr $f04f
-        ; pla:tay:pla:tax
+;txa:pha:tya:pha
+;jsr $f04f
+;pla:tay:pla:tax
         lda $029b
         cmp $029c
         beq chrino
@@ -716,7 +762,7 @@ chrin
         tax
 chrino
         jmp (savvtr+16)
-        ; ; ; ; ; interrupt ; ; ; ; ; ;
+; ; ; ; ; interrupt ; ; ; ; ; ;
 intrpt
         lda $dd01
         and #$10
@@ -733,7 +779,7 @@ intrkll
         sta $0277
         lda #$01
         sta $c6
-        dec $d020; user is gone, were done
+        dec $d020;user is gone, were done
         jmp (savvtr)
 intrpt1
         lda lastdcd
@@ -782,14 +828,21 @@ intrptk
         jsr clrclk1
 intrno
         jmp (savvtr)
-        ; ; ; ; ; brkout ; ; ; ; ; ;
+; ; ; ; ; brkout ; ; ; ; ; ;
 brkout
         nop
         jmp (savvtr+2)
-        ; ; ; ; ; openot ; ; ; ; ; ;
+; ; ; ; ; openot ; ; ; ; ; ;
 openot
         nop
         inc disable
+        ldx secflag
+        beq opengo
+        ldx $ba
+        cpx #$02
+        bne opengo
+        jmp $f70a
+opengo
         jsr openo1
         pha
         txa
@@ -807,7 +860,7 @@ openot
         rts
 openo1
         jmp (savvtr+6)
-        ; ; ; ; ; closet ; ; ; ; ; ;
+; ; ; ; ; closet ; ; ; ; ; ;
 closet
         nop
         inc disable
@@ -828,33 +881,33 @@ closet
         rts
 close1
         jmp (savvtr+8)
-        ; ; ; ; ; chkin ; ; ; ; ; ;
+; ; ; ; ; chkin ; ; ; ; ; ;
 chkin
         nop
         jmp (savvtr+10)
-        ; ; ; ; ; chkout ; ; ; ; ; ;
+; ; ; ; ; chkout ; ; ; ; ; ;
 chkout
         nop
         jmp (savvtr+12)
-        ; ; ; ; ; clrchn ; ; ; ; ; ;
+; ; ; ; ; clrchn ; ; ; ; ; ;
 clrchn
         nop
         jsr clrch2
         jmp $f04f
 clrch2
         jmp (savvtr+14)
-        ; ; ; ; ; getin ; ; ; ; ; ;
+; ; ; ; ; getin ; ; ; ; ; ;
 getin
         nop
         jmp (savvtr+22)
-        ; ; ; ; ; clall ; ; ; ; ; ;
+; ; ; ; ; clall ; ; ; ; ; ;
 clall
         nop
         jsr clall1
         jmp $f04f
 clall1
         jmp (savvtr+24)
-        ; ; ; ; ; lload ; ; ; ; ; ;
+; ; ; ; ; lload ; ; ; ; ; ;
 lload
         inc disable
         jsr lload1
@@ -863,7 +916,7 @@ lload
         jmp $f04f
 lload1
         jmp (savvtr+28)
-        ; ; ; ; ; ssave ; ; ; ; ; ;
+; ; ; ; ; ssave ; ; ; ; ; ;
 ssave
         inc disable
         jsr ssave1
@@ -876,13 +929,14 @@ nmirtn
         pha
         jmp $ffcc
 savvtr
-        byte 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-        byte 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+        bytes 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+        bytes 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 savbtr
-        byte 0,0,0,0,0,0
+        bytes 0,0,0,0,0,0
 buf1dx
-        byte 0
+        bytes 0
 buf1
         nop; a page of bytes 4 play
 print
-        nop; :f$="rds64":open1,8,15,"s0:"+f$+"*":save(f$+".bas"),8
+        nop;:f$="rds64":open1,8,15,"s0:"+f$+"*":save(f$+".bas"),8
+
