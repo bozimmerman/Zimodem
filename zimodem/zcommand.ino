@@ -958,8 +958,9 @@ ZResult ZCommand::doUpdateFirmware(int vval, uint8_t *vbuf, int vlen, bool isNum
   return ZOK;
 }
 
-ZResult ZCommand::doWiFiCommand(int vval, uint8_t *vbuf, int vlen)
+ZResult ZCommand::doWiFiCommand(int vval, uint8_t *vbuf, int vlen, bool isNumber, const char *dmodifiers)
 {
+  bool doPETSCII = (strchr(dmodifiers,'p')!=null) || (strchr(dmodifiers,'P')!=null);
   if((vlen==0)||(vval>0))
   {
     int n = WiFi.scanNetworks();
@@ -967,7 +968,13 @@ ZResult ZCommand::doWiFiCommand(int vval, uint8_t *vbuf, int vlen)
       n=vval;
     for (int i = 0; i < n; ++i)
     {
-      serial.prints(WiFi.SSID(i).c_str());
+      if((doPETSCII)&&(!serial.isPetsciiMode()))
+      {
+        for(char *c=(char *)WiFi.SSID(i).c_str();*c!=0;c++)
+          serial.printc(ascToPetcii(*c));
+      }
+      else
+        serial.prints(WiFi.SSID(i).c_str());
       serial.prints(" (");
       serial.printi(WiFi.RSSI(i));
       serial.prints(")");
@@ -987,7 +994,25 @@ ZResult ZCommand::doWiFiCommand(int vval, uint8_t *vbuf, int vlen)
       *x=0;
       char *ssi=(char *)vbuf;
       char *pw=x+1;
-      if(!connectWifi(ssi,pw))
+      bool connSuccess=false;
+      if((doPETSCII)&&(!serial.isPetsciiMode()))
+      {
+        char *ssiP =(char *)malloc(strlen(ssi)+1);
+        char *pwP = (char *)malloc(strlen(pw)+1);
+        strcpy(ssiP,ssi);
+        strcpy(pwP,pw);
+        for(char *c=ssiP;*c!=0;c++)
+          *c = ascToPetcii(*c);
+        for(char *c=pwP;*c!=0;c++)
+          *c = ascToPetcii(*c);
+        connSuccess = connectWifi(ssiP,pwP);
+        free(ssiP);
+        free(pwP);
+      }
+      else
+        connSuccess = connectWifi(ssi,pw);
+
+      if(!connSuccess)
         return ZERROR;
       else
       {
@@ -1539,14 +1564,9 @@ ZResult ZCommand::doSerialCommand()
             index++;
         }
         else
-        if((lastCmd=='d')||(lastCmd=='D')
-        || (lastCmd=='c')||(lastCmd=='C')
-        || (lastCmd=='p')||(lastCmd=='P')
-        || (lastCmd=='a')||(lastCmd=='A')
-        || (lastCmd=='t')||(lastCmd=='T'))
+        if(strchr("dcpatw", lastCmd) != null)
         {
           const char *DMODIFIERS=",expts+";
-          //const char *DMODIFIERS=",lbexprtw+";
           while((index<len)&&(strchr(DMODIFIERS,lc(sbuf[index]))!=null))
             dmodifiers += lc((char)sbuf[index++]);
           while((index<len)
@@ -1692,7 +1712,7 @@ ZResult ZCommand::doSerialCommand()
         result = isNumber ? ZOK : ZERROR;
         break;
       case 'w':
-        result = doWiFiCommand(vval,vbuf,vlen);
+        result = doWiFiCommand(vval,vbuf,vlen,isNumber,dmodifiers.c_str());
         break;
       case 'v':
         if(!isNumber)

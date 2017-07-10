@@ -1,4 +1,4 @@
-C64Net WiFi Firmware 2.8 (C)2016-2017 Bo Zimmerman
+C64Net WiFi Firmware 2.9 (C)2016-2017 Bo Zimmerman
 Please read the LICENSE file for license information
 Please read the NOTICE file for credits information
 
@@ -86,6 +86,7 @@ ATB"n,xYz" : Sets baud rate n, bits x, parity (E,O,M, or N) for Y, and stop bits
 ATW : List all wireless network access points scanned within range.  The response for each entry is the SSID, following by the RSSI, followed by an * character is the connection is encrypted.
 ATWn : Where n > 0, this lists up to n wireless network access points scanned within range.  The response for each entry is the SSID, following by the RSSI, followed by an * character is the connection is encrypted.
 ATW"[SSI],[PASSWORD]" : Connects to the wireless access point with the given SSI, using the given password.
+ATWP : Adding a P modifier is the same as all forms of ATW, with both arguments and results presented in PETSCII.
 
 ATD : Start a streaming connection between the current opened connection.  Use "+++" to exit back to Command mode.
 ATDn : Where n > 0, this will start a streaming connection between the previously opened connection with an id the same as n.  Use "+++" to exit back to Command mode.

@@ -12,78 +12,78 @@
         jmp resmio;+12
 ; ; ; ; ; public regs ; ; ; ; ; ;
 stat1s
-        bytes 0;+15
+        byte 0;+15
 subst1s
-        bytes 0;+16
+        byte 0;+16
 disable
-        bytes 0;+17
+        byte 0;+17
 stopflg
-        bytes 0;+18
+        byte 0;+18
 pausetm
-        bytes 0;+19
+        byte 0;+19
 timeflg
-        bytes 0;+20
+        byte 0;+20
 idlmins
-        bytes 4;+21
+        byte 4;+21
 tmohors
-        bytes 0;+22
+        byte 0;+22
 tmomins
-        bytes 85;+23
+        byte 85;+23
 secflag
-        bytes 1;+24
+        byte 1;+24
 savabyt
-        bytes 0,0
+        byte 0,0
 buf12fl
-        bytes 0
+        byte 0
 lastdcd
-        bytes 0
+        byte 0
 idlchvt
-        bytes 0,0
+        byte 0,0
 timsbyt
-        bytes 0,0
+        byte 0,0
 timswat
-        bytes 4
+        byte 4
 rbuf = $ce00
 tbuf = $cf00
 ; ; ; ; ; string table ; ; ; ; ; ;
 eight
-        bytes 8,0
+        byte 8,0
 strinit1
-        bytes 13
+        byte 13
         text "athzq0v1x1f0e0n0r0"
-        bytes 13,0,0,0,0,0,0,0,0,0,0,0
+        byte 13,0,0,0,0,0,0,0,0,0,0,0
 strinit2
-        bytes 13
+        byte 13
         text "ats0=1s41=1a"
 str2cont
         text "6400"
-        bytes 13,0,0,0
+        byte 13,0,0,0
 strok
         text "ok"
-        bytes 0
+        byte 0
 stripis
         text "server ip addr "
-        bytes 0
+        byte 0
 strinit3
-        bytes 13
+        byte 13
         text "atv0i2"
-        bytes 13,0
+        byte 13,0
 strinit4
         text " port "
-        bytes 0
+        byte 0
 strinit5
-        bytes 13,0
+        byte 13,0
 strinit0
         text "telnetd 1.0 init."
 strinitx
         text "."
-        bytes 0
+        byte 0
 stratha0
         text "+++"
-        bytes 0
+        byte 0
 stratha1
         text "ath"
-        bytes 13,0
+        byte 13,0
 ; ; ; ; check methods ; ; ; ; ;
 clrclk1
         lda $dc0f
@@ -929,14 +929,14 @@ nmirtn
         pha
         jmp $ffcc
 savvtr
-        bytes 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-        bytes 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+        byte 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+        byte 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 savbtr
-        bytes 0,0,0,0,0,0
+        byte 0,0,0,0,0,0
 buf1dx
-        bytes 0
+        byte 0
 buf1
-        nop; a page of bytes 4 play
+        nop; a page of byte 4 play
 print
         nop;:f$="rds64":open1,8,15,"s0:"+f$+"*":save(f$+".bas"),8
 

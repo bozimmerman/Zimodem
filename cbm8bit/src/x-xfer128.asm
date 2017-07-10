@@ -1,5 +1,5 @@
-*= $1300
-;.D X-XFER 1300
+*= $1800
+;.D X-XFER 1800
 ; Requires modem on channel 5, file on channel 2
         JMP SENDFIL
         JMP RECVCHK
@@ -167,8 +167,9 @@ CHECKABORT
         LDA SHFLAG
         CMP #$02
         BEQ ABORTED
-        ;LDA $0B0B
-        ;BNE ABORTED
+        lda $dd01
+        and #$10
+        beq ABORTED
         RTS
 ABORTED
         LDA #$01

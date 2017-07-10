@@ -118,7 +118,7 @@ class ZCommand : public ZMode
     ZResult doTransmitCommand(int vval, uint8_t *vbuf, int vlen, bool isNumber, const char *dmodifiers, const int crc8);
     ZResult doLastPacket(int vval, uint8_t *vbuf, int vlen, bool isNumber);
     ZResult doConnectCommand(int vval, uint8_t *vbuf, int vlen, bool isNumber, const char *dmodifiers);
-    ZResult doWiFiCommand(int vval, uint8_t *vbuf, int vlen);
+    ZResult doWiFiCommand(int vval, uint8_t *vbuf, int vlen, bool isNumber, const char *dmodifiers);
     ZResult doDialStreamCommand(unsigned long vval, uint8_t *vbuf, int vlen, bool isNumber, const char *dmodifiers);
     ZResult doPhonebookCommand(unsigned long vval, uint8_t *vbuf, int vlen, bool isNumber, const char *dmodifiers);
     ZResult doAnswerCommand(int vval, uint8_t *vbuf, int vlen, bool isNumber, const char *dmodifiers);

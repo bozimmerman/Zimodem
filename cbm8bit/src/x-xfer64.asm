@@ -1,5 +1,5 @@
-*= $C000
-;.D X-XFER C000
+*= $C800
+;.D X-XFER C800
 ; Requires modem on channel 5, file on channel 2
         JMP SENDFIL 
         JMP RECVCHK
@@ -167,8 +167,9 @@ CHECKABORT
         LDA SHFLAG
         CMP #$02
         BEQ ABORTED
-        ;LDA $0B0B
-        ;BNE ABORTED
+        lda $dd01
+        and #$10
+        beq ABORTED
         RTS
 ABORTED
         LDA #$01
