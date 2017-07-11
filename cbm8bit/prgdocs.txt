@@ -17,7 +17,7 @@ BUT I DON'T HAVE THE DISK?!
 *************************************
 Bootstrap software downloader for Commodore 64 with c64wifi modem with firmware rev 2.4 and better. Before you type in and run this program, you should make sure your modem is connected to a wifi hotspot.  You can use any C64/C128 terminal program, set to 1200 baud, in ASCII mode.  From inside the terminal mode of your program, you can type ATW to get a list of local wifi hotspots.  You can then use ATW"<hotspot name/ssid>,<password>" to connect.  You should then enter ATZ&W to save the new settings.  
 
-If you don't have access to a terminal program, you can type this little program in, save, and run it, and then enter ATW to get a list of local wifi hotspots, and then use ATW"<hotspot name/ssid>,<password>", and if the connection is successful, enter ATZ&W to save the settings.
+If you don't have access to a terminal program, you can type this little program in, save, and run it, and then enter ATW to get a list of local wifi hotspots, and then use ATW"<hotspot name/ssid>,<password>", and if the connection is successful, enter ATZ&WE1&P1 to save the settings.
 
 10 open5,2,0,chr$(8):poke665,73-(peek(678)*30)
 15 print#5,"at&p1e1":print#5,"at&p1e1"
