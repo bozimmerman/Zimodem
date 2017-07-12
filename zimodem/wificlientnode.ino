@@ -168,7 +168,10 @@ int WiFiClientNode::peek()
 void WiFiClientNode::flush()
 {
   if((host != null)&&(client.available()==0))
+  {
+    flushOverflowBuffer();
     client.flush();
+  }
 }
 
 int WiFiClientNode::available()
@@ -185,16 +188,8 @@ int WiFiClientNode::read(uint8_t *buf, size_t size)
   return client.read(buf,size);
 }
 
-size_t WiFiClientNode::write(const uint8_t *buf, size_t size)
+int WiFiClientNode::flushOverflowBuffer()
 {
-  if(host == null)
-  {
-    if(overflowBufLen>0)
-      digitalWrite(PIN_RTS,RTS_HIGH);
-    overflowBufLen=0;
-    return 0;
-  }
-  int written = 0;
   if(overflowBufLen > 0)
   {
     int bufWrite=client.write(overflowBuf,overflowBufLen);
@@ -206,18 +201,35 @@ size_t WiFiClientNode::write(const uint8_t *buf, size_t size)
     }
     else
     {
-      written += bufWrite;
       if(bufWrite > 0)
       {
         for(int i=bufWrite;i<overflowBufLen;i++)
           overflowBuf[i-bufWrite]=overflowBuf[i];
         overflowBufLen -= bufWrite;
       }
-      for(int i=0;i<size && overflowBufLen<OVERFLOW_BUF_SIZE;i++,overflowBufLen++)
-        overflowBuf[overflowBufLen]=buf[i];
       digitalWrite(PIN_RTS,RTS_LOW);
-      return written;
+      return bufWrite;
     }
+  }
+  return 0;
+}
+
+size_t WiFiClientNode::write(const uint8_t *buf, size_t size)
+{
+  if(host == null)
+  {
+    if(overflowBufLen>0)
+      digitalWrite(PIN_RTS,RTS_HIGH);
+    overflowBufLen=0;
+    return 0;
+  }
+  int written = 0;
+  written += flushOverflowBuffer();
+  if(written > 0)
+  {
+    for(int i=0;i<size && overflowBufLen<OVERFLOW_BUF_SIZE;i++,overflowBufLen++)
+      overflowBuf[overflowBufLen]=buf[i];
+    return written;
   }
   written += client.write(buf,size);
   if(written < size)

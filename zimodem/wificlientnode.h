@@ -21,6 +21,7 @@ class WiFiClientNode : public Stream
 {
   private:
     void finishConnectionLink();
+    int flushOverflowBuffer();
     WiFiClient client;
     WiFiClient *clientPtr;
 
