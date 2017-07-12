@@ -16,7 +16,7 @@
 
 #define TCP_SND_BUF                     4 * TCP_MSS
 #define null 0
-#define ZIMODEM_VERSION "2.8"
+#define ZIMODEM_VERSION "2.9"
 
 class ZMode
 {
@@ -26,6 +26,7 @@ class ZMode
 };
 static int PIN_DCD = 2;
 static int PIN_CTS = 0;
+static int PIN_RTS = 4;
 
 #include "pet2asc.h"
 #include "zlog.h"
@@ -63,6 +64,8 @@ static int DCD_HIGH = HIGH;
 static int DCD_LOW = LOW;
 static int CTS_HIGH = HIGH;
 static int CTS_LOW = LOW;
+static int RTS_HIGH = HIGH;
+static int RTS_LOW = LOW;
 
 static bool connectWifi(const char* ssid, const char* password)
 {
@@ -140,8 +143,9 @@ void setup()
   if((ESP.getFlashChipSize()/1024)==4096) // assume this is a striketerm/esp12e
   {
     PIN_CTS=5;
-    pinMode(4,OUTPUT);
-    digitalWrite(4,HIGH);
+    PIN_RTS=4;
+    pinMode(PIN_RTS,OUTPUT);
+    digitalWrite(PIN_RTS,RTS_HIGH);
   }
   currMode = &commandMode;
   SPIFFS.begin();

@@ -151,13 +151,6 @@ bool WiFiClientNode::isDisconnectedOnStreamExit()
   return (flagsBitmap & FLAG_DISCONNECT_ON_EXIT) == FLAG_DISCONNECT_ON_EXIT;
 }
 
-size_t WiFiClientNode::write(uint8_t c)
-{
-  if(host == null)
-    return 0;
-  return client.write(c);
-}
-
 int WiFiClientNode::read()
 {
   if(host == null)
@@ -195,8 +188,51 @@ int WiFiClientNode::read(uint8_t *buf, size_t size)
 size_t WiFiClientNode::write(const uint8_t *buf, size_t size)
 {
   if(host == null)
+  {
+    if(overflowBufLen>0)
+      digitalWrite(PIN_RTS,RTS_HIGH);
+    overflowBufLen=0;
     return 0;
-  return client.write(buf,size);
+  }
+  int written = 0;
+  if(overflowBufLen > 0)
+  {
+    int bufWrite=client.write(overflowBuf,overflowBufLen);
+    if(bufWrite >= overflowBufLen)
+    {
+      overflowBufLen = 0;
+      digitalWrite(PIN_RTS,RTS_HIGH);
+      // fall-through
+    }
+    else
+    {
+      written += bufWrite;
+      if(bufWrite > 0)
+      {
+        for(int i=bufWrite;i<overflowBufLen;i++)
+          overflowBuf[i-bufWrite]=overflowBuf[i];
+        overflowBufLen -= bufWrite;
+      }
+      for(int i=0;i<size && overflowBufLen<OVERFLOW_BUF_SIZE;i++,overflowBufLen++)
+        overflowBuf[overflowBufLen]=buf[i];
+      digitalWrite(PIN_RTS,RTS_LOW);
+      return written;
+    }
+  }
+  written += client.write(buf,size);
+  if(written < size)
+  {
+      for(int i=written;i<size && overflowBufLen<OVERFLOW_BUF_SIZE;i++,overflowBufLen++)
+        overflowBuf[overflowBufLen]=buf[i];
+      digitalWrite(PIN_RTS,RTS_LOW);
+  }
+  return written;
+}
+
+size_t WiFiClientNode::write(uint8_t c)
+{
+  one[0]=c;
+  write(one,1);
 }
 
 PhoneBookEntry::PhoneBookEntry(unsigned long phnum, const char *addr, const char *mod)

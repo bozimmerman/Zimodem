@@ -368,17 +368,30 @@ ZResult ZCommand::doInfoCommand(int vval, uint8_t *vbuf, int vlen, bool isNumber
 
     serial.prints("S0=");
     serial.printi((int)ringCounter);
-    serial.prints("S2=");
-    serial.printi((int)EC);
-    serial.prints("S3=");
-    serial.printi((int)CR[0]);
-    serial.prints("S4=");
-    serial.printi((int)LF[0]);
-    serial.prints("S5=");
-    serial.printi((int)BS);
+    if(EC != '+')
+    {
+      serial.prints("S2=");
+      serial.printi((int)EC);
+    }
+    if(CR[0]!='\r')
+    {
+      serial.prints("S3=");
+      serial.printi((int)CR[0]);
+    }
+    if(LF[0]!='\n')
+    {
+      serial.prints("S4=");
+      serial.printi((int)LF[0]);
+    }
+    if(BS != 8)
+    {
+      serial.prints("S5=");
+      serial.printi((int)BS);
+    }
     serial.prints("S40=");
     serial.printi(packetSize);
-    serial.prints(autoStreamMode ? "S41=1" : "S41=0");
+    if(autoStreamMode)
+      serial.prints(autoStreamMode ? "S41=1" : "S41=0");
     
     WiFiServerNode *serv = servs;
     while(serv != null)
@@ -406,7 +419,8 @@ ZResult ZCommand::doInfoCommand(int vval, uint8_t *vbuf, int vlen, bool isNumber
       serial.prints("S46=1");
     if(CTS_HIGH != HIGH)
       serial.prints("S47=1");
-    serial.prints(serial.isPetsciiMode() ? "&P1" : "&P0");
+    if(serial.isPetsciiMode())
+      serial.prints(serial.isPetsciiMode() ? "&P1" : "&P0");
     serial.prints(EOLN);
   }
   else
