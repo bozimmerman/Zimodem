@@ -140,20 +140,15 @@ static int checkOpenConnections()
 
 void setup() 
 {
-  if((ESP.getFlashChipSize()/1024)==4096) // assume this is a striketerm/esp12e
-  {
-    PIN_CTS=5;
-    PIN_RTS=4;
-    pinMode(PIN_RTS,OUTPUT);
-    digitalWrite(PIN_RTS,RTS_HIGH);
-  }
   currMode = &commandMode;
   SPIFFS.begin();
   commandMode.loadConfig();
   PhoneBookEntry::loadPhonebook();
   dcdStatus = DCD_LOW;
+  pinMode(PIN_RTS,OUTPUT);
   pinMode(PIN_CTS,INPUT);
   pinMode(PIN_DCD,OUTPUT);
+  digitalWrite(PIN_RTS,RTS_HIGH);
   digitalWrite(2,dcdStatus);
   flushSerial();
   //enableRtsCts = digitalRead(PIN_CTS) == CTS_HIGH;

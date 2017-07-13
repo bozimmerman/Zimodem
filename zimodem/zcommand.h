@@ -41,7 +41,11 @@ enum ConfigOptions
   CFG_DCDMODE=10,
   CFG_UART=11,
   CFG_CTSMODE=12,
-  CFG_LAST=12
+  CFG_RTSMODE=13,
+  CFG_DCDPIN=14,
+  CFG_CTSPIN=15,
+  CFG_RTSPIN=16,
+  CFG_LAST=17
 };
 
 enum StreamFlag

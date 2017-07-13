@@ -86,6 +86,18 @@ void ZCommand::setConfigDefaults()
   DCD_LOW=LOW;
   CTS_HIGH=HIGH;
   CTS_LOW=LOW;
+  RTS_HIGH=HIGH;
+  RTS_LOW=LOW;
+  PIN_DCD = 2;
+  PIN_CTS = 0;
+  PIN_RTS = 4;
+  if((ESP.getFlashChipSize()/1024)==4096) // assume this is a striketerm/esp12e
+    PIN_CTS=5;
+  pinMode(PIN_RTS,OUTPUT);
+  pinMode(PIN_CTS,INPUT);
+  pinMode(PIN_DCD,OUTPUT);
+  digitalWrite(PIN_RTS,RTS_HIGH);
+  digitalWrite(2,dcdStatus);
   suppressResponses=false;
   numericResponses=false;
   longResponses=true;
@@ -171,10 +183,12 @@ void ZCommand::reSaveConfig()
   const char *eoln = EOLN.c_str();
   int dcdMode = (DCD_HIGH == HIGH) ? 0 : 1;
   int ctsMode = (CTS_HIGH == HIGH) ? 0 : 1;
-  f.printf("%s,%s,%d,%s,%d,%d,%d,%d,%d,%d,%d,%d,%d", 
+  int rtsMode = (RTS_HIGH == HIGH) ? 0 : 1;
+  f.printf("%s,%s,%d,%s,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d", 
             wifiSSI.c_str(), wifiPW.c_str(), baudRate, eoln,
             serial.getFlowControlType(), doEcho, suppressResponses, numericResponses,
-            longResponses, serial.isPetsciiMode(), dcdMode, serialConfig, ctsMode);
+            longResponses, serial.isPetsciiMode(), dcdMode, serialConfig, ctsMode,
+            rtsMode,PIN_DCD,PIN_CTS,PIN_RTS);
   f.close();
   delay(500);
   if(SPIFFS.exists("/zconfig.txt"))
@@ -254,6 +268,38 @@ void ZCommand::setBaseConfigOptions(String configArguments[])
       CTS_HIGH=HIGH;
       CTS_LOW=LOW;
     }
+  }
+  if(configArguments[CFG_RTSMODE].length()>0)
+  {
+    int rstMode = atoi(configArguments[CFG_RTSMODE].c_str());
+    if(rstMode == 1)
+    {
+      RTS_HIGH=LOW;
+      RTS_LOW=HIGH;
+    }
+    else
+    {
+      RTS_HIGH=HIGH;
+      RTS_LOW=LOW;
+    }
+  }
+  if(configArguments[CFG_DCDPIN].length()>0)
+  {
+    PIN_DCD = atoi(configArguments[CFG_DCDPIN].c_str());
+    pinMode(PIN_DCD,OUTPUT);
+    dcdStatus=DCD_LOW;
+    digitalWrite(2,dcdStatus);
+  }
+  if(configArguments[CFG_CTSPIN].length()>0)
+  {
+    PIN_CTS = atoi(configArguments[CFG_CTSPIN].c_str());
+    pinMode(PIN_CTS,INPUT);
+  }
+  if(configArguments[CFG_RTSPIN].length()>0)
+  {
+    PIN_RTS = atoi(configArguments[CFG_RTSPIN].c_str());
+    pinMode(PIN_RTS,OUTPUT);
+    digitalWrite(PIN_RTS,RTS_HIGH);
   }
 }
 
@@ -1857,6 +1903,36 @@ ZResult ZCommand::doSerialCommand()
                  CTS_HIGH = LOW;
                  CTS_LOW = HIGH;
                }
+               break;
+             case 48:
+               if(sval <=0)
+               {
+                 RTS_HIGH = HIGH;
+                 RTS_LOW = LOW;
+               }
+               else
+               {
+                 RTS_HIGH = LOW;
+                 RTS_LOW = HIGH;
+               }
+               break;
+             case 49:
+               if(sval >= 0)
+                 PIN_DCD=sval;
+               else
+                 result=ZERROR;
+               break;
+             case 50:
+               if(sval >= 0)
+                 PIN_CTS=sval;
+               else
+                 result=ZERROR;
+               break;
+             case 51:
+               if(sval >= 0)
+                 PIN_RTS=sval;
+               else
+                 result=ZERROR;
                break;
              default:
                 break;

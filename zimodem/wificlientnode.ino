@@ -231,7 +231,7 @@ size_t WiFiClientNode::write(const uint8_t *buf, size_t size)
       overflowBuf[overflowBufLen]=buf[i];
     return written;
   }
-  written += client.write(buf,size);
+  written += client.write(buf, size);
   if(written < size)
   {
       for(int i=written;i<size && overflowBufLen<OVERFLOW_BUF_SIZE;i++,overflowBufLen++)
@@ -243,7 +243,7 @@ size_t WiFiClientNode::write(const uint8_t *buf, size_t size)
 
 size_t WiFiClientNode::write(uint8_t c)
 {
-  one[0]=c;
+  const uint8_t one[] = {c};
   write(one,1);
 }
 
