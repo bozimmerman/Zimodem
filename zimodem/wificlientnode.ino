@@ -43,7 +43,7 @@ WiFiClientNode::WiFiClientNode(char *hostIp, int newport, int flagsBitmap)
   */
     clientPtr = new WiFiClient();
   client = *clientPtr;
-  client.setNoDelay(true);
+  client.setNoDelay(DEFAULT_NO_DELAY);
   setCharArray(&delimiters,"");
   setCharArray(&maskOuts,"");
   if(!client.connect(hostIp, port))
@@ -74,7 +74,7 @@ WiFiClientNode::WiFiClientNode(WiFiClient newClient, int flagsBitmap)
 {
   this->flagsBitmap = flagsBitmap;
   clientPtr=null;
-  newClient.setNoDelay(true);
+  newClient.setNoDelay(DEFAULT_NO_DELAY);
   port=newClient.localPort();
   setCharArray(&delimiters,"");
   setCharArray(&maskOuts,"");
@@ -196,7 +196,7 @@ int WiFiClientNode::flushOverflowBuffer()
     if(bufWrite >= overflowBufLen)
     {
       overflowBufLen = 0;
-      digitalWrite(PIN_RTS,RTS_HIGH);
+      digitalWrite(pinRTS,rtsActive);
       // fall-through
     }
     else
@@ -207,7 +207,7 @@ int WiFiClientNode::flushOverflowBuffer()
           overflowBuf[i-bufWrite]=overflowBuf[i];
         overflowBufLen -= bufWrite;
       }
-      digitalWrite(PIN_RTS,RTS_LOW);
+      digitalWrite(pinRTS,rtsInactive);
       return bufWrite;
     }
   }
@@ -219,7 +219,7 @@ size_t WiFiClientNode::write(const uint8_t *buf, size_t size)
   if(host == null)
   {
     if(overflowBufLen>0)
-      digitalWrite(PIN_RTS,RTS_HIGH);
+      digitalWrite(pinRTS,rtsActive);
     overflowBufLen=0;
     return 0;
   }
@@ -236,7 +236,7 @@ size_t WiFiClientNode::write(const uint8_t *buf, size_t size)
   {
       for(int i=written;i<size && overflowBufLen<OVERFLOW_BUF_SIZE;i++,overflowBufLen++)
         overflowBuf[overflowBufLen]=buf[i];
-      digitalWrite(PIN_RTS,RTS_LOW);
+      digitalWrite(pinRTS,rtsInactive);
   }
   return written;
 }

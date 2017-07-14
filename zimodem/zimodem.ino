@@ -9,7 +9,7 @@
 
    Unless required by applicable law or agreed to in writing, software
    distributed under the License is distributed on an "AS IS" BASIS,
-   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.https://www.amazon.com/#
    See the License for the specific language governing permissions and
    limitations under the License.
 */
@@ -17,6 +17,19 @@
 #define TCP_SND_BUF                     4 * TCP_MSS
 #define null 0
 #define ZIMODEM_VERSION "2.9"
+#define DEFAULT_NO_DELAY true
+#define DEFAULT_PIN_DCD 2
+#define DEFAULT_PIN_CTS 5
+#define DEFAULT_PIN_RTS 4
+#define DEFAULT_DCD_HIGH  HIGH
+#define DEFAULT_DCD_LOW  LOW
+#define DEFAULT_CTS_HIGH  HIGH
+#define DEFAULT_CTS_LOW  LOW
+#define DEFAULT_RTS_HIGH  HIGH
+#define DEFAULT_RTS_LOW  LOW
+#define DEFAULT_BAUD_RATE 1200
+#define DEFAULT_SERIAL_CONFIG SERIAL_8N1
+
 
 class ZMode
 {
@@ -24,9 +37,6 @@ class ZMode
     virtual void serialIncoming();
     virtual void loop();
 };
-static int PIN_DCD = 2;
-static int PIN_CTS = 0;
-static int PIN_RTS = 4;
 
 #include "pet2asc.h"
 #include "zlog.h"
@@ -55,22 +65,25 @@ enum BaudState
 static bool wifiConnected =false;
 static String wifiSSI;
 static String wifiPW;
-static SerialConfig serialConfig = SERIAL_8N1;
-static int baudRate=1200;
+static SerialConfig serialConfig = DEFAULT_SERIAL_CONFIG;
+static int baudRate=DEFAULT_BAUD_RATE;
 static BaudState baudState = BS_NORMAL; 
 static int tempBaud = -1; // -1 do nothing
-static int dcdStatus = LOW; 
-static int DCD_HIGH = HIGH;
-static int DCD_LOW = LOW;
-static int CTS_HIGH = HIGH;
-static int CTS_LOW = LOW;
-static int RTS_HIGH = HIGH;
-static int RTS_LOW = LOW;
+static int dcdStatus = LOW;
+static int pinDCD = DEFAULT_PIN_DCD;
+static int pinCTS = DEFAULT_PIN_CTS;
+static int pinRTS = DEFAULT_PIN_RTS;
+static int dcdActive = DEFAULT_DCD_HIGH;
+static int dcdInactive = DEFAULT_DCD_LOW;
+static int ctsActive = DEFAULT_CTS_HIGH;
+static int ctsInactive = DEFAULT_CTS_LOW;
+static int rtsActive = DEFAULT_RTS_HIGH;
+static int rtsInactive = DEFAULT_RTS_LOW;
 
 static int getDefaultCtsPin()
 {
-  if((ESP.getFlashChipSize()/1024)==4096) // assume this is a striketerm/esp12e
-    return 5;
+  if((ESP.getFlashChipSize()/1024)>=4096) // assume this is a striketerm/esp12e
+    return DEFAULT_PIN_CTS;
   else
     return 0;
 }
@@ -123,10 +136,10 @@ static int checkOpenConnections()
   }
   if(num == 0)
   {
-    if(dcdStatus == DCD_HIGH)
+    if(dcdStatus == dcdActive)
     {
-      dcdStatus = DCD_LOW;
-      digitalWrite(PIN_DCD,dcdStatus);
+      dcdStatus = dcdInactive;
+      digitalWrite(pinDCD,dcdStatus);
       if(baudState == BS_SWITCHED_TEMP)
         baudState = BS_SWITCH_NORMAL_NEXT;
       if(currMode == &commandMode)
@@ -135,10 +148,10 @@ static int checkOpenConnections()
   }
   else
   {
-    if(dcdStatus == DCD_LOW)
+    if(dcdStatus == dcdInactive)
     {
-      dcdStatus = DCD_HIGH;
-      digitalWrite(PIN_DCD,dcdStatus);
+      dcdStatus = dcdActive;
+      digitalWrite(pinDCD,dcdStatus);
       if((tempBaud > 0) && (baudState == BS_NORMAL))
         baudState = BS_SWITCH_TEMP_NEXT;
     }
@@ -152,14 +165,14 @@ void setup()
   SPIFFS.begin();
   commandMode.loadConfig();
   PhoneBookEntry::loadPhonebook();
-  dcdStatus = DCD_LOW;
-  pinMode(PIN_RTS,OUTPUT);
-  pinMode(PIN_CTS,INPUT);
-  pinMode(PIN_DCD,OUTPUT);
-  digitalWrite(PIN_RTS,RTS_HIGH);
-  digitalWrite(2,dcdStatus);
+  dcdStatus = dcdInactive;
+  pinMode(pinRTS,OUTPUT);
+  pinMode(pinCTS,INPUT);
+  pinMode(pinDCD,OUTPUT);
+  digitalWrite(pinRTS,rtsActive);
+  digitalWrite(pinDCD,dcdStatus);
   flushSerial();
-  //enableRtsCts = digitalRead(PIN_CTS) == CTS_HIGH;
+  //enableRtsCts = digitalRead(pinCTS) == ctsActive;
 }
 
 void loop() 

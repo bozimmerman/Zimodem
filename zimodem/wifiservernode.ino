@@ -22,7 +22,7 @@ WiFiServerNode::WiFiServerNode(int newport, int flagsBitmap)
   setCharArray(&maskOuts,"");
   this->flagsBitmap = flagsBitmap;
   server = new WiFiServer(newport);
-  //BZ:server->setNoDelay(true);
+  //BZ:server->setNoDelay(DEFAULT_NO_DELAY);
   server->begin();
   if(servs==null)
     servs=this;
