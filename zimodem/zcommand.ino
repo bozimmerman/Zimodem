@@ -89,10 +89,8 @@ void ZCommand::setConfigDefaults()
   RTS_HIGH=HIGH;
   RTS_LOW=LOW;
   PIN_DCD = 2;
-  PIN_CTS = 0;
+  PIN_CTS = getDefaultCtsPin();
   PIN_RTS = 4;
-  if((ESP.getFlashChipSize()/1024)==4096) // assume this is a striketerm/esp12e
-    PIN_CTS=5;
   pinMode(PIN_RTS,OUTPUT);
   pinMode(PIN_CTS,INPUT);
   pinMode(PIN_DCD,OUTPUT);
@@ -465,6 +463,14 @@ ZResult ZCommand::doInfoCommand(int vval, uint8_t *vbuf, int vlen, bool isNumber
       serial.prints("S46=1");
     if(CTS_HIGH != HIGH)
       serial.prints("S47=1");
+    if(RTS_HIGH != HIGH)
+      serial.prints("S48=1");
+    if(PIN_DCD != 2)
+      serial.prints("S49=1");
+    if(PIN_CTS != getDefaultCtsPin())
+      serial.prints("S50=1");
+    if(PIN_DCD != 4)
+      serial.prints("S51=1");
     if(serial.isPetsciiMode())
       serial.prints(serial.isPetsciiMode() ? "&P1" : "&P0");
     serial.prints(EOLN);

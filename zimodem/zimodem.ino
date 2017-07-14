@@ -67,6 +67,14 @@ static int CTS_LOW = LOW;
 static int RTS_HIGH = HIGH;
 static int RTS_LOW = LOW;
 
+static int getDefaultCtsPin()
+{
+  if((ESP.getFlashChipSize()/1024)==4096) // assume this is a striketerm/esp12e
+    return 5;
+  else
+    return 0;
+}
+
 static bool connectWifi(const char* ssid, const char* password)
 {
   int WiFiCounter = 0;
