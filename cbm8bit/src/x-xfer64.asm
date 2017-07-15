@@ -93,8 +93,11 @@ SOH = $01
 CNAK = $43
 PAD = $1A
 OTH = $02
+
+ABORTFLAG = $FB
+FREEKEY = $FC
+XTYPE = $FD
 UPDN = $FE
-XTYPE = $FF
 
 ; KERNAL JUMPS
 CHKIN = $FFC6
@@ -116,6 +119,7 @@ RODBE = $029E ; index to last char in output buffer
 KEYINDEX = $C6
 CASSSYNCCT = $A5
 STATUS = $90
+RIBUF = $F7 ;(C8)
 
 ;***************
 ;VARIABLE MEMORY
@@ -210,8 +214,8 @@ GETKEY
         CMP RIDBE
         BEQ NOKEY
         LDY RIDBE
-        LDA ($C8),Y
-        STA $FA
+        LDA (RIBUF),Y
+        STA FREEKEY
         INC RIDBE
         LDA #$01
         STA CASSSYNCCT
@@ -221,7 +225,7 @@ GETKEY
 NOKEY
         LDA #$00
         STA CASSSYNCCT
-        STA $FA
+        STA FREEKEY
         PLA
         TAY
         RTS
@@ -328,7 +332,7 @@ NOCLOCK
         BEQ RECVLP
         JSR RETIME
         LDY BUFBIT
-        LDA $FA
+        LDA FREEKEY
         STA BUFFER,Y
         INC BUFBIT
         INY
@@ -452,7 +456,7 @@ EXITXMODEM
         LDA #$2A
         JSR BSOUT
         LDA ABORT
-        STA $FB
+        STA ABORTFLAG
         RTS
 ;******************
 ;SEND A XMODEM FILE

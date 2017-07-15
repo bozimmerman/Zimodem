@@ -1,4 +1,4 @@
-*= $1800
+*= $1300
 ;.D X-XFER 1800
 ; Requires modem on channel 5, file on channel 2
         JMP SENDFIL
