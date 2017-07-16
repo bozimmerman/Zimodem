@@ -206,6 +206,7 @@ void ZCommand::reSaveConfig()
     if(argn!=CFG_LAST)
     {
       delay(100);
+      yield();
       reSaveConfig();
     }
   }
@@ -359,14 +360,22 @@ ZResult ZCommand::doInfoCommand(int vval, uint8_t *vbuf, int vlen, bool isNumber
     showInitMessage();
   }
   else
-  if(vval == 1)
+  if((vval == 1)||(vval==5))
   {
+    bool showAll = (vval==5);
     serial.prints("AT");
     serial.prints("B");
     serial.printi(baudRate);
     serial.prints(doEcho?"E1":"E0");
     if(suppressResponses)
+    {
       serial.prints("Q1");
+      if(showAll)
+      {
+        serial.prints(numericResponses?"V0":"V1");
+        serial.prints(longResponses?"X1":"X0");
+      }
+    }
     else
     {
       serial.prints("Q0");
@@ -404,37 +413,47 @@ ZResult ZCommand::doInfoCommand(int vval, uint8_t *vbuf, int vlen, bool isNumber
       serial.prints("R3");
   
     if((delimiters != NULL)&&(delimiters[0]!=0))
+    {
       for(int i=0;i<strlen(delimiters);i++)
-        serial.printf("&d%d",delimiters[i]);
+        serial.printf("&D%d",delimiters[i]);
+    }
+    else
+    if(showAll)
+      serial.prints("&D");
     if((maskOuts != NULL)&&(maskOuts[0]!=0))
+    {
       for(int i=0;i<strlen(maskOuts);i++)
         serial.printf("&m%d",maskOuts[i]);
+    }
+    else
+    if(showAll)
+      serial.prints("&M");
 
     serial.prints("S0=");
     serial.printi((int)ringCounter);
-    if(EC != '+')
+    if((EC != '+')||(showAll))
     {
       serial.prints("S2=");
       serial.printi((int)EC);
     }
-    if(CR[0]!='\r')
+    if((CR[0]!='\r')||(showAll))
     {
       serial.prints("S3=");
       serial.printi((int)CR[0]);
     }
-    if(LF[0]!='\n')
+    if((LF[0]!='\n')||(showAll))
     {
       serial.prints("S4=");
       serial.printi((int)LF[0]);
     }
-    if(BS != 8)
+    if((BS != 8)||(showAll))
     {
       serial.prints("S5=");
       serial.printi((int)BS);
     }
     serial.prints("S40=");
     serial.printi(packetSize);
-    if(autoStreamMode)
+    if(autoStreamMode ||(showAll))
       serial.prints(autoStreamMode ? "S41=1" : "S41=0");
     
     WiFiServerNode *serv = servs;
@@ -449,30 +468,35 @@ ZResult ZCommand::doInfoCommand(int vval, uint8_t *vbuf, int vlen, bool isNumber
       serial.prints("S43=");
       serial.printi(tempBaud);
     }
-    if(serialDelayMs > 0)
+    else
+    if(showAll)
+      serial.prints("S43=0");
+    if((serialDelayMs > 0)||(showAll))
     {
       serial.prints("S44=");
       serial.printi(serialDelayMs);
     }
-    if(binType > 0)
+    if((binType > 0)||(showAll))
     {
       serial.prints("S45=");
       serial.printi(binType);
     }
-    if(dcdActive != DEFAULT_DCD_HIGH)
+    if((dcdActive != DEFAULT_DCD_HIGH)||(showAll))
       serial.prints("S46=1");
-    if(ctsActive != DEFAULT_CTS_HIGH)
+    if((ctsActive != DEFAULT_CTS_HIGH)||(showAll))
       serial.prints("S47=1");
-    if(rtsActive != DEFAULT_RTS_HIGH)
+    if((rtsActive != DEFAULT_RTS_HIGH)||(showAll))
       serial.prints("S48=1");
-    if(pinDCD != DEFAULT_PIN_DCD)
+    if((pinDCD != DEFAULT_PIN_DCD)||(showAll))
       serial.prints("S49=1");
-    if(pinCTS != getDefaultCtsPin())
+    if((pinCTS != getDefaultCtsPin())||(showAll))
       serial.prints("S50=1");
-    if(pinRTS != DEFAULT_PIN_RTS)
+    if((pinRTS != DEFAULT_PIN_RTS)||(showAll))
       serial.prints("S51=1");
-    if(serial.isPetsciiMode())
+    if((serial.isPetsciiMode())||(showAll))
       serial.prints(serial.isPetsciiMode() ? "&P1" : "&P0");
+    if(logFileOpen || showAll)
+      serial.prints(logFileOpen ? "&O1" : "&O0");
     serial.prints(EOLN);
   }
   else
@@ -723,6 +747,7 @@ bool ZCommand::doWebGetStream(const char *hostIp, int port, const char *req, WiF
       continue;
       
     char ch = (char)c.read();
+    logSocketIn(ch);
     if(ch == '\r')
       continue;
     else
@@ -777,7 +802,9 @@ bool ZCommand::doWebGet(const char *hostIp, int port, const char *filename, cons
   {
     if(c.available()>=0)
     {
-      f.write(c.read());
+      uint8_t ch=c.read();
+      logSocketIn(ch);
+      f.write(ch);
       respLength--;
     }
     else
@@ -807,7 +834,9 @@ bool ZCommand::doWebGetBytes(const char *hostIp, int port, const char *req, uint
   {
     if(c.available()>=0)
     {
-      buf[index++] = c.read();
+      uint8_t ch=c.read();
+      logSocketIn(ch);
+      buf[index++] = ch;
       respLength--;
     }
     else
@@ -1762,7 +1791,7 @@ ZResult ZCommand::doSerialCommand()
           }
         }
         else
-          result = isNumber ? ZOK : ZERROR;
+          result = isNumber ? doDialStreamCommand(vval,vbuf,vlen,isNumber,"") : ZERROR;
         break;
       case 'c':
         result = doConnectCommand(vval,vbuf,vlen,isNumber,dmodifiers.c_str());
@@ -2380,7 +2409,9 @@ void ZCommand::sendNextPacket()
             ||((strchr(nextConn->delimiters,lastBuf[lastLen-1]) == null)
               &&(strchr(delimiters,lastBuf[lastLen-1]) == null))))
           {
-            lastBuf[lastLen++] = nextConn->read();
+            uint8_t c=nextConn->read();
+            logSocketIn(c);
+            lastBuf[lastLen++] = c;
             bytesRemain--;
           }
           nextConn->lastPacketLen = lastLen;
@@ -2403,7 +2434,10 @@ void ZCommand::sendNextPacket()
           }
         }
         else
+        {
           maxBytes = nextConn->read(nextConn->lastPacketBuf,maxBytes);
+          logSocketIn(nextConn->lastPacketBuf,maxBytes);
+        }
         nextConn->lastPacketLen=maxBytes;
         reSendLastPacket(nextConn);
         if(serial.getFlowControlType() == FCT_AUTOOFF)

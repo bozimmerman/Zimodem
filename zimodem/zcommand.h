@@ -45,7 +45,7 @@ enum ConfigOptions
   CFG_DCDPIN=14,
   CFG_CTSPIN=15,
   CFG_RTSPIN=16,
-  CFG_LAST=17
+  CFG_LAST=16
 };
 
 enum StreamFlag

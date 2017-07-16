@@ -191,6 +191,7 @@ void ZStream::loop()
             if(serial.isSerialCancelled())
               break;
             uint8_t c=current->read();
+            logSocketIn(c);
             if((!isTelnet() || handleAsciiIAC((char *)&c,current))
             && (!isPETSCII() || ascToPet((char *)&c,current)))
               enqueSerialOut(c);

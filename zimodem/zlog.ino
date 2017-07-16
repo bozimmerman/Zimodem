@@ -124,6 +124,15 @@ static void logSocketIn(const uint8_t c)
   logInternalOut(SocketIn,c);
 }
 
+static void logSocketIn(const uint8_t *c, int n)
+{
+  if(logFileOpen)
+  {
+    for(int i=0;i<n;i++)
+      logInternalOut(SocketIn,c[i]);
+  }
+}
+
 static void logPrintfln(const char* format, ...) 
 {
   if(logFileOpen)

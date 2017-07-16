@@ -40,10 +40,11 @@ ATZ : closes all open socket connections (preserving the Access Point connection
 
 ATI : re-shows the startup message, including wifi connection information.
 ATI0 : same as ATI
-ATI1 : Shows the current variable settings, including 'S' registers.
+ATI1 : Shows the current common variable settings, common 'S' registers.
 ATI2 : Shows the modem's current IP address
 ATI3 : Shows the modem's current Wireless Router connection
 ATI4 : Shows only the firmware current version
+ATI5 : Shows all the current variable settings, all 'S' registers.
 
 ATA  : If a server listener has generated a RING, then ATA will switch the last rung connection to Stream mode (see ATD).
 ATA/ : Repeats the previous command (no idea why...)

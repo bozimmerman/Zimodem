@@ -1,5 +1,5 @@
 *= $C800
-;.D X-XFER C800
+;.D X-XFER64.BIN
 ; Requires modem on channel 5, file on channel 2
         JMP SENDFIL 
         JMP RECVCHK

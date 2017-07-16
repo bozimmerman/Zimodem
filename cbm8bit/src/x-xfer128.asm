@@ -1,5 +1,5 @@
-*= $1300
-;.D X-XFER 1800
+*= $C800
+;.D X-XFER128.BIN
 ; Requires modem on channel 5, file on channel 2
         JMP SENDFIL
         JMP RECVCHK
@@ -81,10 +81,10 @@ CRCMSB
 ;****************
 ;VARIABLE STORAGE
 ;****************
-BUFFER = $1EFD
-BUFFER3 = $1F00
-ENDBUF = $1F80
-CRCBUF = $1F81
+BUFFER = $CEFD
+BUFFER3 = $CF00
+ENDBUF = $CF80
+CRCBUF = $CF81
 ACK = $06
 CAN = $18
 EOT = $04
@@ -93,16 +93,18 @@ SOH = $01
 CNAK = $43
 PAD = $1A
 OTH = $02
+
+
+ABORTFLAG = $FB
 UPDN = $FE
 XTYPE = $FF
+FREEKEY = $FA
+
 
 ; KERNAL JUMPS
-CHKIN = $FFC6
-CHKOUT = $FFC9
-CLRCH = $FFCC
-BSOUT = $FFD2
-SETTIM = $FFDB
-GETIN = $FFE4
+JSRFAR = $02CD
+LOCJSRFAR = $1BE0
+FETCH = $02A2
 
 ; C128 Specific Locations
 TIMEHB = $A0
@@ -116,6 +118,7 @@ RODBE = $0A1B ; index to last char in output buffer
 KEYINDEX = $D0
 CASSSYNCCT = $96
 STATUS = $90
+RIBUF = $C8
 
 ;***************
 ;VARIABLE MEMORY
@@ -134,6 +137,92 @@ IOSTAT            BYTE 0
 ;*************
 ;MISC ROUTINES
 ;*************
+GOGOFAR
+        LDA #$00
+        STA $FF00
+        JSR JSRFAR
+        LDA #$3F
+        STA $FF00
+        RTS
+
+PREFAR
+        STA $06
+        STX $07
+        STY $08
+        LDA LOCJSRFAR
+        CMP GOGOFAR
+        BEQ PREFAR3 
+        LDX #$FF
+PREFAR2
+        INX
+        LDA GOGOFAR,X
+        STA LOCJSRFAR,X
+        CPX #$10
+        BCC PREFAR2
+PREFAR3 
+        LDA #$0F
+        STA $02
+        LDA #$FF
+        STA $03
+        RTS
+
+GOFAR
+        STA $04
+        JSR LOCJSRFAR
+        LDX $07
+        LDY $08
+        LDA $06
+        RTS
+
+CHKIN   
+        JSR PREFAR
+        LDA #$C6
+        JMP GOFAR
+        
+CHKOUT
+        JSR PREFAR
+        LDA #$C9
+        JMP GOFAR
+CLRCH
+        JSR PREFAR
+        LDA #$CC
+        JMP GOFAR
+BSOUT
+        JSR PREFAR
+        LDA #$D2
+        JMP GOFAR
+SETTIM
+        JSR PREFAR
+        LDA #$DB
+        JMP GOFAR
+GETIN
+        JSR PREFAR
+        LDA #$E4
+        JMP GOFAR
+
+GETDD01
+        TYA
+        PHA
+        TXA
+        PHA
+        LDA #$01
+        STA $03
+        LDA #$DD
+        STA $04
+        LDA #$03
+        STA $02AA
+        LDY #$00
+        LDX #$00
+        JSR FETCH
+        STA $06
+        PLA
+        TAX
+        PLA
+        TAY
+        LDA $06
+        CMP #$00
+        RTS      
+
 CLEAR
         LDA #$00
         STA BLOCK
@@ -167,7 +256,7 @@ CHECKABORT
         LDA SHFLAG
         CMP #$02
         BEQ ABORTED
-        lda $dd01
+        JSR GETDD01
         and #$10
         beq ABORTED
         RTS
@@ -210,8 +299,8 @@ GETKEY
         CMP RIDBE
         BEQ NOKEY
         LDY RIDBE
-        LDA ($C8),Y
-        STA $FA
+        LDA (RIBUF),Y
+        STA FREEKEY
         INC RIDBE
         LDA #$01
         STA CASSSYNCCT
@@ -221,7 +310,7 @@ GETKEY
 NOKEY
         LDA #$00
         STA CASSSYNCCT
-        STA $FA
+        STA FREEKEY
         PLA
         TAY
         RTS
@@ -328,7 +417,7 @@ NOCLOCK
         BEQ RECVLP
         JSR RETIME
         LDY BUFBIT
-        LDA $FA
+        LDA FREEKEY
         STA BUFFER,Y
         INC BUFBIT
         INY
@@ -452,7 +541,7 @@ EXITXMODEM
         LDA #$2A
         JSR BSOUT
         LDA ABORT
-        STA $FB
+        STA ABORTFLAG
         RTS
 ;******************
 ;SEND A XMODEM FILE
