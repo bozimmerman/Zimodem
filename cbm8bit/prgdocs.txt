@@ -174,13 +174,13 @@ Dial from Phonebook:
 This will let you connect to a server saved in your phonebook on disk.  See below for information about terminal mode while connected to a server
 
 Modify Phonebook:
-This will let you add or modify servers to save in your phonebook on disk.  These can be then "Dialed" to quickly later on.
+This will let you add or modify servers to save in your phonebook on disk.  These can be then "Dialed" to quickly later on.  You will receive an option for a Host Name, a Port Number, and Local Echo.  Consult your online BBS list for hosts and ports of the BBSes you wish to connect to.  The Local Echo option should usually be answered with NO, as most BBSes will echo for you, and having the modem do local echo will corrupt X-Modem transfers.
 
 Quick Connect:
 This will let you manually enter a server host name and port to immediately connect to.  See below for information about terminal mode while connected to a server.
 
 Terminal Mode: 
-This will put you into terminal mode without connecting to any server.  In this case, you would be in the modem firmware's Command Mode.  You should consult the documentation for the C64Net WiFi Firmware for more information on this mode.  Use the F1 key or the C128's ESC key to exit terminal mode.  See below for more you can do after exiting terminal mode.
+This will put you into terminal mode without connecting to any server.  In this case, you would be in the modem firmware's Command Mode.  You will be prompted as to whether you would like Local Echo turned on.  If you plan to remain in Command Mode and not connect to anything, you can say Yes.  However, if you plan to connect to a BBS, or especially if you plan to do any file transfers, you should definitely answer NO.  You should consult the documentation for the C64Net WiFi Firmware for more information on this mode.  Use the F1 key or the C128's ESC key to exit terminal mode.  See below for more you can do after exiting terminal mode.
 
 Quit:
 Exit the CBMBBS program
@@ -447,7 +447,7 @@ $c800 SendFile (upload)
 $c803 Receive Checksum (download)
 $c806 SendFile (upload)
 $c809 Receive CRC (download)
-All functions require the modem opened to channel 5, and the appropriate file on channel 2.
+All functions require the modem opened to channel 5, and the appropriate file on channel 2.  The C= key can be used to abort.
 
 X-XFER128.BIN
 *************************************
@@ -457,8 +457,4 @@ $c800 SendFile (upload)
 $c803 Receive Checksum (download)
 $c806 SendFile (upload)
 $c809 Receive CRC (download)
-All functions require the modem opened to channel 5, and the appropriate file on channel 2.  Also be aware that it will copy a small 16 byte bit of bank-switch code to $1BE0.
-
-
-
-
+All functions require the modem opened to channel 5, and the appropriate file on channel 2.  Also be aware that it will copy a small 16 byte bit of bank-switch code to $1BE0.  During transfers, the C= key can be used to abort.
