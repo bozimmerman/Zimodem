@@ -101,6 +101,10 @@ QUIT : exit the ftp program
 HELP : show the commands supported by the client and the server
 GET [FILENAME,P] : download the program with the name filename as a PRG.  Use ,S for SEQ.
 PUT [FILENAME,P] : upload the program with the name filename which is a PRG file. Use ,S for SEQ.
+DEL [FILENAME] : delete the given file from the server
+LCD [DEVICE NUMBER or CMD Hard Drive PATH] : change the active local upload/download drive, or change which directory you are using if the active drive is a UIEC or CMD Hard Drive compatible.
+LDIR [MASK] : get a directory of the active local drive.
+LDEL [FILENAME] : delete the given local file from the active drive.
 
 
 WGET64-128
@@ -176,12 +180,12 @@ Quick Connect:
 This will let you manually enter a server host name and port to immediately connect to.  See below for information about terminal mode while connected to a server.
 
 Terminal Mode: 
-This will put you into terminal mode without connecting to any server.  In this case, you would be in the modem firmware's Command Mode.  You should consult the documentation for the C64Net WiFi Firmware for more information on this mode.  Use the F1 key or the C128's ESC key to exit terminal mode.
+This will put you into terminal mode without connecting to any server.  In this case, you would be in the modem firmware's Command Mode.  You should consult the documentation for the C64Net WiFi Firmware for more information on this mode.  Use the F1 key or the C128's ESC key to exit terminal mode.  See below for more you can do after exiting terminal mode.
 
 Quit:
 Exit the CBMBBS program
 
-When you have connected to a server, you will be in CBM PETSCII/Graphics mode.  You can exit the server and disconnect at any time by hitting the F1 key on your C64, or the ESC key on your C128.  
+When you have connected to a server, you will be in CBM PETSCII/Graphics mode.  You can exit the terminal at any time by hitting the F1 key on your C64, or the ESC key on your C128.  If you are offline, you will immediately return to the main menu.  However, if you are still online, you will have the option to hangup and return to the main menu, upload a file using X-Modem CRC, download a file, or continue back to terminal mode.
 
 D64WGET64-128
 *************************************
@@ -434,4 +438,27 @@ RDS64.BIN
 *************************************
 
 This file is the machine language portion of the TELNETD server.  It resides as $c000 and can be activated with SYS49152.
+
+X-XFER64.BIN
+*************************************
+
+This file is the X-Modem protocol used by CBMBBS64-128.  It resides at $c800 with the following jump table:
+$c800 SendFile (upload)
+$c803 Receive Checksum (download)
+$c806 SendFile (upload)
+$c809 Receive CRC (download)
+All functions require the modem opened to channel 5, and the appropriate file on channel 2.
+
+X-XFER128.BIN
+*************************************
+
+This file is the X-Modem protocol used by CBMBBS64-128.  It resides at $c800 in bank 0 with the following jump table:
+$c800 SendFile (upload)
+$c803 Receive Checksum (download)
+$c806 SendFile (upload)
+$c809 Receive CRC (download)
+All functions require the modem opened to channel 5, and the appropriate file on channel 2.  Also be aware that it will copy a small 16 byte bit of bank-switch code to $1BE0.
+
+
+
 

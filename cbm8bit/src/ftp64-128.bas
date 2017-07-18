@@ -1,7 +1,7 @@
 !--------------------------------------------------
-!- Thursday, June 22, 2017 5:06:02 PM
+!- Monday, July 17, 2017 10:11:00 PM
 !- Import of : 
-!- d:\dev\zimodem\cbm8bit\src\ftp64-128.prg
+!- c:\src\zimodem\cbm8bit\src\ftp64-128.prg
 !- Commodore 64
 !--------------------------------------------------
 1 REM FTP64/128  1200B 2.0+
@@ -22,7 +22,7 @@
 101 REM
 102 REM
 110 REM
-120 PRINT"{clear}{down*2}FTP v1.3":PRINT"Requires 64Net WiFi firmware 2.0+"
+120 PRINT"{clear}{down*2}FTP v1.4":PRINT"Requires 64Net WiFi firmware 2.0+"
 130 PRINT"1200 baud version"
 140 PRINT"By Bo Zimmerman (bo@zimmers.net)":PRINT:PRINT
 197 REM --------------------------------
@@ -32,7 +32,7 @@
 201 PH=0:PT=0:MV=ML+18
 202 PRINT "Initializing modem..."
 203 GET#5,A$:IFA$<>""THEN203
-205 PRINT#5,CHR$(17);CR$;"athz0f0e0";CR$;:GOSUB900:IFP$<>"ok"THEN203
+205 PRINT#5,CR$;"athz0f0e0";CR$;:GOSUB900:IFP$<>"ok"THEN203
 208 GET#5,A$:IFA$<>""THEN208
 210 PRINT#5,CR$;"ate0n0r0v1q0";CR$;
 220 GOSUB900:IFP$<>"ok"THEN208
@@ -47,9 +47,9 @@
 299 REMHO$="192.168.1.112":PO=21
 300 REM GET INFO
 310 PRINT:PRINT"{down}Request Parms:"
-321 PRINT " 1) Url{space*8}: ftp://";HO$
-322 PRINT " 2) Username{space*3}: ";UN$
-323 PRINT " 3) Password{space*3}: ";PA$
+321 PRINT " 1) Url        : ftp://";HO$
+322 PRINT " 2) Username   : ";UN$
+323 PRINT " 3) Password   : ";PA$
 324 PRINT " 4) Disk Device:";UN
 329 LH=4
 370 IFHO$=""THENPRINT:P$="1":GOTO400
@@ -147,7 +147,8 @@
 1270 P$="PASS "+PA$:GOSUB600:GOSUB850:IFP$=""THEN1270
 1280 PRINTP$:IFLEFT$(P$,3)="230"THEN2000
 1290 UN$="":PA$="":GOTO1230
-1300 P$="PASV":GOSUB600:A=0
+1300 GET#5,A$:IFA$<>""THEN1300
+1302 P$="PASV":GOSUB600:A=0
 1305 A=A+1:GOSUB850:IFP$=""ANDA<60THEN1305
 1307 IFP$=""THEN1300
 1310 PRINTP$:PRINT:IFLEFT$(P$,3)<>"227"THEN1300
@@ -174,14 +175,18 @@
 2020 IFP$="ls"ORLEFT$(P$,3)="ls "THENGOSUB4000:GOTO2000
 2030 IFP$="dir"ORLEFT$(P$,4)="dir "THENGOSUB4000:GOTO2000
 2040 IFP$="exit"ORP$="quit"THENPRINT#5,"atz":GOSUB900:CLOSE5:END
+2045 IFLEFT$(P$,4)="del "THENP$="dele"+MID$(P$,4)
 2050 IFLEFT$(P$,3)="cd "THENP$="CWD "+MID$(P$,4)
 2055 IFLEFT$(P$,4)="lcd "THEN8000
+2056 IFLEFT$(P$,5)="ldel "THEN8100
+2057 IFLEFT$(P$,4)="ldir"THEN8200
 2060 IFLEFT$(P$,4)="get "THENF$=MID$(P$,5):GOSUB6000:GOTO2000
 2070 IFLEFT$(P$,4)="put "THENF$=MID$(P$,5):GOSUB7000:GOTO2000
 2075 IFP$="?"THENP$="help"
-2080 IFP$="help"THENPRINT"{light green}{reverse on}get put ls cd lcd dir quit"
-2081 IFP$="help"THENPRINT"{light green}{reverse on}Use ,s and ,p in get/put filenames!"
-2082 IFP$="help"THENPRINT"{light green}{reverse on}Below are server commands:{reverse off}{light blue}"
+2080 IFP$="help"THENPRINT"{light green}{reverse on}get put ls cd dir del"
+2081 IFP$="help"THENPRINT"{light green}{reverse on}lcd ldir ldel quit"
+2082 IFP$="help"THENPRINT"{light green}{reverse on}Use ,s and ,p in get/put filenames!"
+2083 IFP$="help"THENPRINT"{light green}{reverse on}Below are server commands:{reverse off}{light blue}"
 2100 GOSUB600:GOSUB850:PRINTP$:GOTO2000
 2999 STOP
 4000 P$="TYPE A":GOSUB600:GOSUB850:IFP$=""THEN4000
@@ -193,12 +198,15 @@
 4040 REMGOSUB900:IFLEFT$(P$,5)="ring "THEN4040
 4050 Y=0:Y$="":Y1=0:Y2=0:Y3=5:IFBA>4800THENY3=10
 4100 REMGET#5,A$:IFST=0ANDA$<>""THENGOSUB900:GOTO4100
+4110 GETA$:IFA$=" "ORA$="{ct c}"THENPRINT:PRINT"Aborted.":GOTO4250
 4150 GOSUB800
 4200 IFP0=PANDY=1ANDP$<>""THENY$=P$:GOTO4100
 4210 IFP0=PANDP$=""THEN4100
 4220 IFP0=PANDLEFT$(P$,4)="226 "THENY=1:Y$=P$:GOTO4100
 4225 IFP0=PANDLEFT$(P$,4)="150 "THENPRINTP$:GOTO4100
-4230 IFP0=SPANDP$<>""THENY2=0:Y1=Y1+1:PRINTMID$(P$,34):GOTO4100
+4230 IFP0<>SPORP$=""THEN4235
+4231 Y2=0:Y1=Y1+1:IFS8=0THENPRINTMID$(P$,34):GOTO4100
+4232 PRINTP$:GOTO4100
 4235 IFP0=PTHEN4100
 4240 Y2=Y2+1:IFY=0AND(Y1>2ORY2<Y3)THEN4100
 4242 PRINTY$
@@ -240,7 +248,7 @@
 6250 CLOSE8:CLOSE1:PRINT#5,"ath"+MID$(STR$(SP),2):GOSUB900:IFP$<>"ok"THEN6250
 6260 GOSUB800:IFP$<>""THENPRINTP$:GOTO6260
 6299 RETURN
-6500 PRINT"{up}{space*15}{left*15}"+STR$(TT):RETURN
+6500 PRINT"{up}               {left*15}"+STR$(TT):RETURN
 7000 FX=0:X$=",p,r":P$="TYPE I":GOSUB600:GOSUB850:IFP$=""THEN7000
 7010 FX$=RIGHT$(F$,2)
 7015 IFLEFT$(F$,1)=" "THENF$=MID$(F$,2):GOTO7015
@@ -274,6 +282,16 @@
 8000 P$=MID$(P$,5):IFVAL(P$)<8ORVAL(P$)>16THEN8020
 8010 UN=VAL(P$):PRINT"Current drive is now";UN:GOTO2000
 8020 OPEN1,8,15,"cd "+P$:INPUT#1,E,E$,E1,E2:PRINTE,E$,E1,E2:CLOSE1:GOTO2000
+8100 P$=MID$(P$,6)
+8120 OPEN1,8,15,"s0:"+P$:INPUT#1,E,E$,E1,E2:PRINTE,E$,E1,E2:CLOSE1:GOTO2000
+8200 P$=MID$(P$,6):IFLEN(P$)>0THENP$=":"+P$
+8210 OPEN8,UN,0,"$"+P$
+8220 GET#8,A$,A$
+8230 GET#8,A$,A$:IFST>0THENX=FRE(0):CLOSE8:PRINT:GOTO2000
+8240 GET#8,A$,B$:X=ASC(A$+CHR$(0))+256*ASC(B$+CHR$(0)):PRINTX;
+8250 GET#8,A$:IFA$=""THENPRINTCHR$(13);:GOTO8230
+8260 GETB$:IFB$=" "THENCLOSE8:PRINT:GOTO2000
+8270 PRINTA$;:GOTO8250
 9000 TT=TI+100
 9010 SYSML+12:IFTI<TTTHEN9010
 9020 RETURN

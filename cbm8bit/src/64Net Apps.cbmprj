@@ -47,14 +47,14 @@
         <FileName>cometmode.bas</FileName>
         <FileName>configure64-128.bas</FileName>
         <FileName>d64wget64-128.bas</FileName>
-        <FileName>ftp64-128.bas</FileName>
         <FileName>irc64-128.bas</FileName>
         <FileName>wget64-128.bas</FileName>
         <FileName>rds64.asm</FileName>
         <FileName>telnetd64.bas</FileName>
         <FileName>telnet64-128.bas</FileName>
-        <FileName>cbmbbs64-128.bas</FileName>
         <FileName>telnetd64.bas</FileName>
+        <FileName>cbmbbs64-128.bas</FileName>
+        <FileName>ftp64-128.bas</FileName>
     </BuildList>
     <DetermineBuildOrder>0</DetermineBuildOrder>
     <PaddingByte>234</PaddingByte>
@@ -111,7 +111,7 @@
             <Regions />
             <Breakpoints />
             <Bookmarks />
-            <Topmost>False</Topmost>
+            <Topmost>True</Topmost>
             <FileOpen>True</FileOpen>
         </SourceFile>
         <SourceFile>
@@ -134,7 +134,7 @@
             <Breakpoints />
             <Bookmarks />
             <Topmost>False</Topmost>
-            <FileOpen>True</FileOpen>
+            <FileOpen>False</FileOpen>
         </SourceFile>
         <SourceFile>
             <Name>pml64.asm</Name>
@@ -145,7 +145,7 @@
             <Breakpoints />
             <Bookmarks />
             <Topmost>False</Topmost>
-            <FileOpen>True</FileOpen>
+            <FileOpen>False</FileOpen>
         </SourceFile>
         <SourceFile>
             <Name>rds64.asm</Name>
@@ -156,7 +156,7 @@
             <Breakpoints />
             <Bookmarks />
             <Topmost>False</Topmost>
-            <FileOpen>True</FileOpen>
+            <FileOpen>False</FileOpen>
         </SourceFile>
         <SourceFile>
             <Name>swiftdrvr.asm</Name>
@@ -178,7 +178,7 @@
             <Breakpoints />
             <Bookmarks />
             <Topmost>False</Topmost>
-            <FileOpen>True</FileOpen>
+            <FileOpen>False</FileOpen>
         </SourceFile>
         <SourceFile>
             <Name>telnetd64.bas</Name>
@@ -189,7 +189,7 @@
             <Breakpoints />
             <Bookmarks />
             <Topmost>False</Topmost>
-            <FileOpen>True</FileOpen>
+            <FileOpen>False</FileOpen>
         </SourceFile>
         <SourceFile>
             <Name>telnetml.asm</Name>
@@ -243,8 +243,8 @@
             <Regions />
             <Breakpoints />
             <Bookmarks />
-            <Topmost>True</Topmost>
-            <FileOpen>True</FileOpen>
+            <Topmost>False</Topmost>
+            <FileOpen>False</FileOpen>
         </SourceFile>
         <SourceFile>
             <Name>x-xfer64.asm</Name>
@@ -255,7 +255,7 @@
             <Breakpoints />
             <Bookmarks />
             <Topmost>False</Topmost>
-            <FileOpen>True</FileOpen>
+            <FileOpen>False</FileOpen>
         </SourceFile>
     </SourceFiles>
 </Project>
