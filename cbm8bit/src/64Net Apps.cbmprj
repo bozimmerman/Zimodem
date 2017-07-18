@@ -44,17 +44,17 @@
         <FileName>up9600.asm</FileName>
         <FileName>x-xfer128.asm</FileName>
         <FileName>x-xfer64.asm</FileName>
+        <FileName>rds64.asm</FileName>
+        <FileName>telnetd64.bas</FileName>
+        <FileName>cbmbbs64-128.bas</FileName>
         <FileName>cometmode.bas</FileName>
         <FileName>configure64-128.bas</FileName>
         <FileName>d64wget64-128.bas</FileName>
+        <FileName>ftp64-128.bas</FileName>
         <FileName>irc64-128.bas</FileName>
-        <FileName>wget64-128.bas</FileName>
-        <FileName>rds64.asm</FileName>
-        <FileName>telnetd64.bas</FileName>
         <FileName>telnet64-128.bas</FileName>
         <FileName>telnetd64.bas</FileName>
-        <FileName>cbmbbs64-128.bas</FileName>
-        <FileName>ftp64-128.bas</FileName>
+        <FileName>wget64-128.bas</FileName>
     </BuildList>
     <DetermineBuildOrder>0</DetermineBuildOrder>
     <PaddingByte>234</PaddingByte>
@@ -79,7 +79,7 @@
             <Breakpoints />
             <Bookmarks />
             <Topmost>False</Topmost>
-            <FileOpen>False</FileOpen>
+            <FileOpen>True</FileOpen>
         </SourceFile>
         <SourceFile>
             <Name>configure64-128.bas</Name>
@@ -90,7 +90,7 @@
             <Breakpoints />
             <Bookmarks />
             <Topmost>False</Topmost>
-            <FileOpen>False</FileOpen>
+            <FileOpen>True</FileOpen>
         </SourceFile>
         <SourceFile>
             <Name>d64wget64-128.bas</Name>
@@ -101,7 +101,7 @@
             <Breakpoints />
             <Bookmarks />
             <Topmost>False</Topmost>
-            <FileOpen>False</FileOpen>
+            <FileOpen>True</FileOpen>
         </SourceFile>
         <SourceFile>
             <Name>ftp64-128.bas</Name>
@@ -111,7 +111,7 @@
             <Regions />
             <Breakpoints />
             <Bookmarks />
-            <Topmost>True</Topmost>
+            <Topmost>False</Topmost>
             <FileOpen>True</FileOpen>
         </SourceFile>
         <SourceFile>
@@ -123,7 +123,7 @@
             <Breakpoints />
             <Bookmarks />
             <Topmost>False</Topmost>
-            <FileOpen>False</FileOpen>
+            <FileOpen>True</FileOpen>
         </SourceFile>
         <SourceFile>
             <Name>pml128.asm</Name>
@@ -178,7 +178,7 @@
             <Breakpoints />
             <Bookmarks />
             <Topmost>False</Topmost>
-            <FileOpen>False</FileOpen>
+            <FileOpen>True</FileOpen>
         </SourceFile>
         <SourceFile>
             <Name>telnetd64.bas</Name>
@@ -189,7 +189,7 @@
             <Breakpoints />
             <Bookmarks />
             <Topmost>False</Topmost>
-            <FileOpen>False</FileOpen>
+            <FileOpen>True</FileOpen>
         </SourceFile>
         <SourceFile>
             <Name>telnetml.asm</Name>
@@ -232,8 +232,8 @@
             <Regions />
             <Breakpoints />
             <Bookmarks />
-            <Topmost>False</Topmost>
-            <FileOpen>False</FileOpen>
+            <Topmost>True</Topmost>
+            <FileOpen>True</FileOpen>
         </SourceFile>
         <SourceFile>
             <Name>x-xfer128.asm</Name>

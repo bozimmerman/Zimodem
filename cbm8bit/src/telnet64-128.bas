@@ -1,11 +1,11 @@
 !--------------------------------------------------
-!- Saturday, July 08, 2017 7:23:40 PM
+!- Tuesday, July 18, 2017 2:54:31 AM
 !- Import of : 
 !- c:\src\zimodem\cbm8bit\src\telnet64-128.prg
 !- Commodore 64
 !--------------------------------------------------
 1 REM TELNET64/128  1200B 1.8+
-2 REM UPDATED 07/07/2017 03:54P
+2 REM UPDATED 07/17/2017 03:54P
 10 POKE254,PEEK(186):IFPEEK(254)<8THENPOKE254,8
 12 IFPEEK(65532)=61THENPOKE58,254:CLR
 15 OPEN5,2,0,CHR$(8):DIMPP$(25):P$="ok":POKE186,PEEK(254):BA=1200:XB=1200
@@ -23,7 +23,7 @@
 101 REM
 102 REM
 110 P$="a"
-120 PRINT"{clear}{down*2}TELNET v1.3":PRINT"Requires 64Net WiFi firmware 1.8+"
+120 PRINT"{clear}{down*2}TELNET v1.4":PRINT"Requires 64Net WiFi firmware 1.8+"
 130 PRINT"1200 baud version"
 140 PRINT"By Bo Zimmerman (bo@zimmers.net)":PRINT:PRINT
 197 REM --------------------------------
@@ -33,7 +33,7 @@
 201 PH=0:PT=0:MV=ML+18:CR$=CHR$(13)+CHR$(10):QU$=CHR$(34)
 202 PRINT "Initializing modem...";:GOSUB6000
 203 GET#5,A$:IFA$<>""THEN203
-205 PRINT#5,CR$;CR$;CHR$(17);"athz0f0e0";CR$;
+205 PRINT#5,CR$;"athz0f0e0";CR$;
 206 GOSUB900:IFP$<>"ok"THEN203
 208 GET#5,A$:IFA$<>""THEN208
 210 PRINT".";:PRINT#5,CR$;"ate0n0r0v1f0";CR$;
@@ -156,4 +156,4 @@
 50010 GET#5,A$:IFA$<>""THENPRINTA$;
 50020 GETA$:IFA$<>""THENPRINT#5,A$;
 50030 GOTO 50010
-55555 F$="telnet64-128":OPEN1,8,15,"s0:"+F$:CLOSE1:SAVE(F$),8:VERIFY(F$),8
+55555 U=8:F$="telnet64-128":OPEN1,U,15,"s0:"+F$:CLOSE1:SAVE(F$),U:VERIFY(F$),U

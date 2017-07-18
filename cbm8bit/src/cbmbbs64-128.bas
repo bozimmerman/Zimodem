@@ -1,5 +1,5 @@
 !--------------------------------------------------
-!- Monday, July 17, 2017 10:10:55 PM
+!- Tuesday, July 18, 2017 2:54:01 AM
 !- Import of : 
 !- c:\src\zimodem\cbm8bit\src\cbmbbs64-128.prg
 !- Commodore 64
@@ -199,4 +199,4 @@
 50010 GET#5,A$:IFA$<>""THENPRINTA$;
 50020 GETA$:IFA$<>""THENPRINT#5,A$;
 50030 GOTO 50010
-55555 F$="cbmbbs64-128":OPEN1,8,15,"s0:"+F$:CLOSE1:SAVE(F$),8:VERIFY(F$),8
+55555 U=8:F$="cbmbbs64-128":OPEN1,U,15,"s0:"+F$:CLOSE1:SAVE(F$),U:VERIFY(F$),U
