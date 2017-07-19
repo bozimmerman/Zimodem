@@ -20,7 +20,7 @@
 101 REM
 102 REM
 110 P$="a"
-120 PRINT"{clear}{down*2}WGET v1.3":PRINT"Requires 64Net WiFi firmware 2.0+"
+120 PRINT"{clear}{down*2}WGET v1.3":PRINT"Requires C64Net WiFi firmware 2.0+"
 140 PRINT"By Bo Zimmerman (bo@zimmers.net)":PRINT:PRINT
 197 REM --------------------------------
 198 REM GET STARTED                    !

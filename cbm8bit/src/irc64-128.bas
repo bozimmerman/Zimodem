@@ -20,8 +20,7 @@
 90 POKE56579,0:REM WHY DOES THIS WORK
 100 REM GET THE BAUD RATE
 110 P$="a"
-120 PRINT"{clear}{down*2}IRC CHAT v1.3":PRINT"Requires 64Net WiFi firmware 1.8+"
-130 PRINT"1200 baud version"
+120 PRINT"{clear}{down*2}IRC CHAT v1.3":PRINT"Requires C64Net WiFi firmware 1.8+"
 140 PRINT"By Bo Zimmerman (bo@zimmers.net)":PRINT:PRINT
 197 REM --------------------------------
 198 REM GET STARTED                    !

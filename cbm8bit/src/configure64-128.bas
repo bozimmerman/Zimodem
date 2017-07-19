@@ -16,7 +16,7 @@
 60 IFSY=61ANDPEEK(ML+1)<>217THENCLOSE5:LOAD"pml128.bin",PEEK(254),1:RUN
 100 REM
 110 P$="a"
-120 PRINT"{clear}{down*2}CONFIGURE v1.3":PRINT"Requires 64Net WiFi Firmware 1.5+"
+120 PRINT"{clear}{down*2}CONFIGURE v1.3":PRINT"Requires C64Net WiFi Firmware 1.5+"
 130 PRINT"1200 baud version"
 140 PRINT"By Bo Zimmerman (bo@zimmers.net)":PRINT:PRINT
 197 REM --------------------------------

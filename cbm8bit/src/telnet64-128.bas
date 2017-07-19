@@ -23,7 +23,7 @@
 101 REM
 102 REM
 110 P$="a"
-120 PRINT"{clear}{down*2}TELNET v1.4":PRINT"Requires 64Net WiFi firmware 1.8+"
+120 PRINT"{clear}{down*2}TELNET v1.4":PRINT"Requires C64Net WiFi firmware 1.8+"
 130 PRINT"1200 baud version"
 140 PRINT"By Bo Zimmerman (bo@zimmers.net)":PRINT:PRINT
 197 REM --------------------------------

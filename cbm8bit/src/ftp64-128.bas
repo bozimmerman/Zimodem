@@ -22,8 +22,7 @@
 101 REM
 102 REM
 110 REM
-120 PRINT"{clear}{down*2}FTP v1.5":PRINT"Requires 64Net WiFi firmware 2.0+"
-130 PRINT"1200 baud version"
+120 PRINT"{clear}{down*2}FTP v1.5":PRINT"Requires C64Net WiFi firmware 2.0+"
 140 PRINT"By Bo Zimmerman (bo@zimmers.net)":PRINT:PRINT
 197 REM --------------------------------
 198 REM GET STARTED                    !
