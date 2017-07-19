@@ -1,5 +1,5 @@
 !--------------------------------------------------
-!- Tuesday, July 18, 2017 2:54:18 AM
+!- Wednesday, July 19, 2017 11:57:42 AM
 !- Import of : 
 !- c:\src\zimodem\cbm8bit\src\ftp64-128.prg
 !- Commodore 64
@@ -290,9 +290,9 @@
 7299 RETURN
 8000 P$=MID$(P$,5):IFVAL(P$)<8ORVAL(P$)>16THEN8020
 8010 UN=VAL(P$):PRINT"Current drive is now";UN:GOTO2000
-8020 OPEN1,8,15,"cd "+P$:INPUT#1,E,E$,E1,E2:PRINTE,E$,E1,E2:CLOSE1:GOTO2000
+8020 OPEN1,UN,15,"cd "+P$:INPUT#1,E,E$,E1,E2:PRINTE,E$,E1,E2:CLOSE1:GOTO2000
 8100 P$=MID$(P$,6)
-8120 OPEN1,8,15,"s0:"+P$:INPUT#1,E,E$,E1,E2:PRINTE,E$,E1,E2:CLOSE1:GOTO2000
+8120 OPEN1,UN,15,"s0:"+P$:INPUT#1,E,E$,E1,E2:PRINTE,E$,E1,E2:CLOSE1:GOTO2000
 8200 P$=MID$(P$,6):IFLEN(P$)>0THENP$=":"+P$
 8210 OPEN8,UN,0,"$"+P$
 8220 GET#8,A$,A$
