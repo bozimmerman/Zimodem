@@ -414,9 +414,14 @@ BUFALP
         LDY BUF1DX
         STA BUF1,Y
         JSR $FFB7
+        CMP #$08
+        BEQ BUFAX
+        CMP #$42
+        BEQ BUFAX
         CMP #$00
         BEQ BUFAP1
         INC BUF1DX
+BUFAX
         STA CRXFLG
         JMP BUF1DUN
 BUFAP1

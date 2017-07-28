@@ -1989,6 +1989,9 @@ ZResult ZCommand::doSerialCommand()
           SPIFFS.remove("/zconfig.txt");
           SPIFFS.remove("/zphonebook.txt");
           PhoneBookEntry::clearPhonebook();
+          WiFi.disconnect();
+          wifiSSI="";
+          wifiConnected=false;
           delay(500);
           result=doResetCommand();
           showInitMessage();
