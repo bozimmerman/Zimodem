@@ -3,7 +3,7 @@
 * = 49152
         ; .D PML64.BIN
         ; PACKET ML 64 BY BO ZIMMERMAN
-        ; UPDATED 2017/03/03 10:14P
+        ; UPDATED 2017/07/28 10:14P
         JMP BUF1LIN
         JMP BUFXLIN
         JMP GETPACKET
