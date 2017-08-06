@@ -1065,7 +1065,9 @@ ZResult ZCommand::doWiFiCommand(int vval, uint8_t *vbuf, int vlen, bool isNumber
     {
       if((doPETSCII)&&(!serial.isPetsciiMode()))
       {
-        for(char *c=(char *)WiFi.SSID(i).c_str();*c!=0;c++)
+        String ssidstr=WiFi.SSID(i);
+        char *c = (char *)ssidstr.c_str();
+        for(;*c!=0;c++)
           serial.printc(ascToPetcii(*c));
       }
       else

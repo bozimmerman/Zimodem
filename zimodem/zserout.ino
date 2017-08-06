@@ -185,7 +185,7 @@ void ZSerial::printc(const char c)
   if(!petsciiMode)
     enqueSerialOut(c);
   else
-    enqueSerialOut(c);
+    enqueSerialOut(ascToPetcii(c));
 }
 
 void ZSerial::printc(uint8_t c)
@@ -193,7 +193,7 @@ void ZSerial::printc(uint8_t c)
   if(!petsciiMode)
     enqueSerialOut(c);
   else
-    enqueSerialOut(c);
+    enqueSerialOut(ascToPetcii(c));
 }
 
 void ZSerial::printb(uint8_t c)

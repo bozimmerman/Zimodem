@@ -16,7 +16,7 @@
 
 #define TCP_SND_BUF                     4 * TCP_MSS
 #define null 0
-#define ZIMODEM_VERSION "2.9"
+#define ZIMODEM_VERSION "3.0"
 #define DEFAULT_NO_DELAY true
 #define DEFAULT_PIN_DCD 2
 #define DEFAULT_PIN_CTS 5
