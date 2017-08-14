@@ -54,7 +54,8 @@
         <FileName>telnet64-128.bas</FileName>
         <FileName>telnetd64.bas</FileName>
         <FileName>wget64-128.bas</FileName>
-        <FileName>ftp64-128.bas</FileName>
+        <FileName>ftp64-128-vic.bas</FileName>
+        <FileName>pmlvic.asm</FileName>
     </BuildList>
     <DetermineBuildOrder>0</DetermineBuildOrder>
     <PaddingByte>234</PaddingByte>
@@ -68,7 +69,7 @@
             <Breakpoints />
             <Bookmarks />
             <Topmost>False</Topmost>
-            <FileOpen>True</FileOpen>
+            <FileOpen>False</FileOpen>
         </SourceFile>
         <SourceFile>
             <Name>cometmode.bas</Name>
@@ -79,7 +80,7 @@
             <Breakpoints />
             <Bookmarks />
             <Topmost>False</Topmost>
-            <FileOpen>True</FileOpen>
+            <FileOpen>False</FileOpen>
         </SourceFile>
         <SourceFile>
             <Name>configure64-128.bas</Name>
@@ -90,7 +91,7 @@
             <Breakpoints />
             <Bookmarks />
             <Topmost>False</Topmost>
-            <FileOpen>True</FileOpen>
+            <FileOpen>False</FileOpen>
         </SourceFile>
         <SourceFile>
             <Name>d64wget64-128.bas</Name>
@@ -101,10 +102,10 @@
             <Breakpoints />
             <Bookmarks />
             <Topmost>False</Topmost>
-            <FileOpen>True</FileOpen>
+            <FileOpen>False</FileOpen>
         </SourceFile>
         <SourceFile>
-            <Name>ftp64-128.bas</Name>
+            <Name>ftp64-128-vic.bas</Name>
             <PrgName />
             <FileType>1</FileType>
             <IncludeInBuild>True</IncludeInBuild>
@@ -123,7 +124,7 @@
             <Breakpoints />
             <Bookmarks />
             <Topmost>False</Topmost>
-            <FileOpen>True</FileOpen>
+            <FileOpen>False</FileOpen>
         </SourceFile>
         <SourceFile>
             <Name>pml128.asm</Name>
@@ -134,10 +135,21 @@
             <Breakpoints />
             <Bookmarks />
             <Topmost>False</Topmost>
-            <FileOpen>True</FileOpen>
+            <FileOpen>False</FileOpen>
         </SourceFile>
         <SourceFile>
             <Name>pml64.asm</Name>
+            <PrgName />
+            <FileType>2</FileType>
+            <IncludeInBuild>True</IncludeInBuild>
+            <Regions />
+            <Breakpoints />
+            <Bookmarks />
+            <Topmost>False</Topmost>
+            <FileOpen>False</FileOpen>
+        </SourceFile>
+        <SourceFile>
+            <Name>pmlvic.asm</Name>
             <PrgName />
             <FileType>2</FileType>
             <IncludeInBuild>True</IncludeInBuild>
@@ -189,7 +201,7 @@
             <Breakpoints />
             <Bookmarks />
             <Topmost>False</Topmost>
-            <FileOpen>True</FileOpen>
+            <FileOpen>False</FileOpen>
         </SourceFile>
         <SourceFile>
             <Name>telnetml.asm</Name>
@@ -222,7 +234,7 @@
             <Breakpoints />
             <Bookmarks />
             <Topmost>False</Topmost>
-            <FileOpen>True</FileOpen>
+            <FileOpen>False</FileOpen>
         </SourceFile>
         <SourceFile>
             <Name>wget64-128.bas</Name>
@@ -233,7 +245,7 @@
             <Breakpoints />
             <Bookmarks />
             <Topmost>False</Topmost>
-            <FileOpen>True</FileOpen>
+            <FileOpen>False</FileOpen>
         </SourceFile>
         <SourceFile>
             <Name>x-xfer128.asm</Name>
@@ -244,7 +256,7 @@
             <Breakpoints />
             <Bookmarks />
             <Topmost>False</Topmost>
-            <FileOpen>True</FileOpen>
+            <FileOpen>False</FileOpen>
         </SourceFile>
         <SourceFile>
             <Name>x-xfer64.asm</Name>
@@ -255,7 +267,7 @@
             <Breakpoints />
             <Bookmarks />
             <Topmost>False</Topmost>
-            <FileOpen>True</FileOpen>
+            <FileOpen>False</FileOpen>
         </SourceFile>
     </SourceFiles>
 </Project>
