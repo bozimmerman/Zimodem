@@ -12,20 +12,21 @@
 15 OPEN5,2,0,CHR$(8):IFPEEK(65532)=34THENPOKE56,87:POKE54,87:POKE52,87
 17 DIMPP$(25):P$="ok":POKE186,PEEK(254):BA=1200:XB=1200
 20 CR$=CHR$(13):PRINTCHR$(14);:SY=PEEK(65532):POKE53280,254:POKE53281,246
-30 PRINT"{light blue}":IFSY=226THENML=49152:POKE665,73-(PEEK(678)*30):UM=ML+2048:XB=9600
+30 CO$="{light blue}":IFSY=226THENML=49152:POKE665,73-(PEEK(678)*30):UM=ML+2048:XB=9600
 35 IFSY=34THENML=22273:IFPEEK(ML)<>76THENCLOSE5:LOAD"pmlvic.bin",peek(254),1:RUN
+38 IFSY=34THENPOKE36879,27:CO$=CHR$(31)
 40 IFSY=226ANDPEEK(ML+1)<>209THENCLOSE5:LOAD"pml64.bin",PEEK(254),1:RUN
 45 IFSY=226ANDUM>0ANDPEEK(UM+1)<>24THENCLOSE5:LOAD"up9600.bin",PEEK(254),1:RUN
 50 S8=0:IFSY=61THENML=4864:POKE981,15:S8=PEEK(215)AND128:IFS8=128THENSYS30643
 60 IFSY=61ANDPEEK(ML+1)<>217THENCLOSE5:LOAD"pml128.bin",PEEK(254),1:RUN
-70 IFSY=61ANDS8=128THENXB=2400
+70 IFSY=61ANDS8=128THENXB=2400:CO$=CHR$(159)
 80 IFSY=226ANDUM>0THENSYSUM:SYSUM+3:X=PEEK(789):SYSUM+9:IFX=234THENXB=1200
-90 IFSY=226ANDUM>0THENPOKE56579,0:REM WHY DOES THIS WORK
+90 IFSY<>34THENPOKE56579,0:REM WHY DOES THIS WORK
 100 MV=ML+18:POKEMV+14,8:REM FIX BUFAP
 101 REM
 102 REM
 110 REM
-120 PRINT"{clear}{down*2}FTP v1.6":PRINT"Requires C64Net WiFi firmware 2.0+"
+120 PRINTCO$;"{clear}{down*2}FTP v1.6":PRINT"Requires C64Net WiFi firmware 2.0+"
 140 PRINT"By Bo Zimmerman (bo@zimmers.net)":PRINT:PRINT
 197 REM --------------------------------
 198 REM GET STARTED                    !
@@ -68,7 +69,7 @@
 599 REM -------------------------------
 600 OP$=P$:SYSML+9:C8$=MID$(STR$(PEEK(MV+8)),2)
 610 PRINT#5,"ats42=";C8$;"tp";QU$;P$;QU$
-620 E$="ok":SYSML:IFP$<>"ok"THENP$=OP$:PRINT"{reverse on}{red}xmit fail:{reverse off}{light blue}";OP$:GOTO600
+620 E$="ok":SYSML:IFP$<>"ok"THENP$=OP$:PRINT"{reverse on}{red}xmit fail:{reverse off}";CO$;OP$:GOTO600
 630 RETURN
 650 OP$=P$:SYSML+9:C8$=MID$(STR$(PEEK(MV+8)),2):PN$=MID$(STR$(LEN(P$)),2)
 660 PRINT#5,"ats42=";C8$;"t";PN$:PRINT#5,P$
@@ -104,7 +105,7 @@
 899 REM -------------------------------
 900 E$=""
 910 SYSML
-920 IFE$<>""ANDP$<>E$THENPRINT"{reverse on}{red}Comm error. Expected ";E$;", Got ";P$;"{light blue}{reverse off}"
+920 IFE$<>""ANDP$<>E$THENPRINT"{reverse on}{red}Comm error. Expected ";E$;", Got ";P$;CO$;"{reverse off}"
 925 RETURN
 927 REM --------------------------------
 928 REM GET PACKET HEADER, SETS P0,P1,P2, RETURNS P0=0 IF NADA
@@ -115,7 +116,7 @@
 950 PL=PEEK(MV+0):CR=PEEK(MV+1):C8=PEEK(MV+8)
 960 IFP0>0ANDP2<>C8THENPRINT#5,"atl0":GOTO945
 970 IFP1=0THENP$=""
-980 IFCR=255THENP$="":P0=0:P1=0:P2=0:PL=0:PRINT"{reverse on}{yellow}Timeout-Retry{reverse off}{light blue}":RETURN
+980 IFCR=255THENP$="":P0=0:P1=0:P2=0:PL=0:PRINT"{reverse on}{yellow}Timeout-Retry{reverse off}";CO$:RETURN
 990 RETURN
 995 PRINT"Expected ";E$;", got ";A$:STOP
 997 REM --------------------------------
@@ -127,11 +128,11 @@
 1100 PRINT#5,"ath"+AT$+"&d10&m13&m10cp";QU$;HO$;":";MID$(STR$(PO),2);QU$
 1105 GOSUB900:SP=0:IFP$="ok"THEN1020
 1110 IFLEN(P$)>8ANDLEFT$(P$,8)="connect "THENP=VAL(MID$(P$,9)):GOTO1200
-1115 PRINT"{pink}{reverse on}Unable to connect to ";HO$;" port";PO;"{reverse off}{light blue}":GOTO300
+1115 PRINT"{pink}{reverse on}Unable to connect to ";HO$;" port";PO;"{reverse off}";CO$:GOTO300
 1120 IT=TI+40
 1130 P9=0:GOSUB800:IFP$<>""THENIT=TI+10
 1140 IFTI<ITTHEN1130
-1200 PRINT"{reverse on}{light green}Connected to ";HO$;" on channel";P;", Standby...{reverse off}{light blue}"
+1200 PRINT"{reverse on}{light green}Connected to ";HO$;" on channel";P;", Standby...{reverse off}";CO$
 1201 IFXB<>9600THEN1205
 1202 SYSUM:SYSUM+3:IFPEEK(789)=234THENSYSUM+9:GOTO1210
 1203 BA=XB:POKEUM+19,1:PRINT#5,"at":GOSUB9000:GOSUB9000
@@ -144,7 +145,7 @@
 1225 PRINTP$
 1230 IFUN$=""THENPRINT"Username: ";:GOSUB5000:UN$=P$:IFP$=""THEN1230
 1240 P$="USER "+UN$:GOSUB600:GOSUB850:IFP$=""THEN1240
-1250 PRINTP$:IFLEFT$(P$,3)<>"331"THENPRINT"{reverse on}{red}Username rejected?!{reverse off}{light blue}":CLOSE5:END
+1250 PRINTP$:IFLEFT$(P$,3)<>"331"THENPRINT"{reverse on}{red}Username rejected?!{reverse off}";CO$:CLOSE5:END
 1260 IFPA$=""THENPRINT"Password: ";:GOSUB5000:PA$=P$:IFP$=""THEN1260
 1270 P$="PASS "+PA$:GOSUB600:GOSUB850:IFP$=""THEN1270
 1280 PRINTP$:IFLEFT$(P$,3)="230"THEN2000
@@ -168,10 +169,10 @@
 1405 PRINT#5,"at";CC$;QU$;H0$;QU$:GOSUB900
 1410 IFLEN(P$)>8ANDLEFT$(P$,8)="connect "THENSP=VAL(MID$(P$,9)):GOTO 1420
 1412 IFR0>1THEN1300
-1415 R0=R0+1:PRINT"{red}Error: ";P$:PRINT"{pink}{reverse on}Retry to connect to ";H0$;"{reverse off}{light blue}":GOTO1400
+1415 R0=R0+1:PRINT"{red}Error: ";P$:PRINT"{pink}{reverse on}Retry to connect to ";H0$;"{reverse off}";CO$:GOTO1400
 1420 GET#5,A$:IFA$<>""THEN1420
 1425 PRINT#5,"atc";MID$(STR$(P),2):GOSUB900:IFP$="ok"THENE=0:RETURN
-1430 PRINT"{pink}{reverse on}Retry to change back to ";H0$;"{reverse off}{light blue}":GOTO1420
+1430 PRINT"{pink}{reverse on}Retry to change back to ";H0$;"{reverse off}";CO$:GOTO1420
 2000 PRINT"Command (?): ";:GOSUB5000
 2010 IFP$=""THENGOSUB800:PRINTP$:GOTO2000
 2020 IFP$="ls"ORLEFT$(P$,3)="ls "THENGOSUB4000:GOTO2000
@@ -188,7 +189,7 @@
 2080 IFP$="help"THENPRINT"{light green}{reverse on}get put ls cd dir del"
 2081 IFP$="help"THENPRINT"{light green}{reverse on}lcd ldir ldel quit"
 2082 IFP$="help"THENPRINT"{light green}{reverse on}Use ,s and ,p in get/put filenames!"
-2083 IFP$="help"THENPRINT"{light green}{reverse on}Below are server commands:{reverse off}{light blue}"
+2083 IFP$="help"THENPRINT"{light green}{reverse on}Below are server commands:{reverse off}";CO$
 2100 GOSUB600:GOSUB850:PRINTP$:GOTO2000
 2999 STOP
 4000 P$="TYPE A":GOSUB600:GOSUB850:IFP$=""THEN4000
@@ -235,7 +236,7 @@
 6150 GOSUB800
 6160 IFFX>0ORP0<>SPORP1=0THEN6200
 6170 OPEN1,UN,15:OPEN8,UN,8,"@0:"+F$+X$
-6180 INPUT#1,E:IFE<>0THENCLOSE8:CLOSE1:PRINT"{reverse on}{red}Failed to open "+F$+"{reverse off}{light blue}":GOTO6250
+6180 INPUT#1,E:IFE<>0THENCLOSE8:CLOSE1:PRINT"{reverse on}{red}Failed to open "+F$+"{reverse off}";CO$:GOTO6250
 6190 FX=1
 6200 PL=LEN(P$):IFP0<>PTHEN6230
 6205 IFPL=0THEN6100
@@ -247,7 +248,7 @@
 6235 IFP0=PTHEN6100
 6240 Y0=Y0+1:IFY=0THENIFY0<Y1ORTT<TBTHEN6100
 6245 GET#5,A$:IFST=0ANDA$<>""THENGOSUB900:GOTO6245
-6247 PRINTY$:PRINT "{reverse on}{light green}";MID$(STR$(TT),2);" bytes transferred.{reverse off}{light blue}"
+6247 PRINTY$:PRINT "{reverse on}{light green}";MID$(STR$(TT),2);" bytes transferred.{reverse off}";CO$
 6250 CLOSE8:CLOSE1:PRINT#5,"ath"+MID$(STR$(SP),2):GOSUB900:IFP$<>"ok"THEN6250
 6260 GOSUB800:IFP$<>""THENPRINTP$:GOTO6260
 6299 RETURN
@@ -266,7 +267,7 @@
 7020 IFFX$=",p"ORFX$=",s"THENF$=LEFT$(F$,LEN(F$)-2):X$=FX$+",r"
 7025 IFF$=""THENRETURN
 7027 OPEN1,UN,15:OPEN8,UN,8,F$+X$
-7028 INPUT#1,E:IFE<>0THENCLOSE8:CLOSE1:PRINT"{reverse on}{red}Failed to open "+F$+"{reverse off}{light blue}":RETURN
+7028 INPUT#1,E:IFE<>0THENCLOSE8:CLOSE1:PRINT"{reverse on}{red}Failed to open "+F$+"{reverse off}";CO$:RETURN
 7029 PRINTP$:PRINT:CC$="c":GOSUB1300:IFE=1THENRETURN
 7030 P$="STOR "+F$:GOSUB600
 7040 PRINT#5,"atc";MID$(STR$(SP),2):GOSUB900:IFP$<>"ok"THEN7040
@@ -283,7 +284,7 @@
 7230 IFP0=SPTHENPRINT"?!":GOTO7100
 7240 GOTO7100
 7250 GET#5,A$:IFST=0ANDA$<>""THENGOSUB900:GOTO7250
-7260 PRINT "{reverse on}{light green}";MID$(STR$(TT),2);" bytes transferred.{reverse off}{light blue}"
+7260 PRINT "{reverse on}{light green}";MID$(STR$(TT),2);" bytes transferred.{reverse off}";CO$
 7265 GET#5,A$:IFA$<>""THEN7265
 7270 CLOSE8:CLOSE1:PRINT#5,"ath"+MID$(STR$(SP),2):GOSUB900:IFP$<>"ok"THEN7265
 7272 TT=TI+200
@@ -311,4 +312,4 @@
 50010 GET#5,A$:IFA$<>""THENPRINTA$;
 50020 GETA$:IFA$<>""THENPRINT#5,A$;
 50030 GOTO 50010
-55555 U=8:F$="ftp64-128":OPEN1,U,15,"s0:"+F$:CLOSE1:SAVE(F$),U:VERIFY(F$),U
+55555 U=8:F$="ftp":OPEN1,U,15,"s0:"+F$:CLOSE1:SAVE(F$),U:VERIFY(F$),U

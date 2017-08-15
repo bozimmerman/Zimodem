@@ -5,22 +5,26 @@
 !- Commodore 64
 !--------------------------------------------------
 1 REM IRC64/128  1200B 1.8+
-2 REM UPDATED 07/17/2017 02:58P
+2 REM UPDATED 08/15/2017 02:58A
 10 POKE254,PEEK(186):IFPEEK(254)<8THENPOKE254,8
-12 IFPEEK(65532)=61THENPOKE58,254:CLR
-15 OPEN5,2,0,CHR$(8):DIMPP$(25):P$="ok":POKE186,PEEK(254):BA=1200:XB=1200
+12 SY=PEEK(65532):IFSY=61THENPOKE58,254:CLR
+13 IFSY=34THENX=23777:POKEX,170:IFPEEK(X)<>170THENPRINT"<16k":STOP
+15 OPEN5,2,0,CHR$(8):IFPEEK(65532)=34THENPOKE56,87:POKE54,87:POKE52,87
+17 DIMPP$(25):P$="ok":POKE186,PEEK(254):BA=1200:XB=1200
 20 CR$=CHR$(13):PRINTCHR$(14);:SY=PEEK(65532):POKE53280,254:POKE53281,246
-30 PRINT"{light blue}":IFSY=226THENML=49152:POKE665,73-(PEEK(678)*30):UM=ML+2048:XB=9600
+30 CO$="{light blue}":IFSY=226THENML=49152:POKE665,73-(PEEK(678)*30):UM=ML+2048:XB=9600
+35 IFSY=34THENML=22273:IFPEEK(ML)<>76THENCLOSE5:LOAD"pmlvic.bin",peek(254),1:RUN
+38 IFSY=34THENPOKE36879,27:CO$=CHR$(31)
 40 IFSY=226ANDPEEK(ML+1)<>209THENCLOSE5:LOAD"pml64.bin",PEEK(254),1:RUN
 45 IFSY=226ANDUM>0ANDPEEK(UM+1)<>24THENCLOSE5:LOAD"up9600.bin",PEEK(254),1:RUN
 50 IFSY=61THENML=4864:POKE981,15:S8=PEEK(215)AND128:IFS8=128THENSYS30643
 60 IFSY=61ANDPEEK(ML+1)<>217THENCLOSE5:LOAD"pml128.bin",PEEK(254),1:RUN
-70 IFSY=61ANDS8=128THENXB=2400
+70 IFSY=61ANDS8=128THENXB=2400:CO$=CHR$(159)
 80 IFSY=226ANDUM>0THENSYSUM:SYSUM+3:X=PEEK(789):SYSUM+9:IFX=234THENXB=1200
-90 POKE56579,0:REM WHY DOES THIS WORK
+90 IFSY<>34THENPOKE56579,0:REM WHY DOES THIS WORK
 100 REM GET THE BAUD RATE
 110 P$="a"
-120 PRINT"{clear}{down*2}IRC CHAT v1.3":PRINT"Requires C64Net WiFi firmware 1.8+"
+120 PRINTCO$;"{clear}{down*2}IRC CHAT v1.3":PRINT"Requires C64Net WiFi firmware 1.8+"
 140 PRINT"By Bo Zimmerman (bo@zimmers.net)":PRINT:PRINT
 197 REM --------------------------------
 198 REM GET STARTED                    !
@@ -64,7 +68,7 @@
 450 IFNI$=""THENPRINT"I guess not.":STOP
 460 P$="NICK "+NI$:GOSUB600:IFE$<>"ok"THENSTOP
 470 P$="USER guest 0 * :Joe Anonymous":GOSUB600:IFE$<>"ok"THENSTOP
-490 PRINT"{light green}{reverse on}Connected, wait for MOTD. ? for help{reverse off}{light blue}"
+490 PRINT"{light green}{reverse on}Connected, wait for MOTD. ? for help{reverse off}";CO$
 500 GOTO 1000: REM GO START MAIN LP
 597 REM --------------------------------
 598 REM TRANSMIT P$ TO THE OPEN SOCKET !
@@ -94,7 +98,7 @@
 899 REM -------------------------------
 900 E$=""
 910 SYSML
-920 IFE$<>""ANDP$<>E$THENPRINT"{reverse on}{red}Comm error. Expected ";E$;", Got ";P$;"{light blue}{reverse off}"
+920 IFE$<>""ANDP$<>E$THENPRINT"{reverse on}{red}Comm error. Expected ";E$;", Got ";P$;CO$;"{reverse off}"
 925 RETURN
 927 REM --------------------------------
 928 REM GET PACKET HEADER, SETS P0,P1,P2, RETURNS P0=0 IF NADA
@@ -147,10 +151,10 @@
 2010 IFMID$(MA$,I,2)=" :"THEN2050
 2020 I=I+1:GOTO2010
 2050 GOSUB2900
-2090 PRINT"{white}{reverse on}";MS$;"{reverse off}{light blue}: ";MID$(MA$,I+2):GOTO1000
+2090 PRINT"{white}{reverse on}";MS$;CO$;"{reverse off}: ";MID$(MA$,I+2):GOTO1000
 2100 PRINT"{reverse on}";LP$;"{reverse off}":GOTO1000
-2200 GOSUB2900:PRINT"{pink}{reverse on}";MS$;" has left the channel.{reverse off}{light blue}":GOTO1000
-2300 GOSUB2900:PRINT"{light green}{reverse on}";MS$;" has joined the channel.{reverse off}{light blue}":GOTO1000
+2200 GOSUB2900:PRINT"{pink}{reverse on}";MS$;" has left the channel.{reverse off}";CO$:GOTO1000
+2300 GOSUB2900:PRINT"{light green}{reverse on}";MS$;" has joined the channel.{reverse off}";CO$:GOTO1000
 2900 II=2
 2910 IFII>LEN(MS$)THENII=LEN(MS$):GOTO2950
 2920 IFMID$(MS$,II,1)="!"THENII=II-1:GOTO2950
@@ -159,7 +163,7 @@
 3000 IFA$=CHR$(13)THEN1000
 3010 PRINT"{reverse on}{pink}Stream paused. Enter ? for help.{reverse off}"
 3020 IFOM$<>""THENP$="PING "+OM$:GOSUB600
-3090 PRINT"{light blue}>{reverse on} {reverse off}{left}";:IN$="":IT=TI+1000:GOTO3200
+3090 PRINTCO$;">{reverse on} {reverse off}{left}";:IN$="":IT=TI+1000:GOTO3200
 3100 IFTI>ITTHENPRINT"{reverse on}{red}Cancelled{reverse off}{pink}":PRINT:GOTO1000
 3150 GETA$:IFA$=""THEN3100
 3170 IT=TI+1000
@@ -171,17 +175,17 @@
 3300 IFIN$=""THENPRINT" ":PRINT:GOTO1000
 3305 IFIN$="?"THENPRINT" ":GOTO3400
 3310 IFMID$(IN$,1,1)="/"THENIN$=MID$(IN$,2):GOTO3500
-3320 IFCC$=""THENPRINT:PRINT"{reverse on}{red}No Channel Selected! Try ?{reverse off}{light blue}":GOTO1000
+3320 IFCC$=""THENPRINT:PRINT"{reverse on}{red}No Channel Selected! Try ?{reverse off}";CO$:GOTO1000
 3330 P$="PRIVMSG "+CC$+" :"+IN$
-3340 GOSUB600:PRINT" ":PRINT"{white}{reverse on}";NI$;"{reverse off}{light blue}: ";IN$
+3340 GOSUB600:PRINT" ":PRINT"{white}{reverse on}";NI$;CO$;"{reverse off}: ";IN$
 3350 E$="":PRINT:GOTO1000
-3400 PRINT"{light blue}{reverse off}------------------------------"
-3410 PRINT"{reverse on}{purple}/join #c-64{reverse off} {light blue}Change channels."
-3420 PRINT"{reverse on}{purple}/quit{reverse off} {light blue}Logout and exit."
-3430 REMPRINT"{reverse on}{purple}/list{reverse off} {light blue}List channels."
-3440 REMPRINT"{reverse on}{purple}/who mask*{reverse off} {light blue}User info."
-3480 PRINT"{reverse on}{purple}Anything else{reverse off} {light blue}Send message"
-3490 PRINT"{light blue}{reverse off}------------------------------":GOTO1000
+3400 PRINTCO$;"{reverse off}------------------------------"
+3410 PRINT"{reverse on}{purple}/join #c-64{reverse off} ";CO$;"Change channels."
+3420 PRINT"{reverse on}{purple}/quit{reverse off} ";CO$;"Logout and exit."
+3430 REMPRINT"{reverse on}{purple}/list{reverse off} ";CO$;"List channels."
+3440 REMPRINT"{reverse on}{purple}/who mask*{reverse off} ";CO$;"User info."
+3480 PRINT"{reverse on}{purple}Anything else{reverse off} ";CO$;"Send message"
+3490 PRINTCO$;"{reverse off}------------------------------":GOTO1000
 3500 X=0:FORI=2TOLEN(IN$):IFX=0ANDMID$(IN$,I,1)=" "THENX=I
 3510 NEXT:A$="":IFX>1THENA$=MID$(IN$,X+1):IN$=MID$(IN$,1,X-1)
 3520 PRINT
@@ -189,7 +193,7 @@
 3540 IFIN$="quit"THENP$="QUIT :":GOSUB600:GOTO9100
 3550 IFIN$="list"THENP$="LIST":GOSUB600:GOTO1000
 3560 IFIN$="who"THENP$="WHO :"+AA$:GOSUB600:GOTO1000
-3999 PRINT"{reverse on}{red}Unknown Command: ";IN$;". Try ?{reverse off}{light blue}":GOTO1000
+3999 PRINT"{reverse on}{red}Unknown Command: ";IN$;". Try ?{reverse off}";CO$:GOTO1000
 4000 PRINT"Joining ";QU$;A$;QU$:AA$=A$
 4100 P$="JOIN :"+AA$:GOSUB600
 4110 IFP$<>E$THEN4100
@@ -208,4 +212,4 @@
 50010 GET#5,A$:IFA$<>""THENPRINTA$;
 50020 GETA$:IFA$<>""THENPRINT#5,A$;
 50030 GOTO 50010
-55555 U=8:F$="irc64-128":OPEN1,U,15,"s0:"+F$:CLOSE1:SAVEF$,U:VERIFYF$,U
+55555 U=8:F$="irc":OPEN1,U,15,"s0:"+F$:CLOSE1:SAVEF$,U:VERIFYF$,U

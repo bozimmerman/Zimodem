@@ -5,18 +5,23 @@
 !- Commodore 64
 !--------------------------------------------------
 1 REM CONFIGURE64/128  1200B 1.8+
-2 REM UPDATED 07/17/2017 02:54P
+2 REM UPDATED 08/14/2017 02:54A
 5 POKE254,PEEK(186):IFPEEK(254)<8THENPOKE254,8
-10 IFPEEK(65532)=61THENPOKE58,254:CLR
-15 OPEN5,2,0,CHR$(8):DIMWF$(100):WF=0:P$="ok":DIMPB$(50):POKE186,PEEK(254)
+10 SY=PEEK(65532):IFSY=61THENPOKE58,254:CLR
+13 IFSY=34THENX=23777:POKEX,170:IFPEEK(X)<>170THENPRINT"<16k":STOP
+15 OPEN5,2,0,CHR$(8):IFPEEK(65532)=34THENPOKE56,87:POKE54,87:POKE52,87
+17 DIMWF$(100):WF=0:P$="ok":DIMPB$(50):POKE186,PEEK(254)
 20 CR$=CHR$(13):PRINTCHR$(14);:SY=PEEK(65532):POKE53280,254:POKE53281,246
-30 PRINT"{light blue}":IFSY=226THENML=49152:POKE665,73-(PEEK(678)*30)
+30 CO$="{light blue}":IFSY=226THENML=49152:POKE665,73-(PEEK(678)*30)
+35 IFSY=34THENML=22273:IFPEEK(ML)<>76THENCLOSE5:LOAD"pmlvic.bin",peek(254),1:RUN
+38 IFSY=34THENPOKE36879,27:CO$=CHR$(31)
 40 IFSY=226ANDPEEK(ML+1)<>209THENCLOSE5:LOAD"pml64.bin",PEEK(254),1:RUN
 50 IFSY=61THENML=4864:POKE981,15:P=PEEK(215)AND128:IFP=128THENSYS30643
 60 IFSY=61ANDPEEK(ML+1)<>217THENCLOSE5:LOAD"pml128.bin",PEEK(254),1:RUN
+70 IFSY=61THENCO$=CHR$(159)
 100 REM
 110 P$="a"
-120 PRINT"{clear}{down*2}CONFIGURE v1.3":PRINT"Requires C64Net WiFi Firmware 1.5+"
+120 PRINTCO$;"{clear}{down*2}CONFIGURE v1.4":PRINT"Requires C64Net WiFi Firmware 1.5+"
 130 PRINT"1200 baud version"
 140 PRINT"By Bo Zimmerman (bo@zimmers.net)":PRINT:PRINT
 197 REM --------------------------------
@@ -38,7 +43,7 @@
 899 REM -------------------------------
 900 E$="":P$=""
 910 SYSML
-920 IFE$<>""ANDP$<>E$THENPRINT"{reverse on}{red}Comm error. Expected ";E$;", Got ";P$;"{light blue}{reverse off}"
+920 IFE$<>""ANDP$<>E$THENPRINT"{reverse on}{red}Comm error. Expected ";E$;", Got ";P$;CO$;"{reverse off}"
 925 RETURN
 997 REM --------------------------------
 998 REM THE MAIN LOOP                  !
@@ -64,8 +69,8 @@
 1085 IFLEFT$(P$,8)<>"connect "THENCD=0:CT=CT+1:ONCTGOTO1070,1070,1070,1070,1200
 1090 FORI=1TO3:SYSML+12:PRINT#5,CR$;"ath0";CR$;:GOSUB900:NEXTI
 1100 PRINT#5,CR$;"ath0";CR$;:GOSUB900
-1200 IFCD=0THENPRINT"{reverse on}{red}Fail!{reverse off}{light blue}"
-1210 IFCD=1THENPRINT"{reverse on}{light green}Success!{reverse off}{light blue}"
+1200 IFCD=0THENPRINT"{reverse on}{red}Fail!{reverse off}";CO$
+1210 IFCD=1THENPRINT"{reverse on}{light green}Success!{reverse off}";CO$
 1220 RETURN
 2000 SYSML+12:SYSML+12:PRINT:PRINT"Scanning for WiFi hotspots...";
 2010 PRINT#5,CR$;"atw";CR$;
@@ -90,11 +95,11 @@
 3260 WI=A:PRINT"Attempt to connect to: ";WF$(A)
 3300 PRINT"Enter WiFi Password: ";:GOSUB5000:PA$=P$
 3400 SYSML+12:PRINT#5,CR$;"atw";QU$;WF$(WI);",";PA$;QU$;CR$;:GOSUB900
-3410 IFP$="error"THENPRINT"{reverse on}{red}Connect Fail!{reverse off}{light blue}":GOTO3100
+3410 IFP$="error"THENPRINT"{reverse on}{red}Connect Fail!{reverse off}";CO$:GOTO3100
 3415 IFP$="ok"THEN3420
 3416 IFP$<>""THEN3400
 3417 GOSUB900:GOTO3410
-3420 PRINT"{reverse on}{light green}Connect success!{reverse off}{light blue}"
+3420 PRINT"{reverse on}{light green}Connect success!{reverse off}";CO$
 3430 PRINT
 3431 TT=TI+300
 3432 IFTI<TTTHEN3432
@@ -163,4 +168,4 @@
 50010 GET#5,A$:IFA$<>""THENPRINTA$;
 50020 GETA$:IFA$<>""THENPRINT#5,A$;
 50030 GOTO 50010
-55555 F$="configure64-128":OPEN1,8,15,"s0:"+F$:CLOSE1:SAVE(F$),8:VERIFY(F$),8
+55555 F$="configure":OPEN1,8,15,"s0:"+F$:CLOSE1:SAVE(F$),8:VERIFY(F$),8

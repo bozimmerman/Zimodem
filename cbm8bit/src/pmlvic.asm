@@ -329,14 +329,17 @@ BUFXLIN
         JSR $FFC6
         JSR RETIME
 BUFXLP
-        JSR $FFE4
-        LDY BUF1DX
-        STA BUF1,Y
         JSR CHKTIM
         BEQ BUFXEC
         STX CRXFLG
         JMP $FFCC
 BUFXEC
+        LDA $029B
+        CMP $029C
+        BEQ BUFXLP
+        JSR $FFE4
+        LDY BUF1DX
+        STA BUF1,Y
         JSR $FFB7
         AND #$0B
         BNE BUFXLP
