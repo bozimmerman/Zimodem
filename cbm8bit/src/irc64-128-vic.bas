@@ -151,7 +151,7 @@
 2010 IFMID$(MA$,I,2)=" :"THEN2050
 2020 I=I+1:GOTO2010
 2050 GOSUB2900
-2090 PRINT"{white}{reverse on}";MS$;CO$;"{reverse off}: ";MID$(MA$,I+2):GOTO1000
+2090 PRINT"{reverse on}";MS$;"{reverse off}: ";MID$(MA$,I+2):GOTO1000
 2100 PRINT"{reverse on}";LP$;"{reverse off}":GOTO1000
 2200 GOSUB2900:PRINT"{pink}{reverse on}";MS$;" has left the channel.{reverse off}";CO$:GOTO1000
 2300 GOSUB2900:PRINT"{light green}{reverse on}";MS$;" has joined the channel.{reverse off}";CO$:GOTO1000
@@ -177,7 +177,7 @@
 3310 IFMID$(IN$,1,1)="/"THENIN$=MID$(IN$,2):GOTO3500
 3320 IFCC$=""THENPRINT:PRINT"{reverse on}{red}No Channel Selected! Try ?{reverse off}";CO$:GOTO1000
 3330 P$="PRIVMSG "+CC$+" :"+IN$
-3340 GOSUB600:PRINT" ":PRINT"{white}{reverse on}";NI$;CO$;"{reverse off}: ";IN$
+3340 GOSUB600:PRINT" ":PRINT"{reverse on}";NI$;"{reverse off}: ";IN$
 3350 E$="":PRINT:GOTO1000
 3400 PRINTCO$;"{reverse off}------------------------------"
 3410 PRINT"{reverse on}{purple}/join #c-64{reverse off} ";CO$;"Change channels."

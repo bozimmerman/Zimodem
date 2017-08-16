@@ -104,7 +104,7 @@
 3431 TT=TI+300
 3432 IFTI<TTTHEN3432
 3440 CD=0:GOSUB1050:IFCD=0THEN3100
-3450 PRINT"{reverse off}{white}Saving new options..."
+3450 PRINT"{reverse off}{light green}Saving new options..."
 3460 SYSML+12:SYSML+12:SYSML+12
 3470 PRINT#5,CR$;"atz0&we0";CR$
 3480 GOSUB900:IFP$<>"ok"THEN3470
