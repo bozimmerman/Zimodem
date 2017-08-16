@@ -4,7 +4,7 @@
 !- c:\src\zimodem\cbm8bit\src\cbmbbs64-128.prg
 !- Commodore 64
 !--------------------------------------------------
-1 REM CBMBBS64/128  1200B 1.8+
+1 REM CBMTERM64/128  1200B 1.8+
 2 REM UPDATED 08/15/2017 12:54A
 10 POKE254,PEEK(186):IFPEEK(254)<8THENPOKE254,8
 12 SY=PEEK(65532):IFSY=61THENPOKE58,254:CLR
@@ -31,7 +31,7 @@
 101 REM
 102 REM
 110 P$="a"
-120 PRINTCO$;"{clear}{down*2}C= BBS v1.5":PRINT"Requires C64Net WiFi firmware 1.8+"
+120 PRINTCO$;"{clear}{down*2}C= TERM v1.5":PRINT"Requires C64Net WiFi firmware 1.8+"
 130 PRINT"1200 baud version"
 140 PRINT"By Bo Zimmerman (bo@zimmers.net)":PRINT:PRINT
 197 REM --------------------------------
@@ -205,4 +205,4 @@
 50010 GET#5,A$:IFA$<>""THENPRINTA$;
 50020 GETA$:IFA$<>""THENPRINT#5,A$;
 50030 GOTO 50010
-55555 U=8:F$="cbmbbs":OPEN1,U,15,"s0:"+F$:CLOSE1:SAVE(F$),U:VERIFY(F$),U
+55555 U=8:F$="cbmterm":OPEN1,U,15,"s0:"+F$:CLOSE1:SAVE(F$),U:VERIFY(F$),U
