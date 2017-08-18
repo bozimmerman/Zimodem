@@ -69,8 +69,8 @@
 620 SYSML:IFP$<>E$THENPRINT"{reverse on}{red}xerr:{reverse off}";CO$;P$:P$=OP$:GOTO600
 630 RETURN
 650 OP$=P$:SYSML+9:C8$=MID$(STR$(PEEK(MV+8)),2):PN$=MID$(STR$(LEN(P$)),2)
-660 PRINT#5,"ats42=";C8$;"t";PN$:PRINT#5,P$
-670 E$="ok":SYSML:IFP$<>"ok"THENP$=OP$:PRINT"xmit fail";CC$:GOTO650
+660 PRINT#5,"ats42=";C8$;"t+";PN$:PRINT#5,P$::E$="ok":IFVR>3THENE$=C8$
+670 E$="ok":SYSML:IFP$<>E$THENP$=OP$:PRINT"xerr";CC$:GOTO650
 680 RETURN
 798 REM --- GET P$ FROM SOCKET P
 800 P$="":E=0
