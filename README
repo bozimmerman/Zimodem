@@ -1,4 +1,4 @@
-C64Net WiFi Firmware 3.0 (C)2016-2017 Bo Zimmerman
+C64Net WiFi Firmware 3.1 (C)2016-2017 Bo Zimmerman
 Please read the LICENSE file for license information
 Please read the NOTICE file for credits information
 
@@ -130,7 +130,7 @@ ATS5=n : Change the Backspace Character	(0-32), ASCII decimal 8 (Backspace)
 ATS6 ... 39=n : Unimplemented, always returns OK
 ATS40=n : Change the size of the connection packets (n > 0), Defaults to 127 bytes
 ATS41=n : When n > 0, all incoming Server listener connections are immediately sent to Stream mode.  If n=0, connections remain in normal command mode (default).
-ATS42=n : Set the CRC8 for an expected incoming Transmit command.  e.g. ATS42=123T"[MESSAGE]" returns error unless 123 is CRC8 of "[MESSAGE]".
+ATS42=n : Set the CRC8 for an attached Transmit command.  e.g. ATS42=123T"[MESSAGE]" returns error unless 123 is CRC8 of "[MESSAGE]".
 ATS43=n : Sets a standby baud rate n for the next incoming or outgoing connection only.  ATZ clears.
 ATS44=n : Sets an automatic delay of n milliseconds after most bytes written to the Serial port.  This is for computers that support a baud rate, but can't really keep up, and you don't want to use flow control.
 ATS45=n : Changes how packet and at&g data is delivered.  0 is normal binary with normal headers, 1 is 78 char HEX digit streams followed by EOLN with hex digit headers, 2 is decimal digits followed by EOLN, with decimal digit headers.
@@ -146,6 +146,7 @@ ATT"[MESSAGE]" : Transmit the given text string, with \r\n at the end, on the cu
 ATTn : Where n > 0, this starts a transmit of exactly n bytes to the current connection.  The \n from entering this command must be followed by the n bytes to transmit.
 ATTP"[MESSAGE]" : Transmit the given text string, translating petscii to ascii, with \r\n at the end, on the current connection.
 ATTPn : Where n > 0, this starts a transmit of exactly n bytes to the current connection, translating petscii to ascii.  The \n from entering this command must be followed by the n bytes to transmit.
+ATT+"[MESSAGE] : A + argument may be used to force the 'T' command to return the CRC8 of the message instead of OK, when successful.
 
 AT&L  : Reloads the saved configuration.
 AT&W  : Saves the current configuration: WiFi settings(ATW), baud rate (ATB), end of line (ATR) settings, flow control (ATF), echo mode (ATE), extended responses (ATX), verbose responses (ATV), quiet responses (ATQ), PETSCII mode (AT&P1), DCD status (ATS46), CTS status (ATS47)

@@ -1121,9 +1121,12 @@ ZResult ZCommand::doWiFiCommand(int vval, uint8_t *vbuf, int vlen, bool isNumber
   return ZOK;
 }
 
-ZResult ZCommand::doTransmitCommand(int vval, uint8_t *vbuf, int vlen, bool isNumber, const char *dmodifiers, const int crc8)
+ZResult ZCommand::doTransmitCommand(int vval, uint8_t *vbuf, int vlen, bool isNumber, const char *dmodifiers, int *crc8)
 {
   bool doPETSCII = (strchr(dmodifiers,'p')!=null) || (strchr(dmodifiers,'P')!=null);
+  int crcChk = *crc8;
+  *crc8=-1;
+  int rcvdCrc8=-1;
   if((vlen==0)||(current==null)||(!current->isConnected()))
     return ZERROR;
   else
@@ -1138,7 +1141,8 @@ ZResult ZCommand::doTransmitCommand(int vval, uint8_t *vbuf, int vlen, bool isNu
     }
     if(recvd != vval)
       return ZERROR;
-    if((crc8 != -1)&&(CRC8(buf,recvd)!=crc8))
+    rcvdCrc8=CRC8(buf,recvd);
+    if((crcChk != -1)&&(rcvdCrc8!=crcChk))
       return ZERROR;
     if(current->isPETSCII() || doPETSCII)
     {
@@ -1156,7 +1160,8 @@ ZResult ZCommand::doTransmitCommand(int vval, uint8_t *vbuf, int vlen, bool isNu
   {
     uint8_t buf[vlen];
     memcpy(buf,vbuf,vlen);
-    if((crc8 != -1)&&(CRC8(buf,vlen)!=crc8))
+    rcvdCrc8=CRC8(buf,vlen);
+    if((crcChk != -1)&&(rcvdCrc8!=crcChk))
       return ZERROR;
     if(current->isPETSCII() || doPETSCII)
     {
@@ -1174,7 +1179,13 @@ ZResult ZCommand::doTransmitCommand(int vval, uint8_t *vbuf, int vlen, bool isNu
       logSocketOut(10);
     }
   }
-  return ZOK;
+  if(strchr(dmodifiers,'+')==null)
+    return ZOK;
+  else
+  {
+    Serial.printf("%d%s",rcvdCrc8,EOLN.c_str());
+    return ZIGNORE_SPECIAL;
+  }
 }
 
 ZResult ZCommand::doDialStreamCommand(unsigned long vval, uint8_t *vbuf, int vlen, bool isNumber, const char *dmodifiers)
@@ -1770,7 +1781,7 @@ ZResult ZCommand::doSerialCommand()
         result = doBaudCommand(vval,vbuf,vlen);
         break;
       case 't':
-        result = doTransmitCommand(vval,vbuf,vlen,isNumber,dmodifiers.c_str(),crc8);
+        result = doTransmitCommand(vval,vbuf,vlen,isNumber,dmodifiers.c_str(),&crc8);
         break;
       case 'h':
         result = doHangupCommand(vval,vbuf,vlen,isNumber);
@@ -2199,6 +2210,8 @@ ZResult ZCommand::doSerialCommand()
     }
     else
     {
+      if(crc8 >= 0)
+        result=ZERROR; // setting S42 without a T command is now Bad.
       switch(result)
       {
       case ZOK:
