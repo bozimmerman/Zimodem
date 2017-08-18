@@ -66,7 +66,7 @@
 598 REM --- TRANSMIT P$ TO THE OPEN SOCKET !
 600 OP$=P$:SYSML+9:C8$=MID$(STR$(PEEK(MV+8)),2):E$="ok":IFVR>3THENE$=C8$
 610 PRINT#5,"ats42=";C8$;"tp+";QU$;P$;QU$
-620 SYSML:IFP$<>E$THENP$=OP$:PRINT"{reverse on}{red}xerr:{reverse off}";CO$;OP$:GOTO600
+620 SYSML:IFP$<>E$THENPRINT"{reverse on}{red}xerr:{reverse off}";CO$;P$:P$=OP$:GOTO600
 630 RETURN
 650 OP$=P$:SYSML+9:C8$=MID$(STR$(PEEK(MV+8)),2):PN$=MID$(STR$(LEN(P$)),2)
 660 PRINT#5,"ats42=";C8$;"t";PN$:PRINT#5,P$
