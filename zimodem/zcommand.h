@@ -96,6 +96,7 @@ class ZCommand : public ZMode
     String previousCommand = "";
     String currentCommand = "";
     WiFiClientNode *nextConn=null;
+    int lastPacketId = -1;
 
     byte CRC8(const byte *data, byte len);
     int makeStreamFlagsBitmap(const char *dmodifiers);

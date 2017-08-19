@@ -1470,6 +1470,8 @@ ZResult ZCommand::doLastPacket(int vval, uint8_t *vbuf, int vlen, bool isNumber)
   if(!isNumber)
     return ZERROR;
   WiFiClientNode *cnode=null;
+  if(!isNumber && (lastPacketId >=0))
+    vval = lastPacketId;
   if(vval == 0)
     cnode=current;
   else
@@ -2457,6 +2459,7 @@ void ZCommand::sendNextPacket()
           logSocketIn(nextConn->lastPacketBuf,maxBytes);
         }
         nextConn->lastPacketLen=maxBytes;
+        lastPacketId=nextConn->id;
         reSendLastPacket(nextConn);
         if(serial.getFlowControlType() == FCT_AUTOOFF)
         {
