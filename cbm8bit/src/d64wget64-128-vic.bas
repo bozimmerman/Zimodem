@@ -5,7 +5,7 @@
 !- Commodore 64
 !--------------------------------------------------
 1 REM D64WGET4/128  1200B 1.8+
-2 REM UPDATED 07/15/2017 02:54A
+2 REM UPDATED 08/19/2017 02:54A
 10 POKE254,PEEK(186):IFPEEK(254)<8THENPOKE254,8
 12 SY=PEEK(65532):IFSY=61THENPOKE58,254:CLR
 13 IFSY=34THENX=23777:POKEX,170:IFPEEK(X)<>170THENPRINT"<16k":STOP
@@ -27,9 +27,7 @@
 110 P$="a"
 120 PRINTCO$;"{clear}{down*2}D64WGET v1.3":PRINT"Requires C64Net WiFi firmware 2.0+"
 140 PRINT"By Bo Zimmerman (bo@zimmers.net)":PRINT:PRINT
-197 REM --------------------------------
-198 REM GET STARTED                    !
-199 REM -------------------------------
+198 REM --- MODEM INIT
 200 UN=PEEK(254)
 201 PH=0:PT=0:MV=ML+18
 202 PRINT "Initializing modem...":CR$=CHR$(13)+CHR$(10)
@@ -39,8 +37,9 @@
 210 PRINT#5,CR$;"ate0n0r0v1q0";CR$;
 220 GOSUB900:IFP$<>"ok"THEN208
 225 GET#5,A$:IFA$<>""THEN225
-230 PRINT#5,"ate0v1x1f3q0s40=248";CR$;CHR$(19);
-240 GOSUB900:IFP$<>"ok"THENPRINT"Zimodem init failed: ";P$:STOP
+230 PRINT#5,"ate0v1x1f3q0s40=248i4";CR$;CHR$(19);
+235 GOSUB900:VR=VAL(P$):IFVR<2.0THENPRINT"Zimodem init failed: ";P$:STOP
+240 GOSUB900:IFP$<>"ok"THEN203
 250 DIM HH$(20):OT$=""
 260 UR$="coffeemud.net:8080/ctcug/firmware/c64net{arrow left}apps{arrow left}latest.d64"
 300 REM GET INFO
@@ -61,54 +60,38 @@
 450 II=-1:FORI=0TO20:IFHH$(I)=""ANDII<0THENII=I
 460 NEXT:IFII>=0THENPRINT"New Header: ";:GOSUB5000:HH$(II)=P$
 470 GOTO 300
-597 REM --------------------------------
-598 REM TRANSMIT P$ TO THE OPEN SOCKET !
-599 REM -------------------------------
-600 OP$=P$:SYSML+9:C8$=MID$(STR$(PEEK(MV+8)),2)
-610 PRINT#5,"ats42=";C8$;"tp";QU$;P$;QU$
-620 E$="ok":SYSML:IFP$<>"ok"THENP$=OP$:PRINT"{yellow}{reverse on}Retrying..{reverse off}";CO$;CC$:GOTO600
+598 REM --- TRANSMIT P$ TO THE OPEN SOCKET
+600 OP$=P$:SYSML+9:C8$=MID$(STR$(PEEK(MV+8)),2):E$="ok":IFVR>3THENE$=C8$
+610 PRINT#5,"ats42=";C8$;"tp+";QU$;P$;QU$
+620 SYSML:IFP$<>E$THENP$=OP$:PRINT"{yellow}{reverse on}Retrying..{reverse off}";CO$:GOTO600
 630 RETURN
 650 OP$=P$:SYSML+9:C8$=MID$(STR$(PEEK(MV+8)),2):PN$=MID$(STR$(LEN(P$)),2)
-660 PRINT#5,"ats42=";C8$;"t";PN$:PRINT#5,P$
-670 E$="ok":SYSML:IFP$<>"ok"THENP$=OP$:PRINT"{yellow}{reverse on}Retrying..{reverse off}";CO$;CC$:GOTO650
+655 E$="ok":IFVR>3THENE$=C8$
+660 PRINT#5,"ats42=";C8$;"t+";PN$:PRINT#5,P$
+670 SYSML:IFP$<>E$THENP$=OP$:PRINT"{yellow}{reverse on}Retrying..{reverse off}";CO$:GOTO650
 680 RETURN
-697 REM --------------------------------
-698 REM GET NEXT FROM SOCKET INTO PP   !
-699 REM -------------------------------
-700 GOSUB930:IFP0<>PANDP0>0THENPRINT"Unexpected packet id: ";P0;"/";P:STOP
-710 IFP0=0THENRETURN
-720 PP$(PE)=P$:PE=PE+1:IFPE>=25THENPE=0
-790 P$="":RETURN
-797 REM --------------------------------
-798 REM GET P$ FROM SOCKET P           !
-799 REM -------------------------------
-800 P$="":E=0:IFPH>=25THENPH=0
-810 IFPH<>PETHENP$=PP$(PH):PH=PH+1:RETURN
-820 GOSUB700:IFP0=0THENE=1:RETURN:REM FAIL
-830 IFPH<>PETHENP$=PP$(PH):PH=PH+1:RETURN
-840 E=1:RETURN
-897 REM --------------------------------
-898 REM GET E$ FROM MODEM, OR ERROR    !
-899 REM -------------------------------
+798 REM --- GET P$ FROM SOCKET P
+800 P$="":E=0
+810 GOSUB930:IFP0<>PANDP0<0THENPRINT"Unexpected packet id: ";P0;"/";P:STOP
+820 IFP0=0THENE=1:RETURN:REM FAIL
+830 RETURN
+898 REM --- GET E$ FROM MODEM, OR ERROR
 900 E$=""
 910 SYSML
 920 IFE$<>""ANDP$<>E$THENPRINT"{reverse on}{red}Comm error. Expected ";E$;", Got ";P$;CO$;"{reverse off}"
 925 RETURN
-927 REM --------------------------------
-928 REM GET PACKET HEADER, SETS P0,P1,P2, RETURNS P0=0 IF NADA
-929 REM -------------------------------
-930 PR=0:SYSML+12:P$=""
+928 REM --- GET PACKET HEADER, SETS P0,P1,P2, RETURNS P0=0 IF NADA
+930 PR=0:GET#5,P$:IFP$<>""THEN930
 940 PRINT#5,CHR$(17);
 945 SYSML+6:P0=PEEK(MV+2):P1=PEEK(MV+4):P2=PEEK(MV+6)
 950 PL=PEEK(MV+0):CR=PEEK(MV+1):C8=PEEK(MV+8)
-960 IFP0>0ANDP2<>C8THENPRINT#5,"atl0":GOTO945
+960 IFP0>0ANDP2<>C8THEN985
 970 IFP1=0THENP$=""
-980 IFCR=255THENP$="":P0=0:P1=0:P2=0:PL=0:PRINT"{reverse on}{yellow}Error, retry.{reverse off}";CO$:RETURN
-990 RETURN
+980 IFP0>0ORCR=0THENRETURN
+985 GET#5,P$:IFP$<>""THEN985
+990 PRINT"{yellow}PACKET-RETRY";CO$:PRINT#5,"atl":GOTO945
 995 PRINT"Expected ";E$;", got ";A$:STOP
-997 REM --------------------------------
-998 REM THE MAIN LOOP                  !
-999 REM -------------------------------
+998 REM --- THE MAIN LOOP                  !
 1000 IFLEN(UR$)=0THEN300
 1010 I=0:PRINT"{down*2}The disk in drive";UN;"will be over-"
 1011 PRINT"written.  Are you sure (y/n)? ";:GOSUB5000

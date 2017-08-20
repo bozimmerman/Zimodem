@@ -5,7 +5,7 @@
 !- Commodore 64
 !--------------------------------------------------
 1 REM IRC64/128  1200B 1.8+
-2 REM UPDATED 08/15/2017 02:58A
+2 REM UPDATED 08/19/2017 02:58A
 10 POKE254,PEEK(186):IFPEEK(254)<8THENPOKE254,8
 12 SY=PEEK(65532):IFSY=61THENPOKE58,254:CLR
 13 IFSY=34THENX=23777:POKEX,170:IFPEEK(X)<>170THENPRINT"<16k":STOP
@@ -37,12 +37,13 @@
 208 GET#5,A$:IFA$<>""THEN208
 210 PRINT#5,CR$;"ate0n0r0v1q0";CR$;
 220 GOSUB900:IFP$<>"ok"THEN208
-230 PRINT#5,"ate0v1x1f3q0s40=250";CR$;CHR$(19);
-240 GOSUB900:IFP$<>"ok"THENPRINT"Zimodem init failed: ";R$:STOP
+230 PRINT#5,"ate0v1x1f3q0s40=250i4";CR$;CHR$(19);
+235 GOSUB900:VR=VAL(P$):IFVR<1.8THENPRINT"Zimodem init failed: ";P$:STOP
+240 GOSUB900:IFP$<>"ok"THEN203
 300 REM GET THE SERVER
 310 PRINT:PRINT"{down}Some servers:"
 320 PRINT"irc.nlnog.net port 6667, #c-64"
-325 PRINT"irc.freenode.net port 6667, #c64"
+325 PRINT"irc.freenode.net port 6667, #c64friends"
 330 PRINT"irc.us.ircnet.net port 6667, #c-64"
 350 SE$="":PRINT:PRINT"What is your IRC server host":GOSUB5000:SE$=P$
 360 IFSE$=""THENPRINT"I guess you're done then":CLOSE5:STOP
@@ -70,51 +71,40 @@
 470 P$="USER guest 0 * :Joe Anonymous":GOSUB600:IFE$<>"ok"THENSTOP
 490 PRINT"{light green}{reverse on}Connected, wait for MOTD. ? for help{reverse off}";CO$
 500 GOTO 1000: REM GO START MAIN LP
-597 REM --------------------------------
-598 REM TRANSMIT P$ TO THE OPEN SOCKET !
-599 REM -------------------------------
+598 REM --- TRANSMIT P$ TO THE OPEN SOCKET
 600 IFLEN(P$)>0ANDASC(RIGHT$(P$,1))=10THENP$=LEFT$(P$,LEN(P$)-1)
-605 OP$=P$:SYSML+9:C8$=MID$(STR$(PEEK(MV+8)),2)
-610 PRINT#5,"ats42=";C8$;"t";QU$;P$;QU$
-620 E$="ok":SYSML:IFP$<>"ok"THENP$=OP$:PRINT"xmit fail";CC$:GOTO600
+605 OP$=P$:SYSML+9:C8$=MID$(STR$(PEEK(MV+8)),2)::E$="ok":IFVR>3THENE$=C8$
+610 PRINT#5,"ats42=";C8$;"t+";QU$;P$;QU$
+620 SYSML:IFP$<>E$THENP$=OP$:PRINT"xmit fail";CC$:GOTO600
 630 RETURN
-697 REM --------------------------------
-698 REM GET NEXT FROM SOCKET INTO PP   !
-699 REM -------------------------------
+698 REM --- GET NEXT FROM SOCKET INTO PP
 700 GOSUB930:IFP0<>PANDP0>0THENPRINT"Unexpected packet id: ";P0;"/";P:STOP
 710 IFP0=0THENRETURN
 720 PP$(PE)=P$:PE=PE+1:IFPE>=25THENPE=0
 790 P$="":RETURN
-797 REM --------------------------------
-798 REM GET P$ FROM SOCKET P           !
-799 REM -------------------------------
+798 REM --- GET P$ FROM SOCKET P
 800 E=0:P$="":IFPH>=25THENPH=0
 810 IFPH<>PETHENP$=PP$(PH):PH=PH+1:RETURN
 820 GOSUB700:IFP0=0THENE=1:RETURN:REM FAIL
 830 IFPH<>PETHENP$=PP$(PH):PH=PH+1:RETURN
 840 E=1:RETURN
-897 REM --------------------------------
-898 REM GET E$ FROM MODEM, OR ERROR    !
-899 REM -------------------------------
+898 REM ---- GET E$ FROM MODEM, OR ERROR
 900 E$=""
 910 SYSML
 920 IFE$<>""ANDP$<>E$THENPRINT"{reverse on}{red}Comm error. Expected ";E$;", Got ";P$;CO$;"{reverse off}"
 925 RETURN
-927 REM --------------------------------
 928 REM GET PACKET HEADER, SETS P0,P1,P2, RETURNS P0=0 IF NADA
-929 REM -------------------------------
 930 SYSML+12:E=0:P0=0:P1=0:P2=0:PR=0:I=0:I0=0:I1=0:CR=0:P4=0:P5=0:C8=0
 940 P$="":PRINT#5,CHR$(17);
 945 SYSML+6:P0=PEEK(MV+2):P1=PEEK(MV+4):P2=PEEK(MV+6)
 950 PL=PEEK(MV+0):CR=PEEK(MV+1):C8=PEEK(MV+8)
-960 IFP0>0ANDP2<>C8THENPRINT#5,"atl0":GOTO945
+960 IFP0>0ANDP2<>C8THEN985
 970 IFP1=0THENP$=""
-980 IFCR=255THENE=1:P$="":P0=0:P1=0:P2=0:PL=0:RETURN
-990 RETURN
+980 IFP0>0ORCR=0THENRETURN
+985 SYSML+12:P$=""
+990 PRINT"{yellow}PACKET-RETRY";CO$:PRINT#5,"atl":GOTO945
 995 PRINT"Expected ";E$;", got ";A$:STOP
-997 REM --------------------------------
-998 REM THE MAIN LOOP                  !
-999 REM -------------------------------
+998 REM THE MAIN LOOP
 1000 GETA$:IFA$<>""THEN3000
 1020 GOSUB800:IFP$=""THEN1000
 1030 MS$="":MC$="":MA$="":I=1:LP$=P$
