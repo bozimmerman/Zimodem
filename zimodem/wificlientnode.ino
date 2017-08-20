@@ -90,6 +90,7 @@ WiFiClientNode::WiFiClientNode(WiFiClient newClient, int flagsBitmap)
     
 WiFiClientNode::~WiFiClientNode()
 {
+  lastPacketLen=0;
   if(host!=null)
   {
     client.stop();

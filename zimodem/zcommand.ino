@@ -1017,7 +1017,7 @@ ZResult ZCommand::doUpdateFirmware(int vval, uint8_t *vbuf, int vlen, bool isNum
   if(vval != 6502)
     return ZOK;
   
-  serial.prints("Updating...");
+  serial.printf("Updating to %s, wait for modem restart...",buf);
   serial.flush();
   uint32_t respLength=0;
   WiFiClient c;
@@ -1470,14 +1470,14 @@ ZResult ZCommand::doLastPacket(int vval, uint8_t *vbuf, int vlen, bool isNumber)
   if(!isNumber)
     return ZERROR;
   WiFiClientNode *cnode=null;
-  if(!isNumber && (lastPacketId >=0))
-    vval = lastPacketId;
   if(vval == 0)
-    cnode=current;
+    vval = lastPacketId;
+  if(vval <= 0)
+    cnode = current;
   else
   {
     WiFiClientNode *c=conns;
-    while(c != 0)
+    while(c != null)
     {
       if(vval == c->id)
       {
