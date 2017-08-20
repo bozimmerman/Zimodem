@@ -4,7 +4,7 @@
 !- c:\src\zimodem\cbm8bit\src\d64wget64-128.prg
 !- Commodore 64
 !--------------------------------------------------
-1 REM D64WGET4/128  1200B 1.8+
+1 REM D64WGET4/128  1200B 2.0+
 2 REM UPDATED 08/19/2017 02:54A
 10 POKE254,PEEK(186):IFPEEK(254)<8THENPOKE254,8
 12 SY=PEEK(65532):IFSY=61THENPOKE58,254:CLR
@@ -25,7 +25,7 @@
 101 REM
 102 REM
 110 P$="a"
-120 PRINTCO$;"{clear}{down*2}D64WGET v1.3":PRINT"Requires C64Net WiFi firmware 2.0+"
+120 PRINTCO$;"{clear}{down*2}D64WGET v1.5":PRINT"Requires C64Net WiFi firmware 2.0+"
 140 PRINT"By Bo Zimmerman (bo@zimmers.net)":PRINT:PRINT
 198 REM --- MODEM INIT
 200 UN=PEEK(254)

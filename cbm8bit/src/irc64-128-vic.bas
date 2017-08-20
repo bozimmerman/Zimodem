@@ -24,7 +24,7 @@
 90 IFSY<>34THENPOKE56579,0:REM WHY DOES THIS WORK
 100 REM GET THE BAUD RATE
 110 P$="a"
-120 PRINTCO$;"{clear}{down*2}IRC CHAT v1.3":PRINT"Requires C64Net WiFi firmware 1.8+"
+120 PRINTCO$;"{clear}{down*2}IRC CHAT v1.5":PRINT"Requires C64Net WiFi firmware 1.8+"
 140 PRINT"By Bo Zimmerman (bo@zimmers.net)":PRINT:PRINT
 197 REM --------------------------------
 198 REM GET STARTED                    !
@@ -67,8 +67,8 @@
 435 PRINT#5,"at":GOSUB9000:GOSUB9000
 440 PRINT:PRINT"What is your nickname";:GOSUB5000:NI$=P$:N1=LEN(NI$)
 450 IFNI$=""THENPRINT"I guess not.":STOP
-460 P$="NICK "+NI$:GOSUB600:IFE$<>"ok"THENSTOP
-470 P$="USER guest 0 * :Joe Anonymous":GOSUB600:IFE$<>"ok"THENSTOP
+460 P$="NICK "+NI$:GOSUB600
+470 P$="USER guest 0 * :Joe Anonymous":GOSUB600
 490 PRINT"{light green}{reverse on}Connected, wait for MOTD. ? for help{reverse off}";CO$
 500 GOTO 1000: REM GO START MAIN LP
 598 REM --- TRANSMIT P$ TO THE OPEN SOCKET
@@ -186,7 +186,6 @@
 3999 PRINT"{reverse on}{red}Unknown Command: ";IN$;". Try ?{reverse off}";CO$:GOTO1000
 4000 PRINT"Joining ";QU$;A$;QU$:AA$=A$
 4100 P$="JOIN :"+AA$:GOSUB600
-4110 IFP$<>E$THEN4100
 4120 E$="":CC$=AA$:GOTO1000
 5000 PRINT"? {reverse on} {reverse off}{left}";:P$=""
 5010 GETA$:IFA$=""THEN5010

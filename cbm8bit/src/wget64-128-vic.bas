@@ -4,7 +4,7 @@
 !- c:\src\zimodem\cbm8bit\src\wget64-128.prg
 !- Commodore 64
 !--------------------------------------------------
-1 REM WGET4/128  1200B 1.8+
+1 REM WGET4/128  1200B 2.0+
 2 REM UPDATED 08/19/2017 02:54A
 10 POKE254,PEEK(186):IFPEEK(254)<8THENPOKE254,8
 12 SY=PEEK(65532):IFSY=61THENPOKE58,254:CLR
