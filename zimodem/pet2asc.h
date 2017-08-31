@@ -15,7 +15,6 @@
 */
 #include "ESP8266WiFi.h"
 #include <FS.h>
-#include <spiffs/spiffs.h>
 
 char petToAsc(char c);
 bool ascToPet(char *c, Stream *stream);

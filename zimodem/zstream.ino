@@ -14,8 +14,6 @@
    limitations under the License.
 */
 
-#define DBG_BYT_CTR 20
-
 void ZStream::switchTo(WiFiClientNode *conn)
 {
   current = conn;

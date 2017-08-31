@@ -45,6 +45,7 @@ ATI2 : Shows the modem's current IP address
 ATI3 : Shows the modem's current Wireless Router connection
 ATI4 : Shows only the firmware current version
 ATI5 : Shows all the current variable settings, all 'S' registers.
+ATI6 : Shows the current mac address.
 
 ATA  : If a server listener has generated a RING, then ATA will switch the last rung connection to Stream mode (see ATD).
 ATA/ : Repeats the previous command (no idea why...)

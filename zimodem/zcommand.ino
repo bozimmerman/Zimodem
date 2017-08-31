@@ -518,6 +518,12 @@ ZResult ZCommand::doInfoCommand(int vval, uint8_t *vbuf, int vlen, bool isNumber
     serial.prints(EOLN);
   }
   else
+  if(vval == 6)
+  {
+    serial.prints(WiFi.macAddress());
+    serial.prints(EOLN);
+  }
+  else
     return ZERROR;
   return ZOK;
 }
@@ -1215,6 +1221,10 @@ ZResult ZCommand::doDialStreamCommand(unsigned long vval, uint8_t *vbuf, int vle
         return res;
       }
       phb = phb->next;
+    }
+    if(vval == 5517545) // slip no login
+    {
+      slipMode.switchTo();
     }
     
     WiFiClientNode *c=conns;
@@ -1994,6 +2004,30 @@ ZResult ZCommand::doSerialCommand()
       case '&':
         switch(lc(secCmd))
         {
+        case 'k':
+          if((!isNumber)||(vval>=FCT_INVALID))
+            result=ZERROR;
+          else
+          {
+              packetXOn = true;
+              serial.setXON(true);
+              switch(vval)
+              {
+                case 0: case 1: case 2:
+                  serial.setFlowControlType(FCT_DISABLED);
+                  break;
+                case 3: case 6:
+                  serial.setFlowControlType(FCT_RTSCTS);
+                  break;
+                case 4: case 5:
+                  serial.setFlowControlType(FCT_NORMAL);
+                  break;
+                default:
+                  result=ZERROR;
+                  break;
+              }
+          }
+          break;
         case 'l':
           loadConfig();
           break;

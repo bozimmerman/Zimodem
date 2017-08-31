@@ -16,7 +16,7 @@
 
 #define TCP_SND_BUF                     4 * TCP_MSS
 #define null 0
-#define ZIMODEM_VERSION "3.1"
+#define ZIMODEM_VERSION "3.2"
 #define DEFAULT_NO_DELAY true
 #define DEFAULT_PIN_DCD 2
 #define DEFAULT_PIN_CTS 5
@@ -44,6 +44,7 @@ class ZMode
 #include "wificlientnode.h"
 #include "wifiservernode.h"
 #include "zstream.h"
+#include "zslip.h"
 #include "zcommand.h"
 
 static WiFiClientNode *conns = null;
@@ -52,6 +53,7 @@ static PhoneBookEntry *phonebook = null;
 
 static ZMode *currMode = null;
 static ZStream streamMode;
+static ZSlip slipMode;
 static ZCommand commandMode;
 
 enum BaudState
