@@ -122,16 +122,27 @@ bool handleAsciiIAC(char *c, Stream *stream)
       *c = 255;
       return true;
     }
-    if((*c==TELNET_WILL)||(*c==TELNET_WONT))
+    if(*c==TELNET_WILL)
     {
       char what=stream->read();
       uint8_t iacDont[] = {TELNET_IAC, TELNET_DONT, what};
+      if(what == TELNET_TERMTYPE)
+        iacDont[1] = TELNET_DO;
       stream->write(iacDont,3);
       return false;
     }
-    if((*c==TELNET_DO)||(*c==TELNET_DONT))
+    if((*c==TELNET_WONT)||(*c==TELNET_DONT))
     {
       char what=stream->read();
+      return false;
+    }
+    if(*c==TELNET_DO)
+    {
+      char what=stream->read();
+      uint8_t iacWont[] = {TELNET_IAC, TELNET_WONT, what};
+      if(what == TELNET_TERMTYPE)
+        iacWont[1] = TELNET_WILL;
+      stream->write(iacWont,3);
       return false;
     }
     if(*c==TELNET_SB)
