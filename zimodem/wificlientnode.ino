@@ -193,7 +193,14 @@ int WiFiClientNode::flushOverflowBuffer()
 {
   if(overflowBufLen > 0)
   {
-    int bufWrite=client.write(overflowBuf,overflowBufLen);
+    // because overflowBuf is not a const char* for some reason
+    // we need to explicitly declare that we want one
+    // The simplest thing to do is pin down the first character of the
+    // array and call it a day.
+    // This avoids client.write<T>(buffer, length) from being seen by the
+    // compiler as a better way to poke at it. 
+    const uint8_t* overflowbuf_ptr = &overflowBuf[0];
+    int bufWrite=client.write(overflowbuf_ptr,overflowBufLen);
     if(bufWrite >= overflowBufLen)
     {
       overflowBufLen = 0;
