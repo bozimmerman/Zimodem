@@ -14,6 +14,8 @@
    limitations under the License.
 */
 
+#include <cstdio>
+
 static char HD[3];
 static char HDL[9];
 
@@ -145,7 +147,7 @@ static void logPrintfln(const char* format, ...)
     int ret;
     va_list arglist;
     va_start(arglist, format);
-    vsprintf(FBUF, format, arglist);
+    vsnprintf(FBUF,sizeof(FBUF), format, arglist);
     logFile.println(FBUF);
     va_end(arglist);
   }
@@ -163,7 +165,7 @@ static void logPrintf(const char* format, ...)
     int ret;
     va_list arglist;
     va_start(arglist, format);
-    vsprintf(FBUF, format, arglist);
+    vsnprintf(FBUF, sizeof(FBUF), format, arglist);
     logFile.print(FBUF);
     va_end(arglist);
   }
@@ -194,5 +196,4 @@ static void logPrintln(const char* msg)
     logFile.println(msg);
   }
 }
-
 

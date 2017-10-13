@@ -14,6 +14,8 @@
    limitations under the License.
 */
 
+#include <cstring>
+
 static void serialDirectWrite(uint8_t c)
 {
   Serial.write(c);
@@ -217,7 +219,7 @@ void ZSerial::printf(const char* format, ...)
   int ret;
   va_list arglist;
   va_start(arglist, format);
-  vsprintf(FBUF, format, arglist);
+  vsnprintf(FBUF, sizeof(FBUF), format, arglist);
   prints(FBUF);
   va_end(arglist);
 }
@@ -284,4 +286,3 @@ char ZSerial::drainForXonXoff()
   }
   return ch;
 }
-
