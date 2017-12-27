@@ -324,7 +324,8 @@ void ZCommand::parseConfigOptions(String configArguments[])
 void ZCommand::loadConfig()
 {
   wifiConnected=false;
-  WiFi.disconnect();
+  if(WiFi.status() == WL_CONNECTED)
+    WiFi.disconnect();
   setConfigDefaults();
   if(!SPIFFS.exists("/zconfig.txt"))
   {
@@ -2035,15 +2036,25 @@ ZResult ZCommand::doSerialCommand()
           reSaveConfig();
           break;
         case 'f':
-          SPIFFS.remove("/zconfig.txt");
-          SPIFFS.remove("/zphonebook.txt");
-          PhoneBookEntry::clearPhonebook();
-          WiFi.disconnect();
-          wifiSSI="";
-          wifiConnected=false;
-          delay(500);
-          result=doResetCommand();
-          showInitMessage();
+          if(vval == 86)
+          {
+            loadConfig();
+            result = SPIFFS.format() ? ZOK : ZERROR;
+            reSaveConfig();
+          }
+          else
+          {
+            SPIFFS.remove("/zconfig.txt");
+            SPIFFS.remove("/zphonebook.txt");
+            PhoneBookEntry::clearPhonebook();
+            if(WiFi.status() == WL_CONNECTED)
+              WiFi.disconnect();
+            wifiSSI="";
+            wifiConnected=false;
+            delay(500);
+            result=doResetCommand();
+            showInitMessage();
+          }
           break;
         case 'm':
           if(vval > 0)
@@ -2093,6 +2104,7 @@ ZResult ZCommand::doSerialCommand()
             if(logFileOpen)
             {
               logFileOpen = false;
+              logFile.flush();
               logFile.close();
             }
             logFile = SPIFFS.open("/logfile.txt", "r");
@@ -2138,6 +2150,16 @@ ZResult ZCommand::doSerialCommand()
           else
           if(logFileOpen)
             result=ZERROR;
+          else
+          if(vval==86)
+          {
+            result = SPIFFS.exists("/logfile.txt") ? ZOK : ZERROR;
+            if(result)
+              SPIFFS.remove("/logfile.txt");
+          }
+          else
+          if(vval==87)
+              SPIFFS.remove("/logfile.txt");
           else
           {
             logFileOpen = true;
@@ -2295,7 +2317,7 @@ void ZCommand::showInitMessage()
   sprintf(s,"sdk=%s chipid=%d cpu@%d",ESP.getSdkVersion(),ESP.getFlashChipId(),ESP.getCpuFreqMHz());
   serial.prints(s);
   serial.prints(commandMode.EOLN);
-  sprintf(s,"totsize=%dk ssize=%dk fsize=%dk speed=%dm",(ESP.getFlashChipSize()/1024),(ESP.getSketchSize()/1024),info.totalBytes/1024,(ESP.getFlashChipSpeed()/1000000));
+  sprintf(s,"totsize=%dk ssize=%dk fsize=%dk speed=%dm",(ESP.getFlashChipRealSize()/1024),(ESP.getSketchSize()/1024),info.totalBytes/1024,(ESP.getFlashChipSpeed()/1000000));
   serial.prints(s);
   serial.prints(commandMode.EOLN);
   if(wifiSSI.length()>0)

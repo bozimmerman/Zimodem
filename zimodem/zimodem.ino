@@ -93,7 +93,8 @@ static int getDefaultCtsPin()
 static bool connectWifi(const char* ssid, const char* password)
 {
   int WiFiCounter = 0;
-  WiFi.disconnect();
+  if(WiFi.status() == WL_CONNECTED)
+    WiFi.disconnect();
   WiFi.mode(WIFI_STA);
   WiFi.begin(ssid, password);
   while (WiFi.status() != WL_CONNECTED && WiFiCounter < 30) 
