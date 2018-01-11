@@ -71,10 +71,10 @@ class ZCommand : public ZMode
   friend class WiFiClientNode;
 
   private:
-    char *CRLF="\r\n";
-    char *LFCR="\r\n";
-    char *LF="\n";
-    char *CR="\r";
+    char CRLF[4];
+    char LFCR[4];
+    char LF[2];
+    char CR[2];
     char BS=8;
     char ringCounter = 1;
 
@@ -141,7 +141,7 @@ class ZCommand : public ZMode
     boolean doEcho;
     String EOLN;
     char EC='+';
-    char *ECS="+++";
+    char ECS[32];
 
     ZCommand();
     void loadConfig();

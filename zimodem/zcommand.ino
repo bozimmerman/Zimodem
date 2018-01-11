@@ -18,6 +18,11 @@ extern "C" void esp_yield();
 
 ZCommand::ZCommand()
 {
+  strcpy(CRLF,"\r\n");
+  strcpy(LFCR,"\r\n");
+  strcpy(LF,"\n");
+  strcpy(CR,"\r");
+  strcpy(ECS,"+++");
   freeCharArray(&tempMaskOuts);
   freeCharArray(&tempDelimiters);
   setCharArray(&delimiters,"");
@@ -88,14 +93,29 @@ void ZCommand::setConfigDefaults()
   ctsInactive=DEFAULT_CTS_LOW;
   rtsActive=DEFAULT_RTS_HIGH;
   rtsInactive=DEFAULT_RTS_LOW;
+  riActive = DEFAULT_RTS_HIGH;
+  riInactive = DEFAULT_RTS_LOW;
+  dtrActive = DEFAULT_RTS_HIGH;
+  dtrInactive = DEFAULT_RTS_LOW;
+  dsrActive = DEFAULT_RTS_HIGH;
+  dsrInactive = DEFAULT_RTS_LOW;
   pinDCD = DEFAULT_PIN_DCD;
   pinCTS = getDefaultCtsPin();
   pinRTS = DEFAULT_PIN_RTS;
+  pinDTR = DEFAULT_PIN_DTR;
+  pinDSR = DEFAULT_PIN_DSR;
+  pinRI = DEFAULT_PIN_RI;
+  dcdStatus = dcdInactive;
   pinMode(pinRTS,OUTPUT);
   pinMode(pinCTS,INPUT);
   pinMode(pinDCD,OUTPUT);
+  pinMode(pinDTR,INPUT);
+  pinMode(pinDSR,OUTPUT);
+  pinMode(pinRI,OUTPUT);
   digitalWrite(pinRTS,rtsActive);
-  digitalWrite(2,dcdStatus);
+  digitalWrite(pinDCD,dcdStatus);
+  digitalWrite(pinDSR,dsrActive);
+  digitalWrite(pinRI,riInactive);
   suppressResponses=false;
   numericResponses=false;
   longResponses=true;
@@ -287,7 +307,7 @@ void ZCommand::setBaseConfigOptions(String configArguments[])
     pinDCD = atoi(configArguments[CFG_DCDPIN].c_str());
     pinMode(pinDCD,OUTPUT);
     dcdStatus=dcdInactive;
-    digitalWrite(2,dcdStatus);
+    digitalWrite(pinDCD,dcdStatus);
   }
   if(configArguments[CFG_CTSPIN].length()>0)
   {
@@ -331,7 +351,7 @@ void ZCommand::loadConfig()
   {
     SPIFFS.format();
     reSaveConfig();
-    Serial.begin(DEFAULT_BAUD_RATE, DEFAULT_SERIAL_CONFIG);  //Start Serial
+    HWSerial.begin(DEFAULT_BAUD_RATE, DEFAULT_SERIAL_CONFIG);  //Start Serial
   }
   String argv[CFG_LAST+1];
   parseConfigOptions(argv);
@@ -343,7 +363,7 @@ void ZCommand::loadConfig()
     serialConfig = (SerialConfig)atoi(argv[CFG_UART].c_str());
   if(serialConfig <= 0)
     serialConfig = DEFAULT_SERIAL_CONFIG;
-  Serial.begin(baudRate, serialConfig);  //Start Serial
+  HWSerial.begin(baudRate, serialConfig);  //Start Serial
   wifiSSI=argv[CFG_WIFISSI];
   wifiPW=argv[CFG_WIFIPW];
   if(wifiSSI.length()>0)
@@ -551,6 +571,8 @@ ZResult ZCommand::doBaudCommand(int vval, uint8_t *vbuf, int vlen)
     if(parPtr==NULL)
       return ZERROR;
     char parity=*parPtr;
+#ifdef ARDUINO_ESP32_DEV
+#else
     int configChk=0;
     switch(conStr[0])
     {
@@ -588,14 +610,15 @@ ZResult ZCommand::doBaudCommand(int vval, uint8_t *vbuf, int vlen)
         break;
     }
     serialConfig=(SerialConfig)configChk;
+#endif
     baudRate=baudChk;
   }
   else
   {
     baudRate=vval;
   }
-  Serial.flush();
-  Serial.begin(baudRate, serialConfig);
+  HWSerial.flush();
+  HWSerial.begin(baudRate, serialConfig);
   //if(!enableRtsCts)
   //  enableRtsCts=(digitalRead(pinCTS) == ctsActive);
   return ZOK;
@@ -1140,7 +1163,7 @@ ZResult ZCommand::doTransmitCommand(int vval, uint8_t *vbuf, int vlen, bool isNu
   if(isNumber && (vval>0))
   {
     uint8_t buf[vval];
-    int recvd = Serial.readBytes(buf,vval);
+    int recvd = HWSerial.readBytes(buf,vval);
     if(logFileOpen)
     {
       for(int i=0;i<recvd;i++)
@@ -1190,7 +1213,7 @@ ZResult ZCommand::doTransmitCommand(int vval, uint8_t *vbuf, int vlen, bool isNu
     return ZOK;
   else
   {
-    Serial.printf("%d%s",rcvdCrc8,EOLN.c_str());
+    HWSerial.printf("%d%s",rcvdCrc8,EOLN.c_str());
     return ZIGNORE_SPECIAL;
   }
 }
@@ -1534,9 +1557,10 @@ ZResult ZCommand::doEOLNCommand(int vval, uint8_t *vbuf, int vlen, bool isNumber
 bool ZCommand::readSerialStream()
 {
   bool crReceived=false;
-  while(Serial.available()>0)
+  while(HWSerial.available()>0)
   {
-    uint8_t c=Serial.read();
+    uint8_t c=HWSerial.read();
+    HWSerial.print((char)c);
     logSerialIn(c);
     if((c==CR[0])||(c==LF[0]))
     {
@@ -2127,7 +2151,7 @@ ZResult ZCommand::doSerialCommand()
                   if(serial.isSerialOut())
                   {
                     serialOutDeque();
-                    Serial.flush();
+                    HWSerial.flush();
                   }
                   delay(1);
                   yield();
@@ -2306,18 +2330,33 @@ ZResult ZCommand::doSerialCommand()
 
 void ZCommand::showInitMessage()
 {
+  serial.prints(commandMode.EOLN);
+#ifdef ARDUINO_ESP32_DEV
+  int totalSPIFFSSize = SPIFFS.totalBytes();
+  serial.prints("GuruModem WiFi Firmware v");
+#else
   FSInfo info;
   SPIFFS.info(info);
-  serial.prints(commandMode.EOLN);
+  int totalSPIFFSSize = info.totalBytes;
   serial.prints("C64Net WiFi Firmware v");
-  Serial.setTimeout(60000);
+#endif
+  HWSerial.setTimeout(60000);
   serial.prints(ZIMODEM_VERSION);
   serial.prints(commandMode.EOLN);
   char s[100];
+#ifdef ARDUINO_ESP32_DEV
+  sprintf(s,"sdk=%s chipid=%d cpu@%d",ESP.getSdkVersion(),ESP.getChipRevision(),ESP.getCpuFreqMHz());
+#else
   sprintf(s,"sdk=%s chipid=%d cpu@%d",ESP.getSdkVersion(),ESP.getFlashChipId(),ESP.getCpuFreqMHz());
+#endif
   serial.prints(s);
   serial.prints(commandMode.EOLN);
-  sprintf(s,"totsize=%dk ssize=%dk fsize=%dk speed=%dm",(ESP.getFlashChipRealSize()/1024),(ESP.getSketchSize()/1024),info.totalBytes/1024,(ESP.getFlashChipSpeed()/1000000));
+#ifdef ARDUINO_ESP32_DEV
+  sprintf(s,"totsize=%dk ssize=%dk hsize=%dk speed=%dm",(ESP.getFlashChipSize()/1024),(ESP.getFreeHeap()/1024),totalSPIFFSSize/1024,(ESP.getFlashChipSpeed()/1000000));
+#else
+  sprintf(s,"totsize=%dk ssize=%dk fsize=%dk speed=%dm",(ESP.getFlashChipRealSize()/1024),(ESP.getSketchSize()/1024),totalSPIFFSSize/1024,(ESP.getFlashChipSpeed()/1000000));
+#endif
+  
   serial.prints(s);
   serial.prints(commandMode.EOLN);
   if(wifiSSI.length()>0)
@@ -2414,7 +2453,7 @@ void ZCommand::reSendLastPacket(WiFiClientNode *conn)
         if(serial.isSerialOut())
         {
           serialOutDeque();
-          Serial.flush();
+          HWSerial.flush();
         }
         serial.drainForXonXoff();
         delay(1);
@@ -2464,8 +2503,8 @@ void ZCommand::sendNextPacket()
       int maxBytes=packetSize;
       if(availableBytes<maxBytes)
         maxBytes=availableBytes;
-      //if(maxBytes > Serial.availableForWrite()-15) // how much we read should depend on how much we can IMMEDIATELY write
-      //maxBytes = Serial.availableForWrite()-15;    // .. this is because resendLastPacket ensures everything goes out
+      //if(maxBytes > SerialX.availableForWrite()-15) // how much we read should depend on how much we can IMMEDIATELY write
+      //maxBytes = SerialX.availableForWrite()-15;    // .. this is because resendLastPacket ensures everything goes out
       if(maxBytes > 0)
       {
         if((nextConn->delimiters[0] != 0) || (delimiters[0] != 0))
@@ -2634,7 +2673,7 @@ void ZCommand::acceptNewConnection()
     if(serv->hasClient())
     {
       WiFiClient newClient = serv->server->available();
-      if((newClient != null)&&(newClient.connected()))
+      if(newClient.connected())
       {
         int port=newClient.localPort();
         String remoteIPStr = newClient.remoteIP().toString();

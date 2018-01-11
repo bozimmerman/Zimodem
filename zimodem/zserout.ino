@@ -18,7 +18,7 @@
 
 static void serialDirectWrite(uint8_t c)
 {
-  Serial.write(c);
+  HWSerial.write(c);
   if(serialDelayMs > 0)
     delay(serialDelayMs);
   logSerialOut(c);
@@ -26,7 +26,12 @@ static void serialDirectWrite(uint8_t c)
 
 static void serialOutDeque()
 {
-  if((TBUFhead != TBUFtail)&&(Serial.availableForWrite()>=SER_BUFSIZE))
+#ifdef ARDUINO_ESP32_DEV
+  if(TBUFhead != TBUFtail)
+#else
+  if((TBUFhead != TBUFtail)
+  &&(HWSerial.availableForWrite()>=SER_BUFSIZE))
+#endif
   {
     serialDirectWrite(TBUF[TBUFhead]);
     TBUFhead++;
@@ -79,7 +84,7 @@ static void flushSerial()
     serialOutDeque();
     yield();
   }
-  Serial.flush();
+  HWSerial.flush();
 }
 
 ZSerial::ZSerial()
@@ -228,24 +233,24 @@ void ZSerial::flushAlways()
 {
   while(TBUFtail != TBUFhead)
   {
-    Serial.flush();
+    HWSerial.flush();
     serialOutDeque();
     yield();
     delay(1);
   }
-  Serial.flush();
+  HWSerial.flush();
 }
 
 void ZSerial::flush()
 {
   while((TBUFtail != TBUFhead) && (isSerialOut()))
   {
-    Serial.flush();
+    HWSerial.flush();
     serialOutDeque();
     yield();
     delay(1);
   }
-  Serial.flush();
+  HWSerial.flush();
 }
 
 int ZSerial::availableForWrite()
@@ -256,9 +261,9 @@ int ZSerial::availableForWrite()
 char ZSerial::drainForXonXoff()
 {
   char ch = '\0';
-  while(Serial.available()>0)
+  while(HWSerial.available()>0)
   {
-    ch=Serial.read();
+    ch=HWSerial.read();
     logSerialIn(ch);
     if(ch == 3)
       break;

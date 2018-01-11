@@ -34,7 +34,7 @@ class WiFiClientNode : public Stream
     int flagsBitmap = 0;
     char *delimiters = NULL;
     char *maskOuts = NULL;
-    uint8 lastPacketBuf[LAST_PACKET_BUF_SIZE];
+    uint8_t lastPacketBuf[LAST_PACKET_BUF_SIZE];
     int lastPacketLen=0;
     uint8_t overflowBuf[OVERFLOW_BUF_SIZE];
     int overflowBufLen = 0;
