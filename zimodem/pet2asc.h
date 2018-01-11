@@ -22,7 +22,7 @@
 HardwareSerial HWSerial(2);
 #else
 #include "ESP8266WiFi.h"
-#define HWSerial Serial;
+#define HWSerial Serial
 #endif
 
 #include <FS.h>
