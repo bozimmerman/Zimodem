@@ -14,10 +14,7 @@
    limitations under the License.
 */
 
-#ifdef ARDUINO_ESP32_DEV
-#else
 #include "ESP8266WiFi.h"
-#endif
 
 void ZSlip::switchTo()
 {
@@ -33,12 +30,12 @@ void ZSlip::switchTo()
 
 void ZSlip::serialIncoming()
 {
-  int bytesAvailable = HWSerial.available();
-  if(bytesAvailable == 0)
+  int serialAvailable = Serial.available();
+  if(serialAvailable == 0)
     return;
-  while(--bytesAvailable >= 0)
+  while(--serialAvailable >= 0)
   {
-    uint8_t c=HWSerial.read();
+    uint8_t c=Serial.read();
     logSerialIn(c);
     if((c==commandMode.EC)
     &&((plussesInARow>0)||((millis()-lastNonPlusTimeMs)>800)))

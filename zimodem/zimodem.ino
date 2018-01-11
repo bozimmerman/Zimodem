@@ -13,41 +13,20 @@
    See the License for the specific language governing permissions and
    limitations under the License.
 */
-//#define TCP_SND_BUF                     4 * TCP_MSS
+
+#define TCP_SND_BUF                     4 * TCP_MSS
+#define null 0
 #define ZIMODEM_VERSION "3.3"
 #define DEFAULT_NO_DELAY true
-#define null 0
-
-#ifdef ARDUINO_ESP32_DEV
-#define SerialConfig uint32_t
-#define DEFAULT_PIN_DCD GPIO_NUM_14
-#define DEFAULT_PIN_CTS GPIO_NUM_15
-#define DEFAULT_PIN_RTS GPIO_NUM_13
-#define DEFAULT_PIN_RI GPIO_NUM_32
-#define DEFAULT_PIN_DSR GPIO_NUM_12
-#define DEFAULT_PIN_DTR GPIO_NUM_27
-
-#else
-#define DEFAULT_PIN_DSR 12
-#define DEFAULT_PIN_DTR 11
-#define DEFAULT_PIN_RI 10
 #define DEFAULT_PIN_DCD 2
 #define DEFAULT_PIN_CTS 5
 #define DEFAULT_PIN_RTS 4
-#endif
-
 #define DEFAULT_DCD_HIGH  HIGH
 #define DEFAULT_DCD_LOW  LOW
 #define DEFAULT_CTS_HIGH  HIGH
 #define DEFAULT_CTS_LOW  LOW
 #define DEFAULT_RTS_HIGH  HIGH
 #define DEFAULT_RTS_LOW  LOW
-#define DEFAULT_RI_HIGH  HIGH
-#define DEFAULT_RI_LOW  LOW
-#define DEFAULT_DSR_HIGH  HIGH
-#define DEFAULT_DSR_LOW  LOW
-#define DEFAULT_DTR_HIGH  HIGH
-#define DEFAULT_DTR_LOW  LOW
 #define DEFAULT_BAUD_RATE 1200
 #define DEFAULT_SERIAL_CONFIG SERIAL_8N1
 
@@ -96,32 +75,19 @@ static int dcdStatus = LOW;
 static int pinDCD = DEFAULT_PIN_DCD;
 static int pinCTS = DEFAULT_PIN_CTS;
 static int pinRTS = DEFAULT_PIN_RTS;
-static int pinDSR = DEFAULT_PIN_DSR;
-static int pinDTR = DEFAULT_PIN_DTR;
-static int pinRI = DEFAULT_PIN_RI;
 static int dcdActive = DEFAULT_DCD_HIGH;
 static int dcdInactive = DEFAULT_DCD_LOW;
 static int ctsActive = DEFAULT_CTS_HIGH;
 static int ctsInactive = DEFAULT_CTS_LOW;
 static int rtsActive = DEFAULT_RTS_HIGH;
 static int rtsInactive = DEFAULT_RTS_LOW;
-static int riActive = DEFAULT_RTS_HIGH;
-static int riInactive = DEFAULT_RTS_LOW;
-static int dtrActive = DEFAULT_RTS_HIGH;
-static int dtrInactive = DEFAULT_RTS_LOW;
-static int dsrActive = DEFAULT_RTS_HIGH;
-static int dsrInactive = DEFAULT_RTS_LOW;
 
 static int getDefaultCtsPin()
 {
-#ifdef ARDUINO_ESP32_DEV
-  return DEFAULT_PIN_CTS;
-#else
   if((ESP.getFlashChipSize()/1024)>=4096) // assume this is a striketerm/esp12e
     return DEFAULT_PIN_CTS;
   else
     return 0;
-#endif 
 }
 
 static bool connectWifi(const char* ssid, const char* password)
@@ -147,13 +113,13 @@ static void checkBaudChange()
     case BS_SWITCH_TEMP_NEXT:
       flushSerial(); // blocking, but very very necessary
       delay(500); // give the client half a sec to catch up
-      HWSerial.begin(tempBaud, serialConfig);  //Change baud rate
+      Serial.begin(tempBaud, serialConfig);  //Change baud rate
       baudState = BS_SWITCHED_TEMP;
       break;
     case BS_SWITCH_NORMAL_NEXT:
       flushSerial(); // blocking, but very very necessary
       delay(500); // give the client half a sec to catch up
-      HWSerial.begin(baudRate, serialConfig);  //Change baud rate
+      Serial.begin(baudRate, serialConfig);  //Change baud rate
       baudState = BS_NORMAL;
       break;
     default:
@@ -199,14 +165,14 @@ static int checkOpenConnections()
 void setup() 
 {
   currMode = &commandMode;
-  if(!SPIFFS.begin())
-  {
-    SPIFFS.format();
-    SPIFFS.begin();
-  }
+  SPIFFS.begin();
   commandMode.loadConfig();
   PhoneBookEntry::loadPhonebook();
   dcdStatus = dcdInactive;
+  pinMode(pinRTS,OUTPUT);
+  pinMode(pinCTS,INPUT);
+  pinMode(pinDCD,OUTPUT);
+  digitalWrite(pinRTS,rtsActive);
   digitalWrite(pinDCD,dcdStatus);
   flushSerial();
   //enableRtsCts = digitalRead(pinCTS) == ctsActive;
@@ -214,7 +180,7 @@ void setup()
 
 void loop() 
 {
-  if(HWSerial.available())
+  if(Serial.available())
   {
     currMode->serialIncoming();
   }
