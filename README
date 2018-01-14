@@ -10,8 +10,37 @@ The default baud rate that the firmware establishes is 1200.  Be sure to use the
 
 Building:
 ---------
-This firmware was built using Arduino IDE rev1.6.11 with the Arduino Generic ESP8266 Module installed from the head dev at https://github.com/esp8266/Arduino.  Using that version of the library not the official Boards Manager distribution (via Additional Boards Manager URL http://arduino.esp8266.com/stable/package_esp8266com_index.json) was important to resolving several problems (specifically 300ms/byte socket write times).  How you get there from here was tricky.  I followed the standard instructions for installing an ESP board, found where it dropped the package (on Windows 10, it was in:
-c:\users\<myname>\AppData\Local\Arduino15\packages\esp8266\hardware\esp8266\... I dropped the new stuff from github in there instead of the old stuff, and then went into the new "tools" directory and ran get.py.
+To build this firmware for the ESP-01 and ESP-12, I used the Arduino IDE rev1.6.11 with the Arduino Generic ESP8266 Module installed from the head dev at https://github.com/esp8266/Arduino.  Using that version of the library not the official Boards Manager distribution (via Additional Boards Manager URL http://arduino.esp8266.com/stable/package_esp8266com_index.json) was important to resolving several problems (specifically 300ms/byte socket write times).  How you get there from here was tricky.  I followed the standard instructions for installing an ESP board, found where it dropped the package (on Windows 10, it was in:c:\users\<myname>\AppData\Local\Arduino15\packages\esp8266\hardware\esp8266\... I dropped the new stuff from github in there instead of the old stuff, and then went into the new "tools" directory and ran get.py.
+
+To build this firmware for the ESP-32, I also used the Arduino IDE rev 1.6.11 with the Arduino ESP32 Dev Module installed from the head dev at https://github.com/espressif/arduino-esp32.  I found that baud changing corrupts the serial bus as of 1/13/2018, so the following changes were made to the base libraries: 
+* Added to esp32-hal-uart.c:
+void uartChangeBaudRate(uint8_t uart_nr, uint32_t baudrate)
+{ 
+	uartSetBaudRate(&_uart_bus_array[uart_nr], baudrate); 
+}
+void uartChangeConfig(uint8_t uart_nr, uint32_t config)
+{
+    uart_t* uart = &_uart_bus_array[uart_nr];
+    UART_MUTEX_LOCK();
+    uart->dev->conf0.val = config;
+    #define TWO_STOP_BITS_CONF 0x3
+    #define ONE_STOP_BITS_CONF 0x1
+
+    if ( uart->dev->conf0.stop_bit_num == TWO_STOP_BITS_CONF) {
+        uart->dev->conf0.stop_bit_num = ONE_STOP_BITS_CONF;
+        uart->dev->rs485_conf.dl1_en = 1;
+    }
+    UART_MUTEX_UNLOCK();
+}
+* Added to esp32-hal-uart.h:
+void uartChangeBaudRate(uint8_t uart_nr, uint32_t baudrate);
+void uartChangeConfig(uint8_t uart_nr, uint32_t config);
+* Added to HardwareSerial.cpp:
+void HardwareSerial::changeBaudRate(int baudRate) { uartChangeBaudRate(_uart_nr, baudRate); }
+void HardwareSerial::changeConfig(uint32_t config) { uartChangeConfig(_uart_nr, config); }
+* Added to HardwareSerial.h:
+void changeBaudRate(int baudRate);
+void changeConfig(uint32_t config);
 
 Using:
 ------

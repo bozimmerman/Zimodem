@@ -18,15 +18,27 @@
 
 static void serialDirectWrite(uint8_t c)
 {
-  Serial.write(c);
+  HWSerial.write(c);
   if(serialDelayMs > 0)
     delay(serialDelayMs);
   logSerialOut(c);
 }
 
+static void hwSerialFlush()
+{
+#ifndef ARDUINO_ESP32_DEV
+  HWSerial.flush();
+#endif
+}
+
 static void serialOutDeque()
 {
-  if((TBUFhead != TBUFtail)&&(Serial.availableForWrite()>=SER_BUFSIZE))
+#ifdef ARDUINO_ESP32_DEV
+  if(TBUFhead != TBUFtail)
+#else
+  if((TBUFhead != TBUFtail)
+  &&(HWSerial.availableForWrite()>=SER_BUFSIZE))
+#endif
   {
     serialDirectWrite(TBUF[TBUFhead]);
     TBUFhead++;
@@ -79,7 +91,7 @@ static void flushSerial()
     serialOutDeque();
     yield();
   }
-  Serial.flush();
+  hwSerialFlush();
 }
 
 ZSerial::ZSerial()
@@ -121,9 +133,12 @@ bool ZSerial::isSerialOut()
   switch(flowControlType)
   {
   case FCT_RTSCTS:
-    //if(enableRtsCts)
-    return (digitalRead(pinCTS) == ctsActive);
-    //return true;
+    if(pinSupport[pinCTS])
+    {
+      //debugPrintf("CTS: pin %d (%d == %d)\n",pinCTS,digitalRead(pinCTS),ctsActive);
+      return (digitalRead(pinCTS) == ctsActive);
+    }
+    return true;
   case FCT_NORMAL:
   case FCT_AUTOOFF:
   case FCT_MANUAL:
@@ -140,8 +155,8 @@ bool ZSerial::isSerialCancelled()
 {
   if(flowControlType == FCT_RTSCTS)
   {
-    //if(enableRtsCts)
-    return (digitalRead(pinCTS) == ctsInactive);
+    if(pinSupport[pinCTS])
+      return (digitalRead(pinCTS) == ctsInactive);
   }
   return false;
 }
@@ -228,24 +243,24 @@ void ZSerial::flushAlways()
 {
   while(TBUFtail != TBUFhead)
   {
-    Serial.flush();
+    hwSerialFlush();
     serialOutDeque();
     yield();
     delay(1);
   }
-  Serial.flush();
+  hwSerialFlush();
 }
 
 void ZSerial::flush()
 {
   while((TBUFtail != TBUFhead) && (isSerialOut()))
   {
-    Serial.flush();
+    hwSerialFlush();
     serialOutDeque();
     yield();
     delay(1);
   }
-  Serial.flush();
+  hwSerialFlush();
 }
 
 int ZSerial::availableForWrite()
@@ -256,9 +271,9 @@ int ZSerial::availableForWrite()
 char ZSerial::drainForXonXoff()
 {
   char ch = '\0';
-  while(Serial.available()>0)
+  while(HWSerial.available()>0)
   {
-    ch=Serial.read();
+    ch=HWSerial.read();
     logSerialIn(ch);
     if(ch == 3)
       break;

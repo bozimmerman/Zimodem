@@ -54,12 +54,12 @@ bool ZStream::isDisconnectedOnStreamExit()
 
 void ZStream::serialIncoming()
 {
-  int serialAvailable = Serial.available();
-  if(serialAvailable == 0)
+  int bytesAvailable = HWSerial.available();
+  if(bytesAvailable == 0)
     return;
-  while(--serialAvailable >= 0)
+  while(--bytesAvailable >= 0)
   {
-    uint8_t c=Serial.read();
+    uint8_t c=HWSerial.read();
     logSerialIn(c);
     if((c==commandMode.EC)
     &&((plussesInARow>0)||((millis()-lastNonPlusTimeMs)>800)))
@@ -128,7 +128,7 @@ void ZStream::loop()
     if(serv->hasClient())
     {
       WiFiClient newClient = serv->server->available();
-      if((newClient != null)&&(newClient.connected()))
+      if(newClient.connected())
       {
         int port=newClient.localPort();
         String remoteIPStr = newClient.remoteIP().toString();
