@@ -46,7 +46,7 @@ class ZSerial
 {
   private:
     bool petsciiMode = false;
-    FlowControlType flowControlType=FCT_NORMAL;
+    FlowControlType flowControlType=DEFAULT_FCT;
     bool XON=true;
   public:
     ZSerial();

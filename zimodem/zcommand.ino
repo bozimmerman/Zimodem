@@ -81,7 +81,7 @@ int ZCommand::makeStreamFlagsBitmap(const char *dmodifiers)
 void ZCommand::setConfigDefaults()
 {
   doEcho=true;
-  serial.setFlowControlType(FCT_RTSCTS);
+  serial.setFlowControlType(DEFAULT_FCT);
   serial.setXON(true);
   packetXOn = true;
   serial.setPetsciiMode(false);
@@ -177,7 +177,7 @@ ZResult ZCommand::doResetCommand()
   serial.setPetsciiMode(false);
   serialDelayMs=0;
   binType=BTYPE_NORMAL;
-  serial.setFlowControlType(FCT_RTSCTS);
+  serial.setFlowControlType(DEFAULT_FCT);
   setBaseConfigOptions(argv);
   memset(nbuf,0,MAX_COMMAND_SIZE);
   return ZOK;
@@ -1060,7 +1060,11 @@ ZResult ZCommand::doUpdateFirmware(int vval, uint8_t *vbuf, int vlen, bool isNum
   uint32_t respLength=0;
   WiFiClient c;
   char firmwareName[100];
+#ifdef ARDUINO_ESP32_DEV
+  sprintf(firmwareName,"/otherprojs/guru-firmware-%s.bin",buf);
+#else
   sprintf(firmwareName,"/otherprojs/c64net-firmware-%s.bin",buf);
+#endif
   if(!doWebGetStream("www.zimmers.net", 80, firmwareName, c, &respLength))
   {
     serial.prints(EOLN);
@@ -1693,11 +1697,20 @@ ZResult ZCommand::doSerialCommand()
       vstart=index;
       vlen=0;
       bool isNumber=true;
-      if((lastCmd=='&')&&(index<len))
+      if(index<len)
       {
-        index++;//protect our one and only letter.
-        secCmd = sbuf[vstart];
-        vstart++;
+        if(lastCmd=='+')
+        {
+          vlen += len-index;
+          index=len;
+        }
+        else
+        if((lastCmd=='&')||(lastCmd=='%'))
+        {
+          index++;//protect our one and only letter.
+          secCmd = sbuf[vstart];
+          vstart++;
+        }
       }
       while((index<len)
       &&((sbuf[index]==' ')||(sbuf[index]=='\t')))
@@ -1750,7 +1763,8 @@ ZResult ZCommand::doSerialCommand()
         else
         while((index<len)
         &&(!((lc(sbuf[index])>='a')&&(lc(sbuf[index])<='z')))
-        &&(sbuf[index]!='&'))
+        &&(sbuf[index]!='&')
+        &&(sbuf[index]!='%'))
         {
           char c=sbuf[index];
           isNumber = ((c=='-')||((c>='0') && (c<='9'))) && isNumber;
@@ -2034,6 +2048,12 @@ ZResult ZCommand::doSerialCommand()
             }
           }
         }
+        break;
+      case '+':
+        result=ZERROR; //todo: branch based on vbuf contents
+        break;
+      case '%':
+        result=ZERROR;
         break;
       case '&':
         switch(lc(secCmd))

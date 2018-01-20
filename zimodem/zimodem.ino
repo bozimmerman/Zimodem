@@ -21,6 +21,7 @@
 #ifdef ARDUINO_ESP32_DEV
 #define debugPrintf Serial.printf
 #define DEFAULT_BAUD_RATE 1200
+#define DEFAULT_FCT FCT_DISABLED
 #define SerialConfig uint32_t
 #define DEFAULT_PIN_DCD GPIO_NUM_14
 #define DEFAULT_PIN_CTS GPIO_NUM_13
@@ -58,6 +59,7 @@
 #else
 #define debugPrintf doNothing
 #define DEFAULT_BAUD_RATE 1200
+#define DEFAULT_FCT FCT_RTSCTS
 #define DEFAULT_PIN_DSR 13
 #define DEFAULT_PIN_DTR 12
 #define DEFAULT_PIN_RI 14
