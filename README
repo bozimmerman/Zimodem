@@ -1,4 +1,4 @@
-C64Net WiFi Firmware 3.3 (C)2016-2017 Bo Zimmerman
+C64Net WiFi Firmware 3.4 (C)2016-2017 Bo Zimmerman
 Please read the LICENSE file for license information
 Please read the NOTICE file for credits information
 
@@ -46,9 +46,9 @@ Using:
 ------
 Upon initialization, or any time the ESP8266 is reset, the modem will display its version, and some information about the host hardware, and then read a configuration file from the internal SPIFFS to re-establish the previously set baud rate, and to attempt to re-connect to the previously connected wireless router.  The first time it is run, the firmware will set a baud rate of 1200 and display INITALIZED to let you know that no previous wifi configuration was found.  Once the serial terminal displays READY, it is ready to receive commands.  
 
-The first command you'll probably want to enter is ATW to list your wireless routers, and then ATW"<<wireless router ssi>>,<<wireless password>>" to connect to the router, then AT&W to save it.
+The first command you'll probably want to enter is AT+CONFIG to connect to a wireless router, and set your flow control and other command mode settings.
 
-If you plan to use this primarily from a computer that doesn't need linefeeds, such as the C64, you'll want to enter ATR0 to go into carriage-return only mode, and then at&w to save this setting as well.
+Afterwards, if you plan to use this primarily from a computer that doesn't need linefeeds, such as the C64, you'll want to enter ATR0 to go into carriage-return only mode, and then at&w to save this setting as well.
 
 If you want to operate at a higher baud, you'll want to enter ATB9600 (or whatever baud rate you want to try), and then reconnect your terminal program to the modem at that new baud rate.  If everything looks good, and you want to keep the new baud rate across restarts, don't forget to save the new baud rate with AT&W.
 
@@ -56,7 +56,7 @@ If you want to connect to a remote telnet server, eg coffeemud.net, port 23, you
 
 If you are using a Commodore Graphics terminal program and want to connect to a Commodore BBS, eg cottonwoodbbs.dyndns.org port 6502, you'll want to enter ATD"cottonwoodbbs.dyndns.org:6502".
 
-If you want to use Q-Link, you need to add a phone number alias first.  To do this, enter ATP"5551212=q-link.net:5190". Then select "Hayes compatible" 1200 baud modem in the Q-Link client.
+If you want to use Q-Link, you need to add a phone number alias first.  To do this, enter ATP"5551212=q-link.net:5190" or enter it from the config menu AT+CONFIG. From the C64 Q-Link client, select "Hayes compatible" 1200 baud modem when prompted.
 
 If you want to run a Commodore BBS program using the modem, you'll want to configure the BBS program to the same idle baud rate that your modem is using (1200 baud by default), configure it for a Hayes style modem (or the C=1670), and use an initialization string of "ATR0E0S0=1S41=1A6400" plus any other recommended settings from the BBS program. This creates a listener at port 6400 that switches directly to stream mode on the first ring, with no linefeed carriage returns, and no keystroke echo.  Your BBS program may require you add certain other settings, such as V0 or X1.. which you should also do.
 
@@ -83,7 +83,7 @@ ATAn : Causes the modem to create a server listening on port n.  When a connecti
 ATAPn"[HOSTNAME]:[PORT]" : Adding a P modifier causes all incoming connection input to be translated to PETSCII
 ATATn"[HOSTNAME]:[PORT]" : Adding a T modifier causes connection streaming input to be translated per TELNET when the changed to Stream mode
 ATAEn"[HOSTNAME]:[PORT]" : Adding a E modifier causes connection terminal echo to be enabled when the changed to Stream mode
-ATAXn"[HOSTNAME]:[PORT]" : Adding a X modifier causes connection XON/XOFF flow control to be enabled  when the changed to Stream mode
+ATAXn"[HOSTNAME]:[PORT]" : Adding a X modifier causes connection XON/XOFF flow control to be enabled  when the changed to Stream mode.
 
 ATN0 : Shuts down all listeners, leaving client connections open
 ATNn : if n > 0 then same as ATAn

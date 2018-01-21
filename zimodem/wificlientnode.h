@@ -17,6 +17,16 @@
 #define LAST_PACKET_BUF_SIZE 256
 #define OVERFLOW_BUF_SIZE 256
 
+static WiFiClient *createWiFiClient(bool SSL)
+{
+  /*** adds like 8% to the total!
+  if(SSL)
+    return new WiFiClientSecure();
+  else
+  */
+  return new WiFiClient();
+}
+
 class WiFiClientNode : public Stream
 {
   private:
@@ -46,7 +56,7 @@ class WiFiClientNode : public Stream
     bool isConnected();
     bool isPETSCII();
     bool isEcho();
-    bool isXonXoff();
+    FlowControlType getFlowControl();
     bool isTelnet();
     bool isDisconnectedOnStreamExit();
     size_t write(uint8_t c);
@@ -72,6 +82,9 @@ class PhoneBookEntry
     static void loadPhonebook();
     static void clearPhonebook();
     static void savePhonebook();
+    static bool checkPhonebookEntry(String cmd);
+    static PhoneBookEntry *findPhonebookEntry(long number);
+    static PhoneBookEntry *findPhonebookEntry(String number);
 };
 
 #ifndef _STRING_STREAM_H_INCLUDED_

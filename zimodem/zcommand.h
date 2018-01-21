@@ -55,7 +55,8 @@ enum StreamFlag
   FLAG_TELNET=4,
   FLAG_ECHO=8,
   FLAG_XONXOFF=16,
-  FLAG_SECURE=32
+  FLAG_SECURE=32,
+  FLAG_RTSCTS=64
 };
 
 enum BinType
@@ -69,6 +70,7 @@ enum BinType
 class ZCommand : public ZMode
 {
   friend class WiFiClientNode;
+  friend class ZConfig;
 
   private:
     char CRLF[4];
@@ -99,10 +101,13 @@ class ZCommand : public ZMode
     int lastPacketId = -1;
 
     byte CRC8(const byte *data, byte len);
-    int makeStreamFlagsBitmap(const char *dmodifiers);
+    int makeStreamFlagsBitmap(const char *dmodifiers, boolean forceOne);
 
     void showInitMessage();
     bool readSerialStream();
+    bool clearPlusProgress();
+    bool checkPlusEscape();
+    String getNextSerialCommand();
     ZResult doSerialCommand();
     void setConfigDefaults();
     void parseConfigOptions(String configArguments[]);
@@ -113,9 +118,9 @@ class ZCommand : public ZMode
     void headerOut(const int channel, const int sz, const int crc8);
     void sendConnectionNotice(int nodeId);
     void sendNextPacket();
-    bool doWebGet(const char *hostIp, int port, const char *filename, const char *req);
-    bool doWebGetBytes(const char *hostIp, int port, const char *req, uint8_t *buf, int *bufSize);
-    bool doWebGetStream(const char *hostIp, int port, const char *req, WiFiClient &c, uint32_t *responseSize);
+    bool doWebGet(const char *hostIp, int port, const char *filename, const char *req, const bool doSSL);
+    bool doWebGetBytes(const char *hostIp, int port, const char *req, const bool doSSL, uint8_t *buf, int *bufSize);
+    bool doWebGetStream(const char *hostIp, int port, const char *req, WiFiClient *c, uint32_t *responseSize);
 
     ZResult doResetCommand();
     ZResult doNoListenCommand();

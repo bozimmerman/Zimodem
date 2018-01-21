@@ -36,12 +36,7 @@ WiFiClientNode::WiFiClientNode(char *hostIp, int newport, int flagsBitmap)
   strcpy(host,hostIp);
   id=++WiFiNextClientId;
   this->flagsBitmap = flagsBitmap;
-  /*
-  if((flagsBitmap&FLAG_SECURE)==FLAG_SECURE)
-    clientPtr = new WiFiClientSecure();
-  else
-  */
-    clientPtr = new WiFiClient();
+  clientPtr = createWiFiClient((flagsBitmap&FLAG_SECURE)==FLAG_SECURE);
   client = *clientPtr;
   client.setNoDelay(DEFAULT_NO_DELAY);
   setCharArray(&delimiters,"");
@@ -52,20 +47,6 @@ WiFiClientNode::WiFiClientNode(char *hostIp, int newport, int flagsBitmap)
   }
   else
   {
-    /*
-    if((flagsBitmap&FLAG_SECURE)==FLAG_SECURE)
-    {
-      const char* fingerprint = "CF 05 98 89 CA FF 8E D8 5E 5C E0 C2 E4 F7 E6 C3 C7 50 DD 5C";
-      if (((WiFiClientSecure *)clientPtr)->verify(fingerprint, hostIp)) 
-      {
-        Serial.println("certificate matches");
-      } 
-      else 
-      {
-        Serial.println("certificate doesn't match");
-      }
-    }
-    */
     finishConnectionLink();
   }
 }
@@ -137,9 +118,13 @@ bool WiFiClientNode::isEcho()
   return (flagsBitmap & FLAG_ECHO) == FLAG_ECHO;
 }
 
-bool WiFiClientNode::isXonXoff()
+FlowControlType WiFiClientNode::getFlowControl()
 {
-  return (flagsBitmap & FLAG_XONXOFF) == FLAG_XONXOFF;
+  if((flagsBitmap & FLAG_RTSCTS) == FLAG_RTSCTS)
+    return FCT_RTSCTS;
+  if((flagsBitmap & FLAG_XONXOFF) == FLAG_XONXOFF)
+    return FCT_NORMAL;
+  return FCT_DISABLED;
 }
 
 bool WiFiClientNode::isTelnet()
@@ -327,6 +312,40 @@ void PhoneBookEntry::loadPhonebook()
     }
     f.close();
   }
+}
+
+bool PhoneBookEntry::checkPhonebookEntry(String cmd)
+{
+    const char *vbuf=(char *)cmd.c_str();
+    bool error = false;
+    for(char *cptr=(char *)vbuf;*cptr!=0;cptr++)
+    {
+      if(strchr("0123456789",*cptr) < 0)
+      {
+        error =true;
+      }
+    }
+    if(error || (strlen((char *)vbuf)>9))
+      return false;
+    return true;
+}
+
+PhoneBookEntry *PhoneBookEntry::findPhonebookEntry(long number)
+{
+  PhoneBookEntry *p = phonebook;
+  while(p != null)
+  {
+    if(p->number == number)
+      return p;
+  }
+  return null;
+}
+
+PhoneBookEntry *PhoneBookEntry::findPhonebookEntry(String number)
+{
+  if(!checkPhonebookEntry(number))
+    return null;
+  return findPhonebookEntry(atol(number.c_str()));
 }
 
 void PhoneBookEntry::clearPhonebook()

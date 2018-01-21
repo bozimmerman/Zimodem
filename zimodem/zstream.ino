@@ -22,7 +22,7 @@ void ZStream::switchTo(WiFiClientNode *conn)
   plussesInARow=0;
   serial.setXON(true);
   serial.setPetsciiMode(isPETSCII());
-  serial.setFlowControlType(isXonXoff()?FCT_NORMAL:FCT_RTSCTS);
+  serial.setFlowControlType(getFlowControl());
   currMode=&streamMode;
   checkBaudChange();
 }
@@ -37,9 +37,9 @@ bool ZStream::isEcho()
   return (current != null) && (current->isEcho());
 }
 
-bool ZStream::isXonXoff()
+FlowControlType ZStream::getFlowControl()
 {
-  return (current != null) && (current->isXonXoff());
+  return (current != null) ? (current->getFlowControl()) : FCT_DISABLED;
 }
 
 bool ZStream::isTelnet()
@@ -70,10 +70,10 @@ void ZStream::serialIncoming()
       plussesInARow=0;
       lastNonPlusTimeMs=millis();
     }
-    if((c==19)&&(isXonXoff()))
+    if((c==19)&&(getFlowControl()==FCT_NORMAL))
       serial.setXON(false);
     else
-    if((c==17)&&(isXonXoff()))
+    if((c==17)&&(getFlowControl()==FCT_NORMAL))
       serial.setXON(true);
     else
     {

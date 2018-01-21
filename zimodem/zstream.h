@@ -29,7 +29,7 @@ class ZStream : public ZMode
 
     bool isPETSCII();
     bool isEcho();
-    bool isXonXoff();
+    FlowControlType getFlowControl();
     bool isTelnet();
     bool isDisconnectedOnStreamExit();
  

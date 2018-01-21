@@ -99,6 +99,7 @@ class ZMode
 #include "zstream.h"
 #include "zslip.h"
 #include "zcommand.h"
+#include "zconfig.h"
 
 static WiFiClientNode *conns = null;
 static WiFiServerNode *servs = null;
@@ -109,6 +110,7 @@ static ZMode *currMode = null;
 static ZStream streamMode;
 static ZSlip slipMode;
 static ZCommand commandMode;
+static ZConfig configMode;
 
 enum BaudState
 {
@@ -168,12 +170,16 @@ static bool connectWifi(const char* ssid, const char* password)
     WiFi.disconnect();
   WiFi.mode(WIFI_STA);
   WiFi.begin(ssid, password);
-  while (WiFi.status() != WL_CONNECTED && WiFiCounter < 30) 
+  boolean amConnected = false;
+  delay(1000);
+  while ((!amConnected) && (WiFiCounter < 30))
   {
-    delay(1000);
     WiFiCounter++;
+    amConnected = (WiFi.status() == WL_CONNECTED) && (strcmp(WiFi.localIP().toString().c_str(), "0.0.0.0")!=0);
+    if(!amConnected)
+      delay(1000);
   }
-  wifiConnected = WiFi.status() == WL_CONNECTED;
+  wifiConnected = amConnected;
   return wifiConnected;
 }
 
@@ -267,8 +273,9 @@ void setup()
     pinSupport[i]=true;
   for(int i=25;i<=27;i++)
     pinSupport[i]=true;
-  for(int i=32;i<=36;i++)
+  for(int i=32;i<=33;i++)
     pinSupport[i]=true;
+  pinSupport[36]=true;
   pinSupport[39]=true;
 #else
   pinSupport[0]=true;

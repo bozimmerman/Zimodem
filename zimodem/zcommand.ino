@@ -62,7 +62,7 @@ byte ZCommand::CRC8(const byte *data, byte len)
   return crc;
 }
 
-int ZCommand::makeStreamFlagsBitmap(const char *dmodifiers)
+int ZCommand::makeStreamFlagsBitmap(const char *dmodifiers, boolean forceFlowControl)
 {
     int flagsBitmap = 0;
     if((strchr(dmodifiers,'p')!=null) || (strchr(dmodifiers,'P')!=null))
@@ -73,8 +73,16 @@ int ZCommand::makeStreamFlagsBitmap(const char *dmodifiers)
       flagsBitmap = flagsBitmap | FLAG_ECHO;
     if((strchr(dmodifiers,'x')!=null) || (strchr(dmodifiers,'X')!=null))
       flagsBitmap = flagsBitmap | FLAG_XONXOFF;
+    if((strchr(dmodifiers,'r')!=null) || (strchr(dmodifiers,'R')!=null))
+      flagsBitmap = flagsBitmap | FLAG_RTSCTS;
     if((strchr(dmodifiers,'s')!=null) || (strchr(dmodifiers,'S')!=null))
       flagsBitmap = flagsBitmap | FLAG_SECURE;
+    if(forceFlowControl)
+    {
+      if(((flagsBitmap & (FLAG_XONXOFF | FLAG_RTSCTS))==0)
+      &&(serial.getFlowControlType()==FCT_RTSCTS))
+        flagsBitmap |= FLAG_RTSCTS;
+    }
     return flagsBitmap;
 }  
 
@@ -720,7 +728,7 @@ ZResult ZCommand::doConnectCommand(int vval, uint8_t *vbuf, int vlen, bool isNum
       (*colon)=0;
       port=atoi((char *)(++colon));
     }
-    int flagsBitmap = makeStreamFlagsBitmap(dmodifiers);
+    int flagsBitmap = makeStreamFlagsBitmap(dmodifiers, true);
     logPrintfln("Connnecting: %s %d %d",(char *)vbuf,port,flagsBitmap);
     WiFiClientNode *c = new WiFiClientNode((char *)vbuf,port,flagsBitmap);
     if(!c->isConnected())
@@ -760,31 +768,32 @@ void ZCommand::headerOut(const int channel, const int sz, const int crc8)
   serial.prints(hbuf);
 }
 
-bool ZCommand::doWebGetStream(const char *hostIp, int port, const char *req, WiFiClient &c, uint32_t *responseSize)
+bool ZCommand::doWebGetStream(const char *hostIp, int port, const char *req, WiFiClient *c, uint32_t *responseSize)
 {
   *responseSize = 0;
   if(WiFi.status() != WL_CONNECTED)
     return false;
-  c.setNoDelay(DEFAULT_NO_DELAY);
-  if(!c.connect(hostIp, port))
+  c->setNoDelay(DEFAULT_NO_DELAY);
+  if(!c->connect(hostIp, port))
   {
-    c.stop();
+    c->stop();
     return false;
   }
-  c.printf("GET /%s HTTP/1.1\r\n",req);
-  c.printf("User-Agent: C64Net Firmware\r\n",hostIp);
-  c.printf("Host: %s\r\n",hostIp);
-  c.printf("Connection: close\r\n\r\n");
+  c->printf("GET /%s HTTP/1.1\r\n",req);
+  c->printf("User-Agent: C64Net Firmware\r\n");
+  c->printf("Host: %s\r\n",hostIp);
+  c->printf("Connection: close\r\n\r\n");
+  
   String ln = "";
   uint32_t respLength = 0;
   int respCode = -1;
-  while(c.connected())
+  while(c->connected())
   {
     yield();
-    if(c.available()<=0)
+    if(c->available()<=0)
       continue;
       
-    char ch = (char)c.read();
+    char ch = (char)c->read();
     logSocketIn(ch);
     if(ch == '\r')
       continue;
@@ -818,29 +827,33 @@ bool ZCommand::doWebGetStream(const char *hostIp, int port, const char *req, WiF
       ln.concat(ch);
   }
   *responseSize = respLength;
-  if((!c.connected())
+  if((!c->connected())
   ||(respCode != 200)
   ||(respLength <= 0))
   {
-    c.stop();
+    c->stop();
     return false;
   }
   return true;
 }
 
-bool ZCommand::doWebGet(const char *hostIp, int port, const char *filename, const char *req)
+bool ZCommand::doWebGet(const char *hostIp, int port, const char *filename, const char *req, const bool doSSL)
 {
   uint32_t respLength=0;
-  WiFiClient c;
+  WiFiClient *c = createWiFiClient(doSSL);
   if(!doWebGetStream(hostIp, port, req, c, &respLength))
+  {
+    c->stop();
+    delete c;
     return false;
+  }
     
   File f = SPIFFS.open(filename, "w");
-  while((respLength>0) && (c.connected()))
+  while((respLength>0) && (c->connected()))
   {
-    if(c.available()>=0)
+    if(c->available()>=0)
     {
-      uint8_t ch=c.read();
+      uint8_t ch=c->read();
       logSocketIn(ch);
       f.write(ch);
       respLength--;
@@ -850,29 +863,35 @@ bool ZCommand::doWebGet(const char *hostIp, int port, const char *filename, cons
   }
   f.flush();
   f.close();
-  c.stop();
+  c->stop();
+  delete c;
   return (respLength == 0);
 }
 
-bool ZCommand::doWebGetBytes(const char *hostIp, int port, const char *req, uint8_t *buf, int *bufSize)
+bool ZCommand::doWebGetBytes(const char *hostIp, int port, const char *req, const bool doSSL, uint8_t *buf, int *bufSize)
 {
-  WiFiClient c;
+  WiFiClient *c = createWiFiClient(doSSL);
   uint32_t respLength=0;
   if(!doWebGetStream(hostIp, port, req, c, &respLength))
+  {
+    c->stop();
+    delete c;
     return false;
-  if((!c.connected())
+  }
+  if((!c->connected())
   ||(respLength > *bufSize))
   {
-    c.stop();
+    c->stop();
+    delete c;
     return false;
   }
   *bufSize = (int)respLength;
   int index=0;
-  while((respLength>0) && (c.connected()))
+  while((respLength>0) && (c->connected()))
   {
-    if(c.available()>=0)
+    if(c->available()>=0)
     {
-      uint8_t ch=c.read();
+      uint8_t ch=c->read();
       logSocketIn(ch);
       buf[index++] = ch;
       respLength--;
@@ -880,12 +899,32 @@ bool ZCommand::doWebGetBytes(const char *hostIp, int port, const char *req, uint
     else
       yield();
   }
-  c.stop();
+  c->stop();
+  delete c;
   return (respLength == 0);
 }
 
 ZResult ZCommand::doWebStream(int vval, uint8_t *vbuf, int vlen, bool isNumber, const char *filename, bool cache)
 {
+  bool doSSL = false;
+  if(strstr((char *)vbuf,"http://")==(char *)vbuf)
+    vbuf = vbuf + 7;
+  else
+  if(strstr((char *)vbuf,"https://")==(char *)vbuf)
+  {
+    vbuf = vbuf + 8;
+    doSSL = true;
+  }
+  else
+  if(strstr((char *)vbuf,"http:")==(char *)vbuf)
+    vbuf = vbuf + 5;
+  else
+  if(strstr((char *)vbuf,"https:")==(char *)vbuf)
+  {
+    vbuf = vbuf + 6;
+    doSSL = true;
+  }
+
   char *portB=strchr((char *)vbuf,':');
   bool success = true;
   if(portB == NULL)
@@ -911,16 +950,17 @@ ZResult ZCommand::doWebStream(int vval, uint8_t *vbuf, int vlen, bool isNumber, 
         {
           if(!SPIFFS.exists(filename))
           {
-            if(!doWebGet(hostIp, port, filename, req))
+            if(!doWebGet(hostIp, port, filename, req, doSSL))
               return ZERROR;
           }
         }
         else
-        if(!doWebGet(hostIp, port, filename, req))
+        if(!doWebGet(hostIp, port, filename, req, doSSL))
           return ZERROR;
         int chk8=0;
         if(!cache)
         {
+          delay(100);
           File f = SPIFFS.open(filename, "r");
           int len = f.size();
           for(int i=0;i<len;i++)
@@ -1019,7 +1059,7 @@ ZResult ZCommand::doUpdateFirmware(int vval, uint8_t *vbuf, int vlen, bool isNum
   
   uint8_t buf[255];
   int bufSize = 254;
-  if((!doWebGetBytes("www.zimmers.net", 80, "/otherprojs/c64net-latest-version.txt", buf, &bufSize))||(bufSize<=0))
+  if((!doWebGetBytes("www.zimmers.net", 80, "/otherprojs/c64net-latest-version.txt", false, buf, &bufSize))||(bufSize<=0))
     return ZERROR;
 
   if((!isNumber)&&(vlen>2))
@@ -1065,7 +1105,7 @@ ZResult ZCommand::doUpdateFirmware(int vval, uint8_t *vbuf, int vlen, bool isNum
 #else
   sprintf(firmwareName,"/otherprojs/c64net-firmware-%s.bin",buf);
 #endif
-  if(!doWebGetStream("www.zimmers.net", 80, firmwareName, c, &respLength))
+  if(!doWebGetStream("www.zimmers.net", 80, firmwareName, &c, &respLength))
   {
     serial.prints(EOLN);
     return ZERROR;
@@ -1281,7 +1321,7 @@ ZResult ZCommand::doDialStreamCommand(unsigned long vval, uint8_t *vbuf, int vle
   }
   else
   {
-    int flagsBitmap = makeStreamFlagsBitmap(dmodifiers);
+    int flagsBitmap = makeStreamFlagsBitmap(dmodifiers, true);
     char *colon=strstr((char *)vbuf,":");
     int port=23;
     if(colon != null)
@@ -1357,17 +1397,7 @@ ZResult ZCommand::doPhonebookCommand(unsigned long vval, uint8_t *vbuf, int vlen
     return ZERROR;
 
   unsigned long number = atol((char *)vbuf);
-  PhoneBookEntry *found=null;
-  PhoneBookEntry *phb=phonebook;
-  while(phb != null)
-  {
-    if(phb->number == number)
-    {
-      found=phb;
-      break;
-    }
-    phb = phb->next;
-  }
+  PhoneBookEntry *found=PhoneBookEntry::findPhonebookEntry(number);
   if((strcmp("DELETE",rest)==0)
   ||(strcmp("delete",rest)==0))
   {
@@ -1383,11 +1413,8 @@ ZResult ZCommand::doPhonebookCommand(unsigned long vval, uint8_t *vbuf, int vlen
   char *colon = strchr(rest,':');
   if(colon == NULL)
     return ZERROR;
-  for(char *cptr=colon;*cptr!=0;cptr++)
-  {
-    if(strchr("0123456789",*cptr) < 0)
+  if(!PhoneBookEntry::checkPhonebookEntry(colon))
       return ZERROR;
-  }
   if(found != null)
     delete found;
   PhoneBookEntry *newEntry = new PhoneBookEntry(number,rest,dmodifiers);
@@ -1438,7 +1465,7 @@ ZResult ZCommand::doAnswerCommand(int vval, uint8_t *vbuf, int vlen, bool isNumb
   }
   else
   {
-    int flagsBitmap = makeStreamFlagsBitmap(dmodifiers);
+    int flagsBitmap = makeStreamFlagsBitmap(dmodifiers, true);
     WiFiServerNode *s=servs;
     while(s != null)
     {
@@ -1575,19 +1602,14 @@ bool ZCommand::readSerialStream()
     logSerialIn(c);
     if((c==CR[0])||(c==LF[0]))
     {
-      if(eon == 0)
-        continue;
-      else
+      if(doEcho)
       {
-        if(doEcho)
-        {
-          serial.prints(EOLN);
-          if(serial.isSerialOut())
-            serialOutDeque();
-        }
-        crReceived=true;
-        break;
+        serial.prints(EOLN);
+        if(serial.isSerialOut())
+          serialOutDeque();
       }
+      crReceived=true;
+      break;
     }
     
     if(c>0)
@@ -1646,36 +1668,39 @@ bool ZCommand::readSerialStream()
   return crReceived;
 }
 
-ZResult ZCommand::doSerialCommand()
+String ZCommand::getNextSerialCommand()
 {
   int len=eon;
-  uint8_t sbuf[len];
-  memcpy(sbuf,nbuf,len);
+  String currentCommand = (char *)nbuf;
+  currentCommand.trim();
   memset(nbuf,0,MAX_COMMAND_SIZE);
   if(serial.isPetsciiMode())
   {
     for(int i=0;i<len;i++)
-      sbuf[i]=petToAsc(sbuf[i]);
+      currentCommand[i]=petToAsc(currentCommand[i]);
   }
-      
   eon=0;
-  String currentCommand = (char *)sbuf;
-  int crc8=-1;
+
+  if(logFileOpen)
+    logPrintfln("Command: %s",currentCommand.c_str());
+  return currentCommand;
+}
+
+ZResult ZCommand::doSerialCommand()
+{
+  int len=eon;
+  String sbuf = getNextSerialCommand();
+
+  if(logFileOpen)
+    logPrintfln("Command: %s",sbuf.c_str());
   
+  int crc8=-1;  
   ZResult result=ZOK;
   int index=0;
   while((index<len-1)
   &&((lc(sbuf[index])!='a')||(lc(sbuf[index+1])!='t')))
   {
       index++;
-  }
-
-  if(logFileOpen)
-  {
-    char cmdbuf[len+1];
-    memcpy(cmdbuf,sbuf,len);
-    cmdbuf[len]=0;
-    logPrintfln("Command: %s",cmdbuf);
   }
 
   if((index<len-1)
@@ -1733,7 +1758,7 @@ ZResult ZCommand::doSerialCommand()
         else
         if(strchr("dcpatw", lastCmd) != null)
         {
-          const char *DMODIFIERS=",expts+";
+          const char *DMODIFIERS=",exprts+";
           while((index<len)&&(strchr(DMODIFIERS,lc(sbuf[index]))!=null))
             dmodifiers += lc((char)sbuf[index++]);
           while((index<len)
@@ -1777,7 +1802,7 @@ ZResult ZCommand::doSerialCommand()
       memset(vbuf,0,vlen+1);
       if(vlen>0)
       {
-        memcpy(vbuf,sbuf+vstart,vlen);
+        memcpy(vbuf,sbuf.c_str()+vstart,vlen);
         if((vlen > 0)&&(isNumber))
         {
           String finalNum="";
@@ -2050,7 +2075,15 @@ ZResult ZCommand::doSerialCommand()
         }
         break;
       case '+':
-        result=ZERROR; //todo: branch based on vbuf contents
+        for(int i=0;vbuf[i]!=0;i++)
+          vbuf[i]=lc(vbuf[i]);
+        if(strcmp((const char *)vbuf,"config")==0)
+        {
+            configMode.switchTo();
+            result = ZOK;
+        }
+        else
+          result=ZERROR; //todo: branch based on vbuf contents
         break;
       case '%':
         result=ZERROR;
@@ -2498,14 +2531,51 @@ void ZCommand::reSendLastPacket(WiFiClientNode *conn)
   }
 }
 
-void ZCommand::serialIncoming()
+bool ZCommand::clearPlusProgress()
 {
-  bool crReceived=readSerialStream();
   if(currentExpiresTimeMs > 0)
     currentExpiresTimeMs = 0;
   if((strcmp((char *)nbuf,ECS)==0)&&((millis()-lastNonPlusTimeMs)>1000))
     currentExpiresTimeMs = millis() + 1000;
-  if(!crReceived)
+}
+
+bool ZCommand::checkPlusEscape()
+{
+  if((currentExpiresTimeMs > 0) && (millis() > currentExpiresTimeMs))
+  {
+    currentExpiresTimeMs = 0;
+    if(strcmp((char *)nbuf,ECS)==0)
+    {
+      if(current != null)
+      {
+        if(!suppressResponses)
+        {
+          if(numericResponses)
+            serial.prints("3");
+          else
+          {
+            serial.prints("NO CARRIER ");
+            serial.printf("%d %s:%d",current->id,current->host,current->port);
+          }
+          serial.prints(EOLN);
+        }
+        delete current;
+        current = conns;
+        nextConn = conns;
+      }
+      memset(nbuf,0,MAX_COMMAND_SIZE);
+      eon=0;
+      return true;
+    }
+  }
+  return false;
+}
+
+void ZCommand::serialIncoming()
+{
+  bool crReceived=readSerialStream();
+  clearPlusProgress(); // every serial incoming, without a plus, breaks progress
+  if((!crReceived)||(eon==0))
     return;
   //delay(200); // give a pause after receiving command before responding
   // the delay doesn't affect xon/xoff because its the periodic transmitter that manages that.
@@ -2756,32 +2826,7 @@ static int lastPinRead = 0;
 
 void ZCommand::loop()
 {
-  if((currentExpiresTimeMs > 0) && (millis() > currentExpiresTimeMs))
-  {
-    currentExpiresTimeMs = 0;
-    if(strcmp((char *)nbuf,ECS)==0)
-    {
-      if(current != null)
-      {
-        if(!suppressResponses)
-        {
-          if(numericResponses)
-            serial.prints("3");
-          else
-          {
-            serial.prints("NO CARRIER ");
-            serial.printf("%d %s:%d",current->id,current->host,current->port);
-          }
-          serial.prints(EOLN);
-        }
-        delete current;
-        current = conns;
-        nextConn = conns;
-      }
-      memset(nbuf,0,MAX_COMMAND_SIZE);
-      eon=0;
-    }
-  }
+  checkPlusEscape();
   acceptNewConnection();
   if(serial.isSerialOut())
   {
