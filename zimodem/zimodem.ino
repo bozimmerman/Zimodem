@@ -100,6 +100,7 @@ class ZMode
 #include "zslip.h"
 #include "zcommand.h"
 #include "zconfig.h"
+#include "xmodem.h"
 
 static WiFiClientNode *conns = null;
 static WiFiServerNode *servs = null;
