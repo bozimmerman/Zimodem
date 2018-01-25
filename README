@@ -4,13 +4,13 @@ Please read the NOTICE file for credits information
 
 Intro:
 ------
-This firmware code, "C64Net WiFi Firmware", provides an api for communication between a serial terminal and the ESP8266.  It simulates the old-style Hayes "AT" commands, so that the ESP8266 appears to the terminal as if it were a Hayes modem.  These "AT" commands may then be issued to the ESP8266 in order to force it to connect to a wireless access point, and from there to make one or more manageable connections to the internet.  It also includes a streaming serial "telnet" mode, and server/port listener capabilities.
+This firmware code, "C64Net WiFi Firmware", provides an api for communication between a serial terminal and the ESP8266 or ESP32.  It simulates the old-style Hayes "AT" commands, so that the ESP8266 appears to the terminal as if it were a Hayes modem.  These "AT" commands may then be issued to the ESP8266 in order to force it to connect to a wireless access point, and from there to make one or more manageable connections to the internet.  It also includes a streaming serial "telnet" mode, and server/port listener capabilities.
 
 The default baud rate that the firmware establishes is 1200.  Be sure to use the commands below to set this to the proper baud rate for your terminal/host computer.  If you plan on using the Commodore 8-bit utilities, keep the firmware baud rate saved at 1200.
 
 Building:
 ---------
-To build this firmware for the ESP-01 and ESP-12, I used the Arduino IDE rev1.6.11 with the Arduino Generic ESP8266 Module installed from the head dev at https://github.com/esp8266/Arduino.  Using that version of the library not the official Boards Manager distribution (via Additional Boards Manager URL http://arduino.esp8266.com/stable/package_esp8266com_index.json) was important to resolving several problems (specifically 300ms/byte socket write times).  How you get there from here was tricky.  I followed the standard instructions for installing an ESP board, found where it dropped the package (on Windows 10, it was in:c:\users\<myname>\AppData\Local\Arduino15\packages\esp8266\hardware\esp8266\... I dropped the new stuff from github in there instead of the old stuff, and then went into the new "tools" directory and ran get.py.
+To build this firmware for the ESP-01 or ESP-12, I used the Arduino IDE rev1.6.11 with the Arduino Generic ESP8266 Module installed from the head dev at https://github.com/esp8266/Arduino.  Using that version of the library not the official Boards Manager distribution (via Additional Boards Manager URL http://arduino.esp8266.com/stable/package_esp8266com_index.json) was important to resolving several problems (specifically 300ms/byte socket write times).  How you get there from here was tricky.  I followed the standard instructions for installing an ESP board, found where it dropped the package (on Windows 10, it was in:c:\users\<myname>\AppData\Local\Arduino15\packages\esp8266\hardware\esp8266\... I dropped the new stuff from github in there instead of the old stuff, and then went into the new "tools" directory and ran get.py.
 
 To build this firmware for the ESP-32, I also used the Arduino IDE rev 1.6.11 with the Arduino ESP32 Dev Module installed from the head dev at https://github.com/espressif/arduino-esp32.  I found that baud changing corrupts the serial bus as of 1/13/2018, so the following changes were made to the base libraries: 
 * Added to esp32-hal-uart.c:
@@ -44,7 +44,7 @@ void changeConfig(uint32_t config);
 
 Using:
 ------
-Upon initialization, or any time the ESP8266 is reset, the modem will display its version, and some information about the host hardware, and then read a configuration file from the internal SPIFFS to re-establish the previously set baud rate, and to attempt to re-connect to the previously connected wireless router.  The first time it is run, the firmware will set a baud rate of 1200 and display INITALIZED to let you know that no previous wifi configuration was found.  Once the serial terminal displays READY, it is ready to receive commands.  
+Upon initialization, or any time the ESP module is reset, the modem will display its version, and some information about the host hardware, and then read a configuration file from the internal SPIFFS to re-establish the previously set baud rate, and to attempt to re-connect to the previously connected wireless router.  The first time it is run, the firmware will set a baud rate of 1200 and display INITALIZED to let you know that no previous wifi configuration was found.  Once the serial terminal displays READY, it is ready to receive commands.  
 
 The first command you'll probably want to enter is AT+CONFIG to connect to a wireless router, and set your flow control and other command mode settings.
 
@@ -190,7 +190,7 @@ AT&U  : Checks the firmware home page to see if a new version is available.
 AT&U6502 : Will update the firmware from the home page on the web.
 AT&U=x: Will update the firmware from the web to custom version x.
 AT&Pn : Where n > 0, all command mode input and output will be translated to/from PETSCII before internal processing.  This will not affect received packet data, or the stream mode.
-AT&Nx : Shows the status of ESP8266 I/O pin x
+AT&Nx : Shows the status of ESP module I/O pin x
 
 AT&Mn : Adds the byte denoted by n to a list of mask-out bytes.  These are bytes that are not transmitted to the serial port in command mode incoming packets.  If this command is followed by a C, N, or A command on the SAME LINE, then the setting will apply ONLY to that connection or listener.
 AT&M  : Resets the mask-out bytes list. No bytes will be masked-out. If this command is followed by a C, N, or A command on the SAME LINE, then the setting will apply ONLY to that connection or listener.
