@@ -101,17 +101,20 @@ class ZMode
 #include "zcommand.h"
 #include "zconfig.h"
 #include "xmodem.h"
+#include "zbrowser.h"
 
 static WiFiClientNode *conns = null;
 static WiFiServerNode *servs = null;
 static PhoneBookEntry *phonebook = null;
 static bool pinSupport[MAX_PIN_NO];
+static bool browseEnabled = false;
 
 static ZMode *currMode = null;
 static ZStream streamMode;
-static ZSlip slipMode;
+static ZSlip slipMode; // not yet implemented
 static ZCommand commandMode;
 static ZConfig configMode;
+static ZBrowser browseMode;
 
 enum BaudState
 {
@@ -278,6 +281,11 @@ void setup()
     pinSupport[i]=true;
   pinSupport[36]=true;
   pinSupport[39]=true;
+  if(SD.begin())
+  {
+    if(SD.cardType() != CARD_NONE)
+      browseEnabled = true;
+  }
 #else
   pinSupport[0]=true;
   pinSupport[2]=true;

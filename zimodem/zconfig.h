@@ -29,9 +29,9 @@ class ZConfig : public ZMode
       ZCFGMENU_FLOW=7
     } currState;
     
-    ZSerial serial;
+    ZSerial serial; // storage for serial settings only
 
-    void switchBackToCommandMode(bool logout);
+    void switchBackToCommandMode();
     void doModeCommand();
     bool showMenu;
     bool savedEcho;

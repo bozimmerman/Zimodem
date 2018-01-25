@@ -43,7 +43,7 @@ void ZConfig::serialIncoming()
   }
 }
 
-void ZConfig::switchBackToCommandMode(bool logout)
+void ZConfig::switchBackToCommandMode()
 {
   commandMode.doEcho=savedEcho;
   currMode = &commandMode;
@@ -75,7 +75,7 @@ void ZConfig::doModeCommand()
         else
         {
           commandMode.showInitMessage();
-          switchBackToCommandMode(false);
+          switchBackToCommandMode();
           return;
         }
       }
@@ -142,7 +142,7 @@ void ZConfig::doModeCommand()
       if((cmd.length()==0)||(c=='n'))
       {
         commandMode.showInitMessage();
-        switchBackToCommandMode(false);
+        switchBackToCommandMode();
         return;
       }
       else
@@ -151,7 +151,7 @@ void ZConfig::doModeCommand()
         commandMode.reSaveConfig();
         serial.printf("%sSettings saved.%s",EOLNC,EOLNC);
         commandMode.showInitMessage();
-        switchBackToCommandMode(false);
+        switchBackToCommandMode();
         return;
       }
       else
@@ -485,7 +485,7 @@ void ZConfig::loop()
   }
   if(commandMode.checkPlusEscape())
   {
-    switchBackToCommandMode(false);
+    switchBackToCommandMode();
   }
   else
   if(serial.isSerialOut())

@@ -2083,6 +2083,12 @@ ZResult ZCommand::doSerialCommand()
             result = ZOK;
         }
         else
+        if((strcmp((const char *)vbuf,"shell")==0)&&(browseEnabled))
+        {
+            browseMode.switchTo();
+            result = ZOK;
+        }
+        else
           result=ZERROR; //todo: branch based on vbuf contents
         break;
       case '%':

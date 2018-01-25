@@ -71,6 +71,7 @@ class ZCommand : public ZMode
 {
   friend class WiFiClientNode;
   friend class ZConfig;
+  friend class ZBrowser;
 
   private:
     char CRLF[4];
