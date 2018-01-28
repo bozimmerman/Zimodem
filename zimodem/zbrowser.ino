@@ -16,6 +16,15 @@
 
 #ifdef INCLUDE_SD_SHELL
 
+static void initSDShell()
+{
+  if(SD.begin())
+  {
+    if(SD.cardType() != CARD_NONE)
+      browseEnabled = true;
+  }
+}
+
 void ZBrowser::switchTo()
 {
   currMode=&browseMode;
@@ -481,7 +490,7 @@ void ZBrowser::showDirectory(String p, String mask, String prefix, bool recurse)
     {
       if(matches(file.name()+maskFilterLen, mask))
       {
-        debugPrintf("matched:%s%s",file.name(),EOLNC);
+        debugPrintf("file matched:%s\n",file.name());
         if(file.isDirectory())
         {
           serial.printf("%sd %s%s",prefix.c_str(),file.name()+maskFilterLen,EOLNC);
@@ -495,7 +504,7 @@ void ZBrowser::showDirectory(String p, String mask, String prefix, bool recurse)
           serial.printf("%s  %s %lu%s",prefix.c_str(),file.name()+maskFilterLen,file.size(),EOLNC);
       }
       else
-        debugPrintf("unmatched:%s (%s) %s",file.name(),mask.c_str(),EOLNC);
+        debugPrintf("file unmatched:%s (%s)\n",file.name(),mask.c_str());
       file = root.openNextFile();
     }
   }
@@ -557,14 +566,14 @@ void ZBrowser::doModeCommand()
           mask=stripFilename(rawPath);
         }
         
-        debugPrintf("ls:%s (%s) %s",p.c_str(),mask.c_str(),EOLNC);
+        debugPrintf("ls:%s (%s)\n",p.c_str(),mask.c_str());
         showDirectory(p,mask,"",recurse);
       }
       else
       if(cmd.equalsIgnoreCase("md")||cmd.equalsIgnoreCase("mkdir")||cmd.equalsIgnoreCase("makedir"))
       {
         String p = makePath(line);
-        debugPrintf("md:%s%s",p.c_str(),EOLNC);
+        debugPrintf("md:%s\n",p.c_str());
         if((p.length() < 2) || isMask(p) || !SD.mkdir(p))
           serial.printf("Illegal path: %s%s",p.c_str(),EOLNC);
       }
@@ -572,7 +581,7 @@ void ZBrowser::doModeCommand()
       if(cmd.equalsIgnoreCase("cd"))
       {
         String p = makePath(line);
-        debugPrintf("dir:%s%s",p.c_str(),EOLNC);
+        debugPrintf("cd:%s\n",p.c_str());
         if(p.length()==0)
           serial.printf("Current path: %s%s",p.c_str(),EOLNC);
         else
@@ -595,7 +604,7 @@ void ZBrowser::doModeCommand()
       if(cmd.equalsIgnoreCase("rd")||cmd.equalsIgnoreCase("rmdir")||cmd.equalsIgnoreCase("deletedir"))
       {
         String p = makePath(line);
-        debugPrintf("rd:%s%s",p.c_str(),EOLNC);
+        debugPrintf("rd:%s\n",p.c_str());
         File root = SD.open(p);
         if(!root)
           serial.printf("Unknown path: %s%s",p.c_str(),EOLNC);
@@ -610,7 +619,7 @@ void ZBrowser::doModeCommand()
       if(cmd.equalsIgnoreCase("cat")||cmd.equalsIgnoreCase("type"))
       {
         String p = makePath(line);
-        debugPrintf("cat:%s%s",p.c_str(),EOLNC);
+        debugPrintf("cat:%s\n",p.c_str());
         File root = SD.open(p);
         if(!root)
           serial.printf("Unknown path: %s%s",p.c_str(),EOLNC);
@@ -630,7 +639,7 @@ void ZBrowser::doModeCommand()
       if(cmd.equalsIgnoreCase("xget"))
       {
         String p = makePath(line);
-        debugPrintf("xget:%s%s",p.c_str(),EOLNC);
+        debugPrintf("xget:%s\n",p.c_str());
         File root = SD.open(p);
         if(!root)
           serial.printf("Unknown path: %s%s",p.c_str(),EOLNC);
@@ -643,15 +652,11 @@ void ZBrowser::doModeCommand()
         else
         {
           root.close();
-          File rfile = SD.open(p, FILE_WRITE);
+          File rfile = SD.open(p, FILE_READ);
           String errors="";
           serial.printf("Go to XModem download.%s",EOLNC);
           serial.flushAlways();
-          xserial.setFlowControlType(FCT_DISABLED);
-          if(commandMode.getFlowControlType()==FCT_RTSCTS)
-            xserial.setFlowControlType(FCT_RTSCTS);
-          xserial.setPetsciiMode(false);
-          xserial.setXON(true);
+          initXSerial(commandMode.getFlowControlType());
           if(xDownload(rfile,errors))
           {
             rfile.close();
@@ -670,7 +675,7 @@ void ZBrowser::doModeCommand()
       if(cmd.equalsIgnoreCase("xput"))
       {
         String p = makePath(line);
-        debugPrintf("xput:%s%s",p.c_str(),EOLNC);
+        debugPrintf("xput:%s\n",p.c_str());
         File root = SD.open(p);
         if(root)
         {
@@ -693,11 +698,7 @@ void ZBrowser::doModeCommand()
             String errors="";
             serial.printf("Go to XModem upload.%s",EOLNC);
             serial.flushAlways();
-            xserial.setFlowControlType(FCT_DISABLED);
-            if(commandMode.getFlowControlType()==FCT_RTSCTS)
-              xserial.setFlowControlType(FCT_RTSCTS);
-            xserial.setPetsciiMode(false);
-            xserial.setXON(true);
+            initXSerial(commandMode.getFlowControlType());
             if(xUpload(rfile,errors))
             {
               rfile.close();
@@ -723,7 +724,7 @@ void ZBrowser::doModeCommand()
         String rawPath = makePath(line);
         String p=stripDir(rawPath);
         String mask=stripFilename(rawPath);
-        debugPrintf("rm:%s (%s) %s",p.c_str(),mask.c_str(),EOLNC);
+        debugPrintf("rm:%s (%s)\n",p.c_str(),mask.c_str());
         deleteFile(p,mask,recurse);
       }
       else
@@ -745,7 +746,7 @@ void ZBrowser::doModeCommand()
           p1=stripDir(p1);
         }
         
-        debugPrintf("cp:%s (%s) -> %s %s",p1.c_str(),mask.c_str(), p2.c_str(),EOLNC);
+        debugPrintf("cp:%s (%s) -> %s\n",p1.c_str(),mask.c_str(), p2.c_str());
         copyFiles(p1,mask,p2,recurse,overwrite);
       }
       else
@@ -758,7 +759,7 @@ void ZBrowser::doModeCommand()
       {
         String p1=makePath(cleanFirstArg(line));
         String p2=makePath(cleanRemainArg(line));
-        debugPrintf("ren:%s -> %s %s",p1.c_str(), p2.c_str(),EOLNC);
+        debugPrintf("ren:%s -> %s\n",p1.c_str(), p2.c_str());
         if(p1 == p2)
           serial.printf("File exists: %s%s",p1.c_str(),EOLNC);
         else
@@ -787,7 +788,7 @@ void ZBrowser::doModeCommand()
           mask=stripFilename(p1);
           p1=stripDir(p1);
         }
-        debugPrintf("mv:%s -> %s %s",p1.c_str(),p2.c_str(),EOLNC);
+        debugPrintf("mv:%s -> %s\n",p1.c_str(),p2.c_str());
         if((mask.length()==0)||(!isMask(mask)))
         {
           if(p1 == p2)
@@ -860,4 +861,7 @@ void ZBrowser::loop()
     serialOutDeque();
   }
 }
+#else
+static void initSDShell()
+{}
 #endif

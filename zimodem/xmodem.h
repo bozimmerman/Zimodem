@@ -106,16 +106,28 @@ static boolean xDownload(File &f, String &errors)
 {
   xfile = &f;
   XModem xmo(xReceiveSerial, xSendSerial, xDDataHandler);
+  bool result = xmo.transmit();
   xfile = null;
-  return xmo.transmit();
+  xserial.flushAlways();
+  return result;
 }
 
 static boolean xUpload(File &f, String &errors)
 {
   xfile = &f;
   XModem xmo(xReceiveSerial, xSendSerial, xUDataHandler);
+  bool result = xmo.receive();
   xfile = null;
-  return xmo.receive();
+  xserial.flushAlways();
+  return result;
 }
 
+static void initXSerial(FlowControlType commandFlow)
+{
+  xserial.setFlowControlType(FCT_DISABLED);
+  if(commandFlow==FCT_RTSCTS)
+    xserial.setFlowControlType(FCT_RTSCTS);
+  xserial.setPetsciiMode(false);
+  xserial.setXON(true);
+}
 

@@ -102,9 +102,7 @@ class ZMode
 #include "zcommand.h"
 #include "zconfig.h"
 #include "xmodem.h"
-#ifdef INCLUDE_SD_SHELL
 #include "zbrowser.h"
-#endif
 
 static WiFiClientNode *conns = null;
 static WiFiServerNode *servs = null;
@@ -298,13 +296,7 @@ void setup()
     pinSupport[11]=false;
   }
 #endif    
-#ifdef INCLUDE_SD_SHELL
-  if(SD.begin())
-  {
-    if(SD.cardType() != CARD_NONE)
-      browseEnabled = true;
-  }
-#endif
+  initSDShell();
   currMode = &commandMode;
   if(!SPIFFS.begin())
   {
