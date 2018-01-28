@@ -64,6 +64,7 @@ static int xReceiveSerial(int del)
 {
   for(int i=0;i<del;i++)
   {
+    serialOutDeque();
     if(HWSerial.available() > 0)
       return HWSerial.read();
     delay(1);
@@ -74,6 +75,7 @@ static int xReceiveSerial(int del)
 static void xSendSerial(char c)
 {
   xserial.write((uint8_t)c);
+  xserial.flush();
 }
 
 static bool xUDataHandler(unsigned long number, char *buf, int sz)

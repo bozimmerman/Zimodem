@@ -646,6 +646,7 @@ void ZBrowser::doModeCommand()
           File rfile = SD.open(p, FILE_WRITE);
           String errors="";
           serial.printf("Go to XModem download.%s",EOLNC);
+          serial.flushAlways();
           xserial.setFlowControlType(FCT_DISABLED);
           if(commandMode.getFlowControlType()==FCT_RTSCTS)
             xserial.setFlowControlType(FCT_RTSCTS);
@@ -691,6 +692,7 @@ void ZBrowser::doModeCommand()
             File rfile = SD.open(p, FILE_WRITE);
             String errors="";
             serial.printf("Go to XModem upload.%s",EOLNC);
+            serial.flushAlways();
             xserial.setFlowControlType(FCT_DISABLED);
             if(commandMode.getFlowControlType()==FCT_RTSCTS)
               xserial.setFlowControlType(FCT_RTSCTS);
