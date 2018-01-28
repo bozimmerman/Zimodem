@@ -151,6 +151,7 @@ class ZCommand : public ZMode
 
     ZCommand();
     void loadConfig();
+    FlowControlType getFlowControlType();
     void serialIncoming();
     void loop();
 };

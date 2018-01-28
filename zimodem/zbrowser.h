@@ -14,6 +14,7 @@
    limitations under the License.
 */
 
+#ifdef INCLUDE_SD_SHELL
 class ZBrowser : public ZMode
 {
   private:
@@ -31,10 +32,14 @@ class ZBrowser : public ZMode
     String stripDir(String path);
     String stripFilename(String path);
     String stripArgs(String line, String &argLetters);
+    String cleanOneArg(String line);
+    String cleanFirstArg(String line);
+    String cleanRemainArg(String line);
     bool isMask(String mask);
     bool matches(String fname, String mask);
     void deleteFile(String fname, String mask, bool recurse);
     void showDirectory(String path, String mask, String prefix, bool recurse);
+    void copyFiles(String source, String mask, String target, bool recurse, bool overwrite);
     
     bool showMenu;
     bool savedEcho;
@@ -49,4 +54,4 @@ class ZBrowser : public ZMode
     void serialIncoming();
     void loop();
 };
-
+#endif

@@ -20,6 +20,7 @@
 
 #ifdef ARDUINO_ESP32_DEV
 #define debugPrintf Serial.printf
+#define INCLUDE_SD_SHELL true
 #define DEFAULT_BAUD_RATE 1200
 #define DEFAULT_FCT FCT_DISABLED
 #define SerialConfig uint32_t
@@ -101,7 +102,9 @@ class ZMode
 #include "zcommand.h"
 #include "zconfig.h"
 #include "xmodem.h"
+#ifdef INCLUDE_SD_SHELL
 #include "zbrowser.h"
+#endif
 
 static WiFiClientNode *conns = null;
 static WiFiServerNode *servs = null;
@@ -114,7 +117,9 @@ static ZStream streamMode;
 static ZSlip slipMode; // not yet implemented
 static ZCommand commandMode;
 static ZConfig configMode;
+#ifdef INCLUDE_SD_SHELL
 static ZBrowser browseMode;
+#endif
 
 enum BaudState
 {
@@ -281,11 +286,6 @@ void setup()
     pinSupport[i]=true;
   pinSupport[36]=true;
   pinSupport[39]=true;
-  if(SD.begin())
-  {
-    if(SD.cardType() != CARD_NONE)
-      browseEnabled = true;
-  }
 #else
   pinSupport[0]=true;
   pinSupport[2]=true;
@@ -298,6 +298,13 @@ void setup()
     pinSupport[11]=false;
   }
 #endif    
+#ifdef INCLUDE_SD_SHELL
+  if(SD.begin())
+  {
+    if(SD.cardType() != CARD_NONE)
+      browseEnabled = true;
+  }
+#endif
   currMode = &commandMode;
   if(!SPIFFS.begin())
   {

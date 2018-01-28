@@ -211,6 +211,11 @@ ZResult ZCommand::doNoListenCommand()
   return ZOK;
 }
 
+FlowControlType ZCommand::getFlowControlType()
+{
+  return serial.getFlowControlType();
+}
+
 void ZCommand::reSaveConfig()
 {
   SPIFFS.remove("/zconfig.txt");
@@ -2082,12 +2087,14 @@ ZResult ZCommand::doSerialCommand()
             configMode.switchTo();
             result = ZOK;
         }
+#ifdef INCLUDE_SD_SHELL
         else
         if((strcmp((const char *)vbuf,"shell")==0)&&(browseEnabled))
         {
             browseMode.switchTo();
             result = ZOK;
         }
+#endif
         else
           result=ZERROR; //todo: branch based on vbuf contents
         break;

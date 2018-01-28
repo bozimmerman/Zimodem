@@ -12,9 +12,9 @@ XModem::XModem(int (*recvChar)(int msDelay), void (*sendChar)(char sym))
 {
   this->sendChar = sendChar;
   this->recvChar = recvChar;
-  this->dataHandler = NULL;
-  
+  this->dataHandler = NULL;  
 }
+
 XModem::XModem(int (*recvChar)(int msDelay), void (*sendChar)(char sym), 
     bool (*dataHandler)(unsigned long number, char *buffer, int len))
 {
