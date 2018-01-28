@@ -122,29 +122,23 @@ bool XModem::receiveFrames(transfer_t transfer)
   this->blockNo = 1;
   this->blockNoExt = 1;
   this->retries = 0;
-debugPrintf("rf0\n");  
   while (1) {
     char cmd = this->dataRead(100);
-debugPrintf("rf1:%d\n",cmd);  
     switch(cmd){
       case XModem::SOH:
-debugPrintf("rf2:%d\n",cmd);  
         if (!this->receiveFrameNo()) {
-debugPrintf("rf2.1:%d\n",cmd);  
           if (this->sendNack())
             break;
           else
             return false;
         }
         if (!this->receiveData()) { 
-debugPrintf("rf2.2:%d\n",cmd);  
           if (this->sendNack())
             break;
           else
             return false;          
         };
         if (transfer == Crc) {
-debugPrintf("rf2.3:%d\n",cmd);  
           if (!this->checkCrc()) {
             if (this->sendNack())
               break;
@@ -153,7 +147,6 @@ debugPrintf("rf2.3:%d\n",cmd);
           }
         } else {
           if(!this->checkChkSum()) {
-debugPrintf("rf2.4:%d\n",cmd);  
             if (this->sendNack())
               break;
             else
@@ -161,27 +154,22 @@ debugPrintf("rf2.4:%d\n",cmd);
           }
         }
         //callback
-debugPrintf("rf2.5:%d\n",cmd);  
         if(this->dataHandler != NULL && this->repeatedBlock == false)
           if(!this->dataHandler(this->blockNoExt, this->buffer, 128)) {
             return false;
           }
         //ack
-debugPrintf("rf2.6:%d\n",cmd);  
         this->dataWrite(XModem::ACK);
         if(this->repeatedBlock == false)
         {
           this->blockNo++;
           this->blockNoExt++;
         }
-debugPrintf("rf2.9:%d\n",cmd);  
         break;
       case XModem::EOT:
-debugPrintf("rf3:%d\n",cmd);  
         this->dataWrite(XModem::ACK);
         return true;
       case XModem::CAN:
-debugPrintf("rf4:%d\n",cmd);  
         //wait second CAN
         if(this->dataRead(XModem::receiveDelay) ==XModem::CAN) 
         {
@@ -195,7 +183,6 @@ debugPrintf("rf4:%d\n",cmd);
         this->dataWrite(XModem::CAN);
         return false;
       default:
-debugPrintf("rf5:%d\n",cmd);  
         //something wrong
         this->dataWrite(XModem::CAN);
         this->dataWrite(XModem::CAN);
