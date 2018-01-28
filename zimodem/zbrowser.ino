@@ -257,7 +257,10 @@ String ZBrowser::stripArgs(String line, String &argLetters)
   {
     int x=line.indexOf(' ');
     if(x<0)
-      break;
+    {
+      argLetters = line.substring(1);
+      return "";
+    }
     argLetters += line.substring(1,x);
     line = line.substring(x+1);
     line.trim();
@@ -495,7 +498,6 @@ void ZBrowser::showDirectory(String p, String mask, String prefix, bool recurse)
         debugPrintf("unmatched:%s (%s) %s",file.name(),mask.c_str(),EOLNC);
       file = root.openNextFile();
     }
-    serial.printf("%llu free of %llu total%s",(SD.totalBytes()-SD.usedBytes()),SD.totalBytes(),EOLNC);
   }
   else
     serial.printf("  %s %lu%s",root.name(),root.size(),EOLNC);
@@ -745,6 +747,11 @@ void ZBrowser::doModeCommand()
         copyFiles(p1,mask,p2,recurse,overwrite);
       }
       else
+      if(cmd.equalsIgnoreCase("df")||cmd.equalsIgnoreCase("free")||cmd.equalsIgnoreCase("info"))
+      {
+        serial.printf("%llu free of %llu total%s",(SD.totalBytes()-SD.usedBytes()),SD.totalBytes(),EOLNC);
+      }
+      else
       if(cmd.equalsIgnoreCase("ren")||cmd.equalsIgnoreCase("rename"))
       {
         String p1=makePath(cleanFirstArg(line));
@@ -813,6 +820,7 @@ void ZBrowser::doModeCommand()
         serial.printf("ren/rename [path] [path]  - Rename a file%s",EOLNC);
         serial.printf("mv/move (-f) [path] [path]  - Move file(s)%s",EOLNC);
         serial.printf("cat/type [path]  - View a file(s)%s",EOLNC);
+        serial.printf("df/free/info - Show space remaining%s",EOLN);
         serial.printf("xget/zget [path]  - Download a file%s",EOLNC);
         serial.printf("xput/zput [path]  - Upload a file%s",EOLNC);
         serial.printf("exit/quit/x/endshell  - Quit to command mode%s",EOLNC);
