@@ -123,7 +123,7 @@ bool XModem::receiveFrames(transfer_t transfer)
   this->blockNoExt = 1;
   this->retries = 0;
   while (1) {
-    char cmd = this->dataRead(100);
+    char cmd = this->dataRead(1000);
     switch(cmd){
       case XModem::SOH:
         if (!this->receiveFrameNo()) {
@@ -206,14 +206,16 @@ bool XModem::receive()
   for (int i =0; i <  16; i++)
   {
     this->dataWrite('C'); 
-    if (this->dataAvail(1000)) 
+    if (this->dataAvail(1500)) 
+    {
       return receiveFrames(Crc);
+    }
   
   }
   for (int i =0; i <  16; i++)
   {
     this->dataWrite(XModem::NACK);  
-    if (this->dataAvail(1000)) 
+    if (this->dataAvail(1500)) 
       return receiveFrames(ChkSum);
   }
 }
