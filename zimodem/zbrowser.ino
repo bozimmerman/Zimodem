@@ -541,7 +541,8 @@ void ZBrowser::doModeCommand()
       else
       if(cmd.equalsIgnoreCase("exit")||cmd.equalsIgnoreCase("quit")||cmd.equalsIgnoreCase("x")||cmd.equalsIgnoreCase("endshell"))
       {
-        serial.println("OK");
+        serial.prints("OK");
+        serial.prints(EOLN);
         //commandMode.showInitMessage();
         switchBackToCommandMode();
         return;

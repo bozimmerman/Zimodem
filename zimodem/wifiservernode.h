@@ -30,5 +30,9 @@ class WiFiServerNode
     WiFiServerNode(int port, int flagsBitmap);
     bool hasClient();
     ~WiFiServerNode();
+
+    static bool ReadWiFiServer(File &f, WiFiServerNode &node);
+    static void SaveWiFiServers();
+    static void RestoreWiFiServers();
 };
 

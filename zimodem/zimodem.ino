@@ -93,15 +93,16 @@ class ZMode
 };
 
 #include "pet2asc.h"
-#include "zlog.h"
-#include "zserout.h"
+#include "filelog.h"
+#include "serout.h"
 #include "wificlientnode.h"
+#include "stringstream.h"
+#include "phonebook.h"
 #include "wifiservernode.h"
 #include "zstream.h"
-#include "zslip.h"
 #include "zcommand.h"
-#include "zconfig.h"
-#include "xmodem.h"
+#include "zconfigmode.h"
+#include "proto_xmodem.h"
 #include "zbrowser.h"
 
 static WiFiClientNode *conns = null;
@@ -112,7 +113,7 @@ static bool browseEnabled = false;
 
 static ZMode *currMode = null;
 static ZStream streamMode;
-static ZSlip slipMode; // not yet implemented
+//static ZSlip slipMode; // not yet implemented
 static ZCommand commandMode;
 static ZConfig configMode;
 #ifdef INCLUDE_SD_SHELL

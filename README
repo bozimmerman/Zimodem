@@ -170,6 +170,7 @@ ATS48=n : Changes RTS status. n=0 is default RTS=HIGH=active. n=1 is RTS=LOW=act
 ATS49=n : Changes DCD pin number, n=2 is default
 ATS50=n : Changes CTS pin number, n=0 is default on ESP01, and default is 5 otherwise
 ATS51=n : Changes RTS pin number, n=4 is default (N/A on ESP01)
+ATS52=n : When n > 0, immediately saves existing listeners and automatically restors them. n=0 to clear.
 +++ : With a 1 second pause with no other characters afterwards, this will disconnect the current opened connection.
 
 ATT"[MESSAGE]" : Transmit the given text string, with \r\n at the end, on the current connection.
@@ -182,7 +183,7 @@ ATL0  : Re-sends the most recently sent data packet again
 ATLn  : Re-sends the most recently sent data packet for connection id n.
 
 AT&L  : Reloads the saved configuration.
-AT&W  : Saves the current configuration: WiFi settings(ATW), baud rate (ATB), end of line (ATR) settings, flow control (ATF), echo mode (ATE), extended responses (ATX), verbose responses (ATV), quiet responses (ATQ), PETSCII mode (AT&P1), DCD status (ATS46), CTS status (ATS47)
+AT&W  : Saves the current configuration: WiFi settings(ATW), baud rate (ATB), end of line (ATR) settings, flow control (ATF), echo mode (ATE), extended responses (ATX), verbose responses (ATV), quiet responses (ATQ), PETSCII mode (AT&P1), DCD status (ATS46), CTS status (ATS47), Rings (ATS0), Listener Stream-mode (ATS41), and Listener restore (ATS52)
 AT&F  : Restores the modem to factory default settings.
 AT&On : n is 1 to turn on internal serial-reception log, n is 0 to turn off or view a previously turned-on log.
 AT&H  : Shows a help file from the web, or brief help otherwise.

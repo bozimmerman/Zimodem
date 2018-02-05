@@ -89,6 +89,9 @@ int ZCommand::makeStreamFlagsBitmap(const char *dmodifiers, boolean forceFlowCon
 void ZCommand::setConfigDefaults()
 {
   doEcho=true;
+  autoStreamMode=false;
+  preserveListeners=false;
+  ringCounter=1;
   serial.setFlowControlType(DEFAULT_FCT);
   serial.setXON(true);
   packetXOn = true;
@@ -225,11 +228,11 @@ void ZCommand::reSaveConfig()
   int dcdMode = (dcdActive == DEFAULT_DCD_HIGH) ? 0 : 1;
   int ctsMode = (ctsActive == DEFAULT_CTS_HIGH) ? 0 : 1;
   int rtsMode = (rtsActive == DEFAULT_RTS_HIGH) ? 0 : 1;
-  f.printf("%s,%s,%d,%s,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d", 
+  f.printf("%s,%s,%d,%s,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d", 
             wifiSSI.c_str(), wifiPW.c_str(), baudRate, eoln,
             serial.getFlowControlType(), doEcho, suppressResponses, numericResponses,
             longResponses, serial.isPetsciiMode(), dcdMode, serialConfig, ctsMode,
-            rtsMode,pinDCD,pinCTS,pinRTS);
+            rtsMode,pinDCD,pinCTS,pinRTS,autoStreamMode,ringCounter,preserveListeners);
   f.close();
   delay(500);
   if(SPIFFS.exists("/zconfig.txt"))
@@ -348,6 +351,20 @@ void ZCommand::setBaseConfigOptions(String configArguments[])
       pinMode(pinRTS,OUTPUT);
     if(pinSupport[pinRTS])
       digitalWrite(pinRTS,rtsActive);
+  }
+  if(configArguments[CFG_S0_RINGS].length()>0)
+  {
+    ringCounter = atoi(configArguments[CFG_S0_RINGS].c_str());
+  }
+  if(configArguments[CFG_S41_STREAM].length()>0)
+  {
+    autoStreamMode = atoi(configArguments[CFG_S41_STREAM].c_str());
+  }
+  if(configArguments[CFG_S52_LISTEN].length()>0)
+  {
+    preserveListeners = atoi(configArguments[CFG_S52_LISTEN].c_str());
+    if(preserveListeners)
+      WiFiServerNode::RestoreWiFiServers();
   }
 }
 
@@ -539,6 +556,8 @@ ZResult ZCommand::doInfoCommand(int vval, uint8_t *vbuf, int vlen, bool isNumber
       serial.prints("S50=1");
     if((pinRTS != DEFAULT_PIN_RTS)||(showAll))
       serial.prints("S51=1");
+    if(preserveListeners ||(showAll))
+      serial.prints(preserveListeners ? "S52=1" : "S52=0");
     if((serial.isPetsciiMode())||(showAll))
       serial.prints(serial.isPetsciiMode() ? "&P1" : "&P0");
     if(logFileOpen || showAll)
@@ -673,10 +692,10 @@ ZResult ZCommand::doConnectCommand(int vval, uint8_t *vbuf, int vlen, bool isNum
   else
   if((vval >= 0)&&(isNumber))
   {
-      if(vval == 0)
-        logPrintln("ConnList0:\r\n");
-      else
-        logPrintfln("ConnSwitchTo: %d",vval);
+    if(vval == 0)
+      logPrintln("ConnList0:\r\n");
+    else
+      logPrintfln("ConnSwitchTo: %d",vval);
     if(strlen(dmodifiers)>0) // would be nice to allow petscii/telnet changes here, but need more flags
       return ZERROR;
     WiFiClientNode *c=conns;
@@ -1303,10 +1322,12 @@ ZResult ZCommand::doDialStreamCommand(unsigned long vval, uint8_t *vbuf, int vle
       }
       phb = phb->next;
     }
+    /*
     if(vval == 5517545) // slip no login
     {
       slipMode.switchTo();
     }
+    */
     
     WiFiClientNode *c=conns;
     while((c!=null)&&(c->id != vval))
@@ -2072,6 +2093,18 @@ ZResult ZCommand::doSerialCommand()
                else
                  result=ZERROR;
                break;
+             case 52:
+               if(sval >= 0)
+               {
+                 preserveListeners=(sval != 0);
+                 if(preserveListeners)
+                   WiFiServerNode::SaveWiFiServers();
+                 else
+                   SPIFFS.remove("/zlisteners.txt");
+               }
+               else
+                 result=ZERROR;
+                 break;
              default:
                 break;
               }
@@ -2145,6 +2178,7 @@ ZResult ZCommand::doSerialCommand()
           {
             SPIFFS.remove("/zconfig.txt");
             SPIFFS.remove("/zphonebook.txt");
+            SPIFFS.remove("/zlisteners.txt");
             PhoneBookEntry::clearPhonebook();
             if(WiFi.status() == WL_CONNECTED)
               WiFi.disconnect();

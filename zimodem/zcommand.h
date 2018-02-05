@@ -45,7 +45,10 @@ enum ConfigOptions
   CFG_DCDPIN=14,
   CFG_CTSPIN=15,
   CFG_RTSPIN=16,
-  CFG_LAST=16
+  CFG_S0_RINGS=17,
+  CFG_S41_STREAM=18,
+  CFG_S52_LISTEN=19,
+  CFG_LAST=19
 };
 
 enum StreamFlag
@@ -90,6 +93,7 @@ class ZCommand : public ZMode
     int lastServerClientId = 0;
     WiFiClientNode *current = null;
     bool autoStreamMode=false;
+    bool preserveListeners=false;
     unsigned long lastNonPlusTimeMs = 0;
     unsigned long currentExpiresTimeMs = 0;
     char *tempDelimiters = NULL;
