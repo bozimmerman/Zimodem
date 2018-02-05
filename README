@@ -50,7 +50,7 @@ The first command you'll probably want to enter is AT+CONFIG to connect to a wir
 
 Afterwards, if you plan to use this primarily from a computer that doesn't need linefeeds, such as the C64, you'll want to enter ATR0 to go into carriage-return only mode, and then at&w to save this setting as well.
 
-If you want to operate at a higher baud, you'll want to enter ATB9600 (or whatever baud rate you want to try), and then reconnect your terminal program to the modem at that new baud rate.  If everything looks good, and you want to keep the new baud rate across restarts, don't forget to save the new baud rate with AT&W.
+If you want to operate at a higher baud, you'll want to enter ATB9600 (or whatever baud rate you want to try), and then reconnect your terminal program to the modem at that new baud rate.  If everything looks good, and you want to keep the new baud rate across restarts, save the new baud rate with AT&W.  Warning though: Most of the example C64 programs assume the modem defaults to 1200 baud.
 
 If you want to connect to a remote telnet server, eg coffeemud.net, port 23, you'll want to enter ATDT"coffeemud.net:23".  Don't forget to set your terminal program to the proper translation mode (ANSI, ASCII, or whatever).
 
@@ -59,6 +59,8 @@ If you are using a Commodore Graphics terminal program and want to connect to a 
 If you want to use Q-Link, you need to add a phone number alias first.  To do this, enter ATP"5551212=q-link.net:5190" or enter it from the config menu AT+CONFIG. From the C64 Q-Link client, select "Hayes compatible" 1200 baud modem when prompted.
 
 If you want to run a Commodore BBS program using the modem, you'll want to configure the BBS program to the same idle baud rate that your modem is using (1200 baud by default), configure it for a Hayes style modem (or the C=1670), and use an initialization string of "ATR0E0S0=1S41=1A6400" plus any other recommended settings from the BBS program. This creates a listener at port 6400 that switches directly to stream mode on the first ring, with no linefeed carriage returns, and no keystroke echo.  Your BBS program may require you add certain other settings, such as V0 or X1.. which you should also do.
+
+ESP32 Guru Modem users with SD-cards can enter AT+SHELL to get a shell command prompt.  Enter ? to get a list of shell commands.
 
 Command Set:
 -----------
@@ -80,10 +82,10 @@ ATA  : If a server listener has generated a RING, then ATA will switch the last 
 ATA/ : Repeats the previous command (no idea why...)
 
 ATAn : Causes the modem to create a server listening on port n.  When a connection is received, the terminal will generate 1 or more RINGs according to the ATS0 register, followed by a normal CONNECT respose. At this point, all other commands related to connections may be used normally, unless ATS41 is > 0, in which case incoming connections are automatically sent to Stream mode as per ATD or ATA. Listeners are listed along with other connections using ATC0.
-ATAPn"[HOSTNAME]:[PORT]" : Adding a P modifier causes all incoming connection input to be translated to PETSCII
-ATATn"[HOSTNAME]:[PORT]" : Adding a T modifier causes connection streaming input to be translated per TELNET when the changed to Stream mode
-ATAEn"[HOSTNAME]:[PORT]" : Adding a E modifier causes connection terminal echo to be enabled when the changed to Stream mode
-ATAXn"[HOSTNAME]:[PORT]" : Adding a X modifier causes connection XON/XOFF flow control to be enabled  when the changed to Stream mode.
+ATAPn : Adding a P modifier causes all incoming connection input to be translated to PETSCII
+ATATn : Adding a T modifier causes connection streaming input to be translated per TELNET when the changed to Stream mode
+ATAEn : Adding a E modifier causes connection terminal echo to be enabled when the changed to Stream mode
+ATAXn : Adding a X modifier causes connection XON/XOFF flow control to be enabled  when the changed to Stream mode.
 
 ATN0 : Shuts down all listeners, leaving client connections open
 ATNn : if n > 0 then same as ATAn
@@ -170,7 +172,7 @@ ATS48=n : Changes RTS status. n=0 is default RTS=HIGH=active. n=1 is RTS=LOW=act
 ATS49=n : Changes DCD pin number, n=2 is default
 ATS50=n : Changes CTS pin number, n=0 is default on ESP01, and default is 5 otherwise
 ATS51=n : Changes RTS pin number, n=4 is default (N/A on ESP01)
-ATS52=n : When n > 0, immediately saves existing listeners and automatically restors them. n=0 to clear.
+ATS52=n : When n > 0, immediately saves existing listeners and automatically restores them later. n=0 to clear.
 +++ : With a 1 second pause with no other characters afterwards, this will disconnect the current opened connection.
 
 ATT"[MESSAGE]" : Transmit the given text string, with \r\n at the end, on the current connection.
