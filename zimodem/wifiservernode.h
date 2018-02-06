@@ -16,7 +16,7 @@
 
 static int WiFiNextClientId = 0;
 
-class WiFiServerNode
+class WiFiServerSpec
 {
   public:
     int port;
@@ -24,6 +24,17 @@ class WiFiServerNode
     int flagsBitmap = 0;
     char *delimiters = NULL;
     char *maskOuts = NULL;
+
+    WiFiServerSpec();
+    WiFiServerSpec(WiFiServerSpec &copy);
+    ~WiFiServerSpec();
+
+    WiFiServerSpec& operator=(const WiFiServerSpec&);
+};
+
+class WiFiServerNode : public WiFiServerSpec
+{
+  public:
     WiFiServer *server;
     WiFiServerNode *next = null;
 
@@ -31,7 +42,9 @@ class WiFiServerNode
     bool hasClient();
     ~WiFiServerNode();
 
-    static bool ReadWiFiServer(File &f, WiFiServerNode &node);
+    static WiFiServerNode *FindServer(int port);
+    static void DestroyAllServers();
+    static bool ReadWiFiServer(File &f, WiFiServerSpec &node);
     static void SaveWiFiServers();
     static void RestoreWiFiServers();
 };

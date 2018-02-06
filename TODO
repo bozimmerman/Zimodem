@@ -1,11 +1,10 @@
+  *. 6551 mode: DCD functions switched to DTR pin, old DCD pin held high.
+  *. Dropping DTR should drop connections.
   *. Support switching between CONNECT 1 and CONNECT 1200 messages
-  *. Support a larger incoming network buffer.
   *. Baud rate test commend
   *. ATW0 should be same as ATW
   *. Hardware flow control
   *. SLIP support?
   *. PPP support?
   *. Network printer support?
-  
-  
   

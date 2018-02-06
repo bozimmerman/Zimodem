@@ -51,17 +51,6 @@ enum ConfigOptions
   CFG_LAST=19
 };
 
-enum StreamFlag
-{
-  FLAG_DISCONNECT_ON_EXIT=1,
-  FLAG_PETSCII=2,
-  FLAG_TELNET=4,
-  FLAG_ECHO=8,
-  FLAG_XONXOFF=16,
-  FLAG_SECURE=32,
-  FLAG_RTSCTS=64
-};
-
 enum BinType
 {
   BTYPE_NORMAL=0,
@@ -106,7 +95,6 @@ class ZCommand : public ZMode
     int lastPacketId = -1;
 
     byte CRC8(const byte *data, byte len);
-    int makeStreamFlagsBitmap(const char *dmodifiers, boolean forceOne);
 
     void showInitMessage();
     bool readSerialStream();

@@ -95,6 +95,7 @@ class ZMode
 #include "pet2asc.h"
 #include "filelog.h"
 #include "serout.h"
+#include "connSettings.h"
 #include "wificlientnode.h"
 #include "stringstream.h"
 #include "phonebook.h"

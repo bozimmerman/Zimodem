@@ -20,7 +20,11 @@ void ZConfig::switchTo()
   serial.setFlowControlType(commandMode.serial.getFlowControlType());
   serial.setPetsciiMode(commandMode.serial.isPetsciiMode());
   savedEcho=commandMode.doEcho;
+  newListen=commandMode.preserveListeners;
   commandMode.doEcho=true;
+  serverSpec.port=6502;
+  if(servs)
+    serverSpec = *servs;
   serial.setXON(true);
   showMenu=true;
   EOLN=commandMode.EOLN;
@@ -113,6 +117,12 @@ void ZConfig::doModeCommand()
         showMenu=true;
       }
       else
+      if(c=='b') // bbs
+      {
+        currState=ZCFGMENU_BBSMENU;
+        showMenu=true;
+      }
+      else
       if(c>47 && c<58) // its a phonebook entry!
       {
         PhoneBookEntry *pb=PhoneBookEntry::findPhonebookEntry(cmd);
@@ -148,6 +158,44 @@ void ZConfig::doModeCommand()
       else
       if(c=='y')
       {
+        if(newListen != commandMode.preserveListeners)
+        {
+          commandMode.preserveListeners=newListen;
+          if(!newListen)
+          {
+            SPIFFS.remove("/zlisteners.txt");
+            WiFiServerNode::DestroyAllServers();
+          }
+          else
+          {
+            commandMode.ringCounter=1;
+            commandMode.autoStreamMode=true;
+            WiFiServerNode *s=WiFiServerNode::FindServer(serverSpec.port);
+            if(s != null)
+              delete s;
+            s = new WiFiServerNode(serverSpec.port,serverSpec.flagsBitmap);
+            WiFiServerNode::SaveWiFiServers();
+          }
+        }
+        else
+        if(commandMode.preserveListeners)
+        {
+          WiFiServerNode *s = WiFiServerNode::FindServer(serverSpec.port);
+          if( s != null)
+          {
+            if(s->flagsBitmap != serverSpec.flagsBitmap)
+            {
+              s->flagsBitmap = serverSpec.flagsBitmap;
+              WiFiServerNode::SaveWiFiServers();
+            }
+          }
+          else
+          {
+            WiFiServerNode::DestroyAllServers();
+            s = new WiFiServerNode(serverSpec.port,serverSpec.flagsBitmap);
+            WiFiServerNode::SaveWiFiServers();
+          }
+        }
         commandMode.reSaveConfig();
         serial.printf("%sSettings saved.%s",EOLNC,EOLNC);
         commandMode.showInitMessage();
@@ -174,6 +222,17 @@ void ZConfig::doModeCommand()
         currState=ZCFGMENU_ADDRESS;
         showMenu=true;
       }
+      break;
+    }
+    case ZCFGMENU_NEWPORT:
+    {
+      if(cmd.length()>0)
+      {
+        serverSpec.port = atoi((char *)cmd.c_str());
+        settingsChanged=true;
+      }
+      currState=ZCFGMENU_BBSMENU;
+      showMenu=true;
       break;
     }
     case ZCFGMENU_ADDRESS:
@@ -213,6 +272,76 @@ void ZConfig::doModeCommand()
       showMenu=true; // re-show the menu
       break;
     }
+    case ZCFGMENU_BBSMENU:
+    {
+      if(cmd.length()==0)
+        currState=ZCFGMENU_MAIN;
+      else
+      {
+        ConnSettings flags(serverSpec.flagsBitmap);
+        switch(c)
+        {
+        case 'h':
+          currState=ZCFGMENU_NEWPORT;
+          break;
+        case 'd':
+          newListen=false;
+          settingsChanged=true;
+          break;
+        case 'p': 
+          if(newListen)
+          {
+            flags.petscii=!flags.petscii;
+            settingsChanged=true;
+          }
+          break;
+        case 't': 
+          if(newListen)
+          {
+            flags.telnet=!flags.telnet;
+            settingsChanged=true;
+          }
+          break;
+        case 'e':
+          if(newListen)
+            flags.echo=!flags.echo;
+          else
+            newListen=true;
+          settingsChanged=true;
+          break;
+        case 'f':
+          if(newListen)
+          {
+            if(flags.xonxoff)
+            {
+              flags.xonxoff=false;
+              flags.rtscts=true; 
+            }
+            else
+            if(flags.rtscts)
+              flags.rtscts=false;
+            else
+              flags.xonxoff=true;
+            settingsChanged=true;
+          }
+          break;
+        case 's': 
+          if(newListen)
+          {
+            flags.secure=!flags.secure;
+            settingsChanged=true;
+          }
+          break;
+         
+        default:
+          serial.printf("%sInvalid option '%s'.%s%s",EOLNC,cmd.c_str(),EOLNC,EOLNC);
+          break;
+        }
+        settingsChanged=true;
+      }
+      showMenu=true;
+      break;
+    }
     case ZCFGMENU_OPTIONS:
     {
       if(cmd.length()==0)
@@ -231,50 +360,38 @@ void ZConfig::doModeCommand()
       }
       else
       {
-        int flagBitmap = commandMode.makeStreamFlagsBitmap(lastOptions.c_str(), false);
-        boolean petscii = (flagBitmap & FLAG_PETSCII) > 0;
-        boolean telnet = (flagBitmap & FLAG_TELNET) > 0;
-        boolean echo = (flagBitmap & FLAG_ECHO) > 0;
-        boolean xonxoff = (flagBitmap & FLAG_XONXOFF) > 0;
-        boolean rtscts = (flagBitmap & FLAG_RTSCTS) > 0;
-        boolean secure = (flagBitmap & FLAG_SECURE) > 0;
+        ConnSettings flags(lastOptions.c_str());
         switch(c)
         {
           case 'p': 
-            petscii=!petscii;
+            flags.petscii=!flags.petscii;
             break;
           case 't': 
-            telnet=!telnet;
+            flags.telnet=!flags.telnet;
             break;
           case 'e': 
-            echo=!echo;
+            flags.echo=!flags.echo;
             break;
           case 'f':
-            if(xonxoff)
+            if(flags.xonxoff)
             {
-              xonxoff=false;
-              rtscts=true; 
+              flags.xonxoff=false;
+              flags.rtscts=true; 
             }
             else
-            if(rtscts)
-              rtscts=false;
+            if(flags.rtscts)
+              flags.rtscts=false;
             else
-              xonxoff=true;
+              flags.xonxoff=true;
             break;
           case 's': 
-            secure=!secure;
+            flags.secure=!flags.secure;
             break;
           default:
             serial.printf("%sInvalid toggle option '%s'.%s%s",EOLNC,cmd.c_str(),EOLNC,EOLNC);
             break;
         }
-        lastOptions =(petscii?"p":"");
-        lastOptions += (petscii?"p":"");
-        lastOptions += (telnet?"t":"");
-        lastOptions += (echo?"e":"");
-        lastOptions += (xonxoff?"x":"");
-        lastOptions += (rtscts?"r":"");
-        lastOptions += (secure?"s":"");
+        lastOptions = flags.getFlagString();
       }
       showMenu=true; // re-show the menu
       break;
@@ -398,8 +515,15 @@ void ZConfig::loop()
             flowName = "OTHER";
             break;
         }
+        String bbsMode = "OFF";
+        if(newListen)
+        {
+          bbsMode = "Port ";
+          bbsMode += serverSpec.port;
+        }
         serial.printf("[FLOW] control: %s%s",flowName.c_str(),EOLNC);
         serial.printf("[ECHO] keystrokes: %s%s",savedEcho?"ON":"OFF",EOLNC);
+        serial.printf("[BBS] host: %s%s",bbsMode.c_str(),EOLNC);
         serial.printf("[PETSCII] translation: %s%s",commandMode.serial.isPetsciiMode()?"ON":"OFF",EOLNC);
         serial.printf("[ADD] new phonebook entry%s",EOLNC);
         PhoneBookEntry *p = phonebook;
@@ -418,6 +542,9 @@ void ZConfig::loop()
       case ZCFGMENU_NUM:
         serial.printf("%sEnter a new fake phone number (digits ONLY)%s: ",EOLNC,EOLNC);
         break;
+      case ZCFGMENU_NEWPORT:
+        serial.printf("%sEnter a port number to listen on%s: ",EOLNC,EOLNC);
+        break;
       case ZCFGMENU_ADDRESS:
       {
         PhoneBookEntry *lastEntry = PhoneBookEntry::findPhonebookEntry(lastNumber);
@@ -429,18 +556,30 @@ void ZConfig::loop()
       }
       case ZCFGMENU_OPTIONS:
       {
-        int flagBitmap = commandMode.makeStreamFlagsBitmap(lastOptions.c_str(), false);
-        boolean petscii = (flagBitmap & FLAG_PETSCII) > 0;
-        boolean telnet = (flagBitmap & FLAG_TELNET) > 0;
-        boolean echo = (flagBitmap & FLAG_ECHO) > 0;
-        boolean xonxoff = (flagBitmap & FLAG_XONXOFF) > 0;
-        boolean rtscts = (flagBitmap & FLAG_RTSCTS) > 0;
-        boolean secure = (flagBitmap & FLAG_SECURE) > 0;
+        ConnSettings flags(lastOptions.c_str());
         serial.printf("%sConnection Options:%s",EOLNC,EOLNC);
-        serial.printf("[PETSCII] Translation: %s%s",petscii?"ON":"OFF",EOLNC);
-        serial.printf("[TELNET] Translation: %s%s",telnet?"ON":"OFF",EOLNC);
-        serial.printf("[ECHO]: %s%s",echo?"ON":"OFF",EOLNC);
-        serial.printf("[FLOW] Control: %s%s",xonxoff?"XON/XOFF":rtscts?"RTS/CTS":"DISABLED",EOLNC);
+        serial.printf("[PETSCII] Translation: %s%s",flags.petscii?"ON":"OFF",EOLNC);
+        serial.printf("[TELNET] Translation: %s%s",flags.telnet?"ON":"OFF",EOLNC);
+        serial.printf("[ECHO]: %s%s",flags.echo?"ON":"OFF",EOLNC);
+        serial.printf("[FLOW] Control: %s%s",flags.xonxoff?"XON/XOFF":flags.rtscts?"RTS/CTS":"DISABLED",EOLNC);
+        serial.printf("%sEnter option to toggle or ENTER to exit%s: ",EOLNC,EOLNC);
+        break;
+      }
+      case ZCFGMENU_BBSMENU:
+      {
+        serial.printf("%sBBS host settings:%s",EOLNC,EOLNC);
+        if(newListen)
+        {
+          ConnSettings flags(serverSpec.flagsBitmap);
+          serial.printf("%s[HOST] Listener Port: %d%s",EOLNC,serverSpec.port,EOLNC);
+          serial.printf("[PETSCII] Translation: %s%s",flags.petscii?"ON":"OFF",EOLNC);
+          serial.printf("[TELNET] Translation: %s%s",flags.telnet?"ON":"OFF",EOLNC);
+          serial.printf("[ECHO]: %s%s",flags.echo?"ON":"OFF",EOLNC);
+          serial.printf("[FLOW] Control: %s%s",flags.xonxoff?"XON/XOFF":flags.rtscts?"RTS/CTS":"DISABLED",EOLNC);
+          serial.printf("[DISABLE] BBS host listener%s",EOLNC);
+        }
+        else
+          serial.printf("%s[ENABLE] BBS host listener%s",EOLNC,EOLNC);
         serial.printf("%sEnter option to toggle or ENTER to exit%s: ",EOLNC,EOLNC);
         break;
       }

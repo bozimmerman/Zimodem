@@ -14,12 +14,42 @@
    limitations under the License.
 */
 
+WiFiServerSpec::WiFiServerSpec()
+{
+  setCharArray(&delimiters,"");
+  setCharArray(&maskOuts,"");
+}
+
+WiFiServerSpec::~WiFiServerSpec()
+{
+  freeCharArray(&delimiters);
+  freeCharArray(&maskOuts);
+}
+
+WiFiServerSpec::WiFiServerSpec(WiFiServerSpec &copy)
+{
+  port=copy.port;
+  flagsBitmap = copy.flagsBitmap;
+  setCharArray(&delimiters,copy.delimiters);
+  setCharArray(&maskOuts,copy.maskOuts);
+}
+
+WiFiServerSpec& WiFiServerSpec::operator=(const WiFiServerSpec &copy)
+{
+  if(this != &copy)
+  {
+    port=copy.port;
+    flagsBitmap = copy.flagsBitmap;
+    setCharArray(&delimiters,copy.delimiters);
+    setCharArray(&maskOuts,copy.maskOuts);
+  }
+  return *this;
+}
+
 WiFiServerNode::WiFiServerNode(int newport, int flagsBitmap)
 {
   id=++WiFiNextClientId;
   port=newport;
-  setCharArray(&delimiters,"");
-  setCharArray(&maskOuts,"");
   this->flagsBitmap = flagsBitmap;
   server = new WiFiServer(newport);
   //BZ:server->setNoDelay(DEFAULT_NO_DELAY);
@@ -53,8 +83,6 @@ WiFiServerNode::~WiFiServerNode()
     if(last != null)
       last->next = next;
   }
-  freeCharArray(&delimiters);
-  freeCharArray(&maskOuts);
 }
 
 bool WiFiServerNode::hasClient()
@@ -64,7 +92,7 @@ bool WiFiServerNode::hasClient()
   return false;
 }
 
-bool WiFiServerNode::ReadWiFiServer(File &f, WiFiServerNode &node)
+bool WiFiServerNode::ReadWiFiServer(File &f, WiFiServerSpec &node)
 {
   if(f.available()>0)
   {
@@ -151,22 +179,15 @@ void WiFiServerNode::SaveWiFiServers()
   {
     File f = SPIFFS.open("/zlisteners.txt", "r");
     bool fail=false;
-    WiFiServerNode *snode = (WiFiServerNode *)malloc(sizeof(WiFiServerNode));
-    memset(snode,0,sizeof(WiFiServerNode));
     while(f.available()>0)
     {
-      freeCharArray(&(snode->delimiters));
-      freeCharArray(&(snode->maskOuts));
-      memset(snode,0,sizeof(WiFiServerNode));
-      if(!ReadWiFiServer(f,*snode))
+      WiFiServerSpec snode;
+      if(!ReadWiFiServer(f,snode))
       {
         fail=true;
         break;
       }
     }
-    freeCharArray(&(snode->delimiters));
-    freeCharArray(&(snode->maskOuts));
-    free(snode);
     f.close();
     if(fail)
     {
@@ -176,20 +197,38 @@ void WiFiServerNode::SaveWiFiServers()
   }
 }
 
+void WiFiServerNode::DestroyAllServers()
+{
+  while(servs != null)
+  {
+    WiFiServerNode *s=servs;
+    delete s;
+  }
+}
+
+WiFiServerNode *WiFiServerNode::FindServer(int port)
+{
+  WiFiServerNode *s=servs;
+  while(s != null)
+  {
+    if(s->port == port)
+      return s;
+    s=s->next;
+  }
+  return null;
+}
+
+
 void WiFiServerNode::RestoreWiFiServers()
 {
   if(SPIFFS.exists("/zlisteners.txt"))
   {
     File f = SPIFFS.open("/zlisteners.txt", "r");
     bool fail=false;
-    WiFiServerNode *snode = (WiFiServerNode *)malloc(sizeof(WiFiServerNode));
-    memset(snode,0,sizeof(WiFiServerNode));
     while(f.available()>0)
     {
-      freeCharArray(&(snode->delimiters));
-      freeCharArray(&(snode->maskOuts));
-      memset(snode,0,sizeof(WiFiServerNode));
-      if(!ReadWiFiServer(f,*snode))
+      WiFiServerSpec snode;
+      if(!ReadWiFiServer(f,snode))
       {
         debugPrintf("Server: FAIL\n");
         fail=true;
@@ -198,23 +237,20 @@ void WiFiServerNode::RestoreWiFiServers()
       WiFiServerNode *s=servs;
       while(s != null)
       {
-        if(s->port == snode->port)
+        if(s->port == snode.port)
           break;
         s=s->next;
       }
       if(s==null)
       {
-        WiFiServerNode *node = new WiFiServerNode(snode->port, snode->flagsBitmap);
-        setCharArray(&node->delimiters,snode->delimiters);
-        setCharArray(&node->maskOuts,snode->maskOuts);
+        WiFiServerNode *node = new WiFiServerNode(snode.port, snode.flagsBitmap);
+        setCharArray(&node->delimiters,snode.delimiters);
+        setCharArray(&node->maskOuts,snode.maskOuts);
         debugPrintf("Server: %d, %d: '%s' '%s'\n",node->port,node->flagsBitmap,node->delimiters,node->maskOuts);
       }
       else
-        debugPrintf("Server: DUP %d\n",snode->port);
+        debugPrintf("Server: DUP %d\n",snode.port);
     }
-    freeCharArray(&(snode->delimiters));
-    freeCharArray(&(snode->maskOuts));
-    free(snode);
     f.close();
   }
 }

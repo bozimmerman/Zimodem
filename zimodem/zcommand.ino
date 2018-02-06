@@ -62,30 +62,6 @@ byte ZCommand::CRC8(const byte *data, byte len)
   return crc;
 }
 
-int ZCommand::makeStreamFlagsBitmap(const char *dmodifiers, boolean forceFlowControl)
-{
-    int flagsBitmap = 0;
-    if((strchr(dmodifiers,'p')!=null) || (strchr(dmodifiers,'P')!=null))
-      flagsBitmap = flagsBitmap | FLAG_PETSCII;
-    if((strchr(dmodifiers,'t')!=null) || (strchr(dmodifiers,'T')!=null))
-      flagsBitmap = flagsBitmap | FLAG_TELNET;
-    if((strchr(dmodifiers,'e')!=null) || (strchr(dmodifiers,'E')!=null))
-      flagsBitmap = flagsBitmap | FLAG_ECHO;
-    if((strchr(dmodifiers,'x')!=null) || (strchr(dmodifiers,'X')!=null))
-      flagsBitmap = flagsBitmap | FLAG_XONXOFF;
-    if((strchr(dmodifiers,'r')!=null) || (strchr(dmodifiers,'R')!=null))
-      flagsBitmap = flagsBitmap | FLAG_RTSCTS;
-    if((strchr(dmodifiers,'s')!=null) || (strchr(dmodifiers,'S')!=null))
-      flagsBitmap = flagsBitmap | FLAG_SECURE;
-    if(forceFlowControl)
-    {
-      if(((flagsBitmap & (FLAG_XONXOFF | FLAG_RTSCTS))==0)
-      &&(serial.getFlowControlType()==FCT_RTSCTS))
-        flagsBitmap |= FLAG_RTSCTS;
-    }
-    return flagsBitmap;
-}  
-
 void ZCommand::setConfigDefaults()
 {
   doEcho=true;
@@ -174,11 +150,7 @@ ZResult ZCommand::doResetCommand()
   }
   current = null;
   nextConn = null;
-  while(servs != null)
-  {
-    WiFiServerNode *s=servs;
-    delete s;
-  }
+  WiFiServerNode::DestroyAllServers();
   setConfigDefaults();
   String argv[CFG_LAST+1];
   parseConfigOptions(argv);
@@ -206,11 +178,7 @@ ZResult ZCommand::doNoListenCommand()
     c=c2;
   }
   */
-  while(servs != null)
-  {
-    WiFiServerNode *s=servs;
-    delete s;
-  }
+  WiFiServerNode::DestroyAllServers();
   return ZOK;
 }
 
@@ -752,7 +720,8 @@ ZResult ZCommand::doConnectCommand(int vval, uint8_t *vbuf, int vlen, bool isNum
       (*colon)=0;
       port=atoi((char *)(++colon));
     }
-    int flagsBitmap = makeStreamFlagsBitmap(dmodifiers, true);
+    ConnSettings flags(dmodifiers);
+    int flagsBitmap = flags.getBitmap(serial.getFlowControlType());
     logPrintfln("Connnecting: %s %d %d",(char *)vbuf,port,flagsBitmap);
     WiFiClientNode *c = new WiFiClientNode((char *)vbuf,port,flagsBitmap);
     if(!c->isConnected())
@@ -1347,7 +1316,8 @@ ZResult ZCommand::doDialStreamCommand(unsigned long vval, uint8_t *vbuf, int vle
   }
   else
   {
-    int flagsBitmap = makeStreamFlagsBitmap(dmodifiers, true);
+    ConnSettings flags(dmodifiers);
+    int flagsBitmap = flags.getBitmap(serial.getFlowControlType());
     char *colon=strstr((char *)vbuf,":");
     int port=23;
     if(colon != null)
@@ -1491,7 +1461,8 @@ ZResult ZCommand::doAnswerCommand(int vval, uint8_t *vbuf, int vlen, bool isNumb
   }
   else
   {
-    int flagsBitmap = makeStreamFlagsBitmap(dmodifiers, true);
+    ConnSettings flags(dmodifiers);
+    int flagsBitmap = flags.getBitmap(serial.getFlowControlType());
     WiFiServerNode *s=servs;
     while(s != null)
     {

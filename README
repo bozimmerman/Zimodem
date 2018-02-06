@@ -10,10 +10,10 @@ The default baud rate that the firmware establishes is 1200.  Be sure to use the
 
 Building:
 ---------
-To build this firmware for the ESP-01 or ESP-12, I used the Arduino IDE rev1.6.11 with the Arduino Generic ESP8266 Module installed from the head dev at https://github.com/esp8266/Arduino.  Using that version of the library not the official Boards Manager distribution (via Additional Boards Manager URL http://arduino.esp8266.com/stable/package_esp8266com_index.json) was important to resolving several problems (specifically 300ms/byte socket write times).  How you get there from here was tricky.  I followed the standard instructions for installing an ESP board, found where it dropped the package (on Windows 10, it was in:c:\users\<myname>\AppData\Local\Arduino15\packages\esp8266\hardware\esp8266\... I dropped the new stuff from github in there instead of the old stuff, and then went into the new "tools" directory and ran get.py.
+To build this firmware for the ESP-01 or ESP-12, I used the Arduino IDE rev1.6.11 with the Arduino Generic ESP8266 Module installed from the head dev at https://github.com/esp8266/Arduino.  Using that version of the library not the official Boards Manager distribution (via Additional Boards Manager URL http://arduino.esp8266.com/stable/package_esp8266com_index.json) was important to resolving several problems (specifically 300ms/byte socket write times).  How you get there from here was tricky.  I followed the standard instructions for installing an ESP board, found where it dropped the package (on Windows 10, it was in:c:\users\<myname>\AppData\Local\Arduino15\packages\esp8266\hardware\esp8266\... I dropped the new stuff from github in there instead of the old stuff, and then went into the new "tools" directory and ran get.py. ** 
 
-To build this firmware for the ESP-32, I also used the Arduino IDE rev 1.6.11 with the Arduino ESP32 Dev Module installed from the head dev at https://github.com/espressif/arduino-esp32, with the following settings: QIO, 4MB, 80MHZ, 921600, NONE, Avrisp Mk II .  I found that baud changing corrupts the serial bus as of 1/13/2018, so the following changes were made to the base libraries: 
-* Added to esp32-hal-uart.c:
+To build this firmware for the ESP-32, I also used the Arduino IDE rev 1.6.11 with the Arduino ESP32 Dev Module installed from the head dev at https://github.com/espressif/arduino-esp32, with the following settings: QIO, 4MB, 80MHZ, 921600, NONE, Avrisp Mk II **.  I found that baud changing corrupts the serial bus as of 1/13/2018, so the following changes were made to the base libraries: 
+> Added to esp32-hal-uart.c:
 void uartChangeBaudRate(uint8_t uart_nr, uint32_t baudrate)
 { 
 	uartSetBaudRate(&_uart_bus_array[uart_nr], baudrate); 
@@ -32,15 +32,17 @@ void uartChangeConfig(uint8_t uart_nr, uint32_t config)
     }
     UART_MUTEX_UNLOCK();
 }
-* Added to esp32-hal-uart.h:
+> Added to esp32-hal-uart.h:
 void uartChangeBaudRate(uint8_t uart_nr, uint32_t baudrate);
 void uartChangeConfig(uint8_t uart_nr, uint32_t config);
-* Added to HardwareSerial.cpp:
+> Added to HardwareSerial.cpp:
 void HardwareSerial::changeBaudRate(int baudRate) { uartChangeBaudRate(_uart_nr, baudRate); }
 void HardwareSerial::changeConfig(uint32_t config) { uartChangeConfig(_uart_nr, config); }
-* Added to HardwareSerial.h:
+> Added to HardwareSerial.h:
 void changeBaudRate(int baudRate);
 void changeConfig(uint32_t config);
+
+** Both versions of the firmware are built with SPIFFS enabled.
 
 Using:
 ------
@@ -58,7 +60,7 @@ If you are using a Commodore Graphics terminal program and want to connect to a 
 
 If you want to use Q-Link, you need to add a phone number alias first.  To do this, enter ATP"5551212=q-link.net:5190" or enter it from the config menu AT+CONFIG. From the C64 Q-Link client, select "Hayes compatible" 1200 baud modem when prompted.
 
-If you want to run a Commodore BBS program using the modem, you'll want to configure the BBS program to the same idle baud rate that your modem is using (1200 baud by default), configure it for a Hayes style modem (or the C=1670), and use an initialization string of "ATR0E0S0=1S41=1A6400" plus any other recommended settings from the BBS program. This creates a listener at port 6400 that switches directly to stream mode on the first ring, with no linefeed carriage returns, and no keystroke echo.  Your BBS program may require you add certain other settings, such as V0 or X1.. which you should also do.
+If you want to run a Commodore BBS program using the modem, you'll want to configure the BBS program to the same idle baud rate that your modem is using (1200 baud by default), configure it for a Hayes style modem (or the C=1670), and either create a persistant listener using AT+CONFIG, or use an initialization string of "ATR0E0S0=1S41=1A6400" plus any other recommended settings from the BBS program. This creates a listener at port 6400 that switches directly to stream mode on the first ring, with no linefeed carriage returns, and no keystroke echo.  Your BBS program may require you add certain other settings, such as V0 or X1.. which you should also do.
 
 ESP32 Guru Modem users with SD-cards can enter AT+SHELL to get a shell command prompt.  Enter ? to get a list of shell commands.
 
