@@ -168,13 +168,19 @@ ATS42=n : Set the CRC8 for an attached Transmit command.  e.g. ATS42=123T"[MESSA
 ATS43=n : Sets a standby baud rate n for the next incoming or outgoing connection only.  ATZ clears.
 ATS44=n : Sets an automatic delay of n milliseconds after most bytes written to the Serial port.  This is for computers that support a baud rate, but can't really keep up, and you don't want to use flow control.
 ATS45=n : Changes how packet and at&g data is delivered.  0 is normal binary with normal headers, 1 is 78 char HEX digit streams followed by EOLN with hex digit headers, 2 is decimal digits followed by EOLN, with decimal digit headers.
-ATS46=n : Changes DCD status. n=0 is default DCD=HIGH=online. n=1 is DCD=LOW=online
-ATS47=n : Changes CTS status. n=0 is default CTS=HIGH=active. n=1 is CTS=LOW=active
-ATS48=n : Changes RTS status. n=0 is default RTS=HIGH=active. n=1 is RTS=LOW=active (N/A on ESP01)
-ATS49=n : Changes DCD pin number, n=2 is default
-ATS50=n : Changes CTS pin number, n=0 is default on ESP01, and default is 5 otherwise
+ATS46=n : Changes DCD status. n=0 is default DCD=HIGH=online. n=1 is DCD=LOW=online. n=2 always HIGH. n=3 always LOW.
+ATS47=n : Changes DCD pin number, n=2 is default
+ATS48=n : Changes CTS status. n=0 is default CTS=HIGH=active. n=1 is CTS=LOW=active. n=2 always HIGH. n=3 always LOW.
+ATS49=n : Changes CTS pin number, n=0 is default on ESP01, and default is 5 otherwise
+ATS50=n : Changes RTS status. n=0 is default RTS=HIGH=active. n=1 is RTS=LOW=active. n=2 always HIGH. n=3 always LOW. (N/A on ESP01)
 ATS51=n : Changes RTS pin number, n=4 is default (N/A on ESP01)
-ATS52=n : When n > 0, immediately saves existing listeners and automatically restores them later. n=0 to clear.
+ATS52=n : Changes RI status. n=0 is default RI=HIGH=active. n=1 is RTS=LOW=active. n=2 always HIGH. n=3 always LOW. (N/A on ESP01)
+ATS53=n : Changes RI pin number, n=14 is default (N/A on ESP01)
+ATS54=n : Changes DTR status. n=0 is default DTR=HIGH=active. n=1 is RTS=LOW=active. n=2 always HIGH. n=3 always LOW. (N/A on ESP01)
+ATS55=n : Changes DTR pin number, n=12 is default (N/A on ESP01)
+ATS56=n : Changes DSR status. n=0 is default DSR=HIGH=active. n=1 is RTS=LOW=active. n=2 always HIGH. n=3 always LOW. (N/A on ESP01)
+ATS57=n : Changes DSR pin number, n=13 is default (N/A on ESP01)
+ATS60=n : When n > 0, immediately saves existing listeners and automatically restores them later. n=0 to clear.
 +++ : With a 1 second pause with no other characters afterwards, this will disconnect the current opened connection.
 
 ATT"[MESSAGE]" : Transmit the given text string, with \r\n at the end, on the current connection.

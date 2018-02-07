@@ -187,20 +187,81 @@ FlowControlType ZCommand::getFlowControlType()
   return serial.getFlowControlType();
 }
 
+int pinModeCoder(int activeChk, int inactiveChk, int activeDefault)
+{
+  if(activeChk == activeDefault)
+  {
+    if(inactiveChk == activeDefault)
+      return 2;
+    return 0;
+  }
+  else
+  {
+    if(inactiveChk != activeDefault)
+      return 3;
+    return 1;
+  }
+}
+
+void pinModeDecoder(int mode, int *active, int *inactive, int activeDef, int inactiveDef)
+{
+  switch(mode)
+  {
+  case 0:
+    *active = activeDef;
+    *inactive = inactiveDef;
+    break;
+  case 1:
+    *inactive = activeDef;
+    *active = inactiveDef;
+    break;
+  case 2:
+    *active = activeDef;
+    *inactive = activeDef;
+    break;
+  case 3:
+    *active = inactiveDef;
+    *inactive = inactiveDef;
+    break;
+  default:
+    *active = activeDef;
+    *inactive = inactiveDef;
+    break;
+  }
+}
+
+void pinModeDecoder(String newMode, int *active, int *inactive, int activeDef, int inactiveDef)
+{
+  if(newMode.length()>0)
+  {
+    int mode = atoi(newMode.c_str());
+    pinModeDecoder(mode,active,inactive,activeDef,inactiveDef);
+  }
+}
+
 void ZCommand::reSaveConfig()
 {
   SPIFFS.remove("/zconfig.txt");
   delay(500);
   File f = SPIFFS.open("/zconfig.txt", "w");
   const char *eoln = EOLN.c_str();
-  int dcdMode = (dcdActive == DEFAULT_DCD_HIGH) ? 0 : 1;
-  int ctsMode = (ctsActive == DEFAULT_CTS_HIGH) ? 0 : 1;
-  int rtsMode = (rtsActive == DEFAULT_RTS_HIGH) ? 0 : 1;
-  f.printf("%s,%s,%d,%s,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d", 
+  int dcdMode = pinModeCoder(dcdActive, dcdInactive, DEFAULT_DCD_HIGH);
+  int ctsMode = pinModeCoder(ctsActive, ctsInactive, DEFAULT_CTS_HIGH);
+  int rtsMode = pinModeCoder(rtsActive, rtsInactive, DEFAULT_RTS_HIGH);
+  int riMode = pinModeCoder(riActive, riInactive, DEFAULT_RTS_HIGH);
+  int dtrMode = pinModeCoder(dtrActive, dtrInactive, DEFAULT_DTR_HIGH);
+  int dsrMode = pinModeCoder(dsrActive, dsrInactive, DEFAULT_DSR_HIGH);
+  f.printf("%s,%s,%d,%s,"
+           "%d,%d,%d,%d,"
+           "%d,%d,%d,%d,%d,"
+           "%d,%d,%d,%d,%d,%d,%d,"
+           "%d,%d,%d,%d,%d,%d", 
             wifiSSI.c_str(), wifiPW.c_str(), baudRate, eoln,
             serial.getFlowControlType(), doEcho, suppressResponses, numericResponses,
             longResponses, serial.isPetsciiMode(), dcdMode, serialConfig, ctsMode,
-            rtsMode,pinDCD,pinCTS,pinRTS,autoStreamMode,ringCounter,preserveListeners);
+            rtsMode,pinDCD,pinCTS,pinRTS,autoStreamMode,ringCounter,preserveListeners,
+            riMode,dtrMode,dsrMode,pinRI,pinDTR,pinDSR
+            );
   f.close();
   delay(500);
   if(SPIFFS.exists("/zconfig.txt"))
@@ -255,48 +316,12 @@ void ZCommand::setBaseConfigOptions(String configArguments[])
     longResponses = atoi(configArguments[CFG_RESP_LONG].c_str());
   if(configArguments[CFG_PETSCIIMODE].length()>0)
     serial.setPetsciiMode(atoi(configArguments[CFG_PETSCIIMODE].c_str()));
-  if(configArguments[CFG_DCDMODE].length()>0)
-  {
-    int dcdMode = atoi(configArguments[CFG_DCDMODE].c_str());
-    if(dcdMode == 1)
-    {
-      dcdActive=LOW;
-      dcdInactive=HIGH;
-    }
-    else
-    {
-      dcdActive=HIGH;
-      dcdInactive=LOW;
-    }
-  }
-  if(configArguments[CFG_CTSMODE].length()>0)
-  {
-    int cstMode = atoi(configArguments[CFG_CTSMODE].c_str());
-    if(cstMode == 1)
-    {
-      ctsActive=LOW;
-      ctsInactive=HIGH;
-    }
-    else
-    {
-      ctsActive=HIGH;
-      ctsInactive=LOW;
-    }
-  }
-  if(configArguments[CFG_RTSMODE].length()>0)
-  {
-    int rstMode = atoi(configArguments[CFG_RTSMODE].c_str());
-    if(rstMode == 1)
-    {
-      rtsActive=LOW;
-      rtsInactive=HIGH;
-    }
-    else
-    {
-      rtsActive=HIGH;
-      rtsInactive=LOW;
-    }
-  }
+  pinModeDecoder(configArguments[CFG_DCDMODE],&dcdActive,&dcdInactive,DEFAULT_DCD_HIGH,DEFAULT_DCD_LOW);
+  pinModeDecoder(configArguments[CFG_CTSMODE],&ctsActive,&ctsInactive,DEFAULT_CTS_HIGH,DEFAULT_CTS_LOW);
+  pinModeDecoder(configArguments[CFG_RTSMODE],&rtsActive,&rtsInactive,DEFAULT_RTS_HIGH,DEFAULT_RTS_LOW);
+  pinModeDecoder(configArguments[CFG_RIMODE],&riActive,&riInactive,DEFAULT_RI_HIGH,DEFAULT_RI_LOW);
+  pinModeDecoder(configArguments[CFG_DTRMODE],&dtrActive,&dtrInactive,DEFAULT_DTR_HIGH,DEFAULT_DTR_LOW);
+  pinModeDecoder(configArguments[CFG_DSRMODE],&dsrActive,&dsrInactive,DEFAULT_DSR_HIGH,DEFAULT_DSR_LOW);
   if(configArguments[CFG_DCDPIN].length()>0)
   {
     pinDCD = atoi(configArguments[CFG_DCDPIN].c_str());
@@ -320,6 +345,28 @@ void ZCommand::setBaseConfigOptions(String configArguments[])
     if(pinSupport[pinRTS])
       digitalWrite(pinRTS,rtsActive);
   }
+  if(configArguments[CFG_RIPIN].length()>0)
+  {
+    pinRI = atoi(configArguments[CFG_RIPIN].c_str());
+    if(pinSupport[pinRI])
+      pinMode(pinRI,OUTPUT);
+    if(pinSupport[pinRI])
+      digitalWrite(pinRI,riInactive);
+  }
+  if(configArguments[CFG_DTRPIN].length()>0)
+  {
+    pinDTR = atoi(configArguments[CFG_DTRPIN].c_str());
+    if(pinSupport[pinDTR])
+      pinMode(pinDTR,INPUT);
+  }
+  if(configArguments[CFG_DSRPIN].length()>0)
+  {
+    pinDSR = atoi(configArguments[CFG_DSRPIN].c_str());
+    if(pinSupport[pinDSR])
+      pinMode(pinDSR,OUTPUT);
+    if(pinSupport[pinDSR])
+      digitalWrite(pinDSR,dsrActive);
+  }
   if(configArguments[CFG_S0_RINGS].length()>0)
   {
     ringCounter = atoi(configArguments[CFG_S0_RINGS].c_str());
@@ -328,9 +375,9 @@ void ZCommand::setBaseConfigOptions(String configArguments[])
   {
     autoStreamMode = atoi(configArguments[CFG_S41_STREAM].c_str());
   }
-  if(configArguments[CFG_S52_LISTEN].length()>0)
+  if(configArguments[CFG_S60_LISTEN].length()>0)
   {
-    preserveListeners = atoi(configArguments[CFG_S52_LISTEN].c_str());
+    preserveListeners = atoi(configArguments[CFG_S60_LISTEN].c_str());
     if(preserveListeners)
       WiFiServerNode::RestoreWiFiServers();
   }
@@ -514,18 +561,30 @@ ZResult ZCommand::doInfoCommand(int vval, uint8_t *vbuf, int vlen, bool isNumber
     }
     if((dcdActive != DEFAULT_DCD_HIGH)||(showAll))
       serial.prints("S46=1");
-    if((ctsActive != DEFAULT_CTS_HIGH)||(showAll))
-      serial.prints("S47=1");
-    if((rtsActive != DEFAULT_RTS_HIGH)||(showAll))
-      serial.prints("S48=1");
     if((pinDCD != DEFAULT_PIN_DCD)||(showAll))
-      serial.prints("S49=1");
+      serial.prints("S47=1");
+    if((ctsActive != DEFAULT_CTS_HIGH)||(showAll))
+      serial.prints("S48=1");
     if((pinCTS != getDefaultCtsPin())||(showAll))
+      serial.prints("S49=1");
+    if((rtsActive != DEFAULT_RTS_HIGH)||(showAll))
       serial.prints("S50=1");
     if((pinRTS != DEFAULT_PIN_RTS)||(showAll))
       serial.prints("S51=1");
+    if((riActive != DEFAULT_RI_HIGH)||(showAll))
+      serial.prints("S52=1");
+    if((pinRI != DEFAULT_PIN_RI)||(showAll))
+      serial.prints("S53=1");
+    if((dtrActive != DEFAULT_DTR_HIGH)||(showAll))
+      serial.prints("S54=1");
+    if((pinDTR != DEFAULT_PIN_DTR)||(showAll))
+      serial.prints("S55=1");
+    if((dsrActive != DEFAULT_DSR_HIGH)||(showAll))
+      serial.prints("S56=1");
+    if((pinDSR != DEFAULT_PIN_DSR)||(showAll))
+      serial.prints("S57=1");
     if(preserveListeners ||(showAll))
-      serial.prints(preserveListeners ? "S52=1" : "S52=0");
+      serial.prints(preserveListeners ? "S60=1" : "S60=0");
     if((serial.isPetsciiMode())||(showAll))
       serial.prints(serial.isPetsciiMode() ? "&P1" : "&P0");
     if(logFileOpen || showAll)
@@ -2011,52 +2070,25 @@ ZResult ZCommand::doSerialCommand()
                  result=ZERROR;
                break;
              case 46:
-               if(sval <=0)
-               {
-                 dcdActive = HIGH;
-                 dcdInactive = LOW;
-               }
-               else
-               {
-                 dcdActive = LOW;
-                 dcdInactive = HIGH;
-               }
+               pinModeDecoder(sval,&dcdActive,&dcdInactive,DEFAULT_DCD_HIGH,DEFAULT_DCD_LOW);
                break;
              case 47:
-               if(sval <=0)
-               {
-                 ctsActive = HIGH;
-                 ctsInactive = LOW;
-               }
-               else
-               {
-                 ctsActive = LOW;
-                 ctsInactive = HIGH;
-               }
-               break;
-             case 48:
-               if(sval <=0)
-               {
-                 rtsActive = HIGH;
-                 rtsInactive = LOW;
-               }
-               else
-               {
-                 rtsActive = LOW;
-                 rtsInactive = HIGH;
-               }
-               break;
-             case 49:
                if(sval >= 0)
                  pinDCD=sval;
                else
                  result=ZERROR;
                break;
-             case 50:
+             case 48:
+               pinModeDecoder(sval,&ctsActive,&ctsInactive,DEFAULT_CTS_HIGH,DEFAULT_CTS_LOW);
+               break;
+             case 49:
                if(sval >= 0)
                  pinCTS=sval;
                else
                  result=ZERROR;
+               break;
+             case 50:
+               pinModeDecoder(sval,&rtsActive,&rtsInactive,DEFAULT_RTS_HIGH,DEFAULT_RTS_LOW);
                break;
              case 51:
                if(sval >= 0)
@@ -2065,6 +2097,33 @@ ZResult ZCommand::doSerialCommand()
                  result=ZERROR;
                break;
              case 52:
+               pinModeDecoder(sval,&riActive,&riInactive,DEFAULT_RI_HIGH,DEFAULT_RI_LOW);
+               break;
+             case 53:
+               if(sval >= 0)
+                 pinRI=sval;
+               else
+                 result=ZERROR;
+               break;
+             case 54:
+               pinModeDecoder(sval,&dtrActive,&dtrInactive,DEFAULT_DTR_HIGH,DEFAULT_DTR_LOW);
+               break;
+             case 55:
+               if(sval >= 0)
+                 pinDTR=sval;
+               else
+                 result=ZERROR;
+               break;
+             case 56:
+               pinModeDecoder(sval,&dsrActive,&dsrInactive,DEFAULT_DSR_HIGH,DEFAULT_DSR_LOW);
+               break;
+             case 57:
+               if(sval >= 0)
+                 pinDSR=sval;
+               else
+                 result=ZERROR;
+               break;
+             case 60:
                if(sval >= 0)
                {
                  preserveListeners=(sval != 0);
@@ -2839,8 +2898,6 @@ void ZCommand::acceptNewConnection()
     serv=serv->next;
   }
 }
-
-static int lastPinRead = 0;
 
 void ZCommand::loop()
 {

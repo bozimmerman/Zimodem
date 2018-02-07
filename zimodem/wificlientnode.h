@@ -59,6 +59,7 @@ class WiFiClientNode : public Stream
     FlowControlType getFlowControl();
     bool isTelnet();
     bool isDisconnectedOnStreamExit();
+    void setDisconnectOnStreamExit(bool tf);
     size_t write(uint8_t c);
     size_t write(const uint8_t *buf, size_t size);
     int read();

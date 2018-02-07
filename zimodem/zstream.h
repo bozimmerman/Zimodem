@@ -22,6 +22,7 @@ class ZStream : public ZMode
     unsigned long currentExpiresTimeMs = 0;
     int plussesInARow=0;
     ZSerial serial;
+    int lastDTR=0;
     long nextAlarm = millis() + 5000;
     
     void switchBackToCommandMode(bool logout);

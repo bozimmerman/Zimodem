@@ -25,6 +25,8 @@ void ZStream::switchTo(WiFiClientNode *conn)
   serial.setFlowControlType(getFlowControl());
   currMode=&streamMode;
   checkBaudChange();
+  if(pinSupport[pinDTR])
+    lastDTR = digitalRead(pinDTR);
 }
 
 bool ZStream::isPETSCII()
@@ -154,6 +156,22 @@ void ZStream::loop()
     serv=serv->next;
   }
   
+  if(pinSupport[pinDTR])
+  {
+    if(lastDTR=dtrActive)
+    {
+      lastDTR = digitalRead(pinDTR);
+      if((lastDTR==dtrInactive)
+      &&(dtrInactive != dtrActive))
+      {
+        if(current != null)
+          current->setDisconnectOnStreamExit(true);
+        switchBackToCommandMode(true);
+      }
+    }
+    else
+      lastDTR = digitalRead(pinDTR);
+  }
   if((current==null)||(!current->isConnected()))
   {
     switchBackToCommandMode(true);

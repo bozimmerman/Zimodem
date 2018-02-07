@@ -602,7 +602,7 @@ void ZConfig::loop()
           serial.flush();
           delay(10);
         }
-        serial.printf("%sEnter number to connect, or ENTER:%s",EOLNC,EOLNC);
+        serial.printf("%sEnter number to connect, or ENTER: ",EOLNC);
         break;
       }
       case ZCFGMENU_WIFIPW:

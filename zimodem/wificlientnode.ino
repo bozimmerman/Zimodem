@@ -137,6 +137,15 @@ bool WiFiClientNode::isDisconnectedOnStreamExit()
   return (flagsBitmap & FLAG_DISCONNECT_ON_EXIT) == FLAG_DISCONNECT_ON_EXIT;
 }
 
+void WiFiClientNode::setDisconnectOnStreamExit(bool tf)
+{
+  if(tf)
+    flagsBitmap = flagsBitmap | FLAG_DISCONNECT_ON_EXIT;
+  else
+    flagsBitmap = flagsBitmap & ~FLAG_DISCONNECT_ON_EXIT;
+}
+
+
 int WiFiClientNode::read()
 {
   if(host == null)
