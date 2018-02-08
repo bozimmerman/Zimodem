@@ -2126,7 +2126,7 @@ ZResult ZCommand::doSerialCommand()
              case 56:
                pinModeDecoder(sval,&dsrActive,&dsrInactive,DEFAULT_DSR_HIGH,DEFAULT_DSR_LOW);
                if(pinSupport[pinDSR])
-                 digitalWrite(pinDSR,riActive);
+                 digitalWrite(pinDSR,dsrActive);
                break;
              case 57:
                if((sval >= 0) && (sval <= MAX_PIN_NO) && pinSupport[sval])
@@ -2134,7 +2134,7 @@ ZResult ZCommand::doSerialCommand()
                else
                  result=ZERROR;
                if(pinSupport[pinDSR])
-                 digitalWrite(pinDSR,riActive);
+                 digitalWrite(pinDSR,dsrActive);
                break;
              case 60:
                if(sval >= 0)
