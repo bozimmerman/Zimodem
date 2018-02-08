@@ -105,6 +105,7 @@ PhoneBookEntry *PhoneBookEntry::findPhonebookEntry(long number)
   {
     if(p->number == number)
       return p;
+    p=p->next;
   }
   return null;
 }
