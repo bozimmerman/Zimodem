@@ -71,6 +71,8 @@ The command set is as follows (not case sensitive):
 
 ATZ : closes all open socket connections (preserving the Access Point connection), stops all listeners, and resets the state of the Command processor to the saved configuration, preserving the current baud rate and wifi connection.
 
+A/ : Repeats the previous command
+
 ATI : re-shows the startup message, including wifi connection information.
 ATI0 : same as ATI
 ATI1 : Shows the current common variable settings, common 'S' registers.
@@ -81,7 +83,6 @@ ATI5 : Shows all the current variable settings, all 'S' registers.
 ATI6 : Shows the current mac address.
 
 ATA  : If a server listener has generated a RING, then ATA will switch the last rung connection to Stream mode (see ATD).
-ATA/ : Repeats the previous command (no idea why...)
 
 ATAn : Causes the modem to create a server listening on port n.  When a connection is received, the terminal will generate 1 or more RINGs according to the ATS0 register, followed by a normal CONNECT respose. At this point, all other commands related to connections may be used normally, unless ATS41 is > 0, in which case incoming connections are automatically sent to Stream mode as per ATD or ATA. Listeners are listed along with other connections using ATC0.
 ATAPn : Adding a P modifier causes all incoming connection input to be translated to PETSCII

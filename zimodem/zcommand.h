@@ -96,7 +96,6 @@ class ZCommand : public ZMode
     char *delimiters = NULL;
     char *maskOuts = NULL;
     String previousCommand = "";
-    String currentCommand = "";
     WiFiClientNode *nextConn=null;
     int lastPacketId = -1;
 

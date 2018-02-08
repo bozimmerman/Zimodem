@@ -1479,22 +1479,6 @@ ZResult ZCommand::doPhonebookCommand(unsigned long vval, uint8_t *vbuf, int vlen
 
 ZResult ZCommand::doAnswerCommand(int vval, uint8_t *vbuf, int vlen, bool isNumber, const char *dmodifiers)
 {
-  if((vlen == 1)&&(vbuf[0]=='/'))
-  {
-    if(previousCommand.length()==0)
-      return ZERROR;
-    else
-    if(previousCommand[previousCommand.length()-1] == '/')
-      return ZERROR;
-    else
-    {
-      strcpy((char *)nbuf,previousCommand.c_str());
-      eon=previousCommand.length();
-      doSerialCommand();
-      return ZIGNORE_SPECIAL;
-    }
-  }
-  else
   if(vval <= 0)
   {
       WiFiClientNode *c=conns;
@@ -1716,8 +1700,12 @@ bool ZCommand::readSerialStream()
           continue;
         }
         nbuf[eon++]=c;
-        if(eon>=MAX_COMMAND_SIZE)
+        if((eon>=MAX_COMMAND_SIZE)
+        ||((eon==2)&&(nbuf[1]=='/')&&lc(nbuf[0])=='a'))
+        {
+          eon--;
           crReceived=true;
+        }
       }
     }
   }
@@ -1747,6 +1735,13 @@ ZResult ZCommand::doSerialCommand()
   int len=eon;
   String sbuf = getNextSerialCommand();
 
+  if((sbuf.length()==2)
+  &&(lc(sbuf[0])=='a')
+  &&(sbuf[1]=='/'))
+  {
+    sbuf = previousCommand;
+    len=previousCommand.length();
+  }
   if(logFileOpen)
     logPrintfln("Command: %s",sbuf.c_str());
   
@@ -1756,8 +1751,10 @@ ZResult ZCommand::doSerialCommand()
   while((index<len-1)
   &&((lc(sbuf[index])!='a')||(lc(sbuf[index+1])!='t')))
   {
-      index++;
+    index++;
   }
+  
+  String saveCommand = (index < len) ? sbuf : previousCommand;
 
   if((index<len-1)
   &&(lc(sbuf[index])=='a')
@@ -2422,7 +2419,7 @@ ZResult ZCommand::doSerialCommand()
     freeCharArray(&tempMaskOuts);
   
     if(result != ZIGNORE_SPECIAL)
-      previousCommand = currentCommand;
+      previousCommand = saveCommand;
     if(suppressResponses)
     {
       if(result == ZERROR)
