@@ -236,17 +236,11 @@ static void changeSerialConfig(SerialConfig conf)
 
 static int checkOpenConnections()
 {
-  int num = 0;
-  WiFiClientNode *conn = conns;
-  while(conn != null)
-  {
-    if(conn->isConnected())
-      num++;
-    conn = conn->next;
-  }
+  int num=WiFiClientNode::getNumOpenWiFiConnections();
   if(num == 0)
   {
-    if(dcdStatus == dcdActive)
+    if((dcdStatus == dcdActive)
+    &&(dcdStatus != dcdInactive))
     {
       dcdStatus = dcdInactive;
       if(pinSupport[pinDCD])
@@ -259,7 +253,8 @@ static int checkOpenConnections()
   }
   else
   {
-    if(dcdStatus == dcdInactive)
+    if((dcdStatus == dcdInactive)
+    &&(dcdStatus != dcdActive))
     {
       dcdStatus = dcdActive;
       if(pinSupport[pinDCD])

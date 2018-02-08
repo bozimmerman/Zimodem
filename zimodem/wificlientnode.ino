@@ -255,3 +255,16 @@ size_t WiFiClientNode::write(uint8_t c)
   write(one,1);
 }
 
+int WiFiClientNode::getNumOpenWiFiConnections()
+{
+  int num = 0;
+  WiFiClientNode *conn = conns;
+  while(conn != null)
+  {
+    if(conn->isConnected())
+      num++;
+    conn = conn->next;
+  }
+  return num;
+}
+

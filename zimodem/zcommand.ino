@@ -328,9 +328,9 @@ void ZCommand::setBaseConfigOptions(String configArguments[])
     if(pinSupport[pinDCD])
       pinMode(pinDCD,OUTPUT);
     dcdStatus=dcdInactive;
-    if(pinSupport[pinDCD])
-      digitalWrite(pinDCD,dcdStatus);
   }
+  if(pinSupport[pinDCD])
+    digitalWrite(pinDCD,dcdStatus);
   if(configArguments[CFG_CTSPIN].length()>0)
   {
     pinCTS = atoi(configArguments[CFG_CTSPIN].c_str());
@@ -342,17 +342,17 @@ void ZCommand::setBaseConfigOptions(String configArguments[])
     pinRTS = atoi(configArguments[CFG_RTSPIN].c_str());
     if(pinSupport[pinRTS])
       pinMode(pinRTS,OUTPUT);
-    if(pinSupport[pinRTS])
-      digitalWrite(pinRTS,rtsActive);
   }
+  if(pinSupport[pinRTS])
+    digitalWrite(pinRTS,rtsActive);
   if(configArguments[CFG_RIPIN].length()>0)
   {
     pinRI = atoi(configArguments[CFG_RIPIN].c_str());
     if(pinSupport[pinRI])
       pinMode(pinRI,OUTPUT);
-    if(pinSupport[pinRI])
-      digitalWrite(pinRI,riInactive);
   }
+  if(pinSupport[pinRI])
+    digitalWrite(pinRI,riInactive);
   if(configArguments[CFG_DTRPIN].length()>0)
   {
     pinDTR = atoi(configArguments[CFG_DTRPIN].c_str());
@@ -364,17 +364,13 @@ void ZCommand::setBaseConfigOptions(String configArguments[])
     pinDSR = atoi(configArguments[CFG_DSRPIN].c_str());
     if(pinSupport[pinDSR])
       pinMode(pinDSR,OUTPUT);
-    if(pinSupport[pinDSR])
-      digitalWrite(pinDSR,dsrActive);
   }
+  if(pinSupport[pinDSR])
+    digitalWrite(pinDSR,dsrActive);
   if(configArguments[CFG_S0_RINGS].length()>0)
-  {
     ringCounter = atoi(configArguments[CFG_S0_RINGS].c_str());
-  }
   if(configArguments[CFG_S41_STREAM].length()>0)
-  {
     autoStreamMode = atoi(configArguments[CFG_S41_STREAM].c_str());
-  }
   if(configArguments[CFG_S60_LISTEN].length()>0)
   {
     preserveListeners = atoi(configArguments[CFG_S60_LISTEN].c_str());
@@ -559,30 +555,30 @@ ZResult ZCommand::doInfoCommand(int vval, uint8_t *vbuf, int vlen, bool isNumber
       serial.prints("S45=");
       serial.printi(binType);
     }
-    if((dcdActive != DEFAULT_DCD_HIGH)||(showAll))
-      serial.prints("S46=1");
+    if((dcdActive != DEFAULT_DCD_HIGH)||(dcdInactive == DEFAULT_DCD_HIGH)||(showAll))
+      serial.printf("S46=%d",pinModeCoder(dcdActive,dcdInactive,DEFAULT_DCD_HIGH));
     if((pinDCD != DEFAULT_PIN_DCD)||(showAll))
-      serial.prints("S47=1");
-    if((ctsActive != DEFAULT_CTS_HIGH)||(showAll))
-      serial.prints("S48=1");
+      serial.printf("S47=%d",pinDCD);
+    if((ctsActive != DEFAULT_CTS_HIGH)||(ctsInactive == DEFAULT_CTS_HIGH)||(showAll))
+      serial.printf("S48=%d",pinModeCoder(ctsActive,ctsInactive,DEFAULT_CTS_HIGH));
     if((pinCTS != getDefaultCtsPin())||(showAll))
-      serial.prints("S49=1");
-    if((rtsActive != DEFAULT_RTS_HIGH)||(showAll))
-      serial.prints("S50=1");
+      serial.printf("S49=%d",pinCTS);
+    if((rtsActive != DEFAULT_RTS_HIGH)||(rtsInactive == DEFAULT_RTS_HIGH)||(showAll))
+      serial.printf("S50=%d",pinModeCoder(rtsActive,rtsInactive,DEFAULT_RTS_HIGH));
     if((pinRTS != DEFAULT_PIN_RTS)||(showAll))
-      serial.prints("S51=1");
-    if((riActive != DEFAULT_RI_HIGH)||(showAll))
-      serial.prints("S52=1");
+      serial.printf("S51=%d",pinRTS);
+    if((riActive != DEFAULT_RI_HIGH)||(riInactive == DEFAULT_RI_HIGH)||(showAll))
+      serial.printf("S52=%d",pinModeCoder(riActive,riInactive,DEFAULT_RI_HIGH));
     if((pinRI != DEFAULT_PIN_RI)||(showAll))
-      serial.prints("S53=1");
-    if((dtrActive != DEFAULT_DTR_HIGH)||(showAll))
-      serial.prints("S54=1");
+      serial.printf("S53=%d",pinRI);
+    if((dtrActive != DEFAULT_DTR_HIGH)||(dtrInactive == DEFAULT_DTR_HIGH)||(showAll))
+      serial.printf("S54=%d",pinModeCoder(dtrActive,dtrInactive,DEFAULT_DTR_HIGH));
     if((pinDTR != DEFAULT_PIN_DTR)||(showAll))
-      serial.prints("S55=1");
-    if((dsrActive != DEFAULT_DSR_HIGH)||(showAll))
-      serial.prints("S56=1");
+      serial.printf("S55=%d",pinDTR);
+    if((dsrActive != DEFAULT_DSR_HIGH)||(dsrInactive == DEFAULT_DSR_HIGH)||(showAll))
+      serial.printf("S56=%d",pinModeCoder(dsrActive,dsrInactive,DEFAULT_DSR_HIGH));
     if((pinDSR != DEFAULT_PIN_DSR)||(showAll))
-      serial.prints("S57=1");
+      serial.printf("S57=%d",pinDSR);
     if(preserveListeners ||(showAll))
       serial.prints(preserveListeners ? "S60=1" : "S60=0");
     if((serial.isPetsciiMode())||(showAll))
@@ -2067,58 +2063,78 @@ ZResult ZCommand::doSerialCommand()
                  result=ZERROR;
                break;
              case 46:
+             {
+               bool wasActive=(dcdStatus==dcdActive);
                pinModeDecoder(sval,&dcdActive,&dcdInactive,DEFAULT_DCD_HIGH,DEFAULT_DCD_LOW);
+               dcdStatus = wasActive?dcdActive:dcdInactive;
+               if(pinSupport[pinDCD])
+                 digitalWrite(pinDCD,dcdStatus);
                break;
+             }
              case 47:
-               if(sval >= 0)
+               if((sval >= 0) && (sval <= MAX_PIN_NO) && pinSupport[sval])
                  pinDCD=sval;
                else
                  result=ZERROR;
+               if(pinSupport[pinDCD])
+                 digitalWrite(pinDCD,dcdStatus);
                break;
              case 48:
                pinModeDecoder(sval,&ctsActive,&ctsInactive,DEFAULT_CTS_HIGH,DEFAULT_CTS_LOW);
                break;
              case 49:
-               if(sval >= 0)
+               if((sval >= 0) && (sval <= MAX_PIN_NO) && pinSupport[sval])
                  pinCTS=sval;
                else
                  result=ZERROR;
                break;
              case 50:
                pinModeDecoder(sval,&rtsActive,&rtsInactive,DEFAULT_RTS_HIGH,DEFAULT_RTS_LOW);
+               if(pinSupport[pinRTS])
+                 digitalWrite(pinRTS,rtsActive);
                break;
              case 51:
-               if(sval >= 0)
+               if((sval >= 0) && (sval <= MAX_PIN_NO) && pinSupport[sval])
                  pinRTS=sval;
                else
                  result=ZERROR;
+               if(pinSupport[pinRTS])
+                 digitalWrite(pinRTS,rtsActive);
                break;
              case 52:
                pinModeDecoder(sval,&riActive,&riInactive,DEFAULT_RI_HIGH,DEFAULT_RI_LOW);
+               if(pinSupport[pinRI])
+                 digitalWrite(pinRI,riInactive);
                break;
              case 53:
-               if(sval >= 0)
+               if((sval >= 0) && (sval <= MAX_PIN_NO) && pinSupport[sval])
                  pinRI=sval;
                else
                  result=ZERROR;
+               if(pinSupport[pinRI])
+                 digitalWrite(pinRI,riInactive);
                break;
              case 54:
                pinModeDecoder(sval,&dtrActive,&dtrInactive,DEFAULT_DTR_HIGH,DEFAULT_DTR_LOW);
                break;
              case 55:
-               if(sval >= 0)
+               if((sval >= 0) && (sval <= MAX_PIN_NO) && pinSupport[sval])
                  pinDTR=sval;
                else
                  result=ZERROR;
                break;
              case 56:
                pinModeDecoder(sval,&dsrActive,&dsrInactive,DEFAULT_DSR_HIGH,DEFAULT_DSR_LOW);
+               if(pinSupport[pinDSR])
+                 digitalWrite(pinDSR,riActive);
                break;
              case 57:
-               if(sval >= 0)
+               if((sval >= 0) && (sval <= MAX_PIN_NO) && pinSupport[sval])
                  pinDSR=sval;
                else
                  result=ZERROR;
+               if(pinSupport[pinDSR])
+                 digitalWrite(pinDSR,riActive);
                break;
              case 60:
                if(sval >= 0)

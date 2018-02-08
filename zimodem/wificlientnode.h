@@ -67,6 +67,9 @@ class WiFiClientNode : public Stream
     void flush();
     int available();
     int read(uint8_t *buf, size_t size);
+
+
+    static int getNumOpenWiFiConnections();
 };
 
 
