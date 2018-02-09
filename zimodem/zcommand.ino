@@ -842,7 +842,7 @@ bool ZCommand::doWebGetStream(const char *hostIp, int port, const char *req, WiF
       continue;
       
     char ch = (char)c->read();
-    logSocketIn(ch);
+    //logSocketIn(ch); // this is NOT socket input!!
     if(ch == '\r')
       continue;
     else
@@ -902,7 +902,7 @@ bool ZCommand::doWebGet(const char *hostIp, int port, const char *filename, cons
     if(c->available()>=0)
     {
       uint8_t ch=c->read();
-      logSocketIn(ch);
+      //logSocketIn(ch); // this is ALSO not socket input!
       f.write(ch);
       respLength--;
     }
@@ -940,7 +940,7 @@ bool ZCommand::doWebGetBytes(const char *hostIp, int port, const char *req, cons
     if(c->available()>=0)
     {
       uint8_t ch=c->read();
-      logSocketIn(ch);
+      //logSocketIn(ch); // again, NOT SOCKET INPUT!
       buf[index++] = ch;
       respLength--;
     }
@@ -1164,7 +1164,8 @@ ZResult ZCommand::doUpdateFirmware(int vval, uint8_t *vbuf, int vlen, bool isNum
 
   serial.prints(".");
   serial.flush();
-  if(Update.writeStream(c) != respLength)
+  int writeBytes = Update.writeStream(c);
+  if(writeBytes != respLength)
   {
     serial.prints(EOLN);
     return ZERROR;
