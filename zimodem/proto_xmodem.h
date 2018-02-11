@@ -2,16 +2,13 @@
 
 class XModem 
 {
-  typedef enum {
+  typedef enum
+  {
     Crc,
     ChkSum  
   } transfer_t;
   
   private:
-    //delay when receive bytes in frame - 7 secs
-    static const int receiveDelay;
-    //retry limit when receiving
-    static const int rcvRetryLimit;
     //holds readed byte (due to dataAvail())
     int byte;
     //expected block number
@@ -44,11 +41,16 @@ class XModem
     unsigned char generateChkSum(void);
     
   public:
-    static const unsigned char NACK;
-    static const unsigned char ACK;
-    static const unsigned char SOH;
-    static const unsigned char EOT;
-    static const unsigned char CAN;
+    static const unsigned char NACK = 21;
+    static const unsigned char ACK =  6;
+
+    static const unsigned char SOH =  1;
+    static const unsigned char EOT =  4;
+    static const unsigned char CAN =  0x18;
+
+    static const int receiveDelay=7000;
+    static const int rcvRetryLimit = 10;
+
   
     XModem(int (*recvChar)(int), void (*sendChar)(char));
     XModem(int (*recvChar)(int), void (*sendChar)(char), 

@@ -1,12 +1,3 @@
-const unsigned char XModem::NACK = 21;
-const unsigned char XModem::ACK =  6;
-
-const unsigned char XModem::SOH =  1;
-const unsigned char XModem::EOT =  4;
-const unsigned char XModem::CAN =  0x18;
-
-const int XModem::receiveDelay=7000;
-const int XModem::rcvRetryLimit = 10;
 
 XModem::XModem(int (*recvChar)(int msDelay), void (*sendChar)(char sym))
 {
@@ -337,3 +328,5 @@ bool XModem::transmit()
   } 
   return false;
 }
+
+

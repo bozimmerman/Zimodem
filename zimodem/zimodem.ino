@@ -104,6 +104,7 @@ class ZMode
 #include "zcommand.h"
 #include "zconfigmode.h"
 #include "proto_xmodem.h"
+#include "proto_zmodem.h"
 #include "zbrowser.h"
 
 static WiFiClientNode *conns = null;
