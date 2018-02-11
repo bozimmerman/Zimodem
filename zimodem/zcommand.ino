@@ -2074,18 +2074,23 @@ ZResult ZCommand::doSerialCommand()
              }
              case 47:
                if((sval >= 0) && (sval <= MAX_PIN_NO) && pinSupport[sval])
+               {
                  pinDCD=sval;
+                 pinMode(pinDCD,OUTPUT);
+                 digitalWrite(pinDCD,dcdStatus);
+               }
                else
                  result=ZERROR;
-               if(pinSupport[pinDCD])
-                 digitalWrite(pinDCD,dcdStatus);
                break;
              case 48:
                pinModeDecoder(sval,&ctsActive,&ctsInactive,DEFAULT_CTS_HIGH,DEFAULT_CTS_LOW);
                break;
              case 49:
                if((sval >= 0) && (sval <= MAX_PIN_NO) && pinSupport[sval])
+               {
                  pinCTS=sval;
+                 pinMode(pinCTS,INPUT);
+               }
                else
                  result=ZERROR;
                break;
@@ -2096,11 +2101,13 @@ ZResult ZCommand::doSerialCommand()
                break;
              case 51:
                if((sval >= 0) && (sval <= MAX_PIN_NO) && pinSupport[sval])
+               {
                  pinRTS=sval;
+                 pinMode(pinRTS,OUTPUT);
+                 digitalWrite(pinRTS,rtsActive);
+               }
                else
                  result=ZERROR;
-               if(pinSupport[pinRTS])
-                 digitalWrite(pinRTS,rtsActive);
                break;
              case 52:
                pinModeDecoder(sval,&riActive,&riInactive,DEFAULT_RI_HIGH,DEFAULT_RI_LOW);
@@ -2109,18 +2116,23 @@ ZResult ZCommand::doSerialCommand()
                break;
              case 53:
                if((sval >= 0) && (sval <= MAX_PIN_NO) && pinSupport[sval])
+               {
                  pinRI=sval;
+                 pinMode(pinRI,OUTPUT);
+                 digitalWrite(pinRTS,riInactive);
+               }
                else
                  result=ZERROR;
-               if(pinSupport[pinRI])
-                 digitalWrite(pinRI,riInactive);
                break;
              case 54:
                pinModeDecoder(sval,&dtrActive,&dtrInactive,DEFAULT_DTR_HIGH,DEFAULT_DTR_LOW);
                break;
              case 55:
                if((sval >= 0) && (sval <= MAX_PIN_NO) && pinSupport[sval])
+               {
                  pinDTR=sval;
+                 pinMode(pinDTR,INPUT);
+               }
                else
                  result=ZERROR;
                break;
@@ -2131,11 +2143,13 @@ ZResult ZCommand::doSerialCommand()
                break;
              case 57:
                if((sval >= 0) && (sval <= MAX_PIN_NO) && pinSupport[sval])
+               {
                  pinDSR=sval;
+                 pinMode(pinDSR,OUTPUT);
+                 digitalWrite(pinDSR,dsrActive);
+               }
                else
                  result=ZERROR;
-               if(pinSupport[pinDSR])
-                 digitalWrite(pinDSR,dsrActive);
                break;
              case 60:
                if(sval >= 0)
