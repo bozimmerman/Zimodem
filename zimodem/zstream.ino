@@ -158,7 +158,7 @@ void ZStream::loop()
   
   if(pinSupport[pinDTR])
   {
-    if(lastDTR=dtrActive)
+    if(lastDTR==dtrActive)
     {
       lastDTR = digitalRead(pinDTR);
       if((lastDTR==dtrInactive)
