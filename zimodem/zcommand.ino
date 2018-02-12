@@ -2511,6 +2511,9 @@ void ZCommand::showInitMessage()
 #endif
   HWSerial.setTimeout(60000);
   serial.prints(ZIMODEM_VERSION);
+  serial.prints(" (");
+  serial.prints(compile_date);
+  serial.prints(")");
   serial.prints(commandMode.EOLN);
   char s[100];
 #ifdef ARDUINO_ESP32_DEV
