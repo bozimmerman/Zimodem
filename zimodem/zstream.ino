@@ -169,8 +169,7 @@ void ZStream::loop()
         switchBackToCommandMode(true);
       }
     }
-    else
-      lastDTR = digitalRead(pinDTR);
+    lastDTR = digitalRead(pinDTR);
   }
   if((current==null)||(!current->isConnected()))
   {
