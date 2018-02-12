@@ -41,4 +41,5 @@ static char *TOHEX(int a);
 static char *TOHEX(unsigned int a);
 static char *TOHEX(unsigned long a);
 static char *TOHEX(uint8_t a);
+static uint8_t FROMHEX(uint8_t a1, uint8_t a2);
 

@@ -24,6 +24,21 @@ static long lastLogTime = millis();
 static long logCurCount = 0;
 static LogMode logMode = NADA;
 
+static uint8_t FROMHEXDIGIT(uint8_t a1)
+{
+  a1 = lc(a1);
+  if((a1 >= '0')&&(a1 <= '9'))
+    return a1-'0';
+  if((a1 >= 'a')&&(a1 <= 'f'))
+    return 10 + (a1-'a');
+  return 0;
+}
+
+static uint8_t FROMHEX(uint8_t a1, uint8_t a2)
+{
+  return (FROMHEXDIGIT(a1) * 16) + FROMHEXDIGIT(a2);
+}
+
 static char *TOHEX(uint8_t a)
 {
   HD[0] = "0123456789ABCDEF"[(a >> 4) & 0x0f];
