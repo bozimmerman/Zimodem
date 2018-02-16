@@ -47,6 +47,14 @@ static char *TOHEX(uint8_t a)
   return HD;
 }
 
+static char *tohex(uint8_t a)
+{
+  HD[0] = "0123456789abcdef"[(a >> 4) & 0x0f];
+  HD[1] = "0123456789abcdef"[a & 0x0f];
+  HD[2] = 0;
+  return HD;
+}
+
 static char *TOHEX(unsigned long a)
 {
   for(int i=7;i>=0;i--)

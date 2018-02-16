@@ -13,18 +13,18 @@
    See the License for the specific language governing permissions and
    limitations under the License.
 */
-#ifdef ARDUINO_ESP32_DEV
-#include <WiFi.h>
-#define ENC_TYPE_NONE WIFI_AUTH_OPEN
-#include <HardwareSerial.h>
-#include <SPIFFS.h>
-#include <Update.h>
-#include "SD.h"
-#include "SPI.h"
-static HardwareSerial HWSerial(2);
+#ifdef ZIMODEM_ESP32
+# include <WiFi.h>
+# define ENC_TYPE_NONE WIFI_AUTH_OPEN
+# include <HardwareSerial.h>
+# include <SPIFFS.h>
+# include <Update.h>
+# include "SD.h"
+# include "SPI.h"
+  static HardwareSerial HWSerial(2);
 #else
-#include "ESP8266WiFi.h"
-#define HWSerial Serial
+# include "ESP8266WiFi.h"
+# define HWSerial Serial
 #endif
 
 #include <FS.h>

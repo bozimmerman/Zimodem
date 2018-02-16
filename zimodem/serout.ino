@@ -26,14 +26,14 @@ static void serialDirectWrite(uint8_t c)
 
 static void hwSerialFlush()
 {
-#ifndef ARDUINO_ESP32_DEV
+#ifdef ZIMODEM_ESP8266
   HWSerial.flush();
 #endif
 }
 
 static void serialOutDeque()
 {
-#ifdef ARDUINO_ESP32_DEV
+#ifdef ZIMODEM_ESP32
   if(TBUFhead != TBUFtail)
 #else
   if((TBUFhead != TBUFtail)

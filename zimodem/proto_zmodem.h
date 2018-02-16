@@ -14,11 +14,20 @@
    limitations under the License.
 */
 #include <FS.h>
-
+#ifndef FILE_READ
+#define FILE_READ "r"
+#endif
+#ifndef FILE_WRITE
+#define FILE_WRITE "r"
+#endif
+#ifndef FILE_APPEND
+#define FILE_APPEND "r"
+#endif
 class ZModem
 {
 private:
-  Stream *mdmIO = null;
+  Stream *mdmIn = null;
+  ZSerial *mdmOt = null;
 
   enum ZStatus
   {
@@ -51,48 +60,60 @@ private:
     ZHFORMAT_HEX
   };
 
-  const char ZMOCHAR_ZPAD ='*';
-  const char ZMOCHAR_ZDLE =0x18;
-  const char ZMOCHAR_ZDLEE = ZMOCHAR_ZDLE ^0x40;
-  const char ZMOCHAR_ZBIN ='A';
-  const char ZMOCHAR_ZHEX ='B';
-  const char ZMOCHAR_ZBIN32 ='C';
-  const char ZMOCHAR_ZCRCE ='h';
-  const char ZMOCHAR_ZCRCG ='i';
-  const char ZMOCHAR_ZCRCQ ='j';
-  const char ZMOCHAR_ZCRCW ='k';
-  const char ZMOCHAR_ZRUB0 ='l';
-  const char ZMOCHAR_ZRUB1 ='m';
-  const char ZMOCHAR_ZRQINIT =0;
-  const char ZMOCHAR_ZRINIT =1;
-  const char ZMOCHAR_ZSINIT =2;
-  const char ZMOCHAR_ZACK =3;
-  const char ZMOCHAR_ZFILE =4;
-  const char ZMOCHAR_ZSKIP =5;
-  const char ZMOCHAR_ZNAK =6;
-  const char ZMOCHAR_ZABORT =7;
-  const char ZMOCHAR_ZFIN =8;
-  const char ZMOCHAR_ZRPOS =9;
-  const char ZMOCHAR_ZDATA =10;
-  const char ZMOCHAR_ZEOF =11;
-  const char ZMOCHAR_ZFERR =12;
-  const char ZMOCHAR_ZCRC =13;
-  const char ZMOCHAR_ZCHALLENGE =14;
-  const char ZMOCHAR_ZCOMPL =15;
-  const char ZMOCHAR_ZCAN =16;
-  const char ZMOCHAR_ZFREECNT =17;
-  const char ZMOCHAR_ZCOMMAND =18;
-  const char ZMOCHAR_ZSTDERR =19;
+  static const char ZMOCHAR_ZPAD ='*';
+  static const char ZMOCHAR_ZDLE =0x18;
+  static const char ZMOCHAR_ZDLEE = ZMOCHAR_ZDLE ^0x40;
+  static const char ZMOCHAR_ZBIN ='A';
+  static const char ZMOCHAR_ZHEX ='B';
+  static const char ZMOCHAR_ZBIN32 ='C';
+  static const char ZMOCHAR_ZCRCE ='h';
+  static const char ZMOCHAR_ZCRCG ='i';
+  static const char ZMOCHAR_ZCRCQ ='j';
+  static const char ZMOCHAR_ZCRCW ='k';
+  static const char ZMOCHAR_ZRUB0 ='l';
+  static const char ZMOCHAR_ZRUB1 ='m';
+  static const char ZMOCHAR_ZRQINIT =0;
+  static const char ZMOCHAR_ZRINIT =1;
+  static const char ZMOCHAR_ZSINIT =2;
+  static const char ZMOCHAR_ZACK =3;
+  static const char ZMOCHAR_ZFILE =4;
+  static const char ZMOCHAR_ZSKIP =5;
+  static const char ZMOCHAR_ZNAK =6;
+  static const char ZMOCHAR_ZABORT =7;
+  static const char ZMOCHAR_ZFIN =8;
+  static const char ZMOCHAR_ZRPOS =9;
+  static const char ZMOCHAR_ZDATA =10;
+  static const char ZMOCHAR_ZEOF =11;
+  static const char ZMOCHAR_ZFERR =12;
+  static const char ZMOCHAR_ZCRC =13;
+  static const char ZMOCHAR_ZCHALLENGE =14;
+  static const char ZMOCHAR_ZCOMPL =15;
+  static const char ZMOCHAR_ZCAN =16;
+  static const char ZMOCHAR_ZFREECNT =17;
+  static const char ZMOCHAR_ZCOMMAND =18;
+  static const char ZMOCHAR_ZSTDERR =19;
 
-  const int ZMO_BUF_HINDEX_FMT=0;
-  const int ZMO_BUF_HINDEX_TYP=1;
-  const int ZMO_BUF_HINDEX_DAT=2;
+  static const int ZMO_BUF_HINDEX_FMT=0;
+  static const int ZMO_BUF_HINDEX_TYP=1;
+  static const int ZMO_BUF_HINDEX_DAT=2;
 
-  const int ZMO_BUF_DINDEX_TYP=0;
-  const int ZMO_BUF_DINDEX_DAT=1;
+  static const int ZMO_BUF_DINDEX_TYP=0;
+  static const int ZMO_BUF_DINDEX_DAT=1;
 
-  uint8_t readZModemByte(long timeout);
+  static const char ZMOPT_CANFDX =0x01;  /* Rx can send and receive true FDX */
+  static const char ZMOPT_CANOVIO=0x02;  /* Rx can receive data during disk I/O */
+  static const char ZMOPT_CANBRK =0x04;  /* Rx can send a break signal */
+  static const char ZMOPT_CANCRY =0x08;  /* Receiver can decrypt */
+  static const char ZMOPT_CANLZW =0x10;  /* Receiver can uncompress */
+  static const char ZMOPT_CANFC32=0x20;  /* Receiver can use 32 bit Frame Check */
+  static const char ZMOPT_ESCCTL =0x40;  /* Receiver expects ctl chars to be escaped */
+  static const char ZMOPT_ESC8   =0x80;  /* Receiver expects 8th bit to be escaped */
+  static const char ZMOPT_ZCBIN  =0x01;
+
+  uint8_t readZModemByte(long timeout, ZStatus *status);
   ZStatus readZModemPacket(uint8_t *buf, uint16_t *bufSize);
+  void sendCancel();
+  void sendHexHeader(uint8_t type, uint8_t* flags);
   ZAction detectEzcape(uint8_t byt, uint8_t *size);
   uint8_t ezcape(uint8_t byt);
   bool isZByteIgnored(uint8_t b);
@@ -103,7 +124,7 @@ private:
   uint8_t crcBits = 16;
 
 public:
-  ZModem(Stream &modemIO);
+  ZModem(Stream &modemIn, ZSerial &modemOut);
 
   bool receive(FS &fs, String dirPath);
   bool transmit(File &rfile);

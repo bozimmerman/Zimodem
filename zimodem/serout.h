@@ -13,6 +13,8 @@
    See the License for the specific language governing permissions and
    limitations under the License.
 */
+#ifndef ZHEADER_SEROUT_H
+#define ZHEADER_SEROUT_H
 
 #define DBG_BYT_CTR 20
 
@@ -76,3 +78,4 @@ class ZSerial
     char drainForXonXoff();
 };
 
+#endif

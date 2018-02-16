@@ -1148,7 +1148,7 @@ ZResult ZCommand::doUpdateFirmware(int vval, uint8_t *vbuf, int vlen, bool isNum
   uint32_t respLength=0;
   WiFiClient c;
   char firmwareName[100];
-#ifdef ARDUINO_ESP32_DEV
+#ifdef ZIMODEM_ESP32
   sprintf(firmwareName,"/otherprojs/guru-firmware-%s.bin",buf);
 #else
   sprintf(firmwareName,"/otherprojs/c64net-firmware-%s.bin",buf);
@@ -2500,7 +2500,7 @@ ZResult ZCommand::doSerialCommand()
 void ZCommand::showInitMessage()
 {
   serial.prints(commandMode.EOLN);
-#ifdef ARDUINO_ESP32_DEV
+#ifdef ZIMODEM_ESP32
   int totalSPIFFSSize = SPIFFS.totalBytes();
   serial.prints("GuruModem WiFi Firmware v");
 #else
@@ -2516,14 +2516,14 @@ void ZCommand::showInitMessage()
   serial.prints(")");
   serial.prints(commandMode.EOLN);
   char s[100];
-#ifdef ARDUINO_ESP32_DEV
+#ifdef ZIMODEM_ESP32
   sprintf(s,"sdk=%s chipid=%d cpu@%d",ESP.getSdkVersion(),ESP.getChipRevision(),ESP.getCpuFreqMHz());
 #else
   sprintf(s,"sdk=%s chipid=%d cpu@%d",ESP.getSdkVersion(),ESP.getFlashChipId(),ESP.getCpuFreqMHz());
 #endif
   serial.prints(s);
   serial.prints(commandMode.EOLN);
-#ifdef ARDUINO_ESP32_DEV
+#ifdef ZIMODEM_ESP32
   sprintf(s,"totsize=%dk hsize=%dk fsize=%dk speed=%dm",(ESP.getFlashChipSize()/1024),(ESP.getFreeHeap()/1024),totalSPIFFSSize/1024,(ESP.getFlashChipSpeed()/1000000));
 #else
   sprintf(s,"totsize=%dk ssize=%dk fsize=%dk speed=%dm",(ESP.getFlashChipRealSize()/1024),(ESP.getSketchSize()/1024),totalSPIFFSSize/1024,(ESP.getFlashChipSpeed()/1000000));
