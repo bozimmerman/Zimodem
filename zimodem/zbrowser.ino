@@ -717,6 +717,73 @@ void ZBrowser::doModeCommand()
         }
       }
       else
+      if(cmd.equalsIgnoreCase("zget"))
+      {
+        String p = makePath(line);
+        debugPrintf("zget:%s\n",p.c_str());
+        File root = SD.open(p);
+        if(!root)
+          serial.printf("Unknown path: %s%s",p.c_str(),EOLNC);
+        else
+        if(root.isDirectory())
+        {
+          serial.printf("Is a directory: %s%s",p.c_str(),EOLNC);
+          root.close();
+        }
+        else
+        {
+          root.close();
+          File rfile = SD.open(p, FILE_READ);
+          String errors="";
+          serial.printf("Go to ZModem download.%s",EOLNC);
+          serial.flushAlways();
+          initZSerial(commandMode.getFlowControlType());
+          if(zDownload(rfile,errors))
+          {
+            rfile.close();
+            delay(1000);
+            serial.printf("Download completed successfully.%s",EOLNC);
+          }
+          else
+          {
+            rfile.close();
+            delay(1000);
+            serial.printf("Download failed (%s).%s",errors.c_str(),EOLNC);
+          }
+        }
+      }
+      else
+      if(cmd.equalsIgnoreCase("zput"))
+      {
+        String p = makePath(line);
+        debugPrintf("zput:%s\n",p.c_str());
+        String dirNm=p;
+        File rootDir=SD.open(dirNm);
+        if((!rootDir)||(!rootDir.isDirectory()))
+        {
+          serial.printf("Path doesn't exist: %s%s",dirNm.c_str(),EOLNC);
+          if(rootDir)
+            rootDir.close();
+        }
+        else
+        {
+          String errors="";
+          serial.printf("Go to ZModem upload.%s",EOLNC);
+          serial.flushAlways();
+          initZSerial(commandMode.getFlowControlType());
+          if(zUpload(SD,rootDir.name(),errors))
+          {
+            delay(1000);
+            serial.printf("Upload completed successfully.%s",EOLNC);
+          }
+          else
+          {
+            delay(1000);
+            serial.printf("Upload failed (%s).%s",errors.c_str(),EOLNC);
+          }
+        }
+      }
+      else
       if(cmd.equalsIgnoreCase("rm")||cmd.equalsIgnoreCase("del")||cmd.equalsIgnoreCase("delete"))
       {
         String argLetters = "";

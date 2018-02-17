@@ -5,6 +5,27 @@ ZModem::ZModem(Stream &modemIn, ZSerial &modemOut)
   mdmOt = &modemOut;
 }
 
+String ZModem::getLastErrors()
+{
+  switch(lastStatus)
+  {
+  case ZSTATUS_DATA:
+  case ZSTATUS_HEADER:
+  case ZSTATUS_CONTINUE:
+    return "Premature ending";
+  case ZSTATUS_TIMEOUT:
+    return "Timeout";
+  case ZSTATUS_FINISH:
+    return "";
+  case ZSTATUS_CANCEL:
+    return "Cancelled";
+  case ZSTATUS_INVALIDCHECKSUM:
+    return "Checksum Error";
+  }
+  return "";
+}
+
+
 bool ZModem::isZByteIgnored(uint8_t b)
 {
   switch(b)
@@ -72,12 +93,12 @@ uint8_t ZModem::ezcape(uint8_t byt)
   switch(byt)
   {
   case 0x7f:
-    return 'l';
+    return ZMOCHAR_ZRUB0;
   case 0xff:
-    return 'm';
-  case 'l':
+    return ZMOCHAR_ZRUB1;
+  case ZMOCHAR_ZRUB0:
     return 0x7f;
-  case 'm':
+  case ZMOCHAR_ZRUB1:
     return 0xff;
   default:
     return byt^0x40;
@@ -266,6 +287,134 @@ void ZModem::sendCancel()
   for(int i=0;i<8;i++)
     mdmOt->printb(0x08);
   mdmOt->flush();
+}
+
+bool ZModem::isZByteEscaped(uint8_t b, uint8_t prev_b, bool ctlFlag)
+{
+  switch(b)
+  {
+  case 0xd:
+  case (byte)0x8d:
+    if (ctlFlag &&  prev_b=='@')
+      return true;
+    break;
+  case 0x18:
+  case 0x10:
+  case 0x11:
+  case 0x13:
+  case 0x7f:
+  case 0x90:
+  case 0x91:
+  case 0x93:
+  case 0xff:
+    return true;
+  default:
+    if (ctlFlag && ((b & 0x60)==0) )
+      return true;
+  }
+  return false;
+}
+
+uint8_t ZModem::addZDLE(uint8_t b, uint8_t *buf, uint8_t *index, uint8_t prev_b)
+{
+  if (isZByteEscaped(b, prev_b, false))
+  {
+    buf[(*index)++]=ZMOCHAR_ZDLE;
+    buf[(*index)++]=ezcape(b);
+    prev_b = buf[(*index)-1];
+  }
+  else
+  {
+    buf[(*index)++]=b;
+    prev_b = b;
+  }
+  return prev_b;
+}
+
+void ZModem::sendDataPacket(uint8_t type, uint8_t* data, int dataSize)
+{
+  uint8_t *hbuf = (uint8_t *)malloc((dataSize*2)+64);
+  uint8_t hbufIndex=0;
+  const uint8_t hcrcBits = 16; // because bin, but not bin32
+  uint32_t hcrc = 0; // because always bin, but not bin32
+
+  uint8_t prev=0;
+  for(int i=0;i<dataSize;i++)
+  {
+    hcrc = updateZCrc(data[i],hcrcBits,hcrc);
+    prev = addZDLE(data[i], hbuf, &hbufIndex, prev);
+  }
+  hbuf[hbufIndex++] = ZMOCHAR_ZDLE;
+  
+  hcrc = updateZCrc(type,hcrcBits,hcrc);
+  hbuf[hbufIndex++] = type;
+  
+  if(hcrcBits == 16)
+    hcrc = updateZCrc(0, hcrcBits, updateZCrc(0, hcrcBits, hcrc)) & 0xffff;
+  else
+    hcrc = ~hcrc;
+  
+  prev=0;
+  prev = addZDLE((uint8_t)((hcrc >> 8) & 0xff), hbuf, &hbufIndex, prev);
+  prev = addZDLE((uint8_t)(hcrc & 0xff), hbuf, &hbufIndex, prev);
+  
+  mdmOt->printb(ZMOCHAR_ZPAD);
+  
+  // now the format
+  mdmOt->printb(ZMOCHAR_ZDLE);
+  mdmOt->printb(ZMOCHAR_ZBIN);
+  mdmOt->flush();
+  
+  // the actual stuff (type, flags, crc, etc)
+  for(int i=0;i<hbufIndex;i++)
+    mdmOt->printb(hbuf[i]);
+  mdmOt->flush();
+  
+  if(type == ZMOCHAR_ZCRCW)
+  {
+    mdmOt->printb(0x11);
+    mdmOt->flush();
+  }
+  free(hbuf); // this is kinda important
+}
+
+void ZModem::sendBinHeader(uint8_t type, uint8_t* flags)
+{
+  uint8_t hbuf[14];
+  uint8_t hbufIndex=0;
+  const uint8_t hcrcBits = 16; // because bin, but not bin32
+  uint32_t hcrc = 0; // because always bin, but not bin32
+  
+  hbuf[hbufIndex++]=type;
+  hcrc = updateZCrc(type,hcrcBits,hcrc);
+  
+  uint8_t prev=0;
+  for(int i=0;i<4;i++)
+  {
+    hcrc = updateZCrc(flags[i],hcrcBits,hcrc);
+    prev = addZDLE(flags[i], hbuf, &hbufIndex, prev);
+  }
+  if(hcrcBits == 16)
+    hcrc = updateZCrc(0, hcrcBits, updateZCrc(0, hcrcBits, hcrc)) & 0xffff;
+  else
+    hcrc = ~hcrc;
+
+  prev=0;
+  prev = addZDLE((uint8_t)((hcrc >> 8) & 0xff), hbuf, &hbufIndex, prev);
+  prev = addZDLE((uint8_t)(hcrc & 0xff), hbuf, &hbufIndex, prev);
+
+  mdmOt->printb(ZMOCHAR_ZPAD);
+  
+  // now the format
+  mdmOt->printb(ZMOCHAR_ZDLE);
+  mdmOt->printb(ZMOCHAR_ZBIN);
+  mdmOt->flush();
+  
+  // the actual stuff (type, flags, crc, etc)
+  for(int i=0;i<hbufIndex;i++)
+    mdmOt->printb(hbuf[i]);
+  mdmOt->flush();
+  
 }
 
 void ZModem::sendHexHeader(uint8_t type, uint8_t* flags)
@@ -478,18 +627,116 @@ bool ZModem::receive(FS &fs, String dirPath)
 
 bool ZModem::transmit(File &rfile)
 {
+  bool atEOF = false;
+  uint32_t Foffset=0;
+  int errorCount = 0;
+  long timeouts=0;
+  uint8_t buf[4096];
   while(lastStatus == ZSTATUS_CONTINUE)
   {
-    // read packet, less-sensitive to timeout at first
-    // more sensitive later
-    // on crc fail, increase error count. 
-    
-    
-    // exit on cancel or finish packets
-    
-    // if the packet is a header, do header stuff
-    // headers can trigger file transfers
-    
+    uint16_t bufSize = 0;
+    ZStatus packetStatus = readZModemPacket(buf,&bufSize);
+    if(packetStatus == ZSTATUS_TIMEOUT)
+    {
+      ++timeouts;
+      if(timeouts>=10)
+      {
+        sendCancel();
+        lastStatus = packetStatus;
+        break;
+      }
+    }
+    else
+    if(packetStatus == ZSTATUS_INVALIDCHECKSUM)
+    {
+      ++errorCount;
+      if(errorCount>=3)
+      {
+        sendCancel();
+        lastStatus = packetStatus;
+        break;
+      }
+    }
+    else
+    if((packetStatus == ZSTATUS_CANCEL)||(packetStatus == ZSTATUS_FINISH))
+    {
+      lastStatus = packetStatus;
+      break;
+    }
+    else
+    if(packetStatus == ZSTATUS_HEADER)
+    {
+      lastStatus = ZSTATUS_CONTINUE;
+      switch(buf[0])
+      {
+      case ZMOCHAR_ZRINIT:
+        if(atEOF) // nextFile would go here!
+        {
+          uint8_t byts[4]={0,0,0,0};
+          sendBinHeader(ZMOCHAR_ZFIN, byts);
+        }
+        else
+        {
+          uint8_t byts[4] ={0,0,0,ZMOPT_ZCBIN};
+          sendBinHeader(ZMOCHAR_ZFILE, byts);
+          String packet="";
+          String p=rfile.name();
+          int x=p.lastIndexOf("/");
+          if((x>=0)&&(x<p.length()-1))
+            packet += p.substring(x+1);
+          packet += '\0';
+          packet += rfile.size();
+          packet += " 0 777 0 0 00";
+          sendDataPacket(ZMOCHAR_ZCRCW, (uint8_t *)packet.c_str(), packet.length());
+        }
+        break;
+      case ZMOCHAR_ZRPOS:
+      {
+        if(!atEOF)
+        {
+          uint32_t pos=(buf[1]) | ((uint32_t)buf[2] << 8) | ((uint32_t)buf[2] << 16) | ((uint32_t)buf[2] << 24);
+          if(pos!=Foffset)
+          {
+            rfile.seek(pos);
+            Foffset = pos;
+          }
+        }
+      }
+      //FALLTHROUGH OK!
+      case ZMOCHAR_ZACK:
+      {
+        {
+          uint8_t byts[4]={(Foffset & 0xff),((Foffset >> 8)&0xff),((Foffset >> 16)&0xff),((Foffset >> 24)&0xff)};
+          sendBinHeader(ZMOCHAR_ZDATA, byts);
+          uint8_t data[1024];
+          int len = rfile.read(data, 1024);
+          uint8_t type = ZMOCHAR_ZCRCW;
+          if(rfile.available()==0)
+          {
+            atEOF = true;
+            type=ZMOCHAR_ZCRCE;
+          }
+          Foffset += len;
+          sendDataPacket(type, data, len);
+        }
+        if(atEOF)
+        {
+          uint8_t byts[4]={(Foffset & 0xff),((Foffset >> 8)&0xff),((Foffset >> 16)&0xff),((Foffset >> 24)&0xff)};
+          sendHexHeader(ZMOCHAR_ZEOF, byts);
+        }
+        break;
+      }
+      case ZMOCHAR_ZFIN:
+        for(int i=0;i<2;i++)
+          mdmOt->printb('O');
+        lastStatus = ZSTATUS_FINISH;
+        break;
+      default:
+        sendCancel();
+        lastStatus = ZSTATUS_CANCEL;
+        break;
+      }
+    }
   }
   return false;
 }

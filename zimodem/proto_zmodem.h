@@ -114,9 +114,13 @@ private:
   ZStatus readZModemPacket(uint8_t *buf, uint16_t *bufSize);
   void sendCancel();
   void sendHexHeader(uint8_t type, uint8_t* flags);
+  void sendBinHeader(uint8_t type, uint8_t* flags);
+  void sendDataPacket(uint8_t type, uint8_t* data, int dataSize);
+  uint8_t addZDLE(uint8_t b, uint8_t *buf, uint8_t *index, uint8_t prev_b);
   ZAction detectEzcape(uint8_t byt, uint8_t *size);
   uint8_t ezcape(uint8_t byt);
   bool isZByteIgnored(uint8_t b);
+  bool isZByteEscaped(uint8_t b, uint8_t prev_b, bool ctlFlag);
   uint32_t updateZCrc(uint8_t b, uint8_t bits, uint32_t crc);
 
   bool gotFIN = false;
@@ -128,6 +132,7 @@ public:
 
   bool receive(FS &fs, String dirPath);
   bool transmit(File &rfile);
+  String getLastErrors();
 };
 
 unsigned char crc16tab[256] PROGMEM = {
@@ -200,3 +205,37 @@ unsigned char crc32tab[256] PROGMEM =
   0xbdbdf21c, 0xcabac28a, 0x53b39330, 0x24b4a3a6, 0xbad03605, 0xcdd70693, 0x54de5729, 0x23d967bf,
   0xb3667a2e, 0xc4614ab8, 0x5d681b02, 0x2a6f2b94, 0xb40bbe37, 0xc30c8ea1, 0x5a05df1b, 0x2d02ef8d
 };
+
+static ZSerial zserial;
+
+static boolean zDownload(File &f, String &errors)
+{
+  ZModem zmo(HWSerial,zserial);
+  bool result = zmo.transmit(f);
+  zserial.flushAlways();
+  if(!result)
+    errors = zmo.getLastErrors();
+  return result;
+}
+
+static boolean zUpload(FS &fs, String dirPath, String &errors)
+{
+  ZModem zmo(HWSerial,zserial);
+  bool result = zmo.receive(fs,dirPath);
+  zserial.flushAlways();
+  if(!result)
+    errors = zmo.getLastErrors();
+  return result;
+}
+
+static void initZSerial(FlowControlType commandFlow)
+{
+  zserial.setFlowControlType(FCT_DISABLED);
+  if(commandFlow==FCT_RTSCTS)
+    zserial.setFlowControlType(FCT_RTSCTS);
+  else
+    zserial.setFlowControlType(FCT_NORMAL);
+  zserial.setPetsciiMode(false);
+  zserial.setXON(true);
+}
+
