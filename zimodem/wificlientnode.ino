@@ -51,7 +51,7 @@ WiFiClientNode::WiFiClientNode(char *hostIp, int newport, int flagsBitmap)
   }
 }
     
-WiFiClientNode::WiFiClientNode(WiFiClient newClient, int flagsBitmap)
+WiFiClientNode::WiFiClientNode(WiFiClient newClient, int flagsBitmap, int ringDelay)
 {
   this->flagsBitmap = flagsBitmap;
   clientPtr=null;
@@ -65,6 +65,12 @@ WiFiClientNode::WiFiClientNode(WiFiClient newClient, int flagsBitmap)
   strcpy(host,remoteIP);
   id=++WiFiNextClientId;
   client = newClient;
+  answered=(ringDelay == 0);
+  if(ringDelay > 0)
+  {
+    ringsRemain = ringDelay;
+    nextRingMillis = millis() + 3000;
+  }
   finishConnectionLink();
   serverClient=true;
 }
@@ -145,17 +151,16 @@ void WiFiClientNode::setDisconnectOnStreamExit(bool tf)
     flagsBitmap = flagsBitmap & ~FLAG_DISCONNECT_ON_EXIT;
 }
 
-
 int WiFiClientNode::read()
 {
-  if(host == null)
+  if((host == null)||(!answered))
     return 0;
   return client.read();
 }
 
 int WiFiClientNode::peek()
 {
-  if(host == null)
+  if((host == null)||(!answered))
     return 0;
   return client.peek();
 }
@@ -171,14 +176,14 @@ void WiFiClientNode::flush()
 
 int WiFiClientNode::available()
 {
-  if(host == null)
+  if((host == null)||(!answered))
     return 0;
   return client.available();
 }
 
 int WiFiClientNode::read(uint8_t *buf, size_t size)
 {
-  if(host == null)
+  if((host == null)||(!answered))
     return 0;
   return client.read(buf,size);
 }
@@ -249,6 +254,30 @@ size_t WiFiClientNode::write(const uint8_t *buf, size_t size)
   return written;
 }
 
+void WiFiClientNode::answer()
+{
+  answered=true;
+  ringsRemain=0;
+  nextRingMillis=0;
+}
+
+bool WiFiClientNode::isAnswered()
+{
+  return answered;
+}
+
+int WiFiClientNode::ringsRemaining(int delta)
+{
+  ringsRemain += delta;
+  return ringsRemain;
+}
+
+long WiFiClientNode::nextRingTime(long delta)
+{
+  nextRingMillis += delta;
+  return nextRingMillis;
+}
+
 size_t WiFiClientNode::write(uint8_t c)
 {
   const uint8_t one[] = {c};
@@ -261,7 +290,7 @@ int WiFiClientNode::getNumOpenWiFiConnections()
   WiFiClientNode *conn = conns;
   while(conn != null)
   {
-    if(conn->isConnected())
+    if(conn->isConnected() && conn->isAnswered())
       num++;
     conn = conn->next;
   }

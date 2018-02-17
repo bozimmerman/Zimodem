@@ -338,6 +338,7 @@ void ZConfig::doModeCommand()
           break;
         }
         settingsChanged=true;
+        serverSpec.flagsBitmap = flags.getBitmap();
       }
       showMenu=true;
       break;

@@ -34,6 +34,9 @@ class WiFiClientNode : public Stream
     int flushOverflowBuffer();
     WiFiClient client;
     WiFiClient *clientPtr;
+    bool answered=true;
+    int ringsRemain=0;
+    long nextRingMillis = 0;
 
   public:
     int id=0;
@@ -51,15 +54,23 @@ class WiFiClientNode : public Stream
     WiFiClientNode *next = null;
 
     WiFiClientNode(char *hostIp, int newport, int flagsBitmap);
-    WiFiClientNode(WiFiClient newClient, int flagsBitmap);
+    WiFiClientNode(WiFiClient newClient, int flagsBitmap, int ringDelay);
     ~WiFiClientNode();
     bool isConnected();
+
+    FlowControlType getFlowControl();
     bool isPETSCII();
     bool isEcho();
-    FlowControlType getFlowControl();
     bool isTelnet();
+
+    bool isAnswered();
+    void answer();
+    int ringsRemaining(int delta);
+    long nextRingTime(long delta);
+
     bool isDisconnectedOnStreamExit();
     void setDisconnectOnStreamExit(bool tf);
+
     size_t write(uint8_t c);
     size_t write(const uint8_t *buf, size_t size);
     int read();
@@ -67,7 +78,6 @@ class WiFiClientNode : public Stream
     void flush();
     int available();
     int read(uint8_t *buf, size_t size);
-
 
     static int getNumOpenWiFiConnections();
 };

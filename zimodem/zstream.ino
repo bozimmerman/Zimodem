@@ -99,10 +99,16 @@ void ZStream::switchBackToCommandMode(bool logout)
     if(!commandMode.suppressResponses)
     {
       if(commandMode.numericResponses)
+      {
         serial.prints("3");
+        serial.prints(commandMode.EOLN);
+      }
       else
+      if(current->isAnswered())
+      {
         serial.prints("NO CARRIER");
-      serial.prints(commandMode.EOLN);
+        serial.prints(commandMode.EOLN);
+      }
     }
     delete current;
   }
@@ -147,13 +153,29 @@ void ZStream::loop()
         }
         if(!found)
         {
-          newClient.write("\r\n\r\n\r\n\r\n\r\nBUSY\r\n7\r\n");
+          newClient.write(busyMsg.c_str());
           newClient.flush();
+          //can't confirm this even works...
           newClient.stop();
         }
       }
     }
     serv=serv->next;
+  }
+  
+  WiFiClientNode *conn = conns;
+  long now=millis();
+  while(conn != null)
+  {
+    WiFiClientNode *nextConn = conn->next;
+    if((!conn->isAnswered())&&(conn->isConnected())&&(conn!=current))
+    {
+      conn->write((uint8_t *)busyMsg.c_str(), busyMsg.length());
+      conn->flush();
+      //can't confirm this even works...
+      delete conn;
+    }
+    conn = nextConn;
   }
   
   if(pinSupport[pinDTR])

@@ -700,15 +700,18 @@ ZResult ZCommand::doConnectCommand(int vval, uint8_t *vbuf, int vlen, bool isNum
     {
       if(current->isConnected())
       {
+        current->answer();
         serial.prints("CONNECTED ");
         serial.printf("%d %s:%d",current->id,current->host,current->port);
+        serial.prints(EOLN);
       }
       else
+      if(current->isAnswered())
       {
         serial.prints("NO CARRIER ");
         serial.printf("%d %s:%d",current->id,current->host,current->port);
+        serial.prints(EOLN);
       }
-      serial.prints(EOLN);
       return ZIGNORE;
     }
   }
@@ -744,15 +747,18 @@ ZResult ZCommand::doConnectCommand(int vval, uint8_t *vbuf, int vlen, bool isNum
       {
         if(c->isConnected())
         {
+          c->answer();
           serial.prints("CONNECTED ");
           serial.printf("%d %s:%d",c->id,c->host,c->port);
+          serial.prints(EOLN);
         }
         else
+        if(c->isAnswered())
         {
           serial.prints("NO CARRIER ");
           serial.printf("%d %s:%d",c->id,c->host,c->port);
+          serial.prints(EOLN);
         }
-        serial.prints(EOLN);
         c=c->next;
       }
       WiFiServerNode *s=servs;
@@ -1489,6 +1495,7 @@ ZResult ZCommand::doAnswerCommand(int vval, uint8_t *vbuf, int vlen, bool isNumb
           lastServerClientId=0;
           if(ringCounter == 0)
           {
+            c->answer();
             sendConnectionNotice(c->id);
             return ZIGNORE;
           }
@@ -2659,13 +2666,17 @@ bool ZCommand::checkPlusEscape()
         if(!suppressResponses)
         {
           if(numericResponses)
+          {
             serial.prints("3");
+            serial.prints(EOLN);
+          }
           else
+          if(current->isAnswered())
           {
             serial.prints("NO CARRIER ");
             serial.printf("%d %s:%d",current->id,current->host,current->port);
+            serial.prints(EOLN);
           }
-          serial.prints(EOLN);
         }
         delete current;
         current = conns;
@@ -2787,13 +2798,17 @@ void ZCommand::sendNextPacket()
         if(!suppressResponses)
         {
           if(numericResponses)
+          {
             serial.prints("3");
+            serial.prints(EOLN);
+          }
           else
+          if(nextConn->isAnswered())
           {
             serial.prints("NO CARRIER ");
             serial.printi(nextConn->id);
+            serial.prints(EOLN);
           }
-          serial.prints(EOLN);
           if(serial.getFlowControlType() == FCT_MANUAL)
           {
             return;
@@ -2900,19 +2915,16 @@ void ZCommand::acceptNewConnection()
         if(!found)
         {
           //BZ:newClient.setNoDelay(true);
-          WiFiClientNode *newClientNode = new WiFiClientNode(newClient, serv->flagsBitmap);
+          int futureRings = (ringCounter > 0)?(ringCounter-1):5;
+          WiFiClientNode *newClientNode = new WiFiClientNode(newClient, serv->flagsBitmap, futureRings * 2);
           setCharArray(&(newClientNode->delimiters),serv->delimiters);
           setCharArray(&(newClientNode->maskOuts),serv->maskOuts);
-          int i=0;
-          do
-          {
-            serial.prints(numericResponses?"2":"RING");
-            serial.prints(EOLN);
-          }
-          while((++i)<ringCounter);
-          
+          if(pinSupport[pinRI])
+            digitalWrite(pinRI,riActive);
+          serial.prints(numericResponses?"2":"RING");
+          serial.prints(EOLN);
           lastServerClientId = newClientNode->id;
-          if(ringCounter > 0)
+          if(newClientNode->isAnswered())
           {
             if(autoStreamMode)
             {
@@ -2927,6 +2939,59 @@ void ZCommand::acceptNewConnection()
       }
     }
     serv=serv->next;
+  }
+  // handle rings properly
+  WiFiClientNode *conn = conns;
+  long now=millis();
+  while(conn != null)
+  {
+    WiFiClientNode *nextConn = conn->next;
+    if((!conn->isAnswered())&&(conn->isConnected()))
+    {
+      if(now > conn->nextRingTime(0))
+      {
+        conn->nextRingTime(3000);
+        int rings=conn->ringsRemaining(-1);
+        if(rings <= 0)
+        {
+          if(pinSupport[pinRI])
+            digitalWrite(pinRI,riInactive);
+          if(ringCounter > 0)
+          {
+            serial.prints(numericResponses?"2":"RING");
+            serial.prints(EOLN);
+            conn->answer();
+            if(autoStreamMode)
+            {
+              sendConnectionNotice(baudRate);
+              doAnswerCommand(0, (uint8_t *)"", 0, false, "");
+              break;
+            }
+            else
+              sendConnectionNotice(conn->id);
+          }
+          else
+            delete conn;
+        }
+        else
+        if((rings % 2) == 0)
+        {
+          if(pinSupport[pinRI])
+            digitalWrite(pinRI,riActive);
+          serial.prints(numericResponses?"2":"RING");
+          serial.prints(EOLN);
+        }
+        else
+        if(pinSupport[pinRI])
+          digitalWrite(pinRI,riInactive);
+      }
+    }
+    conn = nextConn;
+  }
+  if(checkOpenConnections()==0)
+  {
+    if(pinSupport[pinRI])
+      digitalWrite(pinRI,riInactive);
   }
 }
 
