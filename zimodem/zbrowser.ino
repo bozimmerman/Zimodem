@@ -753,7 +753,7 @@ void ZBrowser::doModeCommand()
         }
       }
       else
-      if(cmd.equalsIgnoreCase("zput"))
+      if(cmd.equalsIgnoreCase("zput")||cmd.equalsIgnoreCase("rz"))
       {
         String p = makePath(line);
         debugPrintf("zput:%s\n",p.c_str());

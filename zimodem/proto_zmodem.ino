@@ -110,13 +110,15 @@ uint32_t ZModem::updateZCrc(uint8_t byt, uint8_t bits, uint32_t crc)
   if(bits == 16)
   {
     uint16_t crc16 = (uint16_t)crc;
-    uint16_t crc16tabval = pgm_read_byte_near(crc16tab + ((crc16 >> 8) & 0xff));
+    uint16_t crc16index = ((crc16 >> 8) & 0xff);
+    uint16_t crc16tabval = pgm_read_word_near(crc16tab + crc16index);
     return (uint16_t) ( crc16tabval ^ (crc16 << 8) ^ byt );
   }
   else
   {
     uint32_t crc32 = crc;
-    uint32_t crc32tabval = pgm_read_byte_near(crc32tab + ((crc32 ^ byt) & 0xff));
+    uint8_t crc32index = ((crc32 ^ byt) & 0xff);
+    uint32_t crc32tabval = pgm_read_dword_near(crc32tab + crc32index);
     return (crc32tabval ^ ((crc32 >> 8) & 0x00FFFFFF));
   }
 }
@@ -142,12 +144,12 @@ ZModem::ZStatus ZModem::readZModemPacket(uint8_t *buf, uint16_t *bufSize)
       if(n=='O')
         return ZSTATUS_FINISH;
     }
-    if(n==0x18)
+    if(n==ZMOCHAR_ZDLE)
     {
       n = readZModemByte(normalTimeout,&lastStatus);
       if (lastStatus == ZSTATUS_TIMEOUT)
         return ZSTATUS_TIMEOUT;
-      if(n == 0x18)
+      if(n == ZMOCHAR_ZDLE)
         countCan+=2;
       else
         countCan=0;
@@ -179,6 +181,7 @@ ZModem::ZStatus ZModem::readZModemPacket(uint8_t *buf, uint16_t *bufSize)
       act = ZACTION_CANCEL;
     }
   }
+debugPrintf("RACT0 %d\n",act);
   switch(act)
   {
   case ZACTION_HEADER:
@@ -187,6 +190,7 @@ ZModem::ZStatus ZModem::readZModemPacket(uint8_t *buf, uint16_t *bufSize)
     ZModem::ZHFormat fmt = ZHFORMAT_UNK;
     uint8_t hcrcBits = 16;
     while((i<*bufSize) && (fmt == ZHFORMAT_UNK))
+    {
       switch(buf[i++])
       {
       case 'C':
@@ -200,6 +204,8 @@ ZModem::ZStatus ZModem::readZModemPacket(uint8_t *buf, uint16_t *bufSize)
         fmt = ZHFORMAT_HEX;
         break;
       }
+    }
+    // i is now one past the type char
     if(fmt == ZHFORMAT_HEX)
     {
       int oldBufSize = *bufSize;
@@ -209,11 +215,11 @@ ZModem::ZStatus ZModem::readZModemPacket(uint8_t *buf, uint16_t *bufSize)
     }
     uint32_t hcrc = (hcrcBits == 16) ? 0 : 0xffffffff;
     uint8_t htyp = buf[i++];
-    buf[0]=htyp; // building the final header packet
+    buf[0]=htyp; //building the final header packet
     hcrc = updateZCrc(htyp, hcrcBits, hcrc);
     if((htyp > 19)
-    &&(htyp!=0x18)
-    &&(htyp!=(0x18^0x40))
+    &&(htyp!=ZMOCHAR_ZDLE)
+    &&(htyp!=ZMOCHAR_ZDLEE)
     &&(strchr("*ABChijklm",(char)htyp)<0))
       htyp=0xff;
     for(int x=0;x<4 && i<*bufSize;x++)
@@ -222,6 +228,13 @@ ZModem::ZStatus ZModem::readZModemPacket(uint8_t *buf, uint16_t *bufSize)
       hcrc = updateZCrc(b, hcrcBits, hcrc);
       buf[x+1]=b;
     }
+debugPrintf("RH-BUF: ");
+for(int x=0;x<5;x++)
+  debugPrintf("%s ",TOHEX(buf[x]));
+debugPrintf("CHK: %s ",TOHEX(buf[i]));
+debugPrintf("%s ",TOHEX(buf[i+1]));
+debugPrintf("\n");
+    
     if(hcrcBits == 16)
       hcrc = updateZCrc(0, hcrcBits, updateZCrc(0, hcrcBits, hcrc)) & 0xffff;
     else
@@ -251,6 +264,7 @@ ZModem::ZStatus ZModem::readZModemPacket(uint8_t *buf, uint16_t *bufSize)
       crc = updateZCrc(0, crcBits, updateZCrc(0, crcBits, crc)) & 0xffff;
     else
       crc = ~crc;
+debugPrintf("RA-CRCCHK of data type %d\n",dtyp);
     uint8_t dcrcBits = crcBits;
     int i=(*bufSize - (dcrcBits/8));
     if(i < 0)
@@ -265,6 +279,7 @@ ZModem::ZStatus ZModem::readZModemPacket(uint8_t *buf, uint16_t *bufSize)
         return ZSTATUS_INVALIDCHECKSUM;
     }
     *bufSize = *bufSize - (crcBits / 8);
+debugPrintf("RA-SUCCESS! %d\n",*bufSize);
     crc = (crcBits == 16) ? 0 : 0xffffffff;
     if(dtyp==ZMOCHAR_ZCRCG)
       acceptsHeader = false;
@@ -273,8 +288,10 @@ ZModem::ZStatus ZModem::readZModemPacket(uint8_t *buf, uint16_t *bufSize)
     break;
   }
   case ZACTION_ESCAPE:
+debugPrintf("RESC TIMEOUT\n");
     return ZSTATUS_TIMEOUT;
   case ZACTION_CANCEL:
+debugPrintf("RCANCEL\n");
     crc = (crcBits == 16) ? 0 : 0xffffffff;
     return ZSTATUS_CANCEL;
   }
@@ -333,6 +350,7 @@ uint8_t ZModem::addZDLE(uint8_t b, uint8_t *buf, uint8_t *index, uint8_t prev_b)
 
 void ZModem::sendDataPacket(uint8_t type, uint8_t* data, int dataSize)
 {
+  debugPrintf("Send data packet: %d\n",type);
   uint8_t *hbuf = (uint8_t *)malloc((dataSize*2)+64);
   uint8_t hbufIndex=0;
   const uint8_t hcrcBits = 16; // because bin, but not bin32
@@ -380,7 +398,8 @@ void ZModem::sendDataPacket(uint8_t type, uint8_t* data, int dataSize)
 
 void ZModem::sendBinHeader(uint8_t type, uint8_t* flags)
 {
-  uint8_t hbuf[14];
+  debugPrintf("Send bin header: %d\n",type);
+  uint8_t hbuf[15]; 
   uint8_t hbufIndex=0;
   const uint8_t hcrcBits = 16; // because bin, but not bin32
   uint32_t hcrc = 0; // because always bin, but not bin32
@@ -414,12 +433,12 @@ void ZModem::sendBinHeader(uint8_t type, uint8_t* flags)
   for(int i=0;i<hbufIndex;i++)
     mdmOt->printb(hbuf[i]);
   mdmOt->flush();
-  
 }
 
 void ZModem::sendHexHeader(uint8_t type, uint8_t* flags)
 {
-  uint8_t hbuf[14]; // because flags is always 4, so 2 + (4*2) + (2*2) = 14
+  debugPrintf("Send hex header: %d\n",type);
+  uint8_t hbuf[15]; // because flags is always 4, so 2 + (4*2) + (2*2) = 14 +0
   uint8_t hbufIndex=0;
   const uint8_t hcrcBits = 16; // because always hex
   uint32_t hcrc = 0; // because always hex
@@ -466,6 +485,10 @@ void ZModem::sendHexHeader(uint8_t type, uint8_t* flags)
 
 bool ZModem::receive(FS &fs, String dirPath)
 {
+  debugPrintf("Begin Z-Modem Receive\n");
+  uint8_t recvStart[4] ={0,4,0,ZMOPT_ESCCTL|ZMOPT_ESC8};
+  sendHexHeader(ZMOCHAR_ZRINIT, recvStart);
+  
   bool fileOpen=false;
   File F;
   String filename = "";
@@ -477,7 +500,9 @@ bool ZModem::receive(FS &fs, String dirPath)
   while(lastStatus == ZSTATUS_CONTINUE)
   {
     uint16_t bufSize = 0;
+    debugPrintf("Wait for packet...\n");
     ZStatus packetStatus = readZModemPacket(buf,&bufSize);
+    debugPrintf("Got packet status %d\n",packetStatus);
     if(packetStatus == ZSTATUS_TIMEOUT)
     {
       ++timeouts;
@@ -487,6 +512,7 @@ bool ZModem::receive(FS &fs, String dirPath)
         lastStatus = packetStatus;
         break;
       }
+      lastStatus = ZSTATUS_CONTINUE;
     }
     else
     if(packetStatus == ZSTATUS_INVALIDCHECKSUM)
@@ -498,6 +524,7 @@ bool ZModem::receive(FS &fs, String dirPath)
         lastStatus = packetStatus;
         break;
       }
+      lastStatus = ZSTATUS_CONTINUE;
     }
     else
     if((packetStatus == ZSTATUS_CANCEL)||(packetStatus == ZSTATUS_FINISH))
@@ -627,6 +654,8 @@ bool ZModem::receive(FS &fs, String dirPath)
 
 bool ZModem::transmit(File &rfile)
 {
+  debugPrintf("Begin Z-Modem Transmit\n");
+  mdmOt->prints("rz\r");
   bool atEOF = false;
   uint32_t Foffset=0;
   int errorCount = 0;
@@ -635,7 +664,9 @@ bool ZModem::transmit(File &rfile)
   while(lastStatus == ZSTATUS_CONTINUE)
   {
     uint16_t bufSize = 0;
+    debugPrintf("Wait for packet...\n");
     ZStatus packetStatus = readZModemPacket(buf,&bufSize);
+    debugPrintf("Got packet status %d\n",packetStatus);
     if(packetStatus == ZSTATUS_TIMEOUT)
     {
       ++timeouts;
@@ -645,6 +676,9 @@ bool ZModem::transmit(File &rfile)
         lastStatus = packetStatus;
         break;
       }
+      uint8_t recvOpt[4] ={0,4,0,ZMOPT_ESCCTL|ZMOPT_ESC8};
+      sendHexHeader(ZMOCHAR_ZRQINIT, recvOpt);
+      lastStatus = ZSTATUS_CONTINUE;
     }
     else
     if(packetStatus == ZSTATUS_INVALIDCHECKSUM)
@@ -656,6 +690,7 @@ bool ZModem::transmit(File &rfile)
         lastStatus = packetStatus;
         break;
       }
+      lastStatus = ZSTATUS_CONTINUE;
     }
     else
     if((packetStatus == ZSTATUS_CANCEL)||(packetStatus == ZSTATUS_FINISH))
