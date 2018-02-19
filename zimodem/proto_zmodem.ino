@@ -181,7 +181,7 @@ ZModem::ZStatus ZModem::readZModemPacket(uint8_t *buf, uint16_t *bufSize)
       act = ZACTION_CANCEL;
     }
   }
-debugPrintf("RACT0 %d\n",act);
+  //debugPrintf("RACT0 %d\n",act);
   switch(act)
   {
   case ZACTION_HEADER:
@@ -228,12 +228,12 @@ debugPrintf("RACT0 %d\n",act);
       hcrc = updateZCrc(b, hcrcBits, hcrc);
       buf[x+1]=b;
     }
-debugPrintf("RH-BUF: ");
-for(int x=0;x<5;x++)
-  debugPrintf("%s ",TOHEX(buf[x]));
-debugPrintf("CHK: %s ",TOHEX(buf[i]));
-debugPrintf("%s ",TOHEX(buf[i+1]));
-debugPrintf("\n");
+    //debugPrintf("RH-BUF: ");
+    //for(int x=0;x<5;x++)
+    //  debugPrintf("%s ",TOHEX(buf[x]));
+    //debugPrintf("CHK: %s ",TOHEX(buf[i]));
+    //debugPrintf("%s ",TOHEX(buf[i+1]));
+    //debugPrintf("\n");
     
     if(hcrcBits == 16)
       hcrc = updateZCrc(0, hcrcBits, updateZCrc(0, hcrcBits, hcrc)) & 0xffff;
@@ -255,7 +255,7 @@ debugPrintf("\n");
     if(htyp==ZMOCHAR_ZDATA || htyp==ZMOCHAR_ZFILE)
       acceptsHeader = false;
     *bufSize = 5;
-    break;
+    return ZSTATUS_HEADER;
   }
   case ZACTION_DATA:
   {
@@ -264,7 +264,17 @@ debugPrintf("\n");
       crc = updateZCrc(0, crcBits, updateZCrc(0, crcBits, crc)) & 0xffff;
     else
       crc = ~crc;
-debugPrintf("RA-CRCCHK of data type %d\n",dtyp);
+    /*
+    debugPrintf("RA-BUF: ");
+    int x=0;
+    for(x=0;x<(*bufSize)-(crcBits/8);x++)
+      debugPrintf("%s ",TOHEX(buf[x]));
+    debugPrintf("CHK: %s ",TOHEX(buf[x++]));
+    for(;x<(*bufSize);x++)
+      debugPrintf("%s ",TOHEX(buf[x]));
+    debugPrintf("\n");
+    debugPrintf("RA-CRCCHK of data type %d\n",dtyp);
+    */
     uint8_t dcrcBits = crcBits;
     int i=(*bufSize - (dcrcBits/8));
     if(i < 0)
@@ -279,21 +289,20 @@ debugPrintf("RA-CRCCHK of data type %d\n",dtyp);
         return ZSTATUS_INVALIDCHECKSUM;
     }
     *bufSize = *bufSize - (crcBits / 8);
-debugPrintf("RA-SUCCESS! %d\n",*bufSize);
     crc = (crcBits == 16) ? 0 : 0xffffffff;
     if(dtyp==ZMOCHAR_ZCRCG)
       acceptsHeader = false;
     else
       acceptsHeader = true;
-    break;
+    return ZSTATUS_DATA;
   }
   case ZACTION_ESCAPE:
-debugPrintf("RESC TIMEOUT\n");
     return ZSTATUS_TIMEOUT;
   case ZACTION_CANCEL:
-debugPrintf("RCANCEL\n");
     crc = (crcBits == 16) ? 0 : 0xffffffff;
     return ZSTATUS_CANCEL;
+  default:
+    return ZSTATUS_INVALIDCHECKSUM;
   }
 }
 
@@ -350,7 +359,7 @@ uint8_t ZModem::addZDLE(uint8_t b, uint8_t *buf, uint8_t *index, uint8_t prev_b)
 
 void ZModem::sendDataPacket(uint8_t type, uint8_t* data, int dataSize)
 {
-  debugPrintf("Send data packet: %d\n",type);
+  //debugPrintf("Send data packet: %d\n",type);
   uint8_t *hbuf = (uint8_t *)malloc((dataSize*2)+64);
   uint8_t hbufIndex=0;
   const uint8_t hcrcBits = 16; // because bin, but not bin32
@@ -398,7 +407,7 @@ void ZModem::sendDataPacket(uint8_t type, uint8_t* data, int dataSize)
 
 void ZModem::sendBinHeader(uint8_t type, uint8_t* flags)
 {
-  debugPrintf("Send bin header: %d\n",type);
+  //debugPrintf("Send bin header: %d\n",type);
   uint8_t hbuf[15]; 
   uint8_t hbufIndex=0;
   const uint8_t hcrcBits = 16; // because bin, but not bin32
@@ -437,7 +446,7 @@ void ZModem::sendBinHeader(uint8_t type, uint8_t* flags)
 
 void ZModem::sendHexHeader(uint8_t type, uint8_t* flags)
 {
-  debugPrintf("Send hex header: %d\n",type);
+  //debugPrintf("Send hex header: %d\n",type);
   uint8_t hbuf[15]; // because flags is always 4, so 2 + (4*2) + (2*2) = 14 +0
   uint8_t hbufIndex=0;
   const uint8_t hcrcBits = 16; // because always hex
@@ -500,12 +509,11 @@ bool ZModem::receive(FS &fs, String dirPath)
   while(lastStatus == ZSTATUS_CONTINUE)
   {
     uint16_t bufSize = 0;
-    debugPrintf("Wait for packet...\n");
     ZStatus packetStatus = readZModemPacket(buf,&bufSize);
-    debugPrintf("Got packet status %d\n",packetStatus);
     if(packetStatus == ZSTATUS_TIMEOUT)
     {
       ++timeouts;
+      debugPrintf("RCV: TIMEOUT %d\n",timeouts);
       if(timeouts>=10)
       {
         sendCancel();
@@ -518,6 +526,7 @@ bool ZModem::receive(FS &fs, String dirPath)
     if(packetStatus == ZSTATUS_INVALIDCHECKSUM)
     {
       ++errorCount;
+      debugPrintf("RCV: INVALIDCHECKSUM %d\n",errorCount);
       if(errorCount>=3)
       {
         sendCancel();
@@ -529,6 +538,7 @@ bool ZModem::receive(FS &fs, String dirPath)
     else
     if((packetStatus == ZSTATUS_CANCEL)||(packetStatus == ZSTATUS_FINISH))
     {
+      debugPrintf("RCV: CANCEL/FINISH \n");
       lastStatus = packetStatus;
       break;
     }
@@ -536,20 +546,27 @@ bool ZModem::receive(FS &fs, String dirPath)
     if(packetStatus == ZSTATUS_HEADER)
     {
       lastStatus = ZSTATUS_CONTINUE;
+      errorCount=0;
+      timeouts=7;
       switch(buf[0])
       {
       case ZMOCHAR_ZRQINIT:
       {
+        debugPrintf("RCV: ZRQINIT\n");
         uint8_t recvOpt[4] ={0,4,0,ZMOPT_ESCCTL|ZMOPT_ESC8};
+        debugPrintf("SND: ZRINIT \n");
         sendHexHeader(ZMOCHAR_ZRINIT, recvOpt);
         break;
       }
       case ZMOCHAR_ZFILE:
+        debugPrintf("RCV: ZFILE\n");
         expect = ZEXPECT_FILENAME;
         break;
       case ZMOCHAR_ZEOF:
       {
+        debugPrintf("RCV: ZEOF\n");
         uint8_t recvOpt[4] ={0,4,0,ZMOPT_ESCCTL|ZMOPT_ESC8};
+        debugPrintf("SND: ZRINIT \n");
         sendHexHeader(ZMOCHAR_ZRINIT, recvOpt);
         expect = ZEXPECT_NOTHING;
         filename = "";
@@ -562,6 +579,19 @@ bool ZModem::receive(FS &fs, String dirPath)
       case ZMOCHAR_ZDATA:
       {
         uint32_t pos=(buf[1]) | ((uint32_t)buf[2] << 8) | ((uint32_t)buf[2] << 16) | ((uint32_t)buf[2] << 24);
+        debugPrintf("RCV: ZDATA %d\n",pos);
+        if(fileOpen)
+        {
+          if(pos != Foffset)
+          {
+            uint8_t byts[4]={(pos & 0xff),((pos >> 8)&0xff),((pos >> 16)&0xff),((pos >> 24)&0xff)};
+            debugPrintf("SND: ZRPOS %d!=%d \n",pos,Foffset);
+            sendHexHeader(ZMOCHAR_ZRPOS, byts);
+          }
+          else
+            expect = ZEXPECT_DATA;
+        }
+        else
         if(filename.length() > 0)
         {
           Foffset=0;
@@ -585,12 +615,15 @@ bool ZModem::receive(FS &fs, String dirPath)
       }
       case ZMOCHAR_ZFIN:
       {
+        debugPrintf("RCV: ZFIN\n");
         uint8_t finOpt[4] ={0,0,0,0};
+        debugPrintf("SND: ZFIN\n");
         sendHexHeader(ZMOCHAR_ZFIN, finOpt);
         lastStatus = ZSTATUS_FINISH;
         break;
       }
       default:
+        debugPrintf("RCV: **UNKNOWN**\n");
         sendCancel();
         lastStatus = ZSTATUS_CANCEL;
         break;
@@ -604,13 +637,23 @@ bool ZModem::receive(FS &fs, String dirPath)
       {
       case ZEXPECT_NOTHING:
       {
+        debugPrintf("RCV: DATAxNOTHING\n");
         uint8_t recvOpt[4] ={0,4,0,ZMOPT_ESCCTL|ZMOPT_ESC8};
+        debugPrintf("SND: ZRINIT\n");
         sendHexHeader(ZMOCHAR_ZRINIT, recvOpt);
         break;
       }
       case ZEXPECT_FILENAME:
       {
+        debugPrintf("RCV: DATAxFILENAME\n");
         filename = "";
+        debugPrintf("RCV: DEBUG:FILENAME:\n");
+        for(int i=0;i<bufSize;i++)
+          if(buf[i]<32)
+            debugPrintf("$%s",TOHEX(buf[i]));
+          else
+            debugPrintf("%c",buf[i]);
+        debugPrintf("\n");
         for(int i=0;i<bufSize && buf[i]!=0;i++)
           if(buf[i] >= 32)
             filename += (char)buf[i];
@@ -622,6 +665,7 @@ bool ZModem::receive(FS &fs, String dirPath)
           fchk.close();
         }
         uint8_t byts[4]={(pos & 0xff),((pos >> 8)&0xff),((pos >> 16)&0xff),((pos >> 24)&0xff)};
+        debugPrintf("SND: ZRPOS %d\n",pos);
         sendHexHeader(ZMOCHAR_ZRPOS, byts);
         expect = ZEXPECT_NOTHING;
         break;
@@ -635,14 +679,22 @@ bool ZModem::receive(FS &fs, String dirPath)
         switch(buf[0])
         {
         case ZMOCHAR_ZCRCW:
+          debugPrintf("RCV: DATAxDATA:ZCRCW %d\n",bufSize);
           expect = ZEXPECT_NOTHING;
         case ZMOCHAR_ZCRCQ:
         {
+          debugPrintf("RCV: DATAxDATA:ZCRCW %d\n",bufSize);
           uint8_t byts[4]={(Foffset & 0xff),((Foffset >> 8)&0xff),((Foffset >> 16)&0xff),((Foffset >> 24)&0xff)};
+          debugPrintf("SBD: ZACK %d\n",Foffset);
           sendHexHeader(ZMOCHAR_ZACK, byts);
           break;
         }
         case ZMOCHAR_ZCRCE:
+          debugPrintf("RCV: DATAxDATA:ZCRCE %d\n",bufSize);
+          expect = ZEXPECT_NOTHING;
+          break;
+        default:
+          debugPrintf("RCV: DATAxDATA:UNKNOWN %d, %d\n",buf[0],bufSize);
           expect = ZEXPECT_NOTHING;
           break;
         }
@@ -664,12 +716,11 @@ bool ZModem::transmit(File &rfile)
   while(lastStatus == ZSTATUS_CONTINUE)
   {
     uint16_t bufSize = 0;
-    debugPrintf("Wait for packet...\n");
     ZStatus packetStatus = readZModemPacket(buf,&bufSize);
-    debugPrintf("Got packet status %d\n",packetStatus);
     if(packetStatus == ZSTATUS_TIMEOUT)
     {
       ++timeouts;
+      debugPrintf("RCV: TIMEOUT %d\n",timeouts);
       if(timeouts>=10)
       {
         sendCancel();
@@ -684,6 +735,7 @@ bool ZModem::transmit(File &rfile)
     if(packetStatus == ZSTATUS_INVALIDCHECKSUM)
     {
       ++errorCount;
+      debugPrintf("RCV: INVALIDCHECKSUM %d\n",errorCount);
       if(errorCount>=3)
       {
         sendCancel();
@@ -695,6 +747,7 @@ bool ZModem::transmit(File &rfile)
     else
     if((packetStatus == ZSTATUS_CANCEL)||(packetStatus == ZSTATUS_FINISH))
     {
+      debugPrintf("RCV: CANCEL/FINISH\n");
       lastStatus = packetStatus;
       break;
     }
@@ -702,27 +755,47 @@ bool ZModem::transmit(File &rfile)
     if(packetStatus == ZSTATUS_HEADER)
     {
       lastStatus = ZSTATUS_CONTINUE;
+      errorCount=0;
+      timeouts=7;
       switch(buf[0])
       {
       case ZMOCHAR_ZRINIT:
+        debugPrintf("RCV: ZRINIT\n");
         if(atEOF) // nextFile would go here!
         {
           uint8_t byts[4]={0,0,0,0};
+          debugPrintf("SND: ZFIN\n");
           sendBinHeader(ZMOCHAR_ZFIN, byts);
         }
         else
         {
           uint8_t byts[4] ={0,0,0,ZMOPT_ZCBIN};
           sendBinHeader(ZMOCHAR_ZFILE, byts);
-          String packet="";
+          String rfileSzStr="";
+          rfileSzStr += rfile.size();
           String p=rfile.name();
           int x=p.lastIndexOf("/");
           if((x>=0)&&(x<p.length()-1))
-            packet += p.substring(x+1);
-          packet += '\0';
-          packet += rfile.size();
-          packet += " 0 777 0 0 00";
-          sendDataPacket(ZMOCHAR_ZCRCW, (uint8_t *)packet.c_str(), packet.length());
+            p = p.substring(x+1);
+          uint8_t *pbuf = (uint8_t *)malloc(p.length() + (rfileSzStr.length()*2) + 25);
+          uint16_t pbuflen=0;
+          for(int i=0;i<p.length();i++)
+            pbuf[pbuflen++] = p[i];
+          pbuf[pbuflen++] = 0;
+          for(int i=0;i<rfileSzStr.length();i++)
+            pbuf[pbuflen++] = rfileSzStr[i];
+          //String nums=" 0 0 0 1 ";
+          String nums=" 13207776736 100644";
+          for(int i=0;i<nums.length();i++)
+            pbuf[pbuflen++] = nums[i];
+          //for(int i=0;i<rfileSzStr.length();i++)
+          //  pbuf[pbuflen++] = rfileSzStr[i];
+          //pbuf[pbuflen++] = 0x18;
+          pbuf[pbuflen++] = 0;
+          pbuf[pbuflen++] = 'k';
+          debugPrintf("SND: ZCRCW of len %d\n",pbuflen);
+          sendDataPacket(ZMOCHAR_ZCRCW, pbuf, pbuflen);
+          free(pbuf);
         }
         break;
       case ZMOCHAR_ZRPOS:
@@ -730,18 +803,25 @@ bool ZModem::transmit(File &rfile)
         if(!atEOF)
         {
           uint32_t pos=(buf[1]) | ((uint32_t)buf[2] << 8) | ((uint32_t)buf[2] << 16) | ((uint32_t)buf[2] << 24);
+          debugPrintf("RCV: ZRPOS %d==%d\n",pos,Foffset);
           if(pos!=Foffset)
           {
             rfile.seek(pos);
             Foffset = pos;
           }
         }
+        else
+          debugPrintf("RCV: ZRPOS ??\n");
       }
       //FALLTHROUGH OK!
       case ZMOCHAR_ZACK:
       {
+        if(buf[0] == ZMOCHAR_ZACK)
+          debugPrintf("RCV: ZACK\n");
+        
         {
           uint8_t byts[4]={(Foffset & 0xff),((Foffset >> 8)&0xff),((Foffset >> 16)&0xff),((Foffset >> 24)&0xff)};
+          debugPrintf("SND: ZDATA: %d\n",Foffset);
           sendBinHeader(ZMOCHAR_ZDATA, byts);
           uint8_t data[1024];
           int len = rfile.read(data, 1024);
@@ -752,21 +832,25 @@ bool ZModem::transmit(File &rfile)
             type=ZMOCHAR_ZCRCE;
           }
           Foffset += len;
+          debugPrintf("SND: ZDATA: DATA LEN=%d\n",len);
           sendDataPacket(type, data, len);
         }
         if(atEOF)
         {
           uint8_t byts[4]={(Foffset & 0xff),((Foffset >> 8)&0xff),((Foffset >> 16)&0xff),((Foffset >> 24)&0xff)};
+          debugPrintf("SND: ZEOF\n");
           sendHexHeader(ZMOCHAR_ZEOF, byts);
         }
         break;
       }
       case ZMOCHAR_ZFIN:
+        debugPrintf("RCV: ZFIN\n");
         for(int i=0;i<2;i++)
           mdmOt->printb('O');
         lastStatus = ZSTATUS_FINISH;
         break;
       default:
+        debugPrintf("RCV: %d??!! CANCELLING!\n",buf[0]);
         sendCancel();
         lastStatus = ZSTATUS_CANCEL;
         break;
