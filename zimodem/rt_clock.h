@@ -47,8 +47,12 @@ public:
   void setMillis(int s);
   void addMillis(int s);
 
-  void setMillisSinceEpoch(uint64_t millis);
-  uint64_t getMillisSinceEpoch();
+  void setByUnixEpoch(uint32_t unisex);
+  uint32_t getUnixEpoch();
+
+  // should be private
+  void startUdp();
+  bool sendTimeRequest();
 private:
   bool isLeapYear();
   uint8_t getDaysInThisMonth();
@@ -62,6 +66,6 @@ private:
   uint8_t sec=0;
   uint16_t milsec=0;
 
-  void startUdp();
-  bool sendTimeRequest();
+  //void startUdp();
+  //bool sendTimeRequest();
 };

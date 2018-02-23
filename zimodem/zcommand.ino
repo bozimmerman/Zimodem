@@ -2437,6 +2437,16 @@ ZResult ZCommand::doSerialCommand()
              else
               result = ZERROR;
              break;
+        case 't':
+          if(isNumber && (vval > 0))
+          {
+            zclock.startUdp();
+            if(!zclock.sendTimeRequest())
+              result=ZERROR;
+          }
+          else
+              serial.printf("%d/%d/%d %d:%d:%d%s",(int)zclock.getMonth(),(int)zclock.getDay(),(int)zclock.getYear(),(int)zclock.getHour(),(int)zclock.getMinute(),(int)zclock.getSecond(),EOLN.c_str());
+          break;
         case 'u':
           result=doUpdateFirmware(vval,vbuf,vlen,isNumber);
           break;

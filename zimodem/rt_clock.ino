@@ -15,6 +15,10 @@
 */
 #include <math.h>
 #include <WiFiUdp.h>
+#define htonl(x) ( ((x)<<24 & 0xFF000000UL) | \
+                   ((x)<< 8 & 0x00FF0000UL) | \
+                   ((x)>> 8 & 0x0000FF00UL) | \
+                   ((x)>>24 & 0x000000FFUL) )
 
 WiFiUDP udp;
 const int NTP_PACKET_SIZE = 48;
@@ -23,6 +27,21 @@ static bool udpStarted = false;
 uint8_t DAYS_IN_MONTH[13] PROGMEM = {
     31,28,31,30,31,30,31,31,30,31,30,31
 };
+
+char *uintToStr( const uint64_t num, char *str )
+{
+  uint8_t i = 0;
+  uint64_t n = num;
+  do
+    i++;
+  while ( n /= 10 );
+  str[i] = '\0';
+  n = num;
+  do
+    str[--i] = ( n % 10 ) + '0';
+  while ( n /= 10 );
+  return str;
+}
 
 RealTimeClock::RealTimeClock(uint64_t epochMillis)
 {
@@ -67,21 +86,18 @@ void RealTimeClock::tick()
     if (cb) 
     {
       // adapted from code by  by Michael Margolis, Tom Igoe, and Ivan Grokhotkov
-      debugPrintf("Packet received, length=%d\n",cb);
+      //debugPrint("Packet received, length=%d\n\r",cb);
       byte packetBuffer[ NTP_PACKET_SIZE];
       udp.read(packetBuffer, NTP_PACKET_SIZE); // read the packet into the buffer
-      //the timestamp starts at byte 40 of the received packet and is four bytes,
-      // or two words, long. First, esxtract the two words:
-      unsigned long highWord = word(packetBuffer[40], packetBuffer[41]);
-      unsigned long lowWord = word(packetBuffer[42], packetBuffer[43]);
       // combine the four bytes (two words) into a long integer
       // this is NTP time (seconds since Jan 1 1900):
-      unsigned long secsSince1900 = highWord << 16 | lowWord;
+      uint32_t secsSince1900 = htonl(*((uint32_t *)(packetBuffer + 40))); 
       // Unix time starts on Jan 1 1970. In seconds, that's 2208988800:
-      const unsigned long seventyYears = 2208988800UL;
+      const uint32_t seventyYears = 2208988800UL;
       // subtract seventy years:
-      unsigned long epoch = secsSince1900 - seventyYears;
-      setMillisSinceEpoch(epoch * 1000);
+      uint32_t epoch = secsSince1900 - seventyYears;
+      setByUnixEpoch(epoch);
+      debugPrintf("Received NTP: %d/%d/%d %d:%d:%d\n\r",(int)getMonth(),(int)getDay(),(int)getYear(),(int)getHour(),(int)getMinute(),(int)getSecond());
     }
     else
     {
@@ -157,7 +173,7 @@ void RealTimeClock::addDay(int d)
   d = day + d;
   if(d >= getDaysInThisMonth())
   {
-    while(d > isLeapYear()?366:365)
+    while(d > (isLeapYear()?366:365))
     {
       d=d-(isLeapYear()?366:365);
       addYear(1);
@@ -262,11 +278,11 @@ uint8_t RealTimeClock::getDaysInThisMonth()
 {
   if(month != 1) // feb exception
     return pgm_read_byte_near(DAYS_IN_MONTH + month);
-  return isLeapYear() ? 29 : 28;
+  return (isLeapYear() ? 29 : 28);
 }
 
 
-void RealTimeClock::setMillisSinceEpoch(uint64_t milsec)
+void RealTimeClock::setByUnixEpoch(uint32_t unisex)
 {
   setYear(1970);
   setMonth(0);
@@ -275,15 +291,47 @@ void RealTimeClock::setMillisSinceEpoch(uint64_t milsec)
   setMinute(0);
   setSecond(0);
   setMillis(0);
-  addMillis(milsec);
+  setSecond(unisex % 60);
+  if(unisex > 59)
+  {
+    unisex = floor(unisex / 60);
+    setMinute(unisex % 60);
+    if(unisex > 59)
+    {
+      unisex = floor(unisex / 60);
+      setHour(unisex % 24);
+      if(unisex > 24)
+      {
+        unisex = floor(unisex / 24);
+        if(unisex >= getDaysInThisMonth())
+        {
+          uint32_t daysThisYear=(isLeapYear()?366:365);
+          while(unisex > daysThisYear)
+          {
+            unisex=unisex-daysThisYear;
+            yield();
+            addYear(1);
+            daysThisYear=(isLeapYear()?366:365);
+          }
+          while(unisex >= getDaysInThisMonth())
+          {
+            unisex=unisex-getDaysInThisMonth();
+            yield();
+            addMonth(1);
+          }
+          setDay(unisex);
+        }
+      }
+    }
+  }
   lastMicros = micros();
 }
 
-uint64_t RealTimeClock::getMillisSinceEpoch()
+uint32_t RealTimeClock::getUnixEpoch()
 {
   if(year < 1970)
     return 0;
-  uint64_t val = milsec + (sec * 1000) + (min * 60000) + (hour * 60 * 60000);
+  uint32_t val = sec + (min * 60) + (hour * 60 * 60);
   //TODO:
   return val;
 }
@@ -306,9 +354,12 @@ bool RealTimeClock::sendTimeRequest()
     packetBuffer[13]  = 0x4E;
     packetBuffer[14]  = 49;
     packetBuffer[15]  = 52;
-    //TODO: finish this part
-    //udp.beginPacket(address, 123); //NTP requests are to port 123
+    IPAddress timeServerIP;
+    WiFi.hostByName(ntpServerName, timeServerIP);
+    udp.beginPacket(timeServerIP, 123); //NTP requests are to port 123
     udp.write(packetBuffer, NTP_PACKET_SIZE);
     udp.endPacket();
+    return true;
   }
+  return false;
 }
