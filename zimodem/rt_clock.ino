@@ -14,15 +14,12 @@
    limitations under the License.
 */
 #include <math.h>
-#include <WiFiUdp.h>
 #define htonl(x) ( ((x)<<24 & 0xFF000000UL) | \
                    ((x)<< 8 & 0x00FF0000UL) | \
                    ((x)>> 8 & 0x0000FF00UL) | \
                    ((x)>>24 & 0x000000FFUL) )
 
-WiFiUDP udp;
 const int NTP_PACKET_SIZE = 48;
-static bool udpStarted = false;
 
 uint8_t DAYS_IN_MONTH[13] PROGMEM = {
     31,28,31,30,31,30,31,31,30,31,30,31
@@ -43,16 +40,17 @@ char *uintToStr( const uint64_t num, char *str )
   return str;
 }
 
-RealTimeClock::RealTimeClock(uint64_t epochMillis)
+DateTimeClock::DateTimeClock() : DateTimeClock(0)
 {
-  setYear(1970);
-  setMonth(0);
-  setDay(0);
-  addMillis(epochMillis);
-  lastMicros = micros();
 }
 
-RealTimeClock::RealTimeClock(int y, int m, int d, int h, int mn, int s, int mi)
+
+DateTimeClock::DateTimeClock(uint32_t epochSecs)
+{
+  setByUnixEpoch(epochSecs);
+}
+
+DateTimeClock::DateTimeClock(int y, int m, int d, int h, int mn, int s, int mi)
 {
   year=y;
   month=m;
@@ -61,25 +59,37 @@ RealTimeClock::RealTimeClock(int y, int m, int d, int h, int mn, int s, int mi)
   min=mn;
   sec=s;
   milsec=mi;
-  lastMicros = micros();
+}
+
+RealTimeClock::RealTimeClock(uint32_t epochSecs) : DateTimeClock(epochSecs)
+{
+  lastMillis = millis();
+  nextNTPMillis = millis();
+}
+
+RealTimeClock::RealTimeClock() : DateTimeClock()
+{
+  lastMillis = millis();
+  nextNTPMillis = millis();
+}
+
+RealTimeClock::RealTimeClock(int y, int m, int d, int h, int mn, int s, int mi) :
+    DateTimeClock(y,m,d,h,mn,s,mi)
+{
+  lastMillis = millis();
+  nextNTPMillis = millis();
 }
 
 void RealTimeClock::startUdp()
 {
   if(!udpStarted)
   {
-    udpStarted=true;
-    udp.begin(2390);
+    udpStarted=udp.begin(2390);
   }
 }
 
 void RealTimeClock::tick()
 {
-  int64_t diff = micros()-lastMicros;
-  if(diff < 0)
-    diff = -diff;
-  addMillis(floor(diff/1000));
-  lastMicros = micros()-(diff % 1000); 
   if(udpStarted)
   {
     int cb = udp.parsePacket();
@@ -96,19 +106,33 @@ void RealTimeClock::tick()
       const uint32_t seventyYears = 2208988800UL;
       // subtract seventy years:
       uint32_t epoch = secsSince1900 - seventyYears;
+      lastMillis = millis();
       setByUnixEpoch(epoch);
       debugPrintf("Received NTP: %d/%d/%d %d:%d:%d\n\r",(int)getMonth(),(int)getDay(),(int)getYear(),(int)getHour(),(int)getMinute(),(int)getSecond());
+      nextNTPMillis = millis() + (ntpPeriodMillis * 60); // one hour
     }
     else
     {
-      //TODO: check when the next time a request needs to be made... then DO
+      int64_t diff = nextNTPMillis - millis();
+      if((diff <= 0) && (diff > flipChk))
+      {
+        HWSerial.println("Forcing update. DELME!");
+        forceUpdate();
+      }
     }
   }
 }
 
+void RealTimeClock::forceUpdate()
+{
+  nextNTPMillis = millis() + ntpPeriodMillis;
+  startUdp();
+  sendTimeRequest();
+}
+
 bool RealTimeClock::isTimeSet()
 {
-  return (year > 0);
+  return (year > 1000);
 }
 
 bool RealTimeClock::resetTime()
@@ -120,37 +144,37 @@ bool RealTimeClock::resetTime()
   min=0;
   sec=0;
   milsec=0;
-  lastMicros = micros();
-  //TODO: check time servers?
+  lastMillis = millis();
+  nextNTPMillis = millis();
   return true;
 }
 
-int RealTimeClock::getYear()
+int DateTimeClock::getYear()
 {
   return year;
 }
 
-void RealTimeClock::setYear(int y)
+void DateTimeClock::setYear(int y)
 {
   year=y;
 }
 
-void RealTimeClock::addYear(int y)
+void DateTimeClock::addYear(uint32_t y)
 {
   year+=y;
 }
 
-int RealTimeClock::getMonth()
+int DateTimeClock::getMonth()
 {
   return month + 1; // because 0 based
 }
 
-void RealTimeClock::setMonth(int m)
+void DateTimeClock::setMonth(int m)
 {
   month = m % 12;
 }
 
-void RealTimeClock::addMonth(int m)
+void DateTimeClock::addMonth(uint32_t m)
 {
   m = month + m;
   if(m > 11)
@@ -158,17 +182,17 @@ void RealTimeClock::addMonth(int m)
   setMonth(m);
 }
 
-int RealTimeClock::getDay()
+int DateTimeClock::getDay()
 {
-  return day;
+  return day + 1;
 }
 
-void RealTimeClock::setDay(int d)
+void DateTimeClock::setDay(int d)
 {
   day = d % getDaysInThisMonth();
 }
 
-void RealTimeClock::addDay(int d)
+void DateTimeClock::addDay(uint32_t d)
 {
   d = day + d;
   if(d >= getDaysInThisMonth())
@@ -187,17 +211,17 @@ void RealTimeClock::addDay(int d)
   setDay(d);
 }
 
-int RealTimeClock::getHour()
+int DateTimeClock::getHour()
 {
   return hour;
 }
 
-void RealTimeClock::setHour(int h)
+void DateTimeClock::setHour(int h)
 {
   hour=h % 24;
 }
 
-void RealTimeClock::addHour(int h)
+void DateTimeClock::addHour(uint32_t h)
 {
   h=hour + h;
   if(h > 23)
@@ -205,17 +229,17 @@ void RealTimeClock::addHour(int h)
   setHour(h);
 }
 
-int RealTimeClock::getMinute()
+int DateTimeClock::getMinute()
 {
   return min;
 }
 
-void RealTimeClock::setMinute(int mm)
+void DateTimeClock::setMinute(int mm)
 {
   min=mm % 60;
 }
 
-void RealTimeClock::addMinute(int mm)
+void DateTimeClock::addMinute(uint32_t mm)
 {
   mm = min+mm;
   if(mm > 59)
@@ -223,17 +247,17 @@ void RealTimeClock::addMinute(int mm)
   setMinute(mm);
 }
 
-int RealTimeClock::getSecond()
+int DateTimeClock::getSecond()
 {
   return sec;
 }
 
-void RealTimeClock::setSecond(int s)
+void DateTimeClock::setSecond(int s)
 {
   sec=s % 60;
 }
 
-void RealTimeClock::addSecond(int s)
+void DateTimeClock::addSecond(uint32_t s)
 {
   s = sec + s;
   if(s > 59)
@@ -241,17 +265,17 @@ void RealTimeClock::addSecond(int s)
   setSecond(s);
 }
 
-int RealTimeClock::getMillis()
+int DateTimeClock::getMillis()
 {
   return milsec;
 }
 
-void RealTimeClock::setMillis(int s)
+void DateTimeClock::setMillis(int s)
 {
   milsec=s % 1000;
 }
 
-void RealTimeClock::addMillis(int s)
+void DateTimeClock::addMillis(uint64_t s)
 {
   s = milsec+s;
   if(s > 999)
@@ -259,7 +283,7 @@ void RealTimeClock::addMillis(int s)
   setMillis(s);
 }
 
-bool RealTimeClock::isLeapYear()
+bool DateTimeClock::isLeapYear()
 {
   if(year % 4 == 0)
   {
@@ -274,15 +298,38 @@ bool RealTimeClock::isLeapYear()
   return false;
 }
 
-uint8_t RealTimeClock::getDaysInThisMonth()
+uint8_t DateTimeClock::getDaysInThisMonth()
 {
   if(month != 1) // feb exception
     return pgm_read_byte_near(DAYS_IN_MONTH + month);
   return (isLeapYear() ? 29 : 28);
 }
 
+void DateTimeClock::setTime(DateTimeClock &clock)
+{
+  year=clock.year;
+  month=clock.month;
+  day=clock.day;
+  hour=clock.hour;
+  min=clock.min;
+  sec=clock.sec;
+  milsec=clock.milsec;
+}
 
-void RealTimeClock::setByUnixEpoch(uint32_t unisex)
+
+DateTimeClock &RealTimeClock::getCurrentTime()
+{
+  adjClock.setTime(*this);
+  uint64_t now=millis();
+  if(lastMillis <= now)
+    adjClock.addMillis(now - lastMillis);
+  else
+    adjClock.addMillis(now + (0xffffffffffffffff - lastMillis));
+  return adjClock;
+}
+
+
+void DateTimeClock::setByUnixEpoch(uint32_t unisex)
 {
   setYear(1970);
   setMonth(0);
@@ -291,43 +338,12 @@ void RealTimeClock::setByUnixEpoch(uint32_t unisex)
   setMinute(0);
   setSecond(0);
   setMillis(0);
-  setSecond(unisex % 60);
-  if(unisex > 59)
-  {
-    unisex = floor(unisex / 60);
-    setMinute(unisex % 60);
-    if(unisex > 59)
-    {
-      unisex = floor(unisex / 60);
-      setHour(unisex % 24);
-      if(unisex > 24)
-      {
-        unisex = floor(unisex / 24);
-        if(unisex >= getDaysInThisMonth())
-        {
-          uint32_t daysThisYear=(isLeapYear()?366:365);
-          while(unisex > daysThisYear)
-          {
-            unisex=unisex-daysThisYear;
-            yield();
-            addYear(1);
-            daysThisYear=(isLeapYear()?366:365);
-          }
-          while(unisex >= getDaysInThisMonth())
-          {
-            unisex=unisex-getDaysInThisMonth();
-            yield();
-            addMonth(1);
-          }
-          setDay(unisex);
-        }
-      }
-    }
-  }
-  lastMicros = micros();
+  uint64_t ms = unisex;
+  ms *= 1000L;
+  addMillis(ms);
 }
 
-uint32_t RealTimeClock::getUnixEpoch()
+uint32_t DateTimeClock::getUnixEpoch()
 {
   if(year < 1970)
     return 0;
@@ -338,7 +354,7 @@ uint32_t RealTimeClock::getUnixEpoch()
 
 bool RealTimeClock::sendTimeRequest()
 {
-  if(WiFi.status() == WL_CONNECTED)
+  if((WiFi.status() == WL_CONNECTED)&&(udpStarted))
   {
     // adapted from code by  by Michael Margolis, Tom Igoe, and Ivan Grokhotkov
     const char* ntpServerName = "time.nist.gov";

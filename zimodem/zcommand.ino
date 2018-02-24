@@ -2439,13 +2439,12 @@ ZResult ZCommand::doSerialCommand()
              break;
         case 't':
           if(isNumber && (vval > 0))
-          {
-            zclock.startUdp();
-            if(!zclock.sendTimeRequest())
-              result=ZERROR;
-          }
+            zclock.forceUpdate();
           else
-              serial.printf("%d/%d/%d %d:%d:%d%s",(int)zclock.getMonth(),(int)zclock.getDay(),(int)zclock.getYear(),(int)zclock.getHour(),(int)zclock.getMinute(),(int)zclock.getSecond(),EOLN.c_str());
+          {
+            DateTimeClock c = zclock.getCurrentTime();
+            serial.printf("%d/%d/%d %d:%d:%d%s",(int)c.getMonth(),(int)c.getDay(),(int)c.getYear(),(int)c.getHour(),(int)c.getMinute(),(int)c.getSecond(),EOLN.c_str());
+          }
           break;
         case 'u':
           result=doUpdateFirmware(vval,vbuf,vlen,isNumber);
