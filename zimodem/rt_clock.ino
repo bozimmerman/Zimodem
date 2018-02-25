@@ -105,7 +105,7 @@ void RealTimeClock::tick()
       // this is NTP time (seconds since Jan 1 1900):
       uint32_t secsSince1900 = htonl(*((uint32_t *)(packetBuffer + 40))); 
       // Unix time starts on Jan 1 1970. In seconds, that's 2208988800:
-      const uint32_t seventyYears = 2208988800UL;
+      const uint32_t seventyYears = 2208988800UL + 3600UL;
       // subtract seventy years:
       uint32_t epoch = secsSince1900 - seventyYears;
       lastMillis = millis();
@@ -121,6 +121,7 @@ void RealTimeClock::tick()
           tz += c;
           c=pgm_read_byte_near(&(TimeZones[tzCode][1][++s]));
         }
+        String otz=tz;
         int x=tz.indexOf("/");
         if(x > 0)
         {
@@ -411,8 +412,16 @@ bool RealTimeClock::sendTimeRequest()
     packetBuffer[14]  = 49;
     packetBuffer[15]  = 52;
     IPAddress timeServerIP;
+    String host = ntpServerName;
+    int port=123;
+    int pi=host.indexOf(':');
+    if(pi>0)
+    {
+      port=atoi(host.substring(pi+1).c_str());
+      host = host.substring(0,pi);
+    }
     WiFi.hostByName(ntpServerName.c_str(), timeServerIP);
-    udp.beginPacket(timeServerIP, 123); //NTP requests are to port 123
+    udp.beginPacket(timeServerIP, port); //NTP requests are to port 123
     udp.write(packetBuffer, NTP_PACKET_SIZE);
     udp.endPacket();
     return true;
