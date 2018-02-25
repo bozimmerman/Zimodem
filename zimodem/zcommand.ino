@@ -161,7 +161,7 @@ ZResult ZCommand::doResetCommand()
   serialDelayMs=0;
   binType=BTYPE_NORMAL;
   serial.setFlowControlType(DEFAULT_FCT);
-  setBaseConfigOptions(argv);
+  setOptionsFromSavedConfig(argv);
   memset(nbuf,0,MAX_COMMAND_SIZE);
   return ZOK;
 }
@@ -255,12 +255,16 @@ void ZCommand::reSaveConfig()
            "%d,%d,%d,%d,"
            "%d,%d,%d,%d,%d,"
            "%d,%d,%d,%d,%d,%d,%d,"
-           "%d,%d,%d,%d,%d,%d", 
+           "%d,%d,%d,%d,%d,%d,"
+           "%d,"
+           "%s,%s", 
             wifiSSI.c_str(), wifiPW.c_str(), baudRate, eoln,
             serial.getFlowControlType(), doEcho, suppressResponses, numericResponses,
             longResponses, serial.isPetsciiMode(), dcdMode, serialConfig, ctsMode,
             rtsMode,pinDCD,pinCTS,pinRTS,autoStreamMode,ringCounter,preserveListeners,
-            riMode,dtrMode,dsrMode,pinRI,pinDTR,pinDSR
+            riMode,dtrMode,dsrMode,pinRI,pinDTR,pinDSR,
+            zclock.isDisabled()?999:zclock.getTimeZoneCode(),
+            zclock.getFormat().c_str(),zclock.getNtpServerHost().c_str()
             );
   f.close();
   delay(500);
@@ -288,7 +292,7 @@ void ZCommand::reSaveConfig()
   }
 }
 
-void ZCommand::setBaseConfigOptions(String configArguments[])
+void ZCommand::setOptionsFromSavedConfig(String configArguments[])
 {
   if(configArguments[CFG_EOLN].length()>0)
   {
@@ -377,6 +381,23 @@ void ZCommand::setBaseConfigOptions(String configArguments[])
     if(preserveListeners)
       WiFiServerNode::RestoreWiFiServers();
   }
+  if(configArguments[CFG_TIMEZONE].length()>0)
+  {
+    int tzCode = atoi(configArguments[CFG_TIMEZONE].c_str());
+    if(tzCode > 500)
+      zclock.setDisabled(true);
+    else
+    {
+      zclock.setDisabled(false);
+      zclock.setTimeZoneCode(tzCode);
+    }
+  }
+  if((!zclock.isDisabled())&&(configArguments[CFG_TIMEFMT].length()>0))
+    zclock.setFormat(configArguments[CFG_TIMEFMT]);
+  if((!zclock.isDisabled())&&(configArguments[CFG_TIMEURL].length()>0))
+    zclock.setNtpServerHost(configArguments[CFG_TIMEURL]);
+  if(!zclock.isDisabled())
+    zclock.forceUpdate();
 }
 
 void ZCommand::parseConfigOptions(String configArguments[])
@@ -609,6 +630,12 @@ ZResult ZCommand::doInfoCommand(int vval, uint8_t *vbuf, int vlen, bool isNumber
   if(vval == 6)
   {
     serial.prints(WiFi.macAddress());
+    serial.prints(EOLN);
+  }
+  else
+  if(vval == 7)
+  {
+    serial.prints(zclock.getCurrentTimeFormatted());
     serial.prints(EOLN);
   }
   else
@@ -1734,6 +1761,45 @@ String ZCommand::getNextSerialCommand()
   return currentCommand;
 }
 
+ZResult ZCommand::doTimeZoneSetupCommand(int vval, uint8_t *vbuf, int vlen, bool isNumber)
+{
+  if((strcmp((char *)vbuf,"disabled")==0)
+  ||(strcmp((char *)vbuf,"DISABLED")==0))
+  {
+    zclock.setDisabled(true);
+    return ZOK;
+  }
+  zclock.setDisabled(false);
+  char *c1=strchr((char *)vbuf,',');
+  if(c1 == 0)
+    return zclock.setTimeZone((char *)vbuf) ? ZOK : ZERROR;
+  else
+  {
+    *c1=0;
+    c1++;
+    if((strlen((char *)vbuf)>0)&&(!zclock.setTimeZone((char *)vbuf)))
+      return ZERROR;
+    if(strlen(c1)==0)
+      return ZOK;
+    char *c2=strchr(c1,',');
+    if(c2 == 0)
+    {
+      zclock.setFormat(c1);
+      return ZOK;
+    }
+    else
+    {
+      *c2=0;
+      c2++;
+      if(strlen(c1)>0)
+        zclock.setFormat(c1);
+      if(strlen(c2)>0)
+        zclock.setNtpServerHost(c2);
+    }
+  }
+  return ZOK;
+}
+
 ZResult ZCommand::doSerialCommand()
 {
   int len=eon;
@@ -2250,6 +2316,7 @@ ZResult ZCommand::doSerialCommand()
             wifiSSI="";
             wifiConnected=false;
             delay(500);
+            zclock.reset();
             result=doResetCommand();
             showInitMessage();
           }
@@ -2438,13 +2505,14 @@ ZResult ZCommand::doSerialCommand()
               result = ZERROR;
              break;
         case 't':
-          if(isNumber && (vval > 0))
-            zclock.forceUpdate();
-          else
+          if(vlen == 0)
           {
-            DateTimeClock c = zclock.getCurrentTime();
-            serial.printf("%d/%d/%d %d:%d:%d%s",(int)c.getMonth(),(int)c.getDay(),(int)c.getYear(),(int)c.getHour(),(int)c.getMinute(),(int)c.getSecond(),EOLN.c_str());
+            serial.prints(zclock.getCurrentTimeFormatted());
+            serial.prints(EOLN);
+            result = ZIGNORE_SPECIAL;
           }
+          else
+            result = doTimeZoneSetupCommand(vval, vbuf, vlen, isNumber);
           break;
         case 'u':
           result=doUpdateFirmware(vval,vbuf,vlen,isNumber);

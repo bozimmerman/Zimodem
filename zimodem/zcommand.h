@@ -54,7 +54,10 @@ enum ConfigOptions
   CFG_RIPIN=23,
   CFG_DTRPIN=24,
   CFG_DSRPIN=25,
-  CFG_LAST=25
+  CFG_TIMEZONE=26,
+  CFG_TIMEFMT=27,
+  CFG_TIMEURL=28,
+  CFG_LAST=28
 };
 
 enum BinType
@@ -109,7 +112,7 @@ class ZCommand : public ZMode
     ZResult doSerialCommand();
     void setConfigDefaults();
     void parseConfigOptions(String configArguments[]);
-    void setBaseConfigOptions(String configArguments[]);
+    void setOptionsFromSavedConfig(String configArguments[]);
     void reSaveConfig();
     void reSendLastPacket(WiFiClientNode *conn);
     void acceptNewConnection();
@@ -135,6 +138,7 @@ class ZCommand : public ZMode
     ZResult doInfoCommand(int vval, uint8_t *vbuf, int vlen, bool isNumber);
     ZResult doWebStream(int vval, uint8_t *vbuf, int vlen, bool isNumber, const char *filename, bool cache);
     ZResult doUpdateFirmware(int vval, uint8_t *vbuf, int vlen, bool isNumber);
+    ZResult doTimeZoneSetupCommand(int vval, uint8_t *vbuf, int vlen, bool isNumber);
 
   public:
     int packetSize = 127;

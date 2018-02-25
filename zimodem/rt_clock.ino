@@ -90,6 +90,8 @@ void RealTimeClock::startUdp()
 
 void RealTimeClock::tick()
 {
+  if(disabled)
+    return;
   if(udpStarted)
   {
     int cb = udp.parsePacket();
@@ -107,27 +109,63 @@ void RealTimeClock::tick()
       // subtract seventy years:
       uint32_t epoch = secsSince1900 - seventyYears;
       lastMillis = millis();
-      setByUnixEpoch(epoch);
       debugPrintf("Received NTP: %d/%d/%d %d:%d:%d\n\r",(int)getMonth(),(int)getDay(),(int)getYear(),(int)getHour(),(int)getMinute(),(int)getSecond());
-      nextNTPMillis = millis() + (ntpPeriodMillis * 60); // one hour
+      // now to apply the timezone.  Ugh;
+      setByUnixEpoch(epoch);
+      String tz="";
+      {
+        char s=0;
+        char c=pgm_read_byte_near(&(TimeZones[tzCode][1][s]));
+        while(c != 0)
+        {
+          tz += c;
+          c=pgm_read_byte_near(&(TimeZones[tzCode][1][++s]));
+        }
+        int x=tz.indexOf("/");
+        if(x > 0)
+        {
+          if(isInStandardTime())
+            tz = tz.substring(0,x);
+          else
+            tz = tz.substring(x+1);
+        }
+        x=tz.indexOf(":");
+        int mm=0;
+        if(x > 0)
+        {
+          mm = atoi(tz.substring(x+1).c_str());
+          tz = tz.substring(0,x);
+        }
+        uint32_t echg = (atoi(tz.c_str()) * 3600);
+        echg += ((echg < 0)?(-(mm * 60)):(mm * 60));
+        setByUnixEpoch(epoch + echg);
+      }
+      nextNTPMillis = millis() + ntpPeriodLongMillis; // one hour
     }
     else
     {
-      int64_t diff = nextNTPMillis - millis();
-      if((diff <= 0) && (diff > flipChk))
+      uint32_t now=millis();
+      if(nextNTPMillis >= now)
       {
-        HWSerial.println("Forcing update. DELME!");
-        forceUpdate();
+        if(((nextNTPMillis - now) > ntpPeriodLongMillis)
+        ||(nextNTPMillis == now))
+          forceUpdate();
       }
+      else
+      if((now - nextNTPMillis) > ntpPeriodLongMillis)
+        forceUpdate();
     }
   }
 }
 
 void RealTimeClock::forceUpdate()
 {
-  nextNTPMillis = millis() + ntpPeriodMillis;
-  startUdp();
-  sendTimeRequest();
+  if(!disabled)
+  {
+    nextNTPMillis = millis() + ntpPeriodMillis;
+    startUdp();
+    sendTimeRequest();
+  }
 }
 
 bool RealTimeClock::isTimeSet()
@@ -135,7 +173,7 @@ bool RealTimeClock::isTimeSet()
   return (year > 1000);
 }
 
-bool RealTimeClock::resetTime()
+bool RealTimeClock::reset()
 {
   year=0;
   month=0;
@@ -146,6 +184,9 @@ bool RealTimeClock::resetTime()
   milsec=0;
   lastMillis = millis();
   nextNTPMillis = millis();
+  tzCode = 0;
+  format="%M/%d/%yyyy %h:%mm:%ss%aa %z";
+  ntpServerName = "time.nist.gov";
   return true;
 }
 
@@ -320,11 +361,11 @@ void DateTimeClock::setTime(DateTimeClock &clock)
 DateTimeClock &RealTimeClock::getCurrentTime()
 {
   adjClock.setTime(*this);
-  uint64_t now=millis();
+  uint32_t now=millis();
   if(lastMillis <= now)
     adjClock.addMillis(now - lastMillis);
   else
-    adjClock.addMillis(now + (0xffffffffffffffff - lastMillis));
+    adjClock.addMillis(now + (0xffffffff - lastMillis));
   return adjClock;
 }
 
@@ -357,7 +398,6 @@ bool RealTimeClock::sendTimeRequest()
   if((WiFi.status() == WL_CONNECTED)&&(udpStarted))
   {
     // adapted from code by  by Michael Margolis, Tom Igoe, and Ivan Grokhotkov
-    const char* ntpServerName = "time.nist.gov";
     debugPrintf("Sending NTP Packet...");
     byte packetBuffer[ NTP_PACKET_SIZE];
     memset(packetBuffer, 0, NTP_PACKET_SIZE);
@@ -371,7 +411,7 @@ bool RealTimeClock::sendTimeRequest()
     packetBuffer[14]  = 49;
     packetBuffer[15]  = 52;
     IPAddress timeServerIP;
-    WiFi.hostByName(ntpServerName, timeServerIP);
+    WiFi.hostByName(ntpServerName.c_str(), timeServerIP);
     udp.beginPacket(timeServerIP, 123); //NTP requests are to port 123
     udp.write(packetBuffer, NTP_PACKET_SIZE);
     udp.endPacket();
@@ -379,3 +419,269 @@ bool RealTimeClock::sendTimeRequest()
   }
   return false;
 }
+
+int DateTimeClock::getDoWNumber()
+{
+  uint16_t x= (getMonth() + 9) % 12;
+  uint16_t y = getYear() - x/10;
+  uint32_t z= 365*y + y/4 - y/100 + y/400 + (x*306 + 5)/10 + (getDay() - 1);
+  z=z%7;
+  if(z>3)
+    return z-4;
+  else
+    return z+3;
+}
+
+const char *DateTimeClock::getDoW()
+{
+  int num=getDoWNumber();
+  switch(num)
+  {
+  case 0:return "Sunday";
+  case 1:return "Monday";
+  case 2:return "Tuesday";
+  case 3:return "Wednesday";
+  case 4:return "Thursday";
+  case 5:return "Friday";
+  case 6:return "Saturday";
+  default: return "Broken";
+  }
+}
+
+bool DateTimeClock::isInStandardTime()
+{
+  uint8_t m=getMonth();
+  if(m<3)
+    return true;
+  if(m==3)
+  {
+    uint8_t d=getDay();
+    uint8_t dow=getDoWNumber();
+    while(dow-- > 0)
+      d--;
+    if(d<14)
+      return true;
+    return false;
+  }
+  if((m>3)&&(m<11))
+    return false;
+  if(m==11)
+  {
+    uint8_t d=getDay();
+    uint8_t dow=getDoWNumber();
+    while(dow-- > 0)
+      d--;
+    if(d<7)
+      return false;
+    return true;
+  }
+  return true;
+}
+
+bool DateTimeClock::isInDaylightSavingsTime()
+{
+  return !isInStandardTime();
+}
+
+int RealTimeClock::getTimeZoneCode()
+{
+  return tzCode;
+}
+
+void RealTimeClock::setTimeZoneCode(int val)
+{
+  if((tzCode >= 0)&&(tzCode < 243))
+  {
+    tzCode = val;
+    forceUpdate();
+  }
+}
+
+bool RealTimeClock::setTimeZone(String str)
+{
+  str.toUpperCase();
+  if(str.length()==0)
+    return false;
+  for(int i=0;i<243;i++)
+  {
+    for(int s=0;s<=str.length();s++)
+    {
+      char c=pgm_read_byte_near(&(TimeZones[i][0][s]));
+      if(s==str.length())
+      {
+        if(c==0)
+        {
+          tzCode = i;
+          forceUpdate();
+          return true;
+        }
+      }
+      else
+      if((c==0)||(c != str[s]))
+        break;
+    }
+  }
+  return false;
+}
+
+String RealTimeClock::getFormat()
+{
+  return format;
+}
+
+void RealTimeClock::setFormat(String fmt)
+{
+  fmt.replace(',','.');
+  format = fmt;
+}
+
+bool RealTimeClock::isDisabled()
+{
+  return disabled;
+}
+
+void RealTimeClock::setDisabled(bool tf)
+{
+  disabled=tf;
+}
+
+String RealTimeClock::getCurrentTimeFormatted()
+{
+  //String format="%M/%D/%YYYY %h:%mm:%ss%a"
+  DateTimeClock c = getCurrentTime();
+  String f=format;
+  if(f.indexOf("%yyyy")>=0)
+  {
+    sprintf(str,"%04d",(int)c.getYear());
+    f.replace("%yyyy",str);
+  }
+  if(f.indexOf("%yy")>=0)
+  {
+    int y=c.getYear();
+    y -= (floor(y/100)*100);
+    sprintf(str,"%02d",y);
+    f.replace("%yy",str);
+  }
+  if(f.indexOf("%y")>=0)
+  {
+    sprintf(str,"%d",(int)c.getYear());
+    f.replace("%y",str);
+  }
+  if(f.indexOf("%MM")>=0)
+  {
+    sprintf(str,"%02d",(int)c.getMonth());
+    f.replace("%MM",str);
+  }
+  if(f.indexOf("%M")>=0)
+  {
+    sprintf(str,"%d",(int)c.getMonth());
+    f.replace("%M",str);
+  }
+  if(f.indexOf("%dd")>=0)
+  {
+    sprintf(str,"%02d",(int)c.getDay());
+    f.replace("%dd",str);
+  }
+  if(f.indexOf("%d")>=0)
+  {
+    sprintf(str,"%d",(int)c.getDay());
+    f.replace("%d",str);
+  }
+  if(f.indexOf("%ee")>=0)
+  {
+    f.replace("%ee",c.getDoW());
+  }
+  if(f.indexOf("%e")>=0)
+  {
+    String dow=c.getDoW();
+    dow = dow.substring(0,3);
+    sprintf(str,"%d",dow.c_str());
+    f.replace("%e",str);
+  }
+  if(f.indexOf("%HH")>=0)
+  {
+    sprintf(str,"%02d",(int)c.getHour());
+    f.replace("%HH",str);
+  }
+  if(f.indexOf("%H")>=0)
+  {
+    sprintf(str,"%d",(int)c.getHour());
+    f.replace("%H",str);
+  }
+  if(f.indexOf("%hh")>=0)
+  {
+    sprintf(str,"%02d",(int)(c.getHour() % 12) + 1);
+    f.replace("%hh",str);
+  }
+  if(f.indexOf("%h")>=0)
+  {
+    sprintf(str,"%d",(int)(c.getHour() % 12) + 1);
+    f.replace("%h",str);
+  }
+  if(f.indexOf("%mm")>=0)
+  {
+    sprintf(str,"%02d",(int)c.getMinute());
+    f.replace("%mm",str);
+  }
+  if(f.indexOf("%m")>=0)
+  {
+    sprintf(str,"%d",(int)c.getMinute());
+    f.replace("%m",str);
+  }
+  if(f.indexOf("%ss")>=0)
+  {
+    sprintf(str,"%02d",(int)c.getSecond());
+    f.replace("%ss",str);
+  }
+  if(f.indexOf("%s")>=0)
+  {
+    sprintf(str,"%d",(int)c.getSecond());
+    f.replace("%s",str);
+  }
+  if(f.indexOf("%AA")>=0)
+    f.replace("%AA",(c.getHour()<12)?"AM":"PM");
+  if(f.indexOf("%aa")>=0)
+    f.replace("%aa",(c.getHour()<12)?"am":"pm");
+  if(f.indexOf("%A")>=0)
+    f.replace("%A",(c.getHour()<12)?"A":"P");
+  if(f.indexOf("%a")>=0)
+    f.replace("%a",(c.getHour()<12)?"a":"p");
+  if(f.indexOf("%z")>=0)
+  {
+    String z="";
+    char s=0;
+    char c=pgm_read_byte_near(&(TimeZones[tzCode][0][s]));
+    while(c != 0)
+    {
+      z += c;
+      c=pgm_read_byte_near(&(TimeZones[tzCode][0][++s]));
+    }
+    z.toLowerCase();
+    f.replace("%z",z.c_str());
+  }
+  if(f.indexOf("%Z")>=0)
+  {
+    String z="";
+    char s=0;
+    char c=pgm_read_byte_near(&(TimeZones[tzCode][0][s]));
+    while(c != 0)
+    {
+      z += c;
+      c=pgm_read_byte_near(&(TimeZones[tzCode][0][++s]));
+    }
+    f.replace("%Z",z.c_str());
+  }
+  return f;
+}
+
+String RealTimeClock::getNtpServerHost()
+{
+  return ntpServerName;
+}
+
+void RealTimeClock::setNtpServerHost(String newHost)
+{
+  newHost.replace(',','.');
+  ntpServerName = newHost;
+}
+
