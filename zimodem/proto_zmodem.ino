@@ -131,20 +131,20 @@ ZModem::ZStatus ZModem::readZModemPacket(uint8_t *buf, uint16_t *bufSize)
   bool doread=true;
   uint32_t crc = 0;
   const long normalTimeout = 2000;
-debugPrintf("\n");
+debugPrintf("\nRAWIN: ");
   while(doread)
   {
     uint8_t n = readZModemByte(normalTimeout,&lastStatus);
     if (lastStatus == ZSTATUS_TIMEOUT)
       return ZSTATUS_TIMEOUT;
-debugPrintf("%d ",n);
+debugPrintf("%s ",TOHEX(n));
     
     if((n=='O')&&(gotFIN))
     {
       n = readZModemByte(normalTimeout,&lastStatus);
       if (lastStatus == ZSTATUS_TIMEOUT)
         return ZSTATUS_TIMEOUT;
-debugPrintf("%d ",n);
+debugPrintf("%s ",TOHEX(n));
       if(n=='O')
         return ZSTATUS_FINISH;
     }
@@ -153,7 +153,7 @@ debugPrintf("%d ",n);
       n = readZModemByte(normalTimeout,&lastStatus);
       if (lastStatus == ZSTATUS_TIMEOUT)
         return ZSTATUS_TIMEOUT;
-debugPrintf("%d ",n);
+debugPrintf("%s ",TOHEX(n));
       if(n == ZMOCHAR_ZDLE)
         countCan+=2;
       else
@@ -164,26 +164,35 @@ debugPrintf("%d ",n);
       if(escAct != ZACTION_ESCAPE && (beforeStop<0))
       {
         act = escAct;
+debugPrintf("ESC%d ",escAct);
         if(act == ZACTION_DATA)
           beforeStop = (crcBits == 16) ? 2 : 4;
         else
           beforeStop = size;
+debugPrintf("STP%d ",beforeStop);
         crc = updateZCrc(n, crcBits, crc);
       }
       else
+      {
         n = ezcape(n);
+        debugPrintf("->%s ",TOHEX(n));
+      }
     }
     buf[(*bufSize)++] = n;
     if(beforeStop<0)
       crc = updateZCrc(n, crcBits, crc);
     else
     if(beforeStop==0)
+    {
+debugPrintf("BS ");
       doread = false;
+    }
     else
     if(beforeStop>0)
       beforeStop--;
     if(countCan>=5)
     {
+debugPrintf("CANCAN ");
       doread = false;
       act = ZACTION_CANCEL;
     }
@@ -221,7 +230,7 @@ debugPrintf("%d ",n);
     }
 debugPrintf("\nBINBUF: ");
 for(int ii=0;ii<*bufSize;ii++)
-  debugPrintf("%d ",buf[ii]);
+  debugPrintf("%s ",TOHEX(buf[ii]));
 debugPrintf("\n");
     uint32_t hcrc = (hcrcBits == 16) ? 0 : 0xffffffff;
     uint8_t htyp = buf[i++];
@@ -242,6 +251,7 @@ debugPrintf("\n");
       hcrc = updateZCrc(0, hcrcBits, updateZCrc(0, hcrcBits, hcrc)) & 0xffff;
     else
       hcrc = ~hcrc;
+debugPrintf("\nbits=%d crc=%s\n",hcrcBits,TOHEX((unsigned long)hcrc));
     while(hcrcBits > 0)
     {
       if(i>=*bufSize)
@@ -267,17 +277,16 @@ debugPrintf("\n");
       crc = updateZCrc(0, crcBits, updateZCrc(0, crcBits, crc)) & 0xffff;
     else
       crc = ~crc;
-    /*
-    debugPrintf("RA-BUF: ");
-    int x=0;
-    for(x=0;x<(*bufSize)-(crcBits/8);x++)
-      debugPrintf("%s ",TOHEX(buf[x]));
-    debugPrintf("CHK: %s ",TOHEX(buf[x++]));
-    for(;x<(*bufSize);x++)
-      debugPrintf("%s ",TOHEX(buf[x]));
-    debugPrintf("\n");
-    debugPrintf("RA-CRCCHK of data type %d\n",dtyp);
-    */
+debugPrintf("\nbits=%d crc=%s\n",crcBits,TOHEX((unsigned long)crc));
+debugPrintf("\nRA-BUF: ");
+int x=0;
+for(x=0;x<(*bufSize)-(crcBits/8);x++)
+  debugPrintf("%s ",TOHEX(buf[x]));
+debugPrintf("CHK: %s ",TOHEX(buf[x++]));
+for(;x<(*bufSize);x++)
+  debugPrintf("%s ",TOHEX(buf[x]));
+debugPrintf("\n");
+debugPrintf("RA-CRCCHK of data type %d\n",dtyp);
     uint8_t dcrcBits = crcBits;
     int i=(*bufSize - (dcrcBits/8));
     if(i < 0)
