@@ -17,7 +17,7 @@
 #include <cstdio>
 
 static char HD[3];
-static char HDL[9];
+static char HDL[17];
 
 static long logStartTime = millis();
 static long lastLogTime = millis();

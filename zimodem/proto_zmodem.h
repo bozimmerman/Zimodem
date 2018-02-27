@@ -43,6 +43,7 @@ private:
   {
     ZEXPECT_FILENAME,
     ZEXPECT_DATA,
+    ZEXPECT_ZSINIT,
     ZEXPECT_NOTHING
   };
   enum ZAction
