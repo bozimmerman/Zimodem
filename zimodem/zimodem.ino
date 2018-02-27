@@ -1,3 +1,5 @@
+// CoCoWiFI modifications by Allen C. Huffman of www.subethasoftware.com
+#define COCOWIFI
 /*
    Copyright 2016-2017 Bo Zimmerman
 
@@ -5,7 +7,6 @@
    you may not use this file except in compliance with the License.
    You may obtain a copy of the License at
 
-	   http://www.apache.org/licenses/LICENSE-2.0
 
    Unless required by applicable law or agreed to in writing, software
    distributed under the License is distributed on an "AS IS" BASIS,
@@ -21,8 +22,8 @@ const char compile_date[] = __DATE__ " " __TIME__;
 
 #ifdef ARDUINO_ESP32_DEV
 # define ZIMODEM_ESP32
-#elif defined(ESP32)
-# define ZIMODEM_ESP32
+//#elif defined(ESP32)
+//# define ZIMODEM_ESP32
 #elif defined(ARDUINO_ESP320)
 # define ZIMODEM_ESP32
 #elif defined(ARDUINO_NANO32)
@@ -33,13 +34,32 @@ const char compile_date[] = __DATE__ " " __TIME__;
 # define ZIMODEM_ESP32
 #elif defined(ARDUINO_QUANTUM)
 # define ZIMODEM_ESP32
+/* CoCoWiFi supported boards: */
+#elif defined(ARDUINO_NodeMCU_32S)
+# define ZIMODEM_ESP32
+# define BOARD_NAME "nodemcu-32s"
+#elif defined(ARDUINO_ESP8266_GENERIC)
+# define ZIMODEM_ESP8266
+# define BOARD_NAME "generic"
+#elif defined(ARDUINO_ESP8266_NODEMCU)
+# define ZIMODEM_ESP8266
+# define BOARD_NAME "nodemcu"
 #else
 # define ZIMODEM_ESP8266
 #endif
 
+#if !defined(BOARD_NAME)
+#error CoCoWiFi edition is not configured for this board yet.
+#endif
+
+#define UPDATE_URL   "www.subethasoftware.com"
+// Must have %s where the version string will go.
+#define UPDATE_FILE  "/files/zimodem/zimodem.ino."BOARD_NAME"-%s.bin"
+#define VERSION_FILE "/files/zimodem/zimodem-latest-version.txt"
 
 #ifdef ZIMODEM_ESP32
-# define debugPrintf Serial.printf
+//# define debugPrintf Serial.printf
+# define debugPrintf doNothing
 # define INCLUDE_SD_SHELL true
 # define DEFAULT_BAUD_RATE 1200
 # define DEFAULT_FCT FCT_DISABLED
@@ -87,6 +107,20 @@ const char compile_date[] = __DATE__ " " __TIME__;
 # define DEFAULT_PIN_RTS 4
 # define DEFAULT_PIN_CTS 5
 # define DEFAULT_PIN_DCD 2
+#ifdef COCOWIFI /* Standard RS-232 levels */
+# define DEFAULT_DCD_HIGH  LOW
+# define DEFAULT_DCD_LOW  HIGH
+# define DEFAULT_CTS_HIGH  LOW
+# define DEFAULT_CTS_LOW  HIGH
+# define DEFAULT_RTS_HIGH  LOW
+# define DEFAULT_RTS_LOW  HIGH
+# define DEFAULT_RI_HIGH  LOW
+# define DEFAULT_RI_LOW  HIGH
+# define DEFAULT_DSR_HIGH  LOW
+# define DEFAULT_DSR_LOW  HIGH
+# define DEFAULT_DTR_HIGH  LOW
+# define DEFAULT_DTR_LOW  HIGH
+#else // !COCOWIFI
 # define DEFAULT_DCD_HIGH  HIGH
 # define DEFAULT_DCD_LOW  LOW
 # define DEFAULT_CTS_HIGH  HIGH
@@ -99,6 +133,7 @@ const char compile_date[] = __DATE__ " " __TIME__;
 # define DEFAULT_DSR_LOW  LOW
 # define DEFAULT_DTR_HIGH  HIGH
 # define DEFAULT_DTR_LOW  LOW
+#endif // COCOWIFI
 #endif
 
 #define MAX_PIN_NO 50
