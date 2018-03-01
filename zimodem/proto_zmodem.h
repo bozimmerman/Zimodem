@@ -112,7 +112,7 @@ private:
   static const char ZMOPT_ZCBIN  =0x01;
 
   uint8_t readZModemByte(long timeout, ZStatus *status);
-  ZStatus readZModemPacket(uint8_t *buf, uint16_t *bufSize);
+  ZStatus readZModemPacket(uint8_t *buf, uint16_t *bufSize, ZExpect expect);
   void sendCancel();
   void sendHexHeader(uint8_t type, uint8_t* flags);
   void sendBinHeader(uint8_t type, uint8_t* flags);

@@ -123,7 +123,7 @@ uint32_t ZModem::updateZCrc(uint8_t byt, uint8_t bits, uint32_t crc)
   }
 }
 
-ZModem::ZStatus ZModem::readZModemPacket(uint8_t *buf, uint16_t *bufSize)
+ZModem::ZStatus ZModem::readZModemPacket(uint8_t *buf, uint16_t *bufSize, ZExpect expect)
 {
   ZModem::ZAction act=ZACTION_ESCAPE;
   int beforeStop = -1;
@@ -164,13 +164,19 @@ debugPrintf("%s ",TOHEX(n));
       if(escAct != ZACTION_ESCAPE && (beforeStop<0))
       {
         act = escAct;
-debugPrintf("ESC%d ",escAct);
+debugPrintf("ESC%d-%s ",escAct,TOHEX(n));
         if(act == ZACTION_DATA)
+        {
           beforeStop = (crcBits == 16) ? 2 : 4;
+          crc = updateZCrc(n, crcBits, crc);
+        }
         else
+        if(expect != ZEXPECT_DATA)
+        {
           beforeStop = size;
 debugPrintf("STP%d ",beforeStop);
-        crc = updateZCrc(n, crcBits, crc);
+          crc = updateZCrc(n, crcBits, crc);
+        }
       }
       else
       {
@@ -265,7 +271,7 @@ debugPrintf("\nbits=%d crc=%s\n",hcrcBits,TOHEX((unsigned long)hcrc));
     crc = (crcBits == 16) ? 0 : 0xffffffff;
     if(htyp==ZMOCHAR_ZFIN)
       gotFIN=true;
-    if(htyp==ZMOCHAR_ZDATA || htyp==ZMOCHAR_ZFILE)
+    if(htyp==ZMOCHAR_ZDATA || htyp==ZMOCHAR_ZFILE || htyp==ZMOCHAR_ZSINIT)
       acceptsHeader = false;
     *bufSize = 5;
     return ZSTATUS_HEADER;
@@ -278,7 +284,7 @@ debugPrintf("\nbits=%d crc=%s\n",hcrcBits,TOHEX((unsigned long)hcrc));
     else
       crc = ~crc;
 debugPrintf("\nbits=%d crc=%s\n",crcBits,TOHEX((unsigned long)crc));
-debugPrintf("\nRA-BUF: ");
+debugPrintf("RA-BUF: ");
 int x=0;
 for(x=0;x<(*bufSize)-(crcBits/8);x++)
   debugPrintf("%s ",TOHEX(buf[x]));
@@ -522,7 +528,7 @@ bool ZModem::receive(FS &fs, String dirPath)
   while(lastStatus == ZSTATUS_CONTINUE)
   {
     uint16_t bufSize = 0;
-    ZStatus packetStatus = readZModemPacket(buf,&bufSize);
+    ZStatus packetStatus = readZModemPacket(buf,&bufSize,expect);
     if(packetStatus == ZSTATUS_TIMEOUT)
     {
       ++timeouts;
@@ -546,6 +552,7 @@ bool ZModem::receive(FS &fs, String dirPath)
         lastStatus = packetStatus;
         break;
       }
+      expect=ZEXPECT_NOTHING;
       sendHexHeader(ZMOCHAR_ZRINIT, recvStart);
       lastStatus = ZSTATUS_CONTINUE;
     }
@@ -730,9 +737,14 @@ bool ZModem::receive(FS &fs, String dirPath)
           expect = ZEXPECT_NOTHING;
           break;
         default:
+        {
           debugPrintf("RCV: DATAxDATA:UNKNOWN %d, %d\n",buf[0],bufSize);
-          expect = ZEXPECT_NOTHING;
+          expect = ZEXPECT_DATA;
+          uint8_t byts[4]={(Foffset & 0xff),((Foffset >> 8)&0xff),((Foffset >> 16)&0xff),((Foffset >> 24)&0xff)};
+          debugPrintf("SBD: ZACK %d\n",Foffset);
+          sendHexHeader(ZMOCHAR_ZACK, byts);
           break;
+        }
         }
       }
     }
@@ -752,7 +764,7 @@ bool ZModem::transmit(File &rfile)
   while(lastStatus == ZSTATUS_CONTINUE)
   {
     uint16_t bufSize = 0;
-    ZStatus packetStatus = readZModemPacket(buf,&bufSize);
+    ZStatus packetStatus = readZModemPacket(buf,&bufSize,ZEXPECT_NOTHING);
     if(packetStatus == ZSTATUS_TIMEOUT)
     {
       ++timeouts;
