@@ -1,3 +1,4 @@
+// CoCoWiFI modifications by Allen C. Huffman of www.subethasoftware.com
 /*
    Copyright 2016-2017 Bo Zimmerman
 
@@ -5,7 +6,6 @@
    you may not use this file except in compliance with the License.
    You may obtain a copy of the License at
 
-	   http://www.apache.org/licenses/LICENSE-2.0
 
    Unless required by applicable law or agreed to in writing, software
    distributed under the License is distributed on an "AS IS" BASIS,
@@ -1140,7 +1140,7 @@ ZResult ZCommand::doUpdateFirmware(int vval, uint8_t *vbuf, int vlen, bool isNum
   
   uint8_t buf[255];
   int bufSize = 254;
-  if((!doWebGetBytes("www.zimmers.net", 80, "/otherprojs/c64net-latest-version.txt", false, buf, &bufSize))||(bufSize<=0))
+  if((!doWebGetBytes(UPDATE_URL, 80, VERSION_FILE, false, buf, &bufSize))||(bufSize<=0))
     return ZERROR;
 
   if((!isNumber)&&(vlen>2))
@@ -1181,12 +1181,9 @@ ZResult ZCommand::doUpdateFirmware(int vval, uint8_t *vbuf, int vlen, bool isNum
   uint32_t respLength=0;
   WiFiClient c;
   char firmwareName[100];
-#ifdef ZIMODEM_ESP32
-  sprintf(firmwareName,"/otherprojs/guru-firmware-%s.bin",buf);
-#else
-  sprintf(firmwareName,"/otherprojs/c64net-firmware-%s.bin",buf);
-#endif
-  if(!doWebGetStream("www.zimmers.net", 80, firmwareName, &c, &respLength))
+  sprintf(firmwareName,UPDATE_FILE,buf);
+
+  if(!doWebGetStream(UPDATE_URL, 80, firmwareName, &c, &respLength))
   {
     serial.prints(EOLN);
     return ZERROR;
@@ -2599,6 +2596,8 @@ void ZCommand::showInitMessage()
   serial.prints(compile_date);
   serial.prints(")");
   serial.prints(commandMode.EOLN);
+  serial.prints("CoCoWiFi Version.");
+  serial.prints(commandMode.EOLN);
   char s[100];
 #ifdef ZIMODEM_ESP32
   sprintf(s,"sdk=%s chipid=%d cpu@%d",ESP.getSdkVersion(),ESP.getChipRevision(),ESP.getCpuFreqMHz());
@@ -3083,4 +3082,3 @@ void ZCommand::loop()
   }
   checkBaudChange();
 }
-
