@@ -75,7 +75,7 @@ void ZCommand::setConfigDefaults()
   binType=BTYPE_NORMAL;
   serialDelayMs=0;
   dcdActive=DEFAULT_DCD_HIGH;
-  dcdInactive=DEFAULT_DCD_HIGH;
+  dcdInactive=DEFAULT_DCD_LOW;
   ctsActive=DEFAULT_CTS_HIGH;
   ctsInactive=DEFAULT_CTS_LOW;
   rtsActive=DEFAULT_RTS_HIGH;
@@ -639,6 +639,12 @@ ZResult ZCommand::doInfoCommand(int vval, uint8_t *vbuf, int vlen, bool isNumber
     serial.prints(EOLN);
   }
   else
+  if(vval == 8)
+  {
+    serial.prints(compile_date);
+    serial.prints(EOLN);
+  }
+  else
     return ZERROR;
   return ZOK;
 }
@@ -861,7 +867,7 @@ bool ZCommand::doWebGetStream(const char *hostIp, int port, const char *req, WiF
     return false;
   }
   c->printf("GET /%s HTTP/1.1\r\n",req);
-  c->printf("User-Agent: C64Net Firmware\r\n");
+  c->printf("User-Agent: Zimodem Firmware\r\n");
   c->printf("Host: %s\r\n",hostIp);
   c->printf("Connection: close\r\n\r\n");
   
@@ -1248,38 +1254,37 @@ ZResult ZCommand::doWiFiCommand(int vval, uint8_t *vbuf, int vlen, bool isNumber
   else
   {
     char *x=strstr((char *)vbuf,",");
-    if(x <= 0)
+    char *ssi=(char *)vbuf;
+    char *pw=ssi + strlen(ssi);
+    if(x > 0)
+    {
+      *x=0;
+      pw=x+1;
+    }
+    bool connSuccess=false;
+    if((doPETSCII)&&(!serial.isPetsciiMode()))
+    {
+      char *ssiP =(char *)malloc(strlen(ssi)+1);
+      char *pwP = (char *)malloc(strlen(pw)+1);
+      strcpy(ssiP,ssi);
+      strcpy(pwP,pw);
+      for(char *c=ssiP;*c!=0;c++)
+        *c = ascToPetcii(*c);
+      for(char *c=pwP;*c!=0;c++)
+        *c = ascToPetcii(*c);
+      connSuccess = connectWifi(ssiP,pwP);
+      free(ssiP);
+      free(pwP);
+    }
+    else
+      connSuccess = connectWifi(ssi,pw);
+
+    if(!connSuccess)
       return ZERROR;
     else
     {
-      *x=0;
-      char *ssi=(char *)vbuf;
-      char *pw=x+1;
-      bool connSuccess=false;
-      if((doPETSCII)&&(!serial.isPetsciiMode()))
-      {
-        char *ssiP =(char *)malloc(strlen(ssi)+1);
-        char *pwP = (char *)malloc(strlen(pw)+1);
-        strcpy(ssiP,ssi);
-        strcpy(pwP,pw);
-        for(char *c=ssiP;*c!=0;c++)
-          *c = ascToPetcii(*c);
-        for(char *c=pwP;*c!=0;c++)
-          *c = ascToPetcii(*c);
-        connSuccess = connectWifi(ssiP,pwP);
-        free(ssiP);
-        free(pwP);
-      }
-      else
-        connSuccess = connectWifi(ssi,pw);
-
-      if(!connSuccess)
-        return ZERROR;
-      else
-      {
-        wifiSSI=ssi;
-        wifiPW=pw;
-      }
+      wifiSSI=ssi;
+      wifiPW=pw;
     }
   }
   return ZOK;
@@ -2141,6 +2146,7 @@ ZResult ZCommand::doSerialCommand()
                bool wasActive=(dcdStatus==dcdActive);
                pinModeDecoder(sval,&dcdActive,&dcdInactive,DEFAULT_DCD_HIGH,DEFAULT_DCD_LOW);
                dcdStatus = wasActive?dcdActive:dcdInactive;
+               result=ZOK;
                if(pinSupport[pinDCD])
                  digitalWrite(pinDCD,dcdStatus);
                break;
@@ -2151,18 +2157,21 @@ ZResult ZCommand::doSerialCommand()
                  pinDCD=sval;
                  pinMode(pinDCD,OUTPUT);
                  digitalWrite(pinDCD,dcdStatus);
+                 result=ZOK;
                }
                else
                  result=ZERROR;
                break;
              case 48:
                pinModeDecoder(sval,&ctsActive,&ctsInactive,DEFAULT_CTS_HIGH,DEFAULT_CTS_LOW);
+               result=ZOK;
                break;
              case 49:
                if((sval >= 0) && (sval <= MAX_PIN_NO) && pinSupport[sval])
                {
                  pinCTS=sval;
                  pinMode(pinCTS,INPUT);
+                 result=ZOK;
                }
                else
                  result=ZERROR;
@@ -2171,6 +2180,7 @@ ZResult ZCommand::doSerialCommand()
                pinModeDecoder(sval,&rtsActive,&rtsInactive,DEFAULT_RTS_HIGH,DEFAULT_RTS_LOW);
                if(pinSupport[pinRTS])
                  digitalWrite(pinRTS,rtsActive);
+               result=ZOK;
                break;
              case 51:
                if((sval >= 0) && (sval <= MAX_PIN_NO) && pinSupport[sval])
@@ -2178,6 +2188,7 @@ ZResult ZCommand::doSerialCommand()
                  pinRTS=sval;
                  pinMode(pinRTS,OUTPUT);
                  digitalWrite(pinRTS,rtsActive);
+                 result=ZOK;
                }
                else
                  result=ZERROR;
@@ -2186,6 +2197,7 @@ ZResult ZCommand::doSerialCommand()
                pinModeDecoder(sval,&riActive,&riInactive,DEFAULT_RI_HIGH,DEFAULT_RI_LOW);
                if(pinSupport[pinRI])
                  digitalWrite(pinRI,riInactive);
+               result=ZOK;
                break;
              case 53:
                if((sval >= 0) && (sval <= MAX_PIN_NO) && pinSupport[sval])
@@ -2193,18 +2205,21 @@ ZResult ZCommand::doSerialCommand()
                  pinRI=sval;
                  pinMode(pinRI,OUTPUT);
                  digitalWrite(pinRTS,riInactive);
+                 result=ZOK;
                }
                else
                  result=ZERROR;
                break;
              case 54:
                pinModeDecoder(sval,&dtrActive,&dtrInactive,DEFAULT_DTR_HIGH,DEFAULT_DTR_LOW);
+               result=ZOK;
                break;
              case 55:
                if((sval >= 0) && (sval <= MAX_PIN_NO) && pinSupport[sval])
                {
                  pinDTR=sval;
                  pinMode(pinDTR,INPUT);
+                 result=ZOK;
                }
                else
                  result=ZERROR;
@@ -2213,6 +2228,7 @@ ZResult ZCommand::doSerialCommand()
                pinModeDecoder(sval,&dsrActive,&dsrInactive,DEFAULT_DSR_HIGH,DEFAULT_DSR_LOW);
                if(pinSupport[pinDSR])
                  digitalWrite(pinDSR,dsrActive);
+               result=ZOK;
                break;
              case 57:
                if((sval >= 0) && (sval <= MAX_PIN_NO) && pinSupport[sval])
@@ -2220,6 +2236,7 @@ ZResult ZCommand::doSerialCommand()
                  pinDSR=sval;
                  pinMode(pinDSR,OUTPUT);
                  digitalWrite(pinDSR,dsrActive);
+                 result=ZOK;
                }
                else
                  result=ZERROR;
@@ -2586,18 +2603,27 @@ void ZCommand::showInitMessage()
   serial.prints(commandMode.EOLN);
 #ifdef ZIMODEM_ESP32
   int totalSPIFFSSize = SPIFFS.totalBytes();
+#ifdef INCLUDE_SD_SHELL
   serial.prints("GuruModem WiFi Firmware v");
+#else
+  serial.prints("Zimodem32 Firmware v");
+#endif
+
 #else
   FSInfo info;
   SPIFFS.info(info);
   int totalSPIFFSSize = info.totalBytes;
+#ifdef RS232_INVERTED
   serial.prints("C64Net WiFi Firmware v");
+#else
+  serial.prints("Zimodem Firmware v");
+#endif
 #endif
   HWSerial.setTimeout(60000);
   serial.prints(ZIMODEM_VERSION);
-  serial.prints(" (");
-  serial.prints(compile_date);
-  serial.prints(")");
+  //serial.prints(" (");
+  //serial.prints(compile_date);
+  //serial.prints(")");
   serial.prints(commandMode.EOLN);
   char s[100];
 #ifdef ZIMODEM_ESP32

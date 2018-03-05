@@ -39,29 +39,16 @@ const char compile_date[] = __DATE__ " " __TIME__;
 
 
 #ifdef ZIMODEM_ESP32
-# define debugPrintf Serial.printf
-# define INCLUDE_SD_SHELL true
-# define DEFAULT_BAUD_RATE 1200
-# define DEFAULT_FCT FCT_DISABLED
-# define SerialConfig uint32_t
 # define DEFAULT_PIN_DCD GPIO_NUM_14
 # define DEFAULT_PIN_CTS GPIO_NUM_13
 # define DEFAULT_PIN_RTS GPIO_NUM_15 // unused
 # define DEFAULT_PIN_RI GPIO_NUM_32
 # define DEFAULT_PIN_DSR GPIO_NUM_12
 # define DEFAULT_PIN_DTR GPIO_NUM_27
-# define DEFAULT_DCD_HIGH  LOW
-# define DEFAULT_DCD_LOW  HIGH
-# define DEFAULT_CTS_HIGH  LOW
-# define DEFAULT_CTS_LOW  HIGH
-# define DEFAULT_RTS_HIGH  LOW
-# define DEFAULT_RTS_LOW  HIGH
-# define DEFAULT_RI_HIGH  LOW
-# define DEFAULT_RI_LOW  HIGH
-# define DEFAULT_DSR_HIGH  LOW
-# define DEFAULT_DSR_LOW  HIGH
-# define DEFAULT_DTR_HIGH  LOW
-# define DEFAULT_DTR_LOW  HIGH
+# define debugPrintf Serial.printf
+# define INCLUDE_SD_SHELL true
+# define DEFAULT_FCT FCT_DISABLED
+# define SerialConfig uint32_t
 # define UART_CONFIG_MASK 0x8000000
 # define UART_NB_BIT_MASK      0B00001100 | UART_CONFIG_MASK
 # define UART_NB_BIT_5         0B00000000 | UART_CONFIG_MASK
@@ -77,16 +64,19 @@ const char compile_date[] = __DATE__ " " __TIME__;
 # define UART_NB_STOP_BIT_1    0B00010000
 # define UART_NB_STOP_BIT_15   0B00100000
 # define UART_NB_STOP_BIT_2    0B00110000
-#else
-# define debugPrintf doNothing
-# define DEFAULT_BAUD_RATE 1200
-# define DEFAULT_FCT FCT_RTSCTS
+#else  // ESP-8266, e.g. ESP-01, ESP-12E, inverted for C64Net WiFi Modem
 # define DEFAULT_PIN_DSR 13
 # define DEFAULT_PIN_DTR 12
 # define DEFAULT_PIN_RI 14
 # define DEFAULT_PIN_RTS 4
-# define DEFAULT_PIN_CTS 5
+# define DEFAULT_PIN_CTS 5 // is 0 for ESP-01, see getDefaultCtsPin() below.
 # define DEFAULT_PIN_DCD 2
+# define DEFAULT_FCT FCT_RTSCTS
+# define RS232_INVERTED 1
+# define debugPrintf doNothing
+#endif
+
+#ifdef RS232_INVERTED
 # define DEFAULT_DCD_HIGH  HIGH
 # define DEFAULT_DCD_LOW  LOW
 # define DEFAULT_CTS_HIGH  HIGH
@@ -99,10 +89,24 @@ const char compile_date[] = __DATE__ " " __TIME__;
 # define DEFAULT_DSR_LOW  LOW
 # define DEFAULT_DTR_HIGH  HIGH
 # define DEFAULT_DTR_LOW  LOW
+#else
+# define DEFAULT_DCD_HIGH  LOW
+# define DEFAULT_DCD_LOW  HIGH
+# define DEFAULT_CTS_HIGH  LOW
+# define DEFAULT_CTS_LOW  HIGH
+# define DEFAULT_RTS_HIGH  LOW
+# define DEFAULT_RTS_LOW  HIGH
+# define DEFAULT_RI_HIGH  LOW
+# define DEFAULT_RI_LOW  HIGH
+# define DEFAULT_DSR_HIGH  LOW
+# define DEFAULT_DSR_LOW  HIGH
+# define DEFAULT_DTR_HIGH  LOW
+# define DEFAULT_DTR_LOW  HIGH
 #endif
 
-#define MAX_PIN_NO 50
+#define DEFAULT_BAUD_RATE 1200
 #define DEFAULT_SERIAL_CONFIG SERIAL_8N1
+#define MAX_PIN_NO 50
 
 
 class ZMode
