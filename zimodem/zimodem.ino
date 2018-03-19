@@ -201,21 +201,22 @@ static void doNothing(const char* format, ...)
 
 static bool connectWifi(const char* ssid, const char* password)
 {
-  int WiFiCounter = 0;
   if(WiFi.status() == WL_CONNECTED)
     WiFi.disconnect();
   WiFi.mode(WIFI_STA);
   WiFi.begin(ssid, password);
-  boolean amConnected = false;
-  delay(1000);
+  boolean amConnected = (WiFi.status() == WL_CONNECTED) && (strcmp(WiFi.localIP().toString().c_str(), "0.0.0.0")!=0);
+  int WiFiCounter = 0;
   while ((!amConnected) && (WiFiCounter < 30))
   {
     WiFiCounter++;
-    amConnected = (WiFi.status() == WL_CONNECTED) && (strcmp(WiFi.localIP().toString().c_str(), "0.0.0.0")!=0);
     if(!amConnected)
-      delay(1000);
+      delay(500);
+    amConnected = (WiFi.status() == WL_CONNECTED) && (strcmp(WiFi.localIP().toString().c_str(), "0.0.0.0")!=0);
   }
   wifiConnected = amConnected;
+  if(!amConnected)
+    WiFi.disconnect();
   return wifiConnected;
 }
 
