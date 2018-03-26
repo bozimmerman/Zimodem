@@ -15,12 +15,11 @@
    limitations under the License.
 */
 
-#ifdef REMOVEME
-
 #ifndef __ZMODEM_H__
 #define __ZMODEM_H__
 
-#include <FS.h>
+//#include <FS.h>
+#define FILENAME_SIZE 256
 #ifndef FILE_READ
 # define FILE_READ "r"
 #endif
@@ -113,6 +112,13 @@ typedef enum
 #define ZMODEM_TX_ESCAPE_CTRL          0x00000040
 /* Receiver expects 8th bit to be escaped */
 #define ZMODEM_TX_ESCAPE_8BIT          0x00000080
+
+/* Control characters  */
+#define C_LF    0x0A
+#define C_CR    0x0D
+#define C_XON   0x11            /* DC1 */
+#define C_XOFF  0x13            /* DC3 */
+#define C_CAN   0x18
 
 /**
  * The Zmodem protocol state that can encompass multiple file transfers.
@@ -209,15 +215,14 @@ typedef enum
 
 #endif /* __ZMODEM_H__ */
 
+#define ZMODEM_DEBUG 1
+
 class ZModem
 {
 private:
   FS *fs = null;
   Stream *mdmIn = null;
   ZSerial *mdmOt = null;
-
-  /* Set this to true to enable debug log. */
-  bool debugOn = true;
 
   /* ZMODEM_STATE_INIT, COMPLETE, ABORT, etc. */
   ZMODEM_STATE state = ZMODEM_STATE_INIT;
@@ -277,9 +282,8 @@ private:
   int consecutive_errors = 0;
   /* Full pathname to file */
   char file_fullname[FILENAME_SIZE];
-
   /* The list of files to upload */
-  File upload_file_list[];
+  File *upload_file_list;
   /* The current entry in upload_file_list being sent */
   int upload_file_list_i;
   /*
@@ -289,30 +293,68 @@ private:
    * copy is Xfree'd in zmodem_stop().
    */
   char *download_path = null;
-
   /* Needs to persist across calls to zmodem() */
   struct zmodem_packet packet;
-
   /* Internal buffer used to collect a complete packet before processing it */
   unsigned char packet_buffer[ZMODEM_MAX_BLOCK_SIZE];
   unsigned int packet_buffer_n;
-
   /*
    * Internal buffer used to queue a complete outbound packet so that the
    * top-level code can saturate the link.
    */
   unsigned char outbound_packet[ZMODEM_MAX_BLOCK_SIZE];
   unsigned int outbound_packet_n;
-
   /* The ZMODEM_STATE_ZCHALLENGE value we asked for */
   uint32_t zchallenge_value;
-
   /**
    * encode_byte is a simple lookup into this map.
    */
   unsigned char encode_byte_map[256];
-
   uint32_t crc_32_tab[256];
+  
+  void block_size_down();
+  void block_size_up();
+  uint32_t compute_crc32(const uint32_t old_crc, const unsigned char *buf, unsigned len);
+  void makecrc(void);
+  int compute_crc16(int crc, const unsigned char *ptr, int count);
+  void build_packet(const int type, const long argument, unsigned char *data_packet, unsigned int *data_packet_n, const int data_packet_max);
+  void encode_zdata_bytes(unsigned char *output, unsigned int *output_n, const unsigned int output_max,  const unsigned char crc_type);
+  void encode_byte(const unsigned char ch, unsigned char *output, unsigned int *output_n, const unsigned int output_max);
+  void setup_encode_byte_map();
+  bool decode_zdata_bytes(unsigned char *input, unsigned int *input_n, unsigned char *output,  unsigned int *output_n,  const unsigned int output_max, unsigned char *crc_buffer);
+  bool dehexify_string(const unsigned char *input, const unsigned int input_n, unsigned char *output, const unsigned int output_max);
+  void hexify_string(const unsigned char *input, const unsigned int input_n, unsigned char *output, const unsigned int output_max);
+  bool check_timeout();
+  void reset_timer();
+  bool setup_for_next_file();
+  void stats_increment_errors();
+  void stats_increment_blocks();
+  void stats_new_file(const char *filename, const int filesize);
+  bool send_zrqinit(unsigned char *output, unsigned int *output_n, const unsigned int output_max);
+  void zmodem_receive(unsigned char *input, unsigned int input_n, unsigned char *output, unsigned int *output_n, const unsigned int output_max);
+  bool receive_zskip(unsigned char *output, unsigned int *output_n, const unsigned int output_max);
+  bool receive_zdata(unsigned char *output, unsigned int *output_n, const unsigned int output_max);
+  bool receive_zfile();
+  bool receive_zrpos_wait(unsigned char *output, unsigned int *output_n, const unsigned int output_max);
+  bool receive_zrpos(unsigned char *output, unsigned int *output_n, const unsigned int output_max);
+  bool receive_zrinit_wait(unsigned char *output, unsigned int *output_n, const unsigned int output_max);
+  bool receive_zrinit(unsigned char *output, unsigned int *output_n, const unsigned int output_max);
+  bool receive_zcrc_wait(unsigned char *output, unsigned int *output_n, const unsigned int output_max);
+  bool receive_zcrc(unsigned char *output, unsigned int *output_n, const unsigned int output_max);
+  bool receive_zchallenge_wait(unsigned char *output, unsigned int *output_n, const unsigned int output_max);
+  bool receive_zchallenge(unsigned char *output,  unsigned int *output_n,  const unsigned int output_max);
+  ZMODEM_PARSE_PACKET parse_packet(const unsigned char *input, const int input_n, int *discard);
+  void zmodem_send(unsigned char *input, unsigned int input_n, unsigned char *output, unsigned int *output_n, const unsigned int output_max);
+  bool send_zfin_wait(unsigned char *output, unsigned int *output_n, const unsigned int output_max);
+  bool send_zfin(unsigned char *output, unsigned int *output_n, const unsigned int output_max);
+  bool send_zeof_wait(unsigned char *output, unsigned int *output_n, const unsigned int output_max);
+  bool send_zeof(unsigned char *output, unsigned int *output_n, const unsigned int output_max);
+  bool send_zdata(unsigned char *output, unsigned int *output_n, const unsigned int output_max);
+  bool send_zfile_wait(unsigned char *output, unsigned int *output_n, const unsigned int output_max);
+  bool send_zfile(unsigned char *output, unsigned int *output_n, const unsigned int output_max);
+  bool send_zsinit_wait(unsigned char *output, unsigned int *output_n, const unsigned int output_max);
+  bool send_zsinit(unsigned char *output, unsigned int *output_n, const unsigned int output_max);
+  bool send_zrqinit_wait(unsigned char *output, unsigned int *output_n, const unsigned int output_max);
 
 public:
   ZModem(FS &fs, Stream &modemIn, ZSerial &modemOut);
@@ -330,9 +372,9 @@ public:
    * @param output_max the maximum number of bytes this function may write to
    * output
    */
-  void zmodem_process(unsigned char * input, const unsigned int input_n,
-                   unsigned char * output, unsigned int * output_n,
-                   const unsigned int output_max);
+  void zmodem_process(unsigned char *input, const unsigned int input_n,
+                     unsigned char *output, unsigned int *output_n,
+                     const unsigned int output_max);
 
   /**
    * Setup for a new file transfer session.
@@ -346,7 +388,7 @@ public:
    * @param in_flavor the type of Zmodem transfer to perform
    * @return true if successful
    */
-  bool zmodem_start(File file_list[], const char * pathname,
+  bool zmodem_start(File *file_list, const char *pathname,
                      const bool send, const ZMODEM_FLAVOR in_flavor);
 
   /**
@@ -361,38 +403,30 @@ public:
   String getLastErrors();
 };
 
-
-
-#endif
-
 static ZSerial zserial;
 
 static boolean zDownload(FS &fs, String filePath, String &errors)
 {
   bool result=false;
-  /*
   ZModem zmo(fs,HWSerial,zserial);
   File files[2];
-  files[0] = fs->open(filePath);
-  files[1] = null;
+  files[0] = fs.open(filePath);
+  files[1] = (File)null;
   result = zmo.zmodem_start(files,"/",true,ZMODEM_FLAVOR_CRC16);
   zserial.flushAlways();
   if(!result)
     errors = zmo.getLastErrors();
-  */
   return result;
 }
 
 static boolean zUpload(FS &fs, String dirPath, String &errors)
 {
   bool result=false;
-  /*
   ZModem zmo(fs,HWSerial,zserial);
-  result = zmo.zmodem_start(null,dirPath,false,ZMODEM_FLAVOR_CRC16);
+  result = zmo.zmodem_start((File*)null,dirPath.c_str(),false,ZMODEM_FLAVOR_CRC16);
   zserial.flushAlways();
   if(!result)
     errors = zmo.getLastErrors();
-  */
   return result;
 }
 

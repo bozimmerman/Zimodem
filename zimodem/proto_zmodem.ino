@@ -15,14 +15,12 @@
    limitations under the License.
 */
 
-
-#ifdef REMOVEME
-
 ZModem::ZModem(FS &filesys, Stream &modemIn, ZSerial &modemOut)
 {
   fs = &filesys;
   mdmIn = &modemIn;
   mdmOt = &modemOut;
+  //randomSeed(0);
 }
 
 String ZModem::getLastErrors()
@@ -115,7 +113,7 @@ void ZModem::makecrc(void)
   do 
   {
     if (h & 1)
-      h = (h >> 1) ^ CRC32;
+      h = (h >> 1) ^ ZMODEM_CRC32;
     else
       h >>= 1;
     for (i = 0; i < 256; i += j + j)
@@ -133,7 +131,8 @@ void ZModem::makecrc(void)
  * The CRC is computed using preset to -1 and invert.
  */
 uint32_t ZModem::compute_crc32(const uint32_t old_crc, const unsigned char *buf,
-                              unsigned len) {
+                              unsigned len) 
+{
     uint32_t crc;
 
     if (buf) 
@@ -291,15 +290,13 @@ void ZModem::stats_increment_errors()
  */
 bool ZModem::setup_for_next_file() 
 {
-  char * basename_arg;
-
   /*
    * Reset our dynamic variables
    */
   if (file_stream != NULL) {
       file_stream.close();
   }
-  file_stream = NULL;
+  file_stream = (File)NULL;
   if (file_name != NULL) {
       free(file_name);
   }
@@ -312,7 +309,7 @@ bool ZModem::setup_for_next_file()
        */
 #   ifdef ZMODEM_DEBUG
       debugPrintf("ZMODEM: No more files (name='%s')\n",
-            upload_file_list[upload_file_list_i].name().c_str());
+            upload_file_list[upload_file_list_i].name());
 #   endif
       /*
        * We're done
@@ -334,7 +331,7 @@ bool ZModem::setup_for_next_file()
   {
 #   ifdef ZMODEM_DEBUG
       debugPrintf("ERROR: Unable to open file %s: %s (%d)\n",
-            upload_file_list[upload_file_list_i].name().c_str(), strerror(errno),
+            upload_file_list[upload_file_list_i].name(), strerror(errno),
             errno);
 #   endif
 
@@ -345,26 +342,28 @@ bool ZModem::setup_for_next_file()
   /*
    * Note that basename and dirname modify the arguments
    */
-  basename_arg = strdup(upload_file_list[upload_file_list_i].name().c_str());
   if (file_name != NULL) {
     free(file_name);
   }
-  file_name = strdup(basename(basename_arg));
+  String tmpName = upload_file_list[upload_file_list_i].name();
+  int x=tmpName.lastIndexOf("/");
+  if((x>=0)&&(x<tmpName.length()-1))
+    tmpName = tmpName.substring(x+1);
+  file_name = strdup(tmpName.c_str());
 
   /*
    * Update the stats
    */
-  stats_new_file(upload_file_list[upload_file_list_i].name().c_str(),
+  stats_new_file(upload_file_list[upload_file_list_i].name(),
                  upload_file_list[upload_file_list_i].size());
 
   /*
    * Free the copies passed to basename() and dirname()
    */
-  free(basename_arg);
 
 # ifdef ZMODEM_DEBUG
     debugPrintf("UPLOAD set up for new file %s (%lu bytes)...\n",
-        upload_file_list[upload_file_list_i].name().c_str(),
+        upload_file_list[upload_file_list_i].name(),
         (long int) upload_file_list[upload_file_list_i].size());
 # endif
 
@@ -477,7 +476,8 @@ void ZModem::hexify_string(const unsigned char * input,
 bool ZModem::dehexify_string(const unsigned char * input,
                               const unsigned int input_n,
                               unsigned char * output,
-                              const unsigned int output_max) {
+                              const unsigned int output_max) 
+{
 
   unsigned int i;
 
@@ -1949,7 +1949,7 @@ bool ZModem::receive_zchallenge(unsigned char * output,
 # ifdef ZMODEM_DEBUG
     debugPrintf("receive_zchallenge()\n");
 # endif
-  zchallenge_value = random();
+  zchallenge_value = random(0x7FFFFFFFFFFFFFFF);
 # ifdef ZMODEM_DEBUG
     debugPrintf("receive_zchallenge() VALUE = %08x\n", zchallenge_value);
 # endif
@@ -2582,7 +2582,6 @@ bool ZModem::receive_zrpos_wait(unsigned char * output,
   ZMODEM_PARSE_PACKET rc_pp;
   int discard;
   uint32_t options = 0;
-  struct utimbuf utime_buffer;
 # ifdef ZMODEM_DEBUG
     debugPrintf("receive_zrpos_wait()\n");
 # endif
@@ -2641,16 +2640,11 @@ bool ZModem::receive_zrpos_wait(unsigned char * output,
            * All ok
            */
           file_stream.close();
-          /*
-           * Set access and modification times
-           */
-          utime_buffer.actime = file_modtime;
-          utime_buffer.modtime = file_modtime;
-          utime(file_fullname, &utime_buffer);
+          
           assert(file_name != NULL);
           free(file_name);
           file_name = NULL;
-          file_stream = NULL;
+          file_stream = (File)NULL;
           options = 0;
           build_packet(ZMODEM_PKT_ZRINIT, options, output, output_n,
                        output_max);
@@ -3211,7 +3205,6 @@ bool ZModem::receive_zskip(unsigned char * output,
                             const unsigned int output_max) 
 {
   uint32_t options = 0;
-  struct utimbuf utime_buffer;
 
 # ifdef ZMODEM_DEBUG
     debugPrintf("receive_zskip()\n");
@@ -3220,17 +3213,11 @@ bool ZModem::receive_zskip(unsigned char * output,
    * Close existing file handle, reset file fields...
    */
   file_stream.close();
-  /*
-   * Set access and modification times
-   */
-  utime_buffer.actime = file_modtime;
-  utime_buffer.modtime = file_modtime;
-  utime(file_fullname, &utime_buffer);
 
   assert(file_name != NULL);
   free(file_name);
   file_name = NULL;
-  file_stream = NULL;
+  file_stream = (File)NULL;
   /*
    * Send out ZMODEM_STATE_ZSKIP packet
    */
@@ -3643,8 +3630,8 @@ bool ZModem::send_zsinit(unsigned char * output,
  */
 bool ZModem::send_zsinit_wait(unsigned char * output,
                                unsigned int * output_n,
-                               const unsigned int output_max) {
-
+                               const unsigned int output_max) 
+{
   ZMODEM_PARSE_PACKET rc_pp;
   int discard;
   uint32_t options = 0;
@@ -3777,8 +3764,8 @@ bool ZModem::send_zfile(unsigned char * output,
  */
 bool ZModem::send_zfile_wait(unsigned char * output,
                               unsigned int * output_n,
-                              const unsigned int output_max) {
-
+                              const unsigned int output_max) 
+{
   ZMODEM_PARSE_PACKET rc_pp;
 
   int discard;
@@ -3912,7 +3899,7 @@ bool ZModem::send_zfile_wait(unsigned char * output,
         assert(file_name != NULL);
         free(file_name);
         file_name = NULL;
-        file_stream = NULL;
+        file_stream = (File)NULL;
         /*
          * Setup for the next file.
          */
@@ -3954,7 +3941,8 @@ bool ZModem::send_zfile_wait(unsigned char * output,
  */
 bool ZModem::send_zdata(unsigned char * output,
                          unsigned int * output_n,
-                         const unsigned int output_max) {
+                         const unsigned int output_max) 
+{
 
   ZMODEM_PARSE_PACKET rc_pp;
   uint32_t options = 0;
@@ -4346,7 +4334,7 @@ bool ZModem::send_zdata(unsigned char * output,
             if (reliable_link == true)
               blocks_ack_count = ZMODEM_WINDOW_SIZE_RELIABLE;
             else
-                blocks_ack_count = ZMODEM_WINDOW_SIZE_UNRELIABLE;
+              blocks_ack_count = ZMODEM_WINDOW_SIZE_UNRELIABLE;
             waiting_for_ack = true;
             streaming_zdata = true;
             /*
@@ -4496,7 +4484,8 @@ bool ZModem::send_zdata(unsigned char * output,
  */
 bool ZModem::send_zeof(unsigned char * output,
                         unsigned int * output_n,
-                        const unsigned int output_max) {
+                        const unsigned int output_max) 
+{
   uint32_t options;
 
 # ifdef ZMODEM_DEBUG
@@ -4569,7 +4558,7 @@ bool ZModem::send_zeof_wait(unsigned char * output,
         assert(file_name != NULL);
         free(file_name);
         file_name = NULL;
-        file_stream = NULL;
+        file_stream = (File)NULL;
         /*
          * Setup for the next file.
          */
@@ -4624,8 +4613,8 @@ bool ZModem::send_zeof_wait(unsigned char * output,
  */
 bool ZModem::send_zfin(unsigned char * output,
                         unsigned int * output_n,
-                        const unsigned int output_max) {
-
+                        const unsigned int output_max) 
+{
   uint32_t options;
 
 # ifdef ZMODEM_DEBUG
@@ -4762,7 +4751,8 @@ bool ZModem::send_zfin_wait(unsigned char * output,
  */
 void ZModem::zmodem_send(unsigned char * input, unsigned int input_n,
                         unsigned char * output, unsigned int * output_n,
-                        const unsigned int output_max) {
+                        const unsigned int output_max) 
+{
   unsigned int i;
   bool done;
   int can_count = 0;
@@ -4967,10 +4957,9 @@ void ZModem::zmodem_send(unsigned char * input, unsigned int input_n,
  */
 void ZModem::zmodem_process(unsigned char * input, const unsigned int input_n,
                             unsigned char * output, unsigned int * output_n,
-                            const unsigned int output_max) {
-
+                            const unsigned int output_max) 
+{
   unsigned int i;
-
   /*
    * Check my input arguments
    */
@@ -5035,7 +5024,7 @@ void ZModem::zmodem_process(unsigned char * input, const unsigned int input_n,
  * @param in_flavor the type of Zmodem transfer to perform
  * @return true if successful
  */
-bool ZModem::zmodem_start(File file_list[], const char * pathname,
+bool ZModem::zmodem_start(File *file_list, const char * pathname,
                     const bool send, const ZMODEM_FLAVOR in_flavor) 
 {
 
@@ -5069,7 +5058,7 @@ bool ZModem::zmodem_start(File file_list[], const char * pathname,
     if (upload_file_list != NULL) {
       for (i = 0; upload_file_list[i] != NULL; i++) {
         debugPrintf("upload_file_list[%d] = '%s'\n", i,
-                upload_file_list[i].name().c_str());
+                upload_file_list[i].name());
       }
     }
   }
@@ -5090,9 +5079,7 @@ bool ZModem::zmodem_start(File file_list[], const char * pathname,
     /*
      * Save download path
      */
-    download_path = Xstrdup(pathname, __FILE__, __LINE__);
-    set_transfer_stats_filename("");
-    set_transfer_stats_pathname(pathname);
+    download_path = strdup(pathname);
   }
 
   if (in_flavor == ZMODEM_FLAVOR_CRC32) {
@@ -5171,10 +5158,10 @@ void ZModem::zmodem_stop(const bool save_partial)
     if (file_stream != NULL) 
     {
       file_stream.close();
-      fs->remove(file_stream);
+      fs->remove(file_stream.name());
     }
   }
-  file_stream = NULL;
+  file_stream = (File)NULL;
   if (file_name != NULL)
     free(file_name);
   file_name = NULL;
@@ -5182,5 +5169,3 @@ void ZModem::zmodem_stop(const bool save_partial)
     free(download_path);
   download_path = NULL;
 }
-
-#endif
