@@ -1,6 +1,7 @@
 /*
    Copyright 2016-2017 Bo Zimmerman
 
+
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
    You may obtain a copy of the License at
@@ -13,219 +14,385 @@
    See the License for the specific language governing permissions and
    limitations under the License.
 */
+
+#ifdef REMOVEME
+
+#ifndef __ZMODEM_H__
+#define __ZMODEM_H__
+
 #include <FS.h>
 #ifndef FILE_READ
-#define FILE_READ "r"
+# define FILE_READ "r"
 #endif
 #ifndef FILE_WRITE
-#define FILE_WRITE "r"
+# define FILE_WRITE "w"
 #endif
 #ifndef FILE_APPEND
-#define FILE_APPEND "r"
+# define FILE_APPEND "a"
 #endif
+
+/* Defines ---------------------------------------------------------------- */
+
+/**
+ * The flavors of Zmodem that are supported.
+ */
+typedef enum
+{
+  ZMODEM_FLAVOR_CRC16,                    /* Zmodem 16-bit CRC */
+  ZMODEM_FLAVOR_CRC32                     /* Zmodem 32-bit CRC */
+} ZMODEM_FLAVOR;
+
+
+/*
+ * Technically, Zmodem maxes at 1024 bytes, but each byte might be
+ * CRC-escaped to twice its size. Then we've got the CRC escape itself to
+ * include.
+ */
+#define ZMODEM_BLOCK_SIZE       1024
+#define ZMODEM_MAX_BLOCK_SIZE   (2 * (ZMODEM_BLOCK_SIZE + 4 + 1))
+
+/*
+ * Require an ACK every 32 frames on reliable links.
+ */
+#define ZMODEM_WINDOW_SIZE_RELIABLE 32
+/*
+ * Require an ACK every 4 frames on unreliable links.
+ */
+#define ZMODEM_WINDOW_SIZE_UNRELIABLE 4
+
+/* Data types ----------------------------------------------- */
+
+/* Used to note the start of a packet */
+#define ZMODEM_DT_ZPAD                    '*'
+/* CRC next, frame ends, header packet follows */
+#define ZMODEM_DT_ZCRCE                   'h'
+/* CRC next, frame continues nonstop */
+#define ZMODEM_DT_ZCRCG                   'i'
+/* CRC next, frame continues, ZACK expected */
+#define ZMODEM_DT_ZCRCQ                   'j'
+/* CRC next, ZACK expected, end of frame */
+#define ZMODEM_DT_ZCRCW                   'k'
+/* Packet types */
+#define ZMODEM_PKT_ZRQINIT               0
+#define ZMODEM_PKT_ZRINIT                1
+#define ZMODEM_PKT_ZSINIT                2
+#define ZMODEM_PKT_ZACK                  3
+#define ZMODEM_PKT_ZFILE                 4
+#define ZMODEM_PKT_ZSKIP                 5
+#define ZMODEM_PKT_ZNAK                  6
+#define ZMODEM_PKT_ZABORT                7
+#define ZMODEM_PKT_ZFIN                  8
+#define ZMODEM_PKT_ZRPOS                 9
+#define ZMODEM_PKT_ZDATA                 10
+#define ZMODEM_PKT_ZEOF                  11
+#define ZMODEM_PKT_ZFERR                 12
+#define ZMODEM_PKT_ZCRC                  13
+#define ZMODEM_PKT_ZCHALLENGE            14
+#define ZMODEM_PKT_ZCOMPL                15
+#define ZMODEM_PKT_ZCAN                  16
+#define ZMODEM_PKT_ZFREECNT              17
+#define ZMODEM_PKT_ZCOMMAND              18
+
+#define ZMODEM_CRC32 0xedb88320        /* CRC polynomial */
+
+/* Globals ---------------------------------------------------------------- */
+/* Transfer capabilities sent in ZRInit packet */
+/* Rx can send and receive true FDX */
+#define ZMODEM_TX_CAN_FULL_DUPLEX      0x00000001
+/* Rx can receive data during disk I/O */
+#define ZMODEM_TX_CAN_OVERLAP_IO       0x00000002
+/* Rx can send a break signal */
+#define ZMODEM_TX_CAN_BREAK            0x00000004
+/* Receiver can decrypt */
+#define ZMODEM_TX_CAN_DECRYPT          0x00000008
+/* Receiver can uncompress */
+#define ZMODEM_TX_CAN_LZW              0x00000010
+/* Receiver can use 32 bit Frame Check */
+#define ZMODEM_TX_CAN_CRC32            0x00000020
+/* Receiver expects ctl chars to be escaped */
+#define ZMODEM_TX_ESCAPE_CTRL          0x00000040
+/* Receiver expects 8th bit to be escaped */
+#define ZMODEM_TX_ESCAPE_8BIT          0x00000080
+
+/**
+ * The Zmodem protocol state that can encompass multiple file transfers.
+ */
+typedef enum
+{
+  /* Before the first byte is sent */
+  ZMODEM_STATE_INIT,
+  /* Transfer complete */
+  ZMODEM_STATE_COMPLETE,
+  /* Transfer was aborted due to excessive timeouts or ZCAN */
+  ZMODEM_STATE_ABORT,
+  /* Collecting data for a ZFILE, ZSINIT, ZDATA, and ZCOMMAND packet. */
+  ZMODEM_STATE_ZDATA,
+  /*
+   * Receiver side
+   */
+  /* Send ZRINIT */
+  ZMODEM_STATE_ZRINIT,
+  /* Waiting for ZFILE or ZSINIT */
+  ZMODEM_STATE_ZRINIT_WAIT,
+  /* Send ZCHALLENGE */
+  ZMODEM_STATE_ZCHALLENGE,
+  /* Waiting for ZACK */
+  ZMODEM_STATE_ZCHALLENGE_WAIT,
+  /* Send ZRPOS */
+  ZMODEM_STATE_ZRPOS,
+  /* Waiting for ZDATA */
+  ZMODEM_STATE_ZRPOS_WAIT,
+  /* Send ZSKIP */
+  ZMODEM_STATE_ZSKIP,
+  /* Send ZCRC */
+  ZMODEM_STATE_ZCRC,
+  /* Waiting for ZCRC */
+  ZMODEM_STATE_ZCRC_WAIT,
+  /*
+   * Sender side
+   */
+  /* Send ZRQINIT */
+  ZMODEM_STATE_ZRQINIT,
+  /* Waiting for ZRINIT or ZCHALLENGE */
+  ZMODEM_STATE_ZRQINIT_WAIT,
+  /* Send ZSINIT */
+  ZMODEM_STATE_ZSINIT,
+  /* Waiting for ZACK */
+  ZMODEM_STATE_ZSINIT_WAIT,
+  /* Send ZFILE */
+  ZMODEM_STATE_ZFILE,
+  /* Waiting for ZSKIP, ZCRC, or ZRPOS */
+  ZMODEM_STATE_ZFILE_WAIT,
+  /* Send ZEOF */
+  ZMODEM_STATE_ZEOF,
+  /* Waiting for ZRPOS */
+  ZMODEM_STATE_ZEOF_WAIT,
+  /* Send ZFIN */
+  ZMODEM_STATE_ZFIN,
+  /* Waiting for ZFIN */
+  ZMODEM_STATE_ZFIN_WAIT
+} ZMODEM_STATE;
+
+/* Every bit of Zmodem data goes out as packets */
+struct zmodem_packet
+{
+  int type;
+  uint32_t argument;
+  bool use_crc32;
+  int crc16;
+  uint32_t crc32;
+  unsigned char data[ZMODEM_MAX_BLOCK_SIZE];
+  unsigned int data_n;
+
+  /*
+   * Performance tweak for decode_zdata_bytes to allow it to quickly bail
+   * out during CRC check.
+   */
+  unsigned char crc_buffer[5];
+};
+
+/* Return codes from parse_packet() */
+typedef enum
+{
+  ZM_PP_INVALID,
+  ZM_PP_NODATA,
+  ZM_PP_CRCERROR,
+  ZM_PP_OK
+} ZMODEM_PARSE_PACKET;
+
+#define ZMODEM_HEX_PACKET_LENGTH       20
+
+#define big_to_little_endian(X) (((X >> 24) & 0xFF) | \
+                                ((X >> 8) & 0xFF00) | \
+                                ((X << 8) & 0xFF0000) | \
+                                ((X << 24) & 0xFF000000))
+
+#endif /* __ZMODEM_H__ */
+
 class ZModem
 {
 private:
+  FS *fs = null;
   Stream *mdmIn = null;
   ZSerial *mdmOt = null;
 
-  enum ZStatus
-  {
-    ZSTATUS_CONTINUE,
-    ZSTATUS_TIMEOUT,
-    ZSTATUS_FINISH,
-    ZSTATUS_CANCEL,
-    ZSTATUS_DATA,
-    ZSTATUS_HEADER,
-    ZSTATUS_INVALIDCHECKSUM,
-  } lastStatus = ZSTATUS_CONTINUE;
-  enum ZExpect
-  {
-    ZEXPECT_FILENAME,
-    ZEXPECT_DATA,
-    ZEXPECT_ZSINIT,
-    ZEXPECT_NOTHING
-  };
-  enum ZAction
-  {
-    ZACTION_ESCAPE,
-    ZACTION_DATA,
-    ZACTION_HEADER,
-    ZACTION_CANCEL
-  };
-  enum ZHFormat
-  {
-    ZHFORMAT_UNK,
-    ZHFORMAT_BIN32,
-    ZHFORMAT_BIN,
-    ZHFORMAT_HEX
-  };
+  /* Set this to true to enable debug log. */
+  bool debugOn = true;
 
-  static const char ZMOCHAR_ZPAD ='*';
-  static const char ZMOCHAR_ZDLE =0x18;
-  static const char ZMOCHAR_ZDLEE = ZMOCHAR_ZDLE ^0x40;
-  static const char ZMOCHAR_ZBIN ='A';
-  static const char ZMOCHAR_ZHEX ='B';
-  static const char ZMOCHAR_ZBIN32 ='C';
-  static const char ZMOCHAR_ZCRCE ='h';
-  static const char ZMOCHAR_ZCRCG ='i';
-  static const char ZMOCHAR_ZCRCQ ='j';
-  static const char ZMOCHAR_ZCRCW ='k';
-  static const char ZMOCHAR_ZRUB0 ='l';
-  static const char ZMOCHAR_ZRUB1 ='m';
-  static const char ZMOCHAR_ZRQINIT =0;
-  static const char ZMOCHAR_ZRINIT =1;
-  static const char ZMOCHAR_ZSINIT =2;
-  static const char ZMOCHAR_ZACK =3;
-  static const char ZMOCHAR_ZFILE =4;
-  static const char ZMOCHAR_ZSKIP =5;
-  static const char ZMOCHAR_ZNAK =6;
-  static const char ZMOCHAR_ZABORT =7;
-  static const char ZMOCHAR_ZFIN =8;
-  static const char ZMOCHAR_ZRPOS =9;
-  static const char ZMOCHAR_ZDATA =10;
-  static const char ZMOCHAR_ZEOF =11;
-  static const char ZMOCHAR_ZFERR =12;
-  static const char ZMOCHAR_ZCRC =13;
-  static const char ZMOCHAR_ZCHALLENGE =14;
-  static const char ZMOCHAR_ZCOMPL =15;
-  static const char ZMOCHAR_ZCAN =16;
-  static const char ZMOCHAR_ZFREECNT =17;
-  static const char ZMOCHAR_ZCOMMAND =18;
-  static const char ZMOCHAR_ZSTDERR =19;
+  /* ZMODEM_STATE_INIT, COMPLETE, ABORT, etc. */
+  ZMODEM_STATE state = ZMODEM_STATE_INIT;
+  /* State before entering DATA state */
+  ZMODEM_STATE prior_state = ZMODEM_STATE_INIT;
+  /* Send/receive flags */
+  unsigned long flags =0;
+  /* If true, use 32-bit CRC */
+  bool use_crc32 = true;
+  /* If true, we are the sender */
+  bool sending = false;
+  /* Current filename being sent/received */
+  char * file_name = null;
+  /* Size of file in bytes */
+  unsigned int file_size = 0;
+  /* Modification time of file */
+  time_t file_modtime = 0;
+  /* Current position */
+  off_t file_position = 0;
+  /* Stream pointer to current file */
+  File file_stream;
+  /* File CRC32 */
+  uint32_t file_crc32 = -1;
+  /* Block size */
+  int block_size = ZMODEM_BLOCK_SIZE;
+  /* If true, sent block will ask for ZACK */
+  bool ack_required = false;
+  /* If true, we are waiting to hear ZACK */
+  bool waiting_for_ack = false;
+  /*
+   * If true, we are continuously streaming the ZDATA "data subpacket" and
+   * will not need to generate a new packet header.
+   */
+  bool streaming_zdata = false;
+  /* Timeout normally lasts 10 seconds */
+  int timeout_length = 10;
+  /* The beginning time for the most recent timeout cycle */
+  time_t timeout_begin = 0;
+  /* Total number of timeouts before aborting is 5 */
+  int timeout_max = 5;
+  /* Total number of timeouts so far */
+  int timeout_count = 0;
+  /* Number of bytes confirmed from the receiver */
+  int confirmed_bytes = 0;
+  /*
+   * Number of bytes confirmed from the receiver when we dropped the block
+   * size.
+   */
+  int last_confirmed_bytes = 0;
+  /* True means TCP/IP or error-correcting modem */
+  bool reliable_link = true;
+  /* File position when the block size was last reduced */
+  off_t file_position_downgrade = 0;
+  /* When 0, require a ZACK, controls window size */
+  unsigned blocks_ack_count = 0;
+  /* Number of error blocks */
+  int consecutive_errors = 0;
+  /* Full pathname to file */
+  char file_fullname[FILENAME_SIZE];
 
-  static const int ZMO_BUF_HINDEX_FMT=0;
-  static const int ZMO_BUF_HINDEX_TYP=1;
-  static const int ZMO_BUF_HINDEX_DAT=2;
+  /* The list of files to upload */
+  File upload_file_list[];
+  /* The current entry in upload_file_list being sent */
+  int upload_file_list_i;
+  /*
+   * The path to download to.  Note download_path is Xstrdup'd TWICE: once HERE
+   * and once more on the progress dialog.  The q_program_state transition to
+   * Q_STATE_CONSOLE is what Xfree's the copy in the progress dialog.  This
+   * copy is Xfree'd in zmodem_stop().
+   */
+  char *download_path = null;
 
-  static const int ZMO_BUF_DINDEX_TYP=0;
-  static const int ZMO_BUF_DINDEX_DAT=1;
+  /* Needs to persist across calls to zmodem() */
+  struct zmodem_packet packet;
 
-  static const char ZMOPT_CANFDX =0x01;  /* Rx can send and receive true FDX */
-  static const char ZMOPT_CANOVIO=0x02;  /* Rx can receive data during disk I/O */
-  static const char ZMOPT_CANBRK =0x04;  /* Rx can send a break signal */
-  static const char ZMOPT_CANCRY =0x08;  /* Receiver can decrypt */
-  static const char ZMOPT_CANLZW =0x10;  /* Receiver can uncompress */
-  static const char ZMOPT_CANFC32=0x20;  /* Receiver can use 32 bit Frame Check */
-  static const char ZMOPT_ESCCTL =0x40;  /* Receiver expects ctl chars to be escaped */
-  static const char ZMOPT_ESC8   =0x80;  /* Receiver expects 8th bit to be escaped */
-  static const char ZMOPT_ZCBIN  =0x01;
+  /* Internal buffer used to collect a complete packet before processing it */
+  unsigned char packet_buffer[ZMODEM_MAX_BLOCK_SIZE];
+  unsigned int packet_buffer_n;
 
-  uint8_t readZModemByte(long timeout, ZStatus *status);
-  ZStatus readZModemPacket(uint8_t *buf, uint16_t *bufSize, ZExpect expect);
-  void sendCancel();
-  void sendHexHeader(uint8_t type, uint8_t* flags);
-  void sendBinHeader(uint8_t type, uint8_t* flags);
-  void sendDataPacket(uint8_t type, uint8_t* data, int dataSize);
-  uint8_t addZDLE(uint8_t b, uint8_t *buf, uint8_t *index, uint8_t prev_b);
-  ZAction detectEzcape(uint8_t byt, uint8_t *size);
-  uint8_t ezcape(uint8_t byt);
-  bool isZByteIgnored(uint8_t b);
-  bool isZByteEscaped(uint8_t b, uint8_t prev_b, bool ctlFlag);
-  uint32_t updateZCrc(uint8_t b, uint8_t bits, uint32_t crc);
+  /*
+   * Internal buffer used to queue a complete outbound packet so that the
+   * top-level code can saturate the link.
+   */
+  unsigned char outbound_packet[ZMODEM_MAX_BLOCK_SIZE];
+  unsigned int outbound_packet_n;
 
-  bool gotFIN = false;
-  bool acceptsHeader= true;
-  uint8_t crcBits = 16;
+  /* The ZMODEM_STATE_ZCHALLENGE value we asked for */
+  uint32_t zchallenge_value;
+
+  /**
+   * encode_byte is a simple lookup into this map.
+   */
+  unsigned char encode_byte_map[256];
+
+  uint32_t crc_32_tab[256];
 
 public:
-  ZModem(Stream &modemIn, ZSerial &modemOut);
+  ZModem(FS &fs, Stream &modemIn, ZSerial &modemOut);
 
-  bool receive(FS &fs, String dirPath);
-  bool transmit(File &rfile);
+  /* Functions -------------------------------------------------------------- */
+
+  /**
+   * Process raw bytes from the remote side through the transfer protocol.  See
+   * also protocol_process_data().
+   *
+   * @param input the bytes from the remote side
+   * @param input_n the number of bytes in input_n
+   * @param output a buffer to contain the bytes to send to the remote side
+   * @param output_n the number of bytes that this function wrote to output
+   * @param output_max the maximum number of bytes this function may write to
+   * output
+   */
+  void zmodem_process(unsigned char * input, const unsigned int input_n,
+                   unsigned char * output, unsigned int * output_n,
+                   const unsigned int output_max);
+
+  /**
+   * Setup for a new file transfer session.
+   *
+   * @param file_list list of files to upload, or NULL if this will be a
+   * download.
+   * @param pathname the path to save downloaded files to
+   * @param send if true, this is an upload: file_list must be valid and
+   * pathname is ignored.  If false, this is a download: file_list must be NULL
+   * and pathname will be used.
+   * @param in_flavor the type of Zmodem transfer to perform
+   * @return true if successful
+   */
+  bool zmodem_start(File file_list[], const char * pathname,
+                     const bool send, const ZMODEM_FLAVOR in_flavor);
+
+  /**
+   * Stop the file transfer.  Note that this function is only called in
+   * stop_file_transfer() and save_partial is always true.  However it is left
+   * in for API completeness.
+   *
+   * @param save_partial if true, save any partially-downloaded files.
+   */
+  void zmodem_stop(const bool save_partial);
+
   String getLastErrors();
 };
 
-uint16_t crc16tab[256] PROGMEM = {
-  0x0000,  0x1021,  0x2042,  0x3063,  0x4084,  0x50a5,  0x60c6,  0x70e7,
-  0x8108,  0x9129,  0xa14a,  0xb16b,  0xc18c,  0xd1ad,  0xe1ce,  0xf1ef,
-  0x1231,  0x0210,  0x3273,  0x2252,  0x52b5,  0x4294,  0x72f7,  0x62d6,
-  0x9339,  0x8318,  0xb37b,  0xa35a,  0xd3bd,  0xc39c,  0xf3ff,  0xe3de,
-  0x2462,  0x3443,  0x0420,  0x1401,  0x64e6,  0x74c7,  0x44a4,  0x5485,
-  0xa56a,  0xb54b,  0x8528,  0x9509,  0xe5ee,  0xf5cf,  0xc5ac,  0xd58d,
-  0x3653,  0x2672,  0x1611,  0x0630,  0x76d7,  0x66f6,  0x5695,  0x46b4,
-  0xb75b,  0xa77a,  0x9719,  0x8738,  0xf7df,  0xe7fe,  0xd79d,  0xc7bc,
-  0x48c4,  0x58e5,  0x6886,  0x78a7,  0x0840,  0x1861,  0x2802,  0x3823,
-  0xc9cc,  0xd9ed,  0xe98e,  0xf9af,  0x8948,  0x9969,  0xa90a,  0xb92b,
-  0x5af5,  0x4ad4,  0x7ab7,  0x6a96,  0x1a71,  0x0a50,  0x3a33,  0x2a12,
-  0xdbfd,  0xcbdc,  0xfbbf,  0xeb9e,  0x9b79,  0x8b58,  0xbb3b,  0xab1a,
-  0x6ca6,  0x7c87,  0x4ce4,  0x5cc5,  0x2c22,  0x3c03,  0x0c60,  0x1c41,
-  0xedae,  0xfd8f,  0xcdec,  0xddcd,  0xad2a,  0xbd0b,  0x8d68,  0x9d49,
-  0x7e97,  0x6eb6,  0x5ed5,  0x4ef4,  0x3e13,  0x2e32,  0x1e51,  0x0e70,
-  0xff9f,  0xefbe,  0xdfdd,  0xcffc,  0xbf1b,  0xaf3a,  0x9f59,  0x8f78,
-  0x9188,  0x81a9,  0xb1ca,  0xa1eb,  0xd10c,  0xc12d,  0xf14e,  0xe16f,
-  0x1080,  0x00a1,  0x30c2,  0x20e3,  0x5004,  0x4025,  0x7046,  0x6067,
-  0x83b9,  0x9398,  0xa3fb,  0xb3da,  0xc33d,  0xd31c,  0xe37f,  0xf35e,
-  0x02b1,  0x1290,  0x22f3,  0x32d2,  0x4235,  0x5214,  0x6277,  0x7256,
-  0xb5ea,  0xa5cb,  0x95a8,  0x8589,  0xf56e,  0xe54f,  0xd52c,  0xc50d,
-  0x34e2,  0x24c3,  0x14a0,  0x0481,  0x7466,  0x6447,  0x5424,  0x4405,
-  0xa7db,  0xb7fa,  0x8799,  0x97b8,  0xe75f,  0xf77e,  0xc71d,  0xd73c,
-  0x26d3,  0x36f2,  0x0691,  0x16b0,  0x6657,  0x7676,  0x4615,  0x5634,
-  0xd94c,  0xc96d,  0xf90e,  0xe92f,  0x99c8,  0x89e9,  0xb98a,  0xa9ab,
-  0x5844,  0x4865,  0x7806,  0x6827,  0x18c0,  0x08e1,  0x3882,  0x28a3,
-  0xcb7d,  0xdb5c,  0xeb3f,  0xfb1e,  0x8bf9,  0x9bd8,  0xabbb,  0xbb9a,
-  0x4a75,  0x5a54,  0x6a37,  0x7a16,  0x0af1,  0x1ad0,  0x2ab3,  0x3a92,
-  0xfd2e,  0xed0f,  0xdd6c,  0xcd4d,  0xbdaa,  0xad8b,  0x9de8,  0x8dc9,
-  0x7c26,  0x6c07,  0x5c64,  0x4c45,  0x3ca2,  0x2c83,  0x1ce0,  0x0cc1,
-  0xef1f,  0xff3e,  0xcf5d,  0xdf7c,  0xaf9b,  0xbfba,  0x8fd9,  0x9ff8,
-  0x6e17,  0x7e36,  0x4e55,  0x5e74,  0x2e93,  0x3eb2,  0x0ed1,  0x1ef0
-};
 
-uint32_t crc32tab[256] PROGMEM =
-{
-  0x00000000, 0x77073096, 0xee0e612c, 0x990951ba, 0x076dc419, 0x706af48f, 0xe963a535, 0x9e6495a3,
-  0x0edb8832, 0x79dcb8a4, 0xe0d5e91e, 0x97d2d988, 0x09b64c2b, 0x7eb17cbd, 0xe7b82d07, 0x90bf1d91,
-  0x1db71064, 0x6ab020f2, 0xf3b97148, 0x84be41de, 0x1adad47d, 0x6ddde4eb, 0xf4d4b551, 0x83d385c7,
-  0x136c9856, 0x646ba8c0, 0xfd62f97a, 0x8a65c9ec, 0x14015c4f, 0x63066cd9, 0xfa0f3d63, 0x8d080df5,
-  0x3b6e20c8, 0x4c69105e, 0xd56041e4, 0xa2677172, 0x3c03e4d1, 0x4b04d447, 0xd20d85fd, 0xa50ab56b,
-  0x35b5a8fa, 0x42b2986c, 0xdbbbc9d6, 0xacbcf940, 0x32d86ce3, 0x45df5c75, 0xdcd60dcf, 0xabd13d59,
-  0x26d930ac, 0x51de003a, 0xc8d75180, 0xbfd06116, 0x21b4f4b5, 0x56b3c423, 0xcfba9599, 0xb8bda50f,
-  0x2802b89e, 0x5f058808, 0xc60cd9b2, 0xb10be924, 0x2f6f7c87, 0x58684c11, 0xc1611dab, 0xb6662d3d,
-  0x76dc4190, 0x01db7106, 0x98d220bc, 0xefd5102a, 0x71b18589, 0x06b6b51f, 0x9fbfe4a5, 0xe8b8d433,
-  0x7807c9a2, 0x0f00f934, 0x9609a88e, 0xe10e9818, 0x7f6a0dbb, 0x086d3d2d, 0x91646c97, 0xe6635c01,
-  0x6b6b51f4, 0x1c6c6162, 0x856530d8, 0xf262004e, 0x6c0695ed, 0x1b01a57b, 0x8208f4c1, 0xf50fc457,
-  0x65b0d9c6, 0x12b7e950, 0x8bbeb8ea, 0xfcb9887c, 0x62dd1ddf, 0x15da2d49, 0x8cd37cf3, 0xfbd44c65,
-  0x4db26158, 0x3ab551ce, 0xa3bc0074, 0xd4bb30e2, 0x4adfa541, 0x3dd895d7, 0xa4d1c46d, 0xd3d6f4fb,
-  0x4369e96a, 0x346ed9fc, 0xad678846, 0xda60b8d0, 0x44042d73, 0x33031de5, 0xaa0a4c5f, 0xdd0d7cc9,
-  0x5005713c, 0x270241aa, 0xbe0b1010, 0xc90c2086, 0x5768b525, 0x206f85b3, 0xb966d409, 0xce61e49f,
-  0x5edef90e, 0x29d9c998, 0xb0d09822, 0xc7d7a8b4, 0x59b33d17, 0x2eb40d81, 0xb7bd5c3b, 0xc0ba6cad,
-  0xedb88320, 0x9abfb3b6, 0x03b6e20c, 0x74b1d29a, 0xead54739, 0x9dd277af, 0x04db2615, 0x73dc1683,
-  0xe3630b12, 0x94643b84, 0x0d6d6a3e, 0x7a6a5aa8, 0xe40ecf0b, 0x9309ff9d, 0x0a00ae27, 0x7d079eb1,
-  0xf00f9344, 0x8708a3d2, 0x1e01f268, 0x6906c2fe, 0xf762575d, 0x806567cb, 0x196c3671, 0x6e6b06e7,
-  0xfed41b76, 0x89d32be0, 0x10da7a5a, 0x67dd4acc, 0xf9b9df6f, 0x8ebeeff9, 0x17b7be43, 0x60b08ed5,
-  0xd6d6a3e8, 0xa1d1937e, 0x38d8c2c4, 0x4fdff252, 0xd1bb67f1, 0xa6bc5767, 0x3fb506dd, 0x48b2364b,
-  0xd80d2bda, 0xaf0a1b4c, 0x36034af6, 0x41047a60, 0xdf60efc3, 0xa867df55, 0x316e8eef, 0x4669be79,
-  0xcb61b38c, 0xbc66831a, 0x256fd2a0, 0x5268e236, 0xcc0c7795, 0xbb0b4703, 0x220216b9, 0x5505262f,
-  0xc5ba3bbe, 0xb2bd0b28, 0x2bb45a92, 0x5cb36a04, 0xc2d7ffa7, 0xb5d0cf31, 0x2cd99e8b, 0x5bdeae1d,
-  0x9b64c2b0, 0xec63f226, 0x756aa39c, 0x026d930a, 0x9c0906a9, 0xeb0e363f, 0x72076785, 0x05005713,
-  0x95bf4a82, 0xe2b87a14, 0x7bb12bae, 0x0cb61b38, 0x92d28e9b, 0xe5d5be0d, 0x7cdcefb7, 0x0bdbdf21,
-  0x86d3d2d4, 0xf1d4e242, 0x68ddb3f8, 0x1fda836e, 0x81be16cd, 0xf6b9265b, 0x6fb077e1, 0x18b74777,
-  0x88085ae6, 0xff0f6a70, 0x66063bca, 0x11010b5c, 0x8f659eff, 0xf862ae69, 0x616bffd3, 0x166ccf45,
-  0xa00ae278, 0xd70dd2ee, 0x4e048354, 0x3903b3c2, 0xa7672661, 0xd06016f7, 0x4969474d, 0x3e6e77db,
-  0xaed16a4a, 0xd9d65adc, 0x40df0b66, 0x37d83bf0, 0xa9bcae53, 0xdebb9ec5, 0x47b2cf7f, 0x30b5ffe9,
-  0xbdbdf21c, 0xcabac28a, 0x53b39330, 0x24b4a3a6, 0xbad03605, 0xcdd70693, 0x54de5729, 0x23d967bf,
-  0xb3667a2e, 0xc4614ab8, 0x5d681b02, 0x2a6f2b94, 0xb40bbe37, 0xc30c8ea1, 0x5a05df1b, 0x2d02ef8d
-};
+
+#endif
 
 static ZSerial zserial;
 
-static boolean zDownload(File &f, String &errors)
+static boolean zDownload(FS &fs, String filePath, String &errors)
 {
-  ZModem zmo(HWSerial,zserial);
-  bool result = zmo.transmit(f);
+  bool result=false;
+  /*
+  ZModem zmo(fs,HWSerial,zserial);
+  File files[2];
+  files[0] = fs->open(filePath);
+  files[1] = null;
+  result = zmo.zmodem_start(files,"/",true,ZMODEM_FLAVOR_CRC16);
   zserial.flushAlways();
   if(!result)
     errors = zmo.getLastErrors();
+  */
   return result;
 }
 
 static boolean zUpload(FS &fs, String dirPath, String &errors)
 {
-  ZModem zmo(HWSerial,zserial);
-  bool result = zmo.receive(fs,dirPath);
+  bool result=false;
+  /*
+  ZModem zmo(fs,HWSerial,zserial);
+  result = zmo.zmodem_start(null,dirPath,false,ZMODEM_FLAVOR_CRC16);
   zserial.flushAlways();
   if(!result)
     errors = zmo.getLastErrors();
+  */
   return result;
 }
 

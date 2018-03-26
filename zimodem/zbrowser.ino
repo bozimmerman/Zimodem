@@ -733,20 +733,17 @@ void ZBrowser::doModeCommand()
         else
         {
           root.close();
-          File rfile = SD.open(p, FILE_READ);
           String errors="";
           serial.printf("Go to ZModem download.%s",EOLNC);
           serial.flushAlways();
           initZSerial(commandMode.getFlowControlType());
-          if(zDownload(rfile,errors))
+          if(zDownload(SD,p,errors))
           {
-            rfile.close();
             delay(1000);
             serial.printf("Download completed successfully.%s",EOLNC);
           }
           else
           {
-            rfile.close();
             delay(1000);
             serial.printf("Download failed (%s).%s",errors.c_str(),EOLNC);
           }
@@ -767,11 +764,13 @@ void ZBrowser::doModeCommand()
         }
         else
         {
+          String rootDirNm = rootDir.name();
+          rootDir.close();
           String errors="";
           serial.printf("Go to ZModem upload.%s",EOLNC);
           serial.flushAlways();
           initZSerial(commandMode.getFlowControlType());
-          if(zUpload(SD,rootDir.name(),errors))
+          if(zUpload(SD,rootDirNm,errors))
           {
             delay(1000);
             serial.printf("Upload completed successfully.%s",EOLNC);
