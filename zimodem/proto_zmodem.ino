@@ -4954,8 +4954,9 @@ void ZModem::zmodem_send(unsigned char * input, unsigned int input_n,
  * @param output_n the number of bytes that this function wrote to output
  * @param output_max the maximum number of bytes this function may write to
  * output
+ * @return false when completed or aborted, true otherwise
  */
-void ZModem::zmodem_process(unsigned char * input, const unsigned int input_n,
+bool ZModem::zmodem_process(unsigned char * input, const unsigned int input_n,
                             unsigned char * output, unsigned int * output_n,
                             const unsigned int output_max) 
 {
@@ -4970,7 +4971,7 @@ void ZModem::zmodem_process(unsigned char * input, const unsigned int input_n,
   assert(output_max > ZMODEM_MAX_BLOCK_SIZE);
 
   if ((state == ZMODEM_STATE_ABORT) || (state == ZMODEM_STATE_COMPLETE))
-    return;
+    return false;
 
 # ifdef ZMODEM_DEBUG
   {
@@ -5010,6 +5011,8 @@ void ZModem::zmodem_process(unsigned char * input, const unsigned int input_n,
    */
   if (*output_n > 0)
     reset_timer();
+  
+  return ! ((state == ZMODEM_STATE_ABORT) || (state == ZMODEM_STATE_COMPLETE));  
 }
 
 /**

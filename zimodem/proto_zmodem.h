@@ -371,8 +371,9 @@ public:
    * @param output_n the number of bytes that this function wrote to output
    * @param output_max the maximum number of bytes this function may write to
    * output
+   * @return false when completed or aborted, true otherwise
    */
-  void zmodem_process(unsigned char *input, const unsigned int input_n,
+  bool zmodem_process(unsigned char *input, const unsigned int input_n,
                      unsigned char *output, unsigned int *output_n,
                      const unsigned int output_max);
 
@@ -405,6 +406,40 @@ public:
 
 static ZSerial zserial;
 
+static void zProcess(ZModem &zmo)
+{
+  unsigned char inbuf[ZMODEM_MAX_BLOCK_SIZE+10];
+  unsigned char outbuf[ZMODEM_MAX_BLOCK_SIZE+10];
+  unsigned int inbufsz = 0;
+  unsigned int outbufsz = 0;
+  bool result=true;
+  while(result)
+  {
+    outbufsz=0;
+    result = zmo.zmodem_process(inbuf, inbufsz, outbuf, &outbufsz, sizeof(outbuf));
+    int avail = HWSerial.available();
+    if((avail == 0) && (outbufsz==0) && (result))
+      delay(1);
+    inbufsz=0;
+    for(int i=0;(i<avail) && (inbufsz<sizeof(inbuf));i++)
+    {
+      uint8_t c=HWSerial.read();
+      logSerialIn(c);
+      if((c==19)&&(zserial.getFlowControlType()==FCT_NORMAL))
+        zserial.setXON(false);
+      else
+      if((c==17)&&(zserial.getFlowControlType()==FCT_NORMAL))
+        zserial.setXON(true);
+      else
+        inbuf[inbufsz++] = (unsigned char)c;
+    }
+    for(int i=0;i<outbufsz;i++)
+      enqueSerialOut(outbuf[i]);
+    yield();
+    zserial.flush();
+  }
+}
+
 static boolean zDownload(FS &fs, String filePath, String &errors)
 {
   bool result=false;
@@ -413,6 +448,7 @@ static boolean zDownload(FS &fs, String filePath, String &errors)
   files[0] = fs.open(filePath);
   files[1] = (File)null;
   result = zmo.zmodem_start(files,"/",true,ZMODEM_FLAVOR_CRC16);
+  zProcess(zmo);
   zserial.flushAlways();
   if(!result)
     errors = zmo.getLastErrors();
@@ -424,6 +460,7 @@ static boolean zUpload(FS &fs, String dirPath, String &errors)
   bool result=false;
   ZModem zmo(fs,HWSerial,zserial);
   result = zmo.zmodem_start((File*)null,dirPath.c_str(),false,ZMODEM_FLAVOR_CRC16);
+  zProcess(zmo);
   zserial.flushAlways();
   if(!result)
     errors = zmo.getLastErrors();
