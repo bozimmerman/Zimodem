@@ -15,6 +15,23 @@
    limitations under the License.
 */
 
+/* Internal buffer used to collect a complete packet before processing it */
+static unsigned char packet_buffer[ZMODEM_MAX_BLOCK_SIZE];
+static unsigned int packet_buffer_n;
+/*
+ * Internal buffer used to queue a complete outbound packet so that the
+ * top-level code can saturate the link.
+ */
+static unsigned char outbound_packet[ZMODEM_MAX_BLOCK_SIZE];
+static unsigned int outbound_packet_n;
+/**
+ * encode_byte is a simple lookup into this map.
+ */
+unsigned char encode_byte_map[256];
+uint32_t crc_32_tab[256];
+/* Needs to persist across calls to zmodem() */
+struct zmodem_packet packet;
+
 ZModem::ZModem(FS &filesys, Stream &modemIn, ZSerial &modemOut)
 {
   fs = &filesys;
@@ -131,7 +148,7 @@ void ZModem::makecrc(void)
  * The CRC is computed using preset to -1 and invert.
  */
 uint32_t ZModem::compute_crc32(const uint32_t old_crc, const unsigned char *buf,
-                              unsigned len) 
+                               unsigned len) 
 {
     uint32_t crc;
 
@@ -448,9 +465,9 @@ bool ZModem::check_timeout()
  * output
  */
 void ZModem::hexify_string(const unsigned char * input,
-                          const unsigned int input_n,
-                          unsigned char * output,
-                          const unsigned int output_max) 
+                           const unsigned int input_n,
+                           unsigned char * output,
+                           const unsigned int output_max) 
 {
   char digits[] = "0123456789abcdefg";
   unsigned int i;
@@ -474,9 +491,9 @@ void ZModem::hexify_string(const unsigned char * input,
  * hex string
  */
 bool ZModem::dehexify_string(const unsigned char * input,
-                              const unsigned int input_n,
-                              unsigned char * output,
-                              const unsigned int output_max) 
+                             const unsigned int input_n,
+                             unsigned char * output,
+                             const unsigned int output_max) 
 {
 
   unsigned int i;
@@ -547,11 +564,11 @@ bool ZModem::dehexify_string(const unsigned char * input,
  * @param crc_buffer a buffer to contain the CRC bytes
  */
 bool ZModem::decode_zdata_bytes(unsigned char * input,
-                                 unsigned int * input_n,
-                                 unsigned char * output,
-                                 unsigned int * output_n,
-                                 const unsigned int output_max,
-                                 unsigned char * crc_buffer) 
+                                unsigned int * input_n,
+                                unsigned char * output,
+                                unsigned int * output_n,
+                                const unsigned int output_max,
+                                unsigned char * crc_buffer) 
 {
 
   int i;                      /* input iterator */

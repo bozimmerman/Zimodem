@@ -177,6 +177,7 @@ typedef enum
   ZMODEM_STATE_ZFIN,
   /* Waiting for ZFIN */
   ZMODEM_STATE_ZFIN_WAIT
+
 } ZMODEM_STATE;
 
 /* Every bit of Zmodem data goes out as packets */
@@ -204,6 +205,7 @@ typedef enum
   ZM_PP_NODATA,
   ZM_PP_CRCERROR,
   ZM_PP_OK
+
 } ZMODEM_PARSE_PACKET;
 
 #define ZMODEM_HEX_PACKET_LENGTH       20
@@ -232,10 +234,6 @@ private:
   unsigned long flags =0;
   /* If true, use 32-bit CRC */
   bool use_crc32 = true;
-  /* If true, we are the sender */
-  bool sending = false;
-  /* Current filename being sent/received */
-  char * file_name = null;
   /* Size of file in bytes */
   unsigned int file_size = 0;
   /* Modification time of file */
@@ -244,6 +242,17 @@ private:
   off_t file_position = 0;
   /* Stream pointer to current file */
   File file_stream;
+  /* If true, we are the sender */
+  bool sending = false;
+  /* Current filename being sent/received */
+  char * file_name = null;
+  /*
+   * The path to download to.  Note download_path is Xstrdup'd TWICE: once HERE
+   * and once more on the progress dialog.  The q_program_state transition to
+   * Q_STATE_CONSOLE is what Xfree's the copy in the progress dialog.  This
+   * copy is Xfree'd in zmodem_stop().
+   */
+  char *download_path = null;
   /* File CRC32 */
   uint32_t file_crc32 = -1;
   /* Block size */
@@ -286,32 +295,10 @@ private:
   File *upload_file_list;
   /* The current entry in upload_file_list being sent */
   int upload_file_list_i;
-  /*
-   * The path to download to.  Note download_path is Xstrdup'd TWICE: once HERE
-   * and once more on the progress dialog.  The q_program_state transition to
-   * Q_STATE_CONSOLE is what Xfree's the copy in the progress dialog.  This
-   * copy is Xfree'd in zmodem_stop().
-   */
-  char *download_path = null;
-  /* Needs to persist across calls to zmodem() */
-  struct zmodem_packet packet;
-  /* Internal buffer used to collect a complete packet before processing it */
-  unsigned char packet_buffer[ZMODEM_MAX_BLOCK_SIZE];
-  unsigned int packet_buffer_n;
-  /*
-   * Internal buffer used to queue a complete outbound packet so that the
-   * top-level code can saturate the link.
-   */
-  unsigned char outbound_packet[ZMODEM_MAX_BLOCK_SIZE];
-  unsigned int outbound_packet_n;
+
   /* The ZMODEM_STATE_ZCHALLENGE value we asked for */
   uint32_t zchallenge_value;
-  /**
-   * encode_byte is a simple lookup into this map.
-   */
-  unsigned char encode_byte_map[256];
-  uint32_t crc_32_tab[256];
-  
+
   void block_size_down();
   void block_size_up();
   uint32_t compute_crc32(const uint32_t old_crc, const unsigned char *buf, unsigned len);
@@ -321,7 +308,7 @@ private:
   void encode_zdata_bytes(unsigned char *output, unsigned int *output_n, const unsigned int output_max,  const unsigned char crc_type);
   void encode_byte(const unsigned char ch, unsigned char *output, unsigned int *output_n, const unsigned int output_max);
   void setup_encode_byte_map();
-  bool decode_zdata_bytes(unsigned char *input, unsigned int *input_n, unsigned char *output,  unsigned int *output_n,  const unsigned int output_max, unsigned char *crc_buffer);
+  bool decode_zdata_bytes(unsigned char *input, unsigned int *input_n, unsigned char *output, unsigned int *output_n, const unsigned int output_max, unsigned char *crc_buffer);
   bool dehexify_string(const unsigned char *input, const unsigned int input_n, unsigned char *output, const unsigned int output_max);
   void hexify_string(const unsigned char *input, const unsigned int input_n, unsigned char *output, const unsigned int output_max);
   bool check_timeout();
@@ -374,8 +361,8 @@ public:
    * @return false when completed or aborted, true otherwise
    */
   bool zmodem_process(unsigned char *input, const unsigned int input_n,
-                     unsigned char *output, unsigned int *output_n,
-                     const unsigned int output_max);
+                      unsigned char *output, unsigned int *output_n,
+                      const unsigned int output_max);
 
   /**
    * Setup for a new file transfer session.
@@ -390,7 +377,7 @@ public:
    * @return true if successful
    */
   bool zmodem_start(File *file_list, const char *pathname,
-                     const bool send, const ZMODEM_FLAVOR in_flavor);
+                    const bool send, const ZMODEM_FLAVOR in_flavor);
 
   /**
    * Stop the file transfer.  Note that this function is only called in
