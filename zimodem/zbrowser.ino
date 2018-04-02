@@ -35,7 +35,7 @@ void ZBrowser::switchTo()
   serial.setXON(true);
   showMenu=true;
   EOLN=commandMode.EOLN;
-  EOLNC=EOLN.c_str();
+  strcpy(EOLNC,commandMode.EOLN.c_str());
   currState = ZBROW_MAIN;
   lastNumber=0;
   lastString="";
@@ -717,7 +717,7 @@ void ZBrowser::doModeCommand()
         }
       }
       else
-      if(cmd.equalsIgnoreCase("zget"))
+      if(cmd.equalsIgnoreCase("zget")||cmd.equalsIgnoreCase("sz"))
       {
         String p = makePath(line);
         debugPrintf("zget:%s\n",p.c_str());
@@ -891,7 +891,7 @@ void ZBrowser::doModeCommand()
         serial.printf("ren/rename [path] [path]  - Rename a file%s",EOLNC);
         serial.printf("mv/move (-f) [path] [path]  - Move file(s)%s",EOLNC);
         serial.printf("cat/type [path]  - View a file(s)%s",EOLNC);
-        serial.printf("df/free/info - Show space remaining%s",EOLN);
+        serial.printf("df/free/info - Show space remaining%s",EOLNC);
         serial.printf("xget/zget [path]  - Download a file%s",EOLNC);
         serial.printf("xput/zput [path]  - Upload a file%s",EOLNC);
         serial.printf("exit/quit/x/endshell  - Quit to command mode%s",EOLNC);

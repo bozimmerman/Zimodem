@@ -45,7 +45,7 @@ class ZBrowser : public ZMode
     bool savedEcho;
     String path="/";
     String EOLN;
-    const char *EOLNC;
+    char EOLNC[5];
     unsigned long lastNumber;
     String lastString;
 
