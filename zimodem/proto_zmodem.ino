@@ -15,23 +15,6 @@
    limitations under the License.
 */
 
-/* Internal buffer used to collect a complete packet before processing it */
-static unsigned char packet_buffer[ZMODEM_MAX_BLOCK_SIZE];
-static unsigned int packet_buffer_n;
-/*
- * Internal buffer used to queue a complete outbound packet so that the
- * top-level code can saturate the link.
- */
-static unsigned char outbound_packet[ZMODEM_MAX_BLOCK_SIZE];
-static unsigned int outbound_packet_n;
-/**
- * encode_byte is a simple lookup into this map.
- */
-unsigned char encode_byte_map[256];
-uint32_t crc_32_tab[256];
-/* Needs to persist across calls to zmodem() */
-struct zmodem_packet packet;
-
 ZModem::ZModem(FS &filesys, Stream &modemIn, ZSerial &modemOut)
 {
   fs = &filesys;
@@ -1005,7 +988,7 @@ void ZModem::setup_encode_byte_map()
       encode_byte_map[ch] = ch;
     }
   }
-# ifdef ZMODEM_DEBUG
+# if 0//ifdef ZMODEM_DEBUG
   {
     debugPrintf("setup_encode_byte_map():\n");
     debugPrintf("---- \n");
@@ -1026,8 +1009,8 @@ void ZModem::setup_encode_byte_map()
  * @param output_max the maximum size of the output buffer
  */
 void ZModem::encode_byte(const unsigned char ch, unsigned char * output,
-                        unsigned int * output_n,
-                        const unsigned int output_max) 
+                         unsigned int * output_n,
+                         const unsigned int output_max) 
 {
   unsigned char new_ch = encode_byte_map[ch];
   /*
@@ -1064,9 +1047,9 @@ void ZModem::encode_byte(const unsigned char ch, unsigned char * output,
  * @param crc_type ZMODEM_DT_ZCRCE, ZMODEM_DT_ZCRCG, ZMODEM_DT_ZCRCQ, or ZMODEM_DT_ZCRCW
  */
 void ZModem::encode_zdata_bytes(unsigned char * output,
-                               unsigned int * output_n,
-                               const unsigned int output_max,
-                               const unsigned char crc_type) 
+                                unsigned int * output_n,
+                                const unsigned int output_max,
+                                const unsigned char crc_type) 
 {
   unsigned int i;             /* input iterator */
   unsigned int j;             /* CRC32 iterator */
@@ -1193,9 +1176,9 @@ void ZModem::encode_zdata_bytes(unsigned char * output,
  * @param data_packet_max the maximum size of data_packet
  */
 void ZModem::build_packet(const int type, const long argument,
-                         unsigned char * data_packet,
-                         unsigned int * data_packet_n,
-                         const int data_packet_max) 
+                          unsigned char * data_packet,
+                          unsigned int * data_packet_n,
+                          const int data_packet_max) 
 {
   int crc_16;
   unsigned char crc_16_hex[4];
