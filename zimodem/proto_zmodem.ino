@@ -21,6 +21,25 @@ ZModem::ZModem(FS &filesys, Stream &modemIn, ZSerial &modemOut)
   mdmIn = &modemIn;
   mdmOt = &modemOut;
   //randomSeed(0);
+  packet_buffer = (unsigned char *)malloc(ZMODEM_MAX_BLOCK_SIZE);
+  memset(packet_buffer,0,ZMODEM_MAX_BLOCK_SIZE);
+  outbound_packet = (unsigned char *)malloc(ZMODEM_MAX_BLOCK_SIZE);
+  memset(outbound_packet,0,ZMODEM_MAX_BLOCK_SIZE);
+  encode_byte_map = (unsigned char *)malloc(256);
+  memset(encode_byte_map,0,256);
+  crc_32_tab = (uint32_t *)malloc(256);
+  memset(crc_32_tab,0,256);
+  file_fullname = (char *)malloc(FILENAME_SIZE);
+  memset(file_fullname,0,FILENAME_SIZE);
+}
+
+ZModem::~ZModem()
+{
+  free(packet_buffer);
+  free(outbound_packet);
+  free(encode_byte_map);
+  free(crc_32_tab);
+  free(file_fullname);
 }
 
 String ZModem::getLastErrors()

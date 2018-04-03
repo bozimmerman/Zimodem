@@ -290,7 +290,7 @@ private:
   /* Number of error blocks */
   int consecutive_errors = 0;
   /* Full pathname to file */
-  char file_fullname[FILENAME_SIZE];
+  char *file_fullname = 0;
   /* The list of files to upload */
   File *upload_file_list;
   /* The current entry in upload_file_list being sent */
@@ -299,21 +299,20 @@ private:
   /* The ZMODEM_STATE_ZCHALLENGE value we asked for */
   uint32_t zchallenge_value;
 
-
   /* Internal buffer used to collect a complete packet before processing it */
-  unsigned char packet_buffer[ZMODEM_MAX_BLOCK_SIZE];
+  unsigned char *packet_buffer = 0;
   unsigned int packet_buffer_n;
   /*
    * Internal buffer used to queue a complete outbound packet so that the
    * top-level code can saturate the link.
    */
-  unsigned char outbound_packet[ZMODEM_MAX_BLOCK_SIZE];
+  unsigned char *outbound_packet = 0;
   unsigned int outbound_packet_n;
   /**
    * encode_byte is a simple lookup into this map.
    */
-  unsigned char encode_byte_map[256];
-  uint32_t crc_32_tab[256];
+  unsigned char *encode_byte_map = 0;
+  uint32_t *crc_32_tab = 0;
   /* Needs to persist across calls to zmodem() */
   struct zmodem_packet packet;
 
@@ -363,6 +362,7 @@ private:
 
 public:
   ZModem(FS &fs, Stream &modemIn, ZSerial &modemOut);
+  ~ZModem();
 
   /* Functions -------------------------------------------------------------- */
 
