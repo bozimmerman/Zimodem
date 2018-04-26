@@ -1,11 +1,11 @@
 !--------------------------------------------------
-!- Thursday, March 01, 2018 12:53:43 AM
+!- Thursday, April 26, 2018 9:07:31 PM
 !- Import of : 
 !- z:\unsorted\configure.prg
 !- Commodore 64
 !--------------------------------------------------
 1 REM CONFIGURE64/128  1200B 2.0+
-2 REM UPDATED 02/28/2018 02:54P
+2 REM UPDATED 04/26/2018 02:54P
 5 POKE254,PEEK(186):IFPEEK(254)<8THENPOKE254,8
 10 SY=PEEK(65532):IFSY=61THENPOKE58,254:CLR
 13 IFSY=34THENX=23777:POKEX,170:IFPEEK(X)<>170THENPRINT"<16k":STOP
@@ -21,7 +21,7 @@
 70 IFSY=61THENCO$=CHR$(159)
 100 REM
 110 P$="a"
-120 PRINTCO$;"{clear}{down*2}CONFIGURE v1.5":PRINT"Requires C64Net WiFi Firmware 2.0+"
+120 PRINTCO$;"{clear}{down*2}CONFIGURE v1.6":PRINT"Requires C64Net WiFi Firmware 2.0+"
 130 PRINT"1200 baud version"
 140 PRINT"By Bo Zimmerman (bo@zimmers.net)":PRINT:PRINT
 197 REM --------------------------------
@@ -30,7 +30,7 @@
 200 PH=0:PT=0:MV=ML+18:CR$=CHR$(13)+CHR$(10):QU$=CHR$(34):POKEMV+14,5
 202 PRINT "Initializing modem...";:CT=0
 203 GET#5,A$:IFA$<>""THEN203
-205 PRINT#5,CR$;"athz0f0e0&p1";CR$;
+205 PRINT#5,CR$;"athz0f0e0r0&p1";CR$;
 206 GOSUB900:IFP$<>"OK"THENCT=CT+1:IFCT<10THEN203
 207 IFCT<10THENGET#5,A$:IFA$<>""THEN207
 208 IFCT<10THENPRINT#5,"athf3e0&p1";CR$;

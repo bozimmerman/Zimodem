@@ -1,12 +1,12 @@
 !--------------------------------------------------
-!- Saturday, June 03, 2017 9:07:31 PM
+!- Thursday, April 26, 2018 9:07:31 PM
 !- Import of : 
 !- c:\src\zimodem\cbm8bit\src\cometmode.prg
 !- Commodore 64
 !--------------------------------------------------
 10 IFPEEK(49153)<>54THENLOAD"v-1541",8,1:RUN
 20 OPEN5,2,0,CHR$(8):TI$="000000":T1=0
-30 PRINT#5,"at":TT=TI+100:GOSUB900:PRINT"connecting...";
+30 PRINT#5,"atr0":TT=TI+100:GOSUB900:PRINT"connecting...";
 40 GOSUB920:PRINT".";:T1=T1+1:IFT1>20THENPRINT"fail.":CLOSE5:END
 50 PRINT#5,"at":TT=TI+100:GOSUB900
 60 INPUT#5,A$:IFLEFT$(A$,2)="at"ORLEFT$(A$,2)="AT"THENINPUT#5,A$
