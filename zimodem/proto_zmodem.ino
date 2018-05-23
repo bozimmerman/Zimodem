@@ -1,3 +1,4 @@
+#ifdef INCLUDE_SD_SHELL
 /*
    Copyright 2016-2017 Bo Zimmerman
 
@@ -5191,3 +5192,5 @@ void ZModem::zmodem_stop(const bool save_partial)
     free(download_path);
   download_path = NULL;
 }
+
+#endif

@@ -128,9 +128,12 @@ class ZMode
 #include "zstream.h"
 #include "zcommand.h"
 #include "zconfigmode.h"
+
+#ifdef INCLUDE_SD_SHELL
 #include "proto_xmodem.h"
 #include "proto_zmodem.h"
 #include "zbrowser.h"
+#endif
 
 static WiFiClientNode *conns = null;
 static WiFiServerNode *servs = null;

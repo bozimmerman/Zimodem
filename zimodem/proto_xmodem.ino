@@ -1,3 +1,4 @@
+#ifdef INCLUDE_SD_SHELL
 
 XModem::XModem(int (*recvChar)(int msDelay), void (*sendChar)(char sym))
 {
@@ -329,4 +330,4 @@ bool XModem::transmit()
   return false;
 }
 
-
+#endif
