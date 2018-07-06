@@ -52,16 +52,16 @@
 #define LOG_DEBUG       7       /* debug-level messages */
 
 #ifndef SOH
-//#define  SOH      0x01
+#define  SOH      0x01
 #define  STX      0x02
-//#define  EOT      0x04
+#define  EOT      0x04
 #define  ENQ      0x05
-//#define  ACK      0x06
+#define  ACK      0x06
 #define  DLE      0x10
-//#define  XON      0x11
-//#define  XOFF     0x13
+#define  XON      0x11
+#define  XOFF     0x13
 #define  NAK      0x15
-//#define  CAN      0x18
+#define  CAN      0x18
 #endif
 
 #ifndef INT_TO_BOOL
@@ -400,17 +400,17 @@ void zmodem_progress(void* cbdata, int64_t current_pos)
 
 int send_byte(void* unused, uchar ch, unsigned timeout)
 {
+  //lprintf(LOG_DEBUG, "Send: %d", ch);
   zserial.printb(ch);
   zserial.flush(); // safe flush
   yield();
-  lprintf(LOG_DEBUG, "Sent: %d", ch);
   return(0);
 }
 
 int recv_byte(void* unused, unsigned timeout /* seconds */)
 {
   unsigned long startTime = millis();
-  while(HWSerial.available()<=0)
+  while(zserial.available()<=0)
   {
     delay(1);
     yield();
@@ -420,21 +420,21 @@ int recv_byte(void* unused, unsigned timeout /* seconds */)
       return(NOINP);
   }
   yield();
-  int ch = HWSerial.read();
-  lprintf(LOG_DEBUG, "Recvd: %d", ch);
+  int ch = zserial.read();
+  //lprintf(LOG_DEBUG, "Recvd: %d", ch);
   return ch;
 }
 void flush(void* unused)
 {
   yield();
-  HWSerial.flush();
+  zserial.flush();
 }
 
 BOOL data_waiting(void* unused, unsigned timeout /* seconds */)
 {
   unsigned long startTime = millis();
   yield();
-  while(HWSerial.available()<=0)
+  while(zserial.available()<=0)
   {
     delay(1);
     yield();

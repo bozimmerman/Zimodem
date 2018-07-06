@@ -1567,7 +1567,7 @@ int zmodem_send_from(zmodem_t* zm, File* fp, uint64_t pos, uint64_t* sent)
   if(sent!=NULL)
     *sent=0;
 
-  if(fp->seek(pos)!=0) {
+  if(!fp->seek(pos)) {
     lprintf(zm,LOG_ERR,"ERROR %d seeking to file offset %"PRIu64
       ,errno, pos);
     zmodem_send_pos_header(zm, ZFERR, (uint32_t)pos, /* Hex? */ TRUE);
