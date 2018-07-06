@@ -44,12 +44,12 @@ static int serialOutBufferBytesRemaining();
 static void enqueSerialOut(uint8_t c);
 static void clearSerialOutBuffer();
 
-class ZSerial
+class ZSerial : public Stream
 {
   private:
     bool petsciiMode = false;
     FlowControlType flowControlType=DEFAULT_FCT;
-    bool XON=true;
+    bool XON_STATE=true;
   public:
     ZSerial();
     void setPetsciiMode(bool petscii);
@@ -67,8 +67,8 @@ class ZSerial
     void prints(const char *expr);
     void printc(const char c);
     void printc(uint8_t c);
+    virtual size_t write(uint8_t c);
     void printb(uint8_t c);
-    void write(uint8_t c);
     void printd(double f);
     void printi(int i);
     void printf(const char* format, ...);
@@ -76,6 +76,10 @@ class ZSerial
     void flushAlways();
     int availableForWrite();
     char drainForXonXoff();
+
+    virtual int available() { return HWSerial.available(); }
+    virtual int read() { return HWSerial.read(); }
+    virtual int peek() { return HWSerial.peek(); }
 };
 
 #endif

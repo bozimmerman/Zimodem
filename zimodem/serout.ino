@@ -120,12 +120,12 @@ FlowControlType ZSerial::getFlowControlType()
 
 void ZSerial::setXON(bool isXON)
 {
-  XON = isXON;
+  XON_STATE = isXON;
 }
 
 bool ZSerial::isXON()
 {
-  return XON;
+  return XON_STATE;
 }
 
 bool ZSerial::isSerialOut()
@@ -148,7 +148,7 @@ bool ZSerial::isSerialOut()
   case FCT_INVALID:
     return true;
   }
-  return XON;
+  return XON_STATE;
 }
 
 bool ZSerial::isSerialCancelled()
@@ -218,9 +218,10 @@ void ZSerial::printb(uint8_t c)
   enqueSerialOut(c);
 }
 
-void ZSerial::write(uint8_t c)
+size_t ZSerial::write(uint8_t c)
 {
   enqueSerialOut(c);
+  return 1;
 }
 
 void ZSerial::prints(String str)
@@ -280,18 +281,18 @@ char ZSerial::drainForXonXoff()
     switch(flowControlType)
     {
       case FCT_NORMAL:
-        if((!XON) && (ch == 17))
-          XON=true;
+        if((!XON_STATE) && (ch == 17))
+          XON_STATE=true;
         else
-        if((XON) && (ch == 19))
-          XON=false;
+        if((XON_STATE) && (ch == 19))
+          XON_STATE=false;
         break;
       case FCT_AUTOOFF:
       case FCT_MANUAL:
-        if((!XON) && (ch == 17))
-          XON=true;
+        if((!XON_STATE) && (ch == 17))
+          XON_STATE=true;
         else
-          XON=false;
+          XON_STATE=false;
         break;
       case FCT_INVALID:
         break;
