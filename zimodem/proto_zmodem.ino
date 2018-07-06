@@ -30,7 +30,6 @@
  *  Jacques Mattheij
  ******************************************************************************/
 
-=======
 #ifdef INCLUDE_SD_SHELL
 /*
  * zmodem primitives and other code common to zmtx and zmrx
