@@ -41,12 +41,12 @@ class XModem
     unsigned char generateChkSum(void);
     
   public:
-    static const unsigned char NACK = 21;
-    static const unsigned char ACK =  6;
+    static const unsigned char XMO_NACK = 21;
+    static const unsigned char XMO_ACK =  6;
 
-    static const unsigned char SOH =  1;
-    static const unsigned char EOT =  4;
-    static const unsigned char CAN =  0x18;
+    static const unsigned char XMO_SOH =  1;
+    static const unsigned char XMO_EOT =  4;
+    static const unsigned char XMO_CAN =  0x18;
 
     static const int receiveDelay=7000;
     static const int rcvRetryLimit = 10;

@@ -101,7 +101,7 @@ bool XModem::checkChkSum()
 
 bool XModem::sendNack()
 {
-  this->dataWrite(XModem::NACK);  
+  this->dataWrite(XModem::XMO_NACK);  
   this->retries++;
   if(this->retries < XModem::rcvRetryLimit)
     return true;
@@ -117,7 +117,7 @@ bool XModem::receiveFrames(transfer_t transfer)
   while (1) {
     char cmd = this->dataRead(1000);
     switch(cmd){
-      case XModem::SOH:
+      case XModem::XMO_SOH:
         if (!this->receiveFrameNo()) {
           if (this->sendNack())
             break;
@@ -151,34 +151,34 @@ bool XModem::receiveFrames(transfer_t transfer)
             return false;
           }
         //ack
-        this->dataWrite(XModem::ACK);
+        this->dataWrite(XModem::XMO_ACK);
         if(this->repeatedBlock == false)
         {
           this->blockNo++;
           this->blockNoExt++;
         }
         break;
-      case XModem::EOT:
-        this->dataWrite(XModem::ACK);
+      case XModem::XMO_EOT:
+        this->dataWrite(XModem::XMO_ACK);
         return true;
-      case XModem::CAN:
+      case XModem::XMO_CAN:
         //wait second CAN
-        if(this->dataRead(XModem::receiveDelay) ==XModem::CAN) 
+        if(this->dataRead(XModem::receiveDelay) ==XModem::XMO_CAN) 
         {
-          this->dataWrite(XModem::ACK);
+          this->dataWrite(XModem::XMO_ACK);
           //this->flushInput();
           return false;
         }
         //something wrong
-        this->dataWrite(XModem::CAN);
-        this->dataWrite(XModem::CAN);
-        this->dataWrite(XModem::CAN);
+        this->dataWrite(XModem::XMO_CAN);
+        this->dataWrite(XModem::XMO_CAN);
+        this->dataWrite(XModem::XMO_CAN);
         return false;
       default:
         //something wrong
-        this->dataWrite(XModem::CAN);
-        this->dataWrite(XModem::CAN);
-        this->dataWrite(XModem::CAN);
+        this->dataWrite(XModem::XMO_CAN);
+        this->dataWrite(XModem::XMO_CAN);
+        this->dataWrite(XModem::XMO_CAN);
         return false;
     }
     
@@ -206,7 +206,7 @@ bool XModem::receive()
   }
   for (int i =0; i <  16; i++)
   {
-    this->dataWrite(XModem::NACK);  
+    this->dataWrite(XModem::XMO_NACK);  
     if (this->dataAvail(1500)) 
       return receiveFrames(ChkSum);
   }
@@ -251,10 +251,9 @@ bool XModem::transmitFrames(transfer_t transfer)
       if( false == this->dataHandler(this->blockNoExt, this->buffer, 128))
       {
         //end of transfer
-        this->sendChar(XModem::EOT);
+        this->sendChar(XModem::XMO_EOT);
         //wait ACK
-        if (this->dataRead(XModem::receiveDelay) == 
-          XModem::ACK)
+        if (this->dataRead(XModem::receiveDelay) == XModem::XMO_ACK)
           return true;
         else
           return false;
@@ -263,16 +262,16 @@ bool XModem::transmitFrames(transfer_t transfer)
     else
     {
       //cancel transfer - send CAN twice
-      this->sendChar(XModem::CAN);
-      this->sendChar(XModem::CAN);
+      this->sendChar(XModem::XMO_CAN);
+      this->sendChar(XModem::XMO_CAN);
       //wait ACK
-      if (this->dataRead(XModem::receiveDelay) == XModem::ACK)
+      if (this->dataRead(XModem::receiveDelay) == XModem::XMO_ACK)
         return true;
       else
         return false;
     }
     //send SOH
-    this->sendChar(XModem::SOH);
+    this->sendChar(XModem::XMO_SOH);
     //send frame number 
     this->sendChar(this->blockNo);
     //send inv frame number
@@ -295,13 +294,13 @@ bool XModem::transmitFrames(transfer_t transfer)
     int ret = this->dataRead(XModem::receiveDelay);
     switch(ret)
     {
-      case XModem::ACK: //data is ok - go to next chunk
+      case XModem::XMO_ACK: //data is ok - go to next chunk
         this->blockNo++;
         this->blockNoExt++;
         continue;
-      case XModem::NACK: //resend data
+      case XModem::XMO_NACK: //resend data
         continue;
-      case XModem::CAN: //abort transmision
+      case XModem::XMO_CAN: //abort transmision
         return false;
     }  
   }
@@ -322,7 +321,7 @@ bool XModem::transmit()
       sym = this->dataRead(1); //data is here - no delay
       if(sym == 'C')  
         return this->transmitFrames(Crc);
-      if(sym == XModem::NACK)
+      if(sym == XModem::XMO_NACK)
         return this->transmitFrames(ChkSum);
     }
     retry++;
