@@ -1,475 +1,536 @@
 /*
-   Copyright 2016-2017 Bo Zimmerman
-
-
-   Licensed under the Apache License, Version 2.0 (the "License");
-   you may not use this file except in compliance with the License.
-   You may obtain a copy of the License at
-
-     http://www.apache.org/licenses/LICENSE-2.0
-
-   Unless required by applicable law or agreed to in writing, software
-   distributed under the License is distributed on an "AS IS" BASIS,
-   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-   See the License for the specific language governing permissions and
-   limitations under the License.
-*/
-
-#ifndef __ZMODEM_H__
-#define __ZMODEM_H__
-
-//#include <FS.h>
-#define FILENAME_SIZE 256
-#ifndef FILE_READ
-# define FILE_READ "r"
-#endif
-#ifndef FILE_WRITE
-# define FILE_WRITE "w"
-#endif
-#ifndef FILE_APPEND
-# define FILE_APPEND "a"
-#endif
-
-/* Defines ---------------------------------------------------------------- */
-
-/**
- * The flavors of Zmodem that are supported.
+ * zmodem.h
+ * zmodem constants
+ * (C) Mattheij Computer Service 1994
+ *
+ *  Date: Thu, 19 Nov 2015 10:10:02 +0100
+ *  From: Jacques Mattheij
+ *  Subject: Re: zmodem license
+ *  To: Stephen Hurd, Fernando Toledo
+ *  CC: Rob Swindell
+ *
+ *  Hello there to all of you,
+ *
+ *  So, this email will then signify as the transfer of any and all rights I
+ *  held up to this point with relation to the copyright of the zmodem
+ *  package as released by me many years ago and all associated files to
+ *  Stephen Hurd. Fernando Toledo and Rob Swindell are named as
+ *  witnesses to this transfer.
+ *
+ *  ...
+ *
+ *  best regards,
+ *
+ *  Jacques Mattheij
  */
-typedef enum
-{
-  ZMODEM_FLAVOR_CRC16,                    /* Zmodem 16-bit CRC */
-  ZMODEM_FLAVOR_CRC32                     /* Zmodem 32-bit CRC */
-} ZMODEM_FLAVOR;
 
+/* $Id: zmodem.h,v 1.55 2018/02/01 08:20:19 deuce Exp $ */
+
+#ifndef _ZMODEM_H
+#define _ZMODEM_H
+
+#define ZMODEM_FILE_SIZE_MAX  0xffffffff  /* 32-bits, blame Chuck */
 
 /*
- * Technically, Zmodem maxes at 1024 bytes, but each byte might be
- * CRC-escaped to twice its size. Then we've got the CRC escape itself to
- * include.
+ * ascii constants
  */
-#define ZMODEM_BLOCK_SIZE       1024
-#define ZMODEM_MAX_BLOCK_SIZE   (2 * (ZMODEM_BLOCK_SIZE + 4 + 1))
+
+#define BOOL bool
+#define BYTE uint8_t
+#define uchar uint8_t
+#define MAX_PATH 253
+#define FALSE 0
+#define TRUE 1
+#define NOINP   -1      /* input buffer empty (incom only) */
+#define LOG_EMERG       0       /* system is unusable */
+#define LOG_ALERT       1       /* action must be taken immediately */
+#define LOG_CRIT        2       /* critical conditions */
+#define LOG_ERR         3       /* error conditions */
+#define LOG_WARNING     4       /* warning conditions */
+#define LOG_NOTICE      5       /* normal but significant condition */
+#define LOG_INFO        6       /* informational */
+#define LOG_DEBUG       7       /* debug-level messages */
+
+#ifndef SOH
+//#define  SOH      0x01
+#define  STX      0x02
+//#define  EOT      0x04
+#define  ENQ      0x05
+//#define  ACK      0x06
+#define  DLE      0x10
+//#define  XON      0x11
+//#define  XOFF     0x13
+#define  NAK      0x15
+//#define  CAN      0x18
+#endif
+
+#ifndef INT_TO_BOOL
+#define INT_TO_BOOL(x)  ((x)?TRUE:FALSE)
+#endif
+
+#define TERMINATE(str)                      str[sizeof(str)-1]=0
+
+/* This is a bound-safe version of strcpy basically - only works with fixed-length arrays */
+#ifdef SAFECOPY_USES_SPRINTF
+#define SAFECOPY(dst,src)                   sprintf(dst,"%.*s",(int)sizeof(dst)-1,src)
+#else   /* strncpy is faster */
+#define SAFECOPY(dst,src)                   (strncpy(dst,src,sizeof(dst)), TERMINATE(dst))
+#endif
 
 /*
- * Require an ACK every 32 frames on reliable links.
+ * zmodem constants
  */
-#define ZMODEM_WINDOW_SIZE_RELIABLE 32
+
+#define ZBLOCKLEN  1024    /* "true" Zmodem max subpacket length */
+
+#define ZMAXHLEN    0x10    /* maximum header information length */
+#define ZMAXSPLEN   0x400    /* maximum subpacket length */
+
+
+#define  ZPAD     0x2a    /* pad character; begins frames */
+#define  ZDLE     0x18    /* ctrl-x zmodem escape */
+#define  ZDLEE    0x58    /* escaped ZDLE */
+
+#define  ZBIN     0x41    /* binary frame indicator (CRC16) */
+#define  ZHEX     0x42    /* hex frame indicator */
+#define  ZBIN32   0x43    /* binary frame indicator (CRC32) */
+#define  ZBINR32  0x44    /* run length encoded binary frame (CRC32) */
+
+#define  ZVBIN    0x61    /* binary frame indicator (CRC16) */
+#define  ZVHEX    0x62    /* hex frame indicator */
+#define  ZVBIN32  0x63    /* binary frame indicator (CRC32) */
+#define  ZVBINR32 0x64    /* run length encoded binary frame (CRC32) */
+
+#define  ZRESC    0x7e    /* run length encoding flag / escape character */
+
 /*
- * Require an ACK every 4 frames on unreliable links.
+ * zmodem frame types
  */
-#define ZMODEM_WINDOW_SIZE_UNRELIABLE 4
 
-/* Data types ----------------------------------------------- */
+#define  ZRQINIT     0x00    /* request receive init (s->r) */
+#define  ZRINIT      0x01    /* receive init (r->s) */
+#define  ZSINIT      0x02    /* send init sequence (optional) (s->r) */
+#define  ZACK        0x03    /* ack to ZRQINIT ZRINIT or ZSINIT (s<->r) */
+#define  ZFILE       0x04    /* file name (s->r) */
+#define  ZSKIP       0x05    /* skip this file (r->s) */
+#define  ZNAK        0x06    /* last packet was corrupted (?) */
+#define  ZABORT      0x07    /* abort batch transfers (?) */
+#define  ZFIN        0x08    /* finish session (s<->r) */
+#define  ZRPOS       0x09    /* resume data transmission here (r->s) */
+#define  ZDATA       0x0a    /* data packet(s) follow (s->r) */
+#define  ZEOF        0x0b    /* end of file reached (s->r) */
+#define  ZFERR       0x0c    /* fatal read or write error detected (?) */
+#define  ZCRC        0x0d    /* request for file CRC and response (?) */
+#define  ZCHALLENGE  0x0e    /* security challenge (r->s) */
+#define  ZCOMPL      0x0f    /* request is complete (?) */
+#define  ZCAN        0x10    /* pseudo frame;
+                   other end cancelled session with 5* CAN */
+#define  ZFREECNT    0x11    /* request free bytes on file system (s->r) */
+#define  ZCOMMAND    0x12    /* issue command (s->r) */
+#define  ZSTDERR     0x13    /* output data to stderr (??) */
 
-/* Used to note the start of a packet */
-#define ZMODEM_DT_ZPAD                    '*'
-/* CRC next, frame ends, header packet follows */
-#define ZMODEM_DT_ZCRCE                   'h'
-/* CRC next, frame continues nonstop */
-#define ZMODEM_DT_ZCRCG                   'i'
-/* CRC next, frame continues, ZACK expected */
-#define ZMODEM_DT_ZCRCQ                   'j'
-/* CRC next, ZACK expected, end of frame */
-#define ZMODEM_DT_ZCRCW                   'k'
-/* Packet types */
-#define ZMODEM_PKT_ZRQINIT               0
-#define ZMODEM_PKT_ZRINIT                1
-#define ZMODEM_PKT_ZSINIT                2
-#define ZMODEM_PKT_ZACK                  3
-#define ZMODEM_PKT_ZFILE                 4
-#define ZMODEM_PKT_ZSKIP                 5
-#define ZMODEM_PKT_ZNAK                  6
-#define ZMODEM_PKT_ZABORT                7
-#define ZMODEM_PKT_ZFIN                  8
-#define ZMODEM_PKT_ZRPOS                 9
-#define ZMODEM_PKT_ZDATA                 10
-#define ZMODEM_PKT_ZEOF                  11
-#define ZMODEM_PKT_ZFERR                 12
-#define ZMODEM_PKT_ZCRC                  13
-#define ZMODEM_PKT_ZCHALLENGE            14
-#define ZMODEM_PKT_ZCOMPL                15
-#define ZMODEM_PKT_ZCAN                  16
-#define ZMODEM_PKT_ZFREECNT              17
-#define ZMODEM_PKT_ZCOMMAND              18
-
-#define ZMODEM_CRC32 0xedb88320        /* CRC polynomial */
-
-/* Globals ---------------------------------------------------------------- */
-/* Transfer capabilities sent in ZRInit packet */
-/* Rx can send and receive true FDX */
-#define ZMODEM_TX_CAN_FULL_DUPLEX      0x00000001
-/* Rx can receive data during disk I/O */
-#define ZMODEM_TX_CAN_OVERLAP_IO       0x00000002
-/* Rx can send a break signal */
-#define ZMODEM_TX_CAN_BREAK            0x00000004
-/* Receiver can decrypt */
-#define ZMODEM_TX_CAN_DECRYPT          0x00000008
-/* Receiver can uncompress */
-#define ZMODEM_TX_CAN_LZW              0x00000010
-/* Receiver can use 32 bit Frame Check */
-#define ZMODEM_TX_CAN_CRC32            0x00000020
-/* Receiver expects ctl chars to be escaped */
-#define ZMODEM_TX_ESCAPE_CTRL          0x00000040
-/* Receiver expects 8th bit to be escaped */
-#define ZMODEM_TX_ESCAPE_8BIT          0x00000080
-
-/* Control characters  */
-#define C_LF    0x0A
-#define C_CR    0x0D
-#define C_XON   0x11            /* DC1 */
-#define C_XOFF  0x13            /* DC3 */
-#define C_CAN   0x18
-
-/**
- * The Zmodem protocol state that can encompass multiple file transfers.
+/*
+ * ZDLE sequences
  */
-typedef enum
-{
-  /* Before the first byte is sent */
-  ZMODEM_STATE_INIT,
-  /* Transfer complete */
-  ZMODEM_STATE_COMPLETE,
-  /* Transfer was aborted due to excessive timeouts or ZCAN */
-  ZMODEM_STATE_ABORT,
-  /* Collecting data for a ZFILE, ZSINIT, ZDATA, and ZCOMMAND packet. */
-  ZMODEM_STATE_ZDATA,
+
+#define  ZCRCE    0x68    /* CRC next, frame ends, header packet follows */
+#define  ZCRCG    0x69    /* CRC next, frame continues nonstop */
+#define  ZCRCQ    0x6a    /* CRC next, frame continuous, ZACK expected */
+#define  ZCRCW    0x6b    /* CRC next, frame ends,       ZACK expected */
+#define  ZRUB0    0x6c    /* translate to rubout 0x7f */
+#define  ZRUB1    0x6d    /* translate to rubout 0xff */
+
+/*
+ * frame specific data.
+ * entries are prefixed with their location in the header array.
+ */
+
+/*
+ * Byte positions within header array
+ */
+
+#define FTYPE 0          /* frame type */
+
+#define ZF0  4          /* First flags byte */
+#define ZF1  3
+#define ZF2  2
+#define ZF3  1
+
+#define ZP0  1          /* Low order 8 bits of position */
+#define ZP1  2
+#define ZP2  3
+#define ZP3  4          /* High order 8 bits of file position */
+
+/*
+ * ZRINIT frame
+ * zmodem receiver capability flags
+ */
+
+#define  ZF0_CANFDX    0x01  /* Receiver can send and receive true full duplex */
+#define  ZF0_CANOVIO   0x02  /* receiver can receive data during disk I/O */
+#define  ZF0_CANBRK    0x04  /* receiver can send a break signal */
+#define  ZF0_CANCRY    0x08  /* Receiver can decrypt DONT USE */
+#define  ZF0_CANLZW    0x10  /* Receiver can uncompress DONT USE */
+#define  ZF0_CANFC32   0x20  /* Receiver can use 32 bit Frame Check */
+#define  ZF0_ESCCTL    0x40  /* Receiver expects ctl chars to be escaped */
+#define  ZF0_ESC8      0x80  /* Receiver expects 8th bit to be escaped */
+
+#define ZF1_CANVHDR    0x01  /* Variable headers OK */
+
+/*
+ * ZSINIT frame
+ * zmodem sender capability
+ */
+
+#define ZF0_TESCCTL   0x40  /* Transmitter expects ctl chars to be escaped */
+#define ZF0_TESC8     0x80  /* Transmitter expects 8th bit to be escaped */
+
+#define ZATTNLEN      0x20  /* Max length of attention string */
+#define ALTCOFF       ZF1    /* Offset to alternate canit string, 0 if not used */
+
+/*
+ * ZFILE frame
+ */
+
+/*
+ * Conversion options one of these in ZF0
+ */
+
+#define ZF0_ZCBIN   1    /* Binary transfer - inhibit conversion */
+#define ZF0_ZCNL    2    /* Convert NL to local end of line convention */
+#define ZF0_ZCRESUM 3    /* Resume interrupted file transfer */
+
+/*
+ * Management include options, one of these ored in ZF1
+ */
+
+#define ZF1_ZMSKNOLOC  0x80  /* Skip file if not present at rx */
+#define ZF1_ZMMASK     0x1f  /* Mask for the choices below */
+#define ZF1_ZMNEWL      1    /* Transfer if source newer or longer */
+#define ZF1_ZMCRC       2    /* Transfer if different file CRC or length */
+#define ZF1_ZMAPND      3    /* Append contents to existing file (if any) */
+#define ZF1_ZMCLOB      4    /* Replace existing file */
+#define ZF1_ZMNEW       5    /* Transfer if source newer */
+#define ZF1_ZMDIFF      6    /* Transfer if dates or lengths different */
+#define ZF1_ZMPROT      7    /* Protect destination file */
+#define ZF1_ZMCHNG      8    /* Change filename if destination exists */
+
+/*
+ * Transport options, one of these in ZF2
+ */
+
+#define ZF2_ZTNOR    0    /* no compression */
+#define ZF2_ZTLZW    1    /* Lempel-Ziv compression */
+#define ZF2_ZTRLE    3    /* Run Length encoding */
+
+/*
+ * Extended options for ZF3, bit encoded
+ */
+
+#define ZF3_ZCANVHDR   0x01  /* Variable headers OK */
+                             /* Receiver window size override */
+#define ZF3_ZRWOVR     0x04  /* byte position for receive window override/256 */
+#define ZF3_ZXSPARS    0x40  /* encoding for sparse file operations */
+
+/*
+ * ZCOMMAND frame
+ */
+
+#define ZF0_ZCACK1     0x01  /* Acknowledge, then do command */
+
+typedef struct {
+
+  BYTE      rxd_header[ZMAXHLEN];              /* last received header */
+  int       rxd_header_len;                  /* last received header size */
+  uint32_t  rxd_header_pos;                  /* last received header position value */
+
   /*
-   * Receiver side
+   * receiver capability flags
+   * extracted from the ZRINIT frame as received
    */
-  /* Send ZRINIT */
-  ZMODEM_STATE_ZRINIT,
-  /* Waiting for ZFILE or ZSINIT */
-  ZMODEM_STATE_ZRINIT_WAIT,
-  /* Send ZCHALLENGE */
-  ZMODEM_STATE_ZCHALLENGE,
-  /* Waiting for ZACK */
-  ZMODEM_STATE_ZCHALLENGE_WAIT,
-  /* Send ZRPOS */
-  ZMODEM_STATE_ZRPOS,
-  /* Waiting for ZDATA */
-  ZMODEM_STATE_ZRPOS_WAIT,
-  /* Send ZSKIP */
-  ZMODEM_STATE_ZSKIP,
-  /* Send ZCRC */
-  ZMODEM_STATE_ZCRC,
-  /* Waiting for ZCRC */
-  ZMODEM_STATE_ZCRC_WAIT,
-  /*
-   * Sender side
-   */
-  /* Send ZRQINIT */
-  ZMODEM_STATE_ZRQINIT,
-  /* Waiting for ZRINIT or ZCHALLENGE */
-  ZMODEM_STATE_ZRQINIT_WAIT,
-  /* Send ZSINIT */
-  ZMODEM_STATE_ZSINIT,
-  /* Waiting for ZACK */
-  ZMODEM_STATE_ZSINIT_WAIT,
-  /* Send ZFILE */
-  ZMODEM_STATE_ZFILE,
-  /* Waiting for ZSKIP, ZCRC, or ZRPOS */
-  ZMODEM_STATE_ZFILE_WAIT,
-  /* Send ZEOF */
-  ZMODEM_STATE_ZEOF,
-  /* Waiting for ZRPOS */
-  ZMODEM_STATE_ZEOF_WAIT,
-  /* Send ZFIN */
-  ZMODEM_STATE_ZFIN,
-  /* Waiting for ZFIN */
-  ZMODEM_STATE_ZFIN_WAIT
 
-} ZMODEM_STATE;
-
-/* Every bit of Zmodem data goes out as packets */
-struct zmodem_packet
-{
-  int type;
-  uint32_t argument;
-  bool use_crc32;
-  int crc16;
-  uint32_t crc32;
-  unsigned char data[ZMODEM_MAX_BLOCK_SIZE];
-  unsigned int data_n;
+  BOOL can_full_duplex;
+  BOOL can_overlap_io;
+  BOOL can_break;
+  BOOL can_fcs_32;
+  BOOL want_fcs_16;
+  BOOL escape_ctrl_chars;
+  BOOL escape_8th_bit;
 
   /*
-   * Performance tweak for decode_zdata_bytes to allow it to quickly bail
-   * out during CRC check.
+   * file management options.
+   * only one should be on
    */
-  unsigned char crc_buffer[5];
-};
 
-/* Return codes from parse_packet() */
-typedef enum
-{
-  ZM_PP_INVALID,
-  ZM_PP_NODATA,
-  ZM_PP_CRCERROR,
-  ZM_PP_OK
+  int management_newer;
+  int management_clobber;
+  int management_protect;
 
-} ZMODEM_PARSE_PACKET;
+  /* from zmtx.c */
 
-#define ZMODEM_HEX_PACKET_LENGTH       20
+  BYTE tx_data_subpacket[8192];
+  BYTE rx_data_subpacket[8192];              /* zzap = 8192 */
 
-#define big_to_little_endian(X) (((X >> 24) & 0xFF) | \
-                                ((X >> 8) & 0xFF00) | \
-                                ((X << 8) & 0xFF0000) | \
-                                ((X << 24) & 0xFF000000))
+  char       current_file_name[MAX_PATH+1];
+  int64_t    current_file_size;
+  int64_t    current_file_pos;
+  time_t     current_file_time;
+  unsigned   current_file_num;
+  unsigned   total_files;
+  int64_t    total_bytes;
+  unsigned   files_remaining;
+  int64_t    bytes_remaining;
+  int64_t    transfer_start_pos;
+  time_t     transfer_start_time;
 
-#endif /* __ZMODEM_H__ */
+  int      receive_32bit_data;
+  int      use_crc16;
+  int32_t  ack_file_pos;        /* file position used in acknowledgement of correctly */
+                    /* received data subpackets */
 
-#define ZMODEM_DEBUG 1
+  int last_sent;
 
-class ZModem
-{
-private:
-  FS *fs = null;
-  Stream *mdmIn = null;
-  ZSerial *mdmOt = null;
+  int n_cans;
 
-  /* ZMODEM_STATE_INIT, COMPLETE, ABORT, etc. */
-  ZMODEM_STATE state = ZMODEM_STATE_INIT;
-  /* State before entering DATA state */
-  ZMODEM_STATE prior_state = ZMODEM_STATE_INIT;
-  /* Send/receive flags */
-  unsigned long flags =0;
-  /* If true, use 32-bit CRC */
-  bool use_crc32 = true;
-  /* Size of file in bytes */
-  unsigned int file_size = 0;
-  /* Modification time of file */
-  time_t file_modtime = 0;
-  /* Current position */
-  off_t file_position = 0;
-  /* Stream pointer to current file */
-  File file_stream;
-  /* If true, we are the sender */
-  bool sending = false;
-  /* Current filename being sent/received */
-  char * file_name = null;
-  /*
-   * The path to download to.  Note download_path is Xstrdup'd TWICE: once HERE
-   * and once more on the progress dialog.  The q_program_state transition to
-   * Q_STATE_CONSOLE is what Xfree's the copy in the progress dialog.  This
-   * copy is Xfree'd in zmodem_stop().
-   */
-  char *download_path = null;
-  /* File CRC32 */
-  uint32_t file_crc32 = -1;
-  /* Block size */
-  int block_size = ZMODEM_BLOCK_SIZE;
-  /* If true, sent block will ask for ZACK */
-  bool ack_required = false;
-  /* If true, we are waiting to hear ZACK */
-  bool waiting_for_ack = false;
-  /*
-   * If true, we are continuously streaming the ZDATA "data subpacket" and
-   * will not need to generate a new packet header.
-   */
-  bool streaming_zdata = false;
-  /* Timeout normally lasts 10 seconds */
-  int timeout_length = 10;
-  /* The beginning time for the most recent timeout cycle */
-  time_t timeout_begin = 0;
-  /* Total number of timeouts before aborting is 5 */
-  int timeout_max = 5;
-  /* Total number of timeouts so far */
-  int timeout_count = 0;
-  /* Number of bytes confirmed from the receiver */
-  int confirmed_bytes = 0;
-  /*
-   * Number of bytes confirmed from the receiver when we dropped the block
-   * size.
-   */
-  int last_confirmed_bytes = 0;
-  /* True means TCP/IP or error-correcting modem */
-  bool reliable_link = true;
-  /* File position when the block size was last reduced */
-  off_t file_position_downgrade = 0;
-  /* When 0, require a ZACK, controls window size */
-  unsigned blocks_ack_count = 0;
-  /* Number of error blocks */
-  int consecutive_errors = 0;
-  /* Full pathname to file */
-  char *file_fullname = 0;
-  /* The list of files to upload */
-  File *upload_file_list;
-  /* The current entry in upload_file_list being sent */
-  int upload_file_list_i;
+  /* Stuff added by RRS */
 
-  /* The ZMODEM_STATE_ZCHALLENGE value we asked for */
-  uint32_t zchallenge_value;
+  /* Status */
+  BOOL      cancelled;
+  BOOL      local_abort;
+  BOOL      file_skipped;
+  BOOL      no_streaming;
+  BOOL      frame_in_transit;
+  unsigned  recv_bufsize;  /* Receiver specified buffer size */
+  int32_t   crc_request;
+  unsigned  errors;
+  unsigned  consecutive_errors;
 
-  /* Internal buffer used to collect a complete packet before processing it */
-  unsigned char *packet_buffer = 0;
-  unsigned int packet_buffer_n;
-  /*
-   * Internal buffer used to queue a complete outbound packet so that the
-   * top-level code can saturate the link.
-   */
-  unsigned char *outbound_packet = 0;
-  unsigned int outbound_packet_n;
-  /**
-   * encode_byte is a simple lookup into this map.
-   */
-  unsigned char *encode_byte_map = 0;
-  uint32_t *crc_32_tab = 0;
-  /* Needs to persist across calls to zmodem() */
-  struct zmodem_packet packet;
+  /* Configuration */
+  BOOL      escape_telnet_iac;
+  unsigned  init_timeout;
+  unsigned  send_timeout;
+  unsigned  recv_timeout;
+  unsigned  crc_timeout;
+  unsigned  max_errors;
+  unsigned  block_size;
+  unsigned  max_block_size;
+  int64_t   max_file_size;    /* 0 = unlimited */
+  int       *log_level;
 
-  void block_size_down();
-  void block_size_up();
-  uint32_t compute_crc32(const uint32_t old_crc, const unsigned char *buf, unsigned len);
-  void makecrc(void);
-  int compute_crc16(int crc, const unsigned char *ptr, int count);
-  void build_packet(const int type, const long argument, unsigned char *data_packet, unsigned int *data_packet_n, const int data_packet_max);
-  void encode_zdata_bytes(unsigned char *output, unsigned int *output_n, const unsigned int output_max,  const unsigned char crc_type);
-  void encode_byte(const unsigned char ch, unsigned char *output, unsigned int *output_n, const unsigned int output_max);
-  void setup_encode_byte_map();
-  bool decode_zdata_bytes(unsigned char *input, unsigned int *input_n, unsigned char *output, unsigned int *output_n, const unsigned int output_max, unsigned char *crc_buffer);
-  bool dehexify_string(const unsigned char *input, const unsigned int input_n, unsigned char *output, const unsigned int output_max);
-  void hexify_string(const unsigned char *input, const unsigned int input_n, unsigned char *output, const unsigned int output_max);
-  bool check_timeout();
-  void reset_timer();
-  bool setup_for_next_file();
-  void stats_increment_errors();
-  void stats_increment_blocks();
-  void stats_new_file(const char *filename, const int filesize);
-  bool send_zrqinit(unsigned char *output, unsigned int *output_n, const unsigned int output_max);
-  void zmodem_receive(unsigned char *input, unsigned int input_n, unsigned char *output, unsigned int *output_n, const unsigned int output_max);
-  bool receive_zskip(unsigned char *output, unsigned int *output_n, const unsigned int output_max);
-  bool receive_zdata(unsigned char *output, unsigned int *output_n, const unsigned int output_max);
-  bool receive_zfile();
-  bool receive_zrpos_wait(unsigned char *output, unsigned int *output_n, const unsigned int output_max);
-  bool receive_zrpos(unsigned char *output, unsigned int *output_n, const unsigned int output_max);
-  bool receive_zrinit_wait(unsigned char *output, unsigned int *output_n, const unsigned int output_max);
-  bool receive_zrinit(unsigned char *output, unsigned int *output_n, const unsigned int output_max);
-  bool receive_zcrc_wait(unsigned char *output, unsigned int *output_n, const unsigned int output_max);
-  bool receive_zcrc(unsigned char *output, unsigned int *output_n, const unsigned int output_max);
-  bool receive_zchallenge_wait(unsigned char *output, unsigned int *output_n, const unsigned int output_max);
-  bool receive_zchallenge(unsigned char *output,  unsigned int *output_n,  const unsigned int output_max);
-  ZMODEM_PARSE_PACKET parse_packet(const unsigned char *input, const int input_n, int *discard);
-  void zmodem_send(unsigned char *input, unsigned int input_n, unsigned char *output, unsigned int *output_n, const unsigned int output_max);
-  bool send_zfin_wait(unsigned char *output, unsigned int *output_n, const unsigned int output_max);
-  bool send_zfin(unsigned char *output, unsigned int *output_n, const unsigned int output_max);
-  bool send_zeof_wait(unsigned char *output, unsigned int *output_n, const unsigned int output_max);
-  bool send_zeof(unsigned char *output, unsigned int *output_n, const unsigned int output_max);
-  bool send_zdata(unsigned char *output, unsigned int *output_n, const unsigned int output_max);
-  bool send_zfile_wait(unsigned char *output, unsigned int *output_n, const unsigned int output_max);
-  bool send_zfile(unsigned char *output, unsigned int *output_n, const unsigned int output_max);
-  bool send_zsinit_wait(unsigned char *output, unsigned int *output_n, const unsigned int output_max);
-  bool send_zsinit(unsigned char *output, unsigned int *output_n, const unsigned int output_max);
-  bool send_zrqinit_wait(unsigned char *output, unsigned int *output_n, const unsigned int output_max);
+  /* Callbacks */
+  /* error C2520: conversion from unsigned __int64 to double not implemented, use signed __int64 */
+  void*    cbdata;
+  int      (*lputs)(void*, int level, const char* str);
+  int      (*send_byte)(void*, BYTE ch, unsigned timeout /* seconds */);
+  int      (*recv_byte)(void*, unsigned timeout /* seconds */);
+  void     (*progress)(void*, int64_t current_pos);
+  BOOL     (*is_connected)(void*);
+  BOOL     (*is_cancelled)(void*);
+  BOOL     (*data_waiting)(void*, unsigned timeout /* seconds */);
+  BOOL     (*duplicate_filename)(void*, void *zm);
+  void     (*flush)(void*);
 
-public:
-  ZModem(FS &fs, Stream &modemIn, ZSerial &modemOut);
-  ~ZModem();
+} zmodem_t;
 
-  /* Functions -------------------------------------------------------------- */
-
-  /**
-   * Process raw bytes from the remote side through the transfer protocol.  See
-   * also protocol_process_data().
-   *
-   * @param input the bytes from the remote side
-   * @param input_n the number of bytes in input_n
-   * @param output a buffer to contain the bytes to send to the remote side
-   * @param output_n the number of bytes that this function wrote to output
-   * @param output_max the maximum number of bytes this function may write to
-   * output
-   * @return false when completed or aborted, true otherwise
-   */
-  bool zmodem_process(unsigned char *input, const unsigned int input_n,
-                      unsigned char *output, unsigned int *output_n,
-                      const unsigned int output_max);
-
-  /**
-   * Setup for a new file transfer session.
-   *
-   * @param file_list list of files to upload, or NULL if this will be a
-   * download.
-   * @param pathname the path to save downloaded files to
-   * @param send if true, this is an upload: file_list must be valid and
-   * pathname is ignored.  If false, this is a download: file_list must be NULL
-   * and pathname will be used.
-   * @param in_flavor the type of Zmodem transfer to perform
-   * @return true if successful
-   */
-  bool zmodem_start(File *file_list, const char *pathname,
-                    const bool send, const ZMODEM_FLAVOR in_flavor);
-
-  /**
-   * Stop the file transfer.  Note that this function is only called in
-   * stop_file_transfer() and save_partial is always true.  However it is left
-   * in for API completeness.
-   *
-   * @param save_partial if true, save any partially-downloaded files.
-   */
-  void zmodem_stop(const bool save_partial);
-
-  String getLastErrors();
-};
+void zmodem_init(zmodem_t*, void* cbdata
+                 ,int  (*lputs)(void*, int level, const char* str)
+                 ,void  (*progress)(void*, int64_t current_pos)
+                 ,int  (*send_byte)(void*, BYTE ch, unsigned timeout)
+                 ,int  (*recv_byte)(void*, unsigned timeout)
+                 ,BOOL  (*is_connected)(void*)
+                 ,BOOL  (*is_cancelled)(void*)
+                 ,BOOL  (*data_waiting)(void*, unsigned timeout)
+                 ,void  (*flush)(void*)
+                 );
+char*zmodem_ver(char *buf);
+const char* zmodem_source(void);
+int zmodem_rx(zmodem_t* zm);
+int zmodem_tx(zmodem_t* zm, BYTE ch);
+int zmodem_send_zabort(zmodem_t*);
+int zmodem_send_ack(zmodem_t*, int32_t pos);
+int zmodem_send_nak(zmodem_t*);
+int zmodem_send_zskip(zmodem_t* zm);
+int zmodem_send_zrinit(zmodem_t*);
+int zmodem_send_pos_header(zmodem_t* zm, int type, int32_t pos, BOOL hex);
+int zmodem_get_zrinit(zmodem_t*);
+int zmodem_get_zfin(zmodem_t* zm);
+BOOL zmodem_get_crc(zmodem_t*, int32_t length, uint32_t* crc);
+void zmodem_parse_zrinit(zmodem_t*);
+void zmodem_parse_zfile_subpacket(zmodem_t* zm);
+int zmodem_send_zfin(zmodem_t*);
+BOOL zmodem_send_file(zmodem_t*, char* name, File* fp, BOOL request_init, time_t* start, uint64_t* bytes_sent);
+int zmodem_recv_files(zmodem_t* zm, const char* download_dir, uint64_t* bytes_received);
+int zmodem_recv_init(zmodem_t* zm);
+unsigned zmodem_recv_file_data(zmodem_t*, File*, int64_t offset);
+int zmodem_recv_file_frame(zmodem_t* zm, File* fp);
+int zmodem_recv_header_and_check(zmodem_t* zm);
+#endif
 
 static ZSerial zserial;
+static FS *fileSystem = &SD;
+static zmodem_t zm;
 
-static void zProcess(ZModem &zmo)
+static int lputs(void* unused, int level, const char* str)
 {
-  unsigned char inbuf[ZMODEM_MAX_BLOCK_SIZE+10];
-  unsigned char outbuf[ZMODEM_MAX_BLOCK_SIZE+10];
-  unsigned int inbufsz = 0;
-  unsigned int outbufsz = 0;
-  bool result=true;
-  while(result)
-  {
-    outbufsz=0;
-    result = zmo.zmodem_process(inbuf, inbufsz, outbuf, &outbufsz, sizeof(outbuf));
-    int avail = HWSerial.available();
-    if((avail == 0) && (outbufsz==0) && (result))
-      delay(1);
-    inbufsz=0;
-    for(int i=0;(i<avail) && (inbufsz<sizeof(inbuf));i++)
-    {
-      uint8_t c=HWSerial.read();
-      logSerialIn(c);
-      if((c==19)&&(zserial.getFlowControlType()==FCT_NORMAL))
-        zserial.setXON(false);
-      else
-      if((c==17)&&(zserial.getFlowControlType()==FCT_NORMAL))
-        zserial.setXON(true);
-      else
-        inbuf[inbufsz++] = (unsigned char)c;
-    }
-    for(int i=0;i<outbufsz;i++)
-      enqueSerialOut(outbuf[i]);
-    yield();
-    zserial.flush();
-  }
+  debugPrintf("%s\n",str);
+  return TRUE;
 }
+
+static int lprintf(int level, const char *fmt, ...)
+{
+  char sbuf[1024];
+  va_list argptr;
+
+  va_start(argptr,fmt);
+  vsnprintf(sbuf,sizeof(sbuf),fmt,argptr);
+  sbuf[sizeof(sbuf)-1]=0;
+  va_end(argptr);
+  return(lputs(NULL,level,sbuf));
+}
+
+/*
+ * show the progress of the transfer like this:
+ * zmtx: sending file "garbage" 4096 bytes ( 20%)
+ */
+void zmodem_progress(void* cbdata, int64_t current_pos)
+{
+  // do nothing?
+  yield();
+}
+
+int send_byte(void* unused, uchar ch, unsigned timeout)
+{
+  zserial.printb(ch);
+  zserial.flush(); // safe flush
+  yield();
+  lprintf(LOG_DEBUG, "Sent: %d", ch);
+  return(0);
+}
+
+int recv_byte(void* unused, unsigned timeout /* seconds */)
+{
+  unsigned long startTime = millis();
+  while(HWSerial.available()<=0)
+  {
+    delay(1);
+    yield();
+    unsigned long currentTime = millis();
+    unsigned long elapsedTime = currentTime - startTime;
+    if((elapsedTime / 1000) > timeout)
+      return(NOINP);
+  }
+  yield();
+  int ch = HWSerial.read();
+  lprintf(LOG_DEBUG, "Recvd: %d", ch);
+  return ch;
+}
+void flush(void* unused)
+{
+  yield();
+  HWSerial.flush();
+}
+
+BOOL data_waiting(void* unused, unsigned timeout /* seconds */)
+{
+  unsigned long startTime = millis();
+  yield();
+  while(HWSerial.available()<=0)
+  {
+    delay(1);
+    yield();
+    unsigned long currentTime = millis();
+    unsigned long elapsedTime = currentTime - startTime;
+    if((elapsedTime / 1000) > timeout)
+      return FALSE;
+  }
+  return TRUE;
+}
+
+BOOL is_connected(void* unused)
+{
+  return TRUE; // modem connection, so...
+}
+
 
 static boolean zDownload(FS &fs, String filePath, String &errors)
 {
-  bool result=false;
-  ZModem zmo(fs,HWSerial,zserial);
-  File files[2];
-  files[0] = fs.open(filePath);
-  files[1] = (File)null;
-  result = zmo.zmodem_start(files,"/",true,ZMODEM_FLAVOR_CRC16);
-  zProcess(zmo);
+  fileSystem = &fs;
+  time_t starttime = 0;
+  uint64_t bytes_sent=0;
+  BOOL success=FALSE;
+  char filePathC[MAX_PATH];
+
+  //static int send_files(char** fname, uint fnames)
+  File F=fileSystem->open(filePath);
+  zm.files_remaining = 1;
+  zm.bytes_remaining = F.size();
+  strcpy(filePathC,filePath.c_str());
+  success=zmodem_send_file(&zm, filePathC, &F, TRUE, &starttime, &bytes_sent);
+  F.close();
+
   zserial.flushAlways();
-  if(!result)
-    errors = zmo.getLastErrors();
-  return result;
+  return (success==TRUE) && (zm.cancelled==FALSE);
 }
 
 static boolean zUpload(FS &fs, String dirPath, String &errors)
 {
-  bool result=false;
-  ZModem zmo(fs,HWSerial,zserial);
-  result = zmo.zmodem_start((File*)null,dirPath.c_str(),false,ZMODEM_FLAVOR_CRC16);
-  zProcess(zmo);
+  BOOL success=FALSE;
+  int   i;
+  fileSystem = &fs;
+  char str[MAX_PATH];
+
+  //static int receive_files(char** fname_list, int fnames)
+  //TODO: loop might be necc around here, for multiple files?
+  i=zmodem_recv_init(&zm);
+  if(zm.cancelled || (i<0))
+    return FALSE;
+  switch(i) {
+    case ZFILE:
+      //SAFECOPY(fname,zm.current_file_name);
+      //file_bytes = zm.current_file_size;
+      //ftime = zm.current_file_time;
+      //total_files = zm.files_remaining;
+      //total_bytes = zm.bytes_remaining;
+      break;
+    case ZFIN:
+    case ZCOMPL:
+      return TRUE; // was (!success)
+    default:
+      return FALSE;
+  }
+
+  strcpy(str,dirPath.c_str());
+  if(str[strlen(str)-1]!='/')
+  {
+    str[strlen(str)]='/';
+    str[strlen(str)+1]=0;
+  }
+  strcpy(str+strlen(str),zm.current_file_name);
+
+  File fp = fileSystem->open(str,FILE_WRITE);
+  if(!fp)
+  {
+    lprintf(LOG_ERR,"Error %d creating %s",errno,str);
+    zmodem_send_zabort(&zm);
+    //zmodem_send_zskip(&zm); //TODO: for when we move to multiple files
+    //continue;
+    return FALSE;
+  }
+  int errors=zmodem_recv_file_data(&zm,&fp,0);
+
+  if(errors<=zm.max_errors && !zm.cancelled)
+    success=TRUE;
+
+  fp.close();
+  if(zm.local_abort)
+  {
+    lprintf(LOG_ERR,"Locally aborted, sending cancel to remote");
+    zmodem_send_zabort(&zm);
+    return FALSE;
+  }
+
   zserial.flushAlways();
-  if(!result)
-    errors = zmo.getLastErrors();
-  return result;
+  return (success == TRUE);
 }
 
 static void initZSerial(FlowControlType commandFlow)
@@ -481,5 +542,16 @@ static void initZSerial(FlowControlType commandFlow)
     zserial.setFlowControlType(FCT_NORMAL);
   zserial.setPetsciiMode(false);
   zserial.setXON(true);
+
+  zmodem_init(&zm,NULL,lputs,zmodem_progress,send_byte,recv_byte,is_connected,NULL,data_waiting,flush);
+  int log_level=LOG_DEBUG;
+  zm.log_level=&log_level;
+  zm.recv_bufsize     = (ulong)1024;
+  zm.no_streaming     = FALSE;
+  zm.want_fcs_16      =FALSE;
+  zm.escape_telnet_iac  = TRUE;
+  zm.escape_8th_bit   = FALSE;
+  zm.escape_ctrl_chars  = FALSE;
+
 }
 

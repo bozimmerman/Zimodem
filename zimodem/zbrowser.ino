@@ -717,7 +717,7 @@ void ZBrowser::doModeCommand()
         }
       }
       else
-      if(cmd.equalsIgnoreCase("zget")||cmd.equalsIgnoreCase("sz"))
+      if(cmd.equalsIgnoreCase("zget")||cmd.equalsIgnoreCase("rz")||cmd.equalsIgnoreCase("rz.exe"))
       {
         String p = makePath(line);
         debugPrintf("zget:%s\n",p.c_str());
@@ -734,8 +734,6 @@ void ZBrowser::doModeCommand()
         {
           root.close();
           String errors="";
-          serial.printf("Go to ZModem download.%s",EOLNC);
-          serial.flushAlways();
           initZSerial(commandMode.getFlowControlType());
           if(zDownload(SD,p,errors))
           {
@@ -750,7 +748,7 @@ void ZBrowser::doModeCommand()
         }
       }
       else
-      if(cmd.equalsIgnoreCase("zput")||cmd.equalsIgnoreCase("rz"))
+      if(cmd.equalsIgnoreCase("zput")||cmd.equalsIgnoreCase("sz"))
       {
         String p = makePath(line);
         debugPrintf("zput:%s\n",p.c_str());
