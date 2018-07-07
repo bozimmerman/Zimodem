@@ -51,18 +51,10 @@
 #define LOG_INFO        6       /* informational */
 #define LOG_DEBUG       7       /* debug-level messages */
 
-#ifndef SOH
-#define  SOH      0x01
-#define  STX      0x02
-#define  EOT      0x04
-#define  ENQ      0x05
-#define  ACK      0x06
-#define  DLE      0x10
-#define  XON      0x11
-#define  XOFF     0x13
-#define  NAK      0x15
-#define  CAN      0x18
-#endif
+#define  ZMO_DLE      0x10
+#define  ZMO_XON      0x11
+#define  ZMO_XOFF     0x13
+#define  ZMO_CAN      0x18
 
 #ifndef INT_TO_BOOL
 #define INT_TO_BOOL(x)  ((x)?TRUE:FALSE)

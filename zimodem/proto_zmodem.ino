@@ -319,12 +319,12 @@ int zmodem_tx(zmodem_t* zm, unsigned char c)
   int result;
 
   switch (c) {
-    case DLE:
-    case DLE|0x80:          /* even if high-bit set */
-    case 0x11/*XON*/:
-    case 0x11/*XON*/|0x80:
-    case 0x13/*XOFF*/:
-    case 0x13/*XOFF*/|0x80:
+    case ZMO_DLE:
+    case ZMO_DLE|0x80:          /* even if high-bit set */
+    case ZMO_XON:
+    case ZMO_XON|0x80:
+    case ZMO_XOFF:
+    case ZMO_XOFF|0x80:
     case ZDLE:
       return zmodem_send_esc(zm, c);
     case 0x0d:
@@ -436,7 +436,7 @@ int zmodem_send_hex_header(zmodem_t* zm, unsigned char * p)
     return result;
 
   if(type!=ZACK && type!=ZFIN)
-    result=zmodem_send_raw(zm, 0x11/*XON*/);
+    result=zmodem_send_raw(zm, ZMO_XON);
 
   zmodem_flush(zm);
 
@@ -708,7 +708,7 @@ int zmodem_recv_raw(zmodem_t* zm)
   if(attempt>zm->recv_timeout)
     return(TIMEOUT);
 
-  if(c == 0x18/*CAN*/) {
+  if(c == ZMO_CAN) {
     zm->n_cans++;
     if(zm->n_cans == 5) {
       zm->cancelled=TRUE;
@@ -747,10 +747,10 @@ int zmodem_rx(zmodem_t* zm)
       switch(c = zmodem_recv_raw(zm)) {
         case ZDLE:
           break;
-        case 0x11/*XON*/:
-        case 0x11/*XON*/|0x80:
-        case 0x13/*XOFF*/:
-        case 0x13/*XOFF*/|0x80:
+        case ZMO_XON:
+        case ZMO_XON|0x80:
+        case ZMO_XOFF:
+        case ZMO_XOFF|0x80:
           lprintf(zm,LOG_WARNING,"rx: dropping flow ctrl char: %s"
             ,chr(c));
           continue;     
@@ -780,10 +780,10 @@ int zmodem_rx(zmodem_t* zm)
     while(!is_cancelled(zm)) {
 
       switch(c=zmodem_recv_raw(zm)) {
-        case 0x11/*XON*/:
-        case 0x11/*XON*/|0x80:
-        case 0x13/*XOFF*/:
-        case 0x13/*XOFF*/|0x80:
+        case ZMO_XON:
+        case ZMO_XON|0x80:
+        case ZMO_XOFF:
+        case ZMO_XOFF|0x80:
         case ZDLE:
           lprintf(zm,LOG_WARNING,"rx: dropping escaped flow ctrl char: %s"
             ,chr(c));
