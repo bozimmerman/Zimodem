@@ -364,7 +364,7 @@ static zmodem_t zm;
 
 static int lputs(void* unused, int level, const char* str)
 {
-  debugPrintf("%s\n",str);
+  debugPrintf("%s\n",str); // debug off
   return TRUE;
 }
 
@@ -393,7 +393,7 @@ int send_byte(void* unused, uchar ch, unsigned timeout)
 {
   //lprintf(LOG_DEBUG, "Send: %d", ch);
   zserial.printb(ch);
-  zserial.flush(); // safe flush
+  //zserial.flush(); // safe flush
   return(0);
 }
 

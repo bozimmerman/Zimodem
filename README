@@ -32,15 +32,29 @@ void uartChangeConfig(uint8_t uart_nr, uint32_t config)
     }
     UART_MUTEX_UNLOCK();
 }
+size_t uartWritesRemaining(uart_t* uart)
+{
+    if(uart == NULL) {
+        return;
+    }
+    size_t remain;
+    UART_MUTEX_LOCK();
+    remain = 0x7F - uart->dev->status.txfifo_cnt;
+    UART_MUTEX_UNLOCK();
+    return remain;
+}
 > Added to esp32-hal-uart.h:
 void uartChangeBaudRate(uint8_t uart_nr, uint32_t baudrate);
 void uartChangeConfig(uint8_t uart_nr, uint32_t config);
+size_t uartWritesRemaining(uart_t* uart);
 > Added to HardwareSerial.cpp:
 void HardwareSerial::changeBaudRate(int baudRate) { uartChangeBaudRate(_uart_nr, baudRate); }
 void HardwareSerial::changeConfig(uint32_t config) { uartChangeConfig(_uart_nr, config); }
+size_t HardwareSerial::availableForWrite() { return uartWritesRemaining(_uart); }
 > Added to HardwareSerial.h:
 void changeBaudRate(int baudRate);
 void changeConfig(uint32_t config);
+size_t availableForWrite();
 
 ** Both versions of the firmware are built with SPIFFS enabled.
 

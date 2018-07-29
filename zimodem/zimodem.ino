@@ -164,6 +164,7 @@ static String wifiSSI;
 static String wifiPW;
 static SerialConfig serialConfig = DEFAULT_SERIAL_CONFIG;
 static int baudRate=DEFAULT_BAUD_RATE;
+static int dequeSize=1+(DEFAULT_BAUD_RATE/768);
 static BaudState baudState = BS_NORMAL; 
 static int tempBaud = -1; // -1 do nothing
 static int dcdStatus = LOW;
@@ -245,6 +246,8 @@ static void changeBaudRate(int baudRate)
   flushSerial(); // blocking, but very very necessary
   delay(500); // give the client half a sec to catch up
   debugPrintf("Baud change to %d.\n",baudRate);
+  dequeSize=1+(baudRate/768);
+  debugPrintf("Deque constant now: %d\n",dequeSize);
 #ifdef ZIMODEM_ESP32
   HWSerial.changeBaudRate(baudRate);
 #else
@@ -257,6 +260,8 @@ static void changeSerialConfig(SerialConfig conf)
   flushSerial(); // blocking, but very very necessary
   delay(500); // give the client half a sec to catch up
   debugPrintf("Config changing %d.\n",(int)conf);
+  dequeSize=1+(baudRate/768);
+  debugPrintf("Deque constant now: %d\n",dequeSize);
 #ifdef ZIMODEM_ESP32
   HWSerial.changeConfig(conf);
 #else

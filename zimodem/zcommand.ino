@@ -349,6 +349,12 @@ void ZCommand::setOptionsFromSavedConfig(String configArguments[])
   }
   if(pinSupport[pinRTS])
     digitalWrite(pinRTS,rtsActive);
+#if ZMODEM_ESP32
+  if(pinSupport[pinCTS])
+    uart_set_pin(2, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE, pinCTS, /*cts_io_num*/UART_PIN_NO_CHANGE);
+  if(pinSupport[pinRTS])
+    uart_set_pin(2, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE, /*rts_io_num*/UART_PIN_NO_CHANGE, pinRTS);
+#endif
   if(configArguments[CFG_RIPIN].length()>0)
   {
     pinRI = atoi(configArguments[CFG_RIPIN].c_str());
@@ -2171,6 +2177,9 @@ ZResult ZCommand::doSerialCommand()
                {
                  pinCTS=sval;
                  pinMode(pinCTS,INPUT);
+#if ZMODEM_ESP32
+                uart_set_pin(2, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE, pinCTS, /*cts_io_num*/UART_PIN_NO_CHANGE);
+#endif
                  result=ZOK;
                }
                else
@@ -2189,6 +2198,9 @@ ZResult ZCommand::doSerialCommand()
                  pinMode(pinRTS,OUTPUT);
                  digitalWrite(pinRTS,rtsActive);
                  result=ZOK;
+#if ZMODEM_ESP32
+                uart_set_pin(2, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE, /*rts_io_num*/UART_PIN_NO_CHANGE, pinRTS);
+#endif
                }
                else
                  result=ZERROR;

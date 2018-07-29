@@ -16,6 +16,8 @@
 
 #include <cstring>
 
+#define UART_FIFO_LEN 0x7F
+
 static void serialDirectWrite(uint8_t c)
 {
   HWSerial.write(c);
@@ -34,7 +36,8 @@ static void hwSerialFlush()
 static void serialOutDeque()
 {
 #ifdef ZIMODEM_ESP32
-  if(TBUFhead != TBUFtail)
+  while((TBUFhead != TBUFtail)
+  &&(UART_FIFO_LEN - HWSerial.availableForWrite()<dequeSize))
 #else
   if((TBUFhead != TBUFtail)
   &&(HWSerial.availableForWrite()>=SER_BUFSIZE))
@@ -63,10 +66,15 @@ static int serialOutBufferBytesRemaining()
 
 static void enqueSerialOut(uint8_t c)
 {
-  TBUF[TBUFtail] = c;
-  TBUFtail++;
-  if(TBUFtail >= SER_WRITE_BUFSIZE)
-    TBUFtail = 0;
+  if(dequeSize >= UART_FIFO_LEN)
+    serialDirectWrite(c);
+  else
+  {
+    TBUF[TBUFtail] = c;
+    TBUFtail++;
+    if(TBUFtail >= SER_WRITE_BUFSIZE)
+      TBUFtail = 0;
+  }
 }
 
 static void clearSerialOutBuffer()
@@ -111,6 +119,12 @@ bool ZSerial::isPetsciiMode()
 void ZSerial::setFlowControlType(FlowControlType type)
 {
   flowControlType = type;
+#if ZMODEM_ESP32
+  if(flowControlType == FlowControlType.FCT_RTSCTS)
+    uart_set_hw_flow_ctrl(2,UART_HW_FLOWCTRL_CTS_RTS,0);
+  else
+    uart_set_hw_flow_ctrl(2,UART_HW_FLOWCTRL_DISABLE,0);
+#endif
 }
 
 FlowControlType ZSerial::getFlowControlType()
