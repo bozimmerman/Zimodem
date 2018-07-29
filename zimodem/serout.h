@@ -77,9 +77,9 @@ class ZSerial : public Stream
     int availableForWrite();
     char drainForXonXoff();
 
-    virtual int available() { return HWSerial.available(); }
-    virtual int read() { return HWSerial.read(); }
-    virtual int peek() { return HWSerial.peek(); }
+    virtual int available();
+    virtual int read();
+    virtual int peek();
 };
 
 #endif

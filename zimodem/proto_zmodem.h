@@ -387,7 +387,6 @@ static int lprintf(int level, const char *fmt, ...)
 void zmodem_progress(void* cbdata, int64_t current_pos)
 {
   // do nothing?
-  yield();
 }
 
 int send_byte(void* unused, uchar ch, unsigned timeout)
@@ -395,7 +394,6 @@ int send_byte(void* unused, uchar ch, unsigned timeout)
   //lprintf(LOG_DEBUG, "Send: %d", ch);
   zserial.printb(ch);
   zserial.flush(); // safe flush
-  yield();
   return(0);
 }
 
@@ -404,7 +402,6 @@ int recv_byte(void* unused, unsigned timeout /* seconds */)
   unsigned long startTime = millis();
   while(zserial.available()<=0)
   {
-    delay(1);
     yield();
     unsigned long currentTime = millis();
     unsigned long elapsedTime = currentTime - startTime;
@@ -418,7 +415,6 @@ int recv_byte(void* unused, unsigned timeout /* seconds */)
 }
 void flush(void* unused)
 {
-  yield();
   zserial.flush();
 }
 
@@ -428,7 +424,6 @@ BOOL data_waiting(void* unused, unsigned timeout /* seconds */)
   yield();
   while(zserial.available()<=0)
   {
-    delay(1);
     yield();
     unsigned long currentTime = millis();
     unsigned long elapsedTime = currentTime - startTime;

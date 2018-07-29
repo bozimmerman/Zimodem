@@ -67,9 +67,9 @@ static int xReceiveSerial(int del)
   for(int i=0;i<del;i++)
   {
     serialOutDeque();
-    if(HWSerial.available() > 0)
+    if(xserial.available() > 0)
     {
-      int c=HWSerial.read();
+      int c=xserial.read();
       logSerialIn(c);
       return c;
     }

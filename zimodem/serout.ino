@@ -302,3 +302,30 @@ char ZSerial::drainForXonXoff()
   }
   return ch;
 }
+
+int ZSerial::available() 
+{ 
+  int avail = HWSerial.available();
+  if(avail == 0)
+  {
+      if((TBUFtail != TBUFhead) && isSerialOut())
+        serialOutDeque();
+  }
+  return avail;
+}
+
+int ZSerial::read() 
+{ 
+  int c=HWSerial.read();
+  if(c == -1)
+  {
+    if((TBUFtail != TBUFhead) && isSerialOut())
+      serialOutDeque();
+  }
+  return c;
+}
+
+int ZSerial::peek() 
+{ 
+  return HWSerial.peek(); 
+}
