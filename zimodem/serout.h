@@ -31,7 +31,11 @@ enum FlowControlType
 };
 
 static bool enableRtsCts = true;
-static int SER_BUFSIZE = 128;
+#ifdef ZIMODEM_ESP32
+#  define SER_BUFSIZE 0x7F
+#else
+#  define SER_BUFSIZE 128
+#endif
 static uint8_t TBUF[SER_WRITE_BUFSIZE];
 static char FBUF[256];
 static int TBUFhead=0;
@@ -41,7 +45,6 @@ static int serialDelayMs = 0;
 static void serialDirectWrite(uint8_t c);
 static void serialOutDeque();
 static int serialOutBufferBytesRemaining();
-static void enqueSerialOut(uint8_t c);
 static void clearSerialOutBuffer();
 
 class ZSerial : public Stream
@@ -50,6 +53,7 @@ class ZSerial : public Stream
     bool petsciiMode = false;
     FlowControlType flowControlType=DEFAULT_FCT;
     bool XON_STATE=true;
+    void enqueByte(uint8_t c);
   public:
     ZSerial();
     void setPetsciiMode(bool petscii);

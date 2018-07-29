@@ -393,7 +393,7 @@ int send_byte(void* unused, uchar ch, unsigned timeout)
 {
   //lprintf(LOG_DEBUG, "Send: %d", ch);
   zserial.printb(ch);
-  //zserial.flush(); // safe flush
+  zserial.flush(); // safe flush
   return(0);
 }
 
@@ -402,12 +402,14 @@ int recv_byte(void* unused, unsigned timeout /* seconds */)
   unsigned long startTime = millis();
   while(zserial.available()<=0)
   {
+    serialOutDeque();
     yield();
     unsigned long currentTime = millis();
     unsigned long elapsedTime = currentTime - startTime;
     if((elapsedTime / 1000) > timeout)
       return(NOINP);
   }
+  serialOutDeque();
   yield();
   int ch = zserial.read();
   //lprintf(LOG_DEBUG, "Recvd: %d", ch);
@@ -421,9 +423,11 @@ void flush(void* unused)
 BOOL data_waiting(void* unused, unsigned timeout /* seconds */)
 {
   unsigned long startTime = millis();
+  serialOutDeque();
   yield();
   while(zserial.available()<=0)
   {
+    serialOutDeque();
     yield();
     unsigned long currentTime = millis();
     unsigned long elapsedTime = currentTime - startTime;

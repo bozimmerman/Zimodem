@@ -80,7 +80,7 @@ void ZStream::serialIncoming()
     else
     {
       if(isEcho())
-        enqueSerialOut(c);
+        serial.printb(c);
       if(isPETSCII())
         c = petToAsc(c);
       socketWrite(c);
@@ -231,7 +231,7 @@ void ZStream::loop()
             logSocketIn(c);
             if((!isTelnet() || handleAsciiIAC((char *)&c,current))
             && (!isPETSCII() || ascToPet((char *)&c,current)))
-              enqueSerialOut(c);
+              serial.printb(c);
           }
         }
       }

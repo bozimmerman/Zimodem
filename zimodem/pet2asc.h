@@ -21,7 +21,8 @@
 # include <Update.h>
 # include "SD.h"
 # include "SPI.h"
-  static HardwareSerial HWSerial(2);
+# include "driver/uart.h"
+  static HardwareSerial HWSerial(UART_NUM_2);
 #else
 # include "ESP8266WiFi.h"
 # define HWSerial Serial

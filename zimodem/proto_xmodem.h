@@ -64,7 +64,8 @@ static ZSerial xserial;
 
 static int xReceiveSerial(int del)
 {
-  for(int i=0;i<del;i++)
+  unsigned long end=micros() + (del * 1000L);
+  while(micros() < end)
   {
     serialOutDeque();
     if(xserial.available() > 0)
@@ -73,7 +74,7 @@ static int xReceiveSerial(int del)
       logSerialIn(c);
       return c;
     }
-    delay(1);
+    yield();
   }
   return -1;
 }

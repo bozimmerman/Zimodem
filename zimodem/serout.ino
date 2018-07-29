@@ -16,8 +16,6 @@
 
 #include <cstring>
 
-#define UART_FIFO_LEN 0x7F
-
 static void serialDirectWrite(uint8_t c)
 {
   HWSerial.write(c);
@@ -37,7 +35,7 @@ static void serialOutDeque()
 {
 #ifdef ZIMODEM_ESP32
   while((TBUFhead != TBUFtail)
-  &&(UART_FIFO_LEN - HWSerial.availableForWrite()<dequeSize))
+  &&(SER_BUFSIZE - HWSerial.availableForWrite()<dequeSize))
 #else
   if((TBUFhead != TBUFtail)
   &&(HWSerial.availableForWrite()>=SER_BUFSIZE))
@@ -66,15 +64,11 @@ static int serialOutBufferBytesRemaining()
 
 static void enqueSerialOut(uint8_t c)
 {
-  if(dequeSize >= UART_FIFO_LEN)
-    serialDirectWrite(c);
-  else
-  {
-    TBUF[TBUFtail] = c;
-    TBUFtail++;
-    if(TBUFtail >= SER_WRITE_BUFSIZE)
-      TBUFtail = 0;
-  }
+  debugPrintf("q\n");
+  TBUF[TBUFtail] = c;
+  TBUFtail++;
+  if(TBUFtail >= SER_WRITE_BUFSIZE)
+    TBUFtail = 0;
 }
 
 static void clearSerialOutBuffer()
@@ -119,11 +113,14 @@ bool ZSerial::isPetsciiMode()
 void ZSerial::setFlowControlType(FlowControlType type)
 {
   flowControlType = type;
-#if ZMODEM_ESP32
-  if(flowControlType == FlowControlType.FCT_RTSCTS)
-    uart_set_hw_flow_ctrl(2,UART_HW_FLOWCTRL_CTS_RTS,0);
+#ifdef ZIMODEM_ESP32
+  if(flowControlType == FCT_RTSCTS)
+  {
+    //uart_set_hw_flow_ctrl(UART_NUM_2,UART_HW_FLOWCTRL_DISABLE,0);
+    uart_set_hw_flow_ctrl(UART_NUM_2,UART_HW_FLOWCTRL_CTS_RTS,SER_BUFSIZE);
+  }
   else
-    uart_set_hw_flow_ctrl(2,UART_HW_FLOWCTRL_DISABLE,0);
+    uart_set_hw_flow_ctrl(UART_NUM_2,UART_HW_FLOWCTRL_DISABLE,0);
 #endif
 }
 
@@ -180,6 +177,43 @@ bool ZSerial::isSerialHalted()
   return !isSerialOut();
 }
 
+void ZSerial::enqueByte(uint8_t c)
+{
+  if(TBUFtail == TBUFhead)
+  {
+    switch(flowControlType)
+    {
+    case FCT_DISABLED:
+    case FCT_INVALID:
+      serialDirectWrite(c);
+      return;
+    case FCT_RTSCTS:
+#ifdef ZIMODEM_ESP32
+      if(isSerialOut())
+#else
+      if((HWSerial.availableForWrite() >= SER_BUFSIZE)
+      &&(isSerialOut()))
+#endif
+      {
+        serialDirectWrite(c);
+        return;
+      }
+      break;
+    case FCT_NORMAL:
+    case FCT_AUTOOFF:
+    case FCT_MANUAL:
+      if((HWSerial.availableForWrite() >= SER_BUFSIZE)
+      &&(HWSerial.available() == 0)
+      &&(XON_STATE))
+      {
+        serialDirectWrite(c);
+        return;
+      }
+      break;
+    }
+  }
+  enqueSerialOut(c);
+}
 
 void ZSerial::prints(const char *expr)
 {
@@ -187,14 +221,14 @@ void ZSerial::prints(const char *expr)
   {
     for(int i=0;expr[i]!=0;i++)
     {
-      enqueSerialOut(expr[i]);
+      enqueByte(expr[i]);
     }
   }
   else
   {
     for(int i=0;expr[i]!=0;i++)
     {
-      enqueSerialOut(ascToPetcii(expr[i]));
+      enqueByte(ascToPetcii(expr[i]));
     }
   }
 }
@@ -214,27 +248,27 @@ void ZSerial::printd(double f)
 void ZSerial::printc(const char c)
 {
   if(!petsciiMode)
-    enqueSerialOut(c);
+    enqueByte(c);
   else
-    enqueSerialOut(ascToPetcii(c));
+    enqueByte(ascToPetcii(c));
 }
 
 void ZSerial::printc(uint8_t c)
 {
   if(!petsciiMode)
-    enqueSerialOut(c);
+    enqueByte(c);
   else
-    enqueSerialOut(ascToPetcii(c));
+    enqueByte(ascToPetcii(c));
 }
 
 void ZSerial::printb(uint8_t c)
 {
-  enqueSerialOut(c);
+  enqueByte(c);
 }
 
 size_t ZSerial::write(uint8_t c)
 {
-  enqueSerialOut(c);
+  enqueByte(c);
   return 1;
 }
 

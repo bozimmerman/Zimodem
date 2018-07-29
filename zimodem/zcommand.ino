@@ -349,11 +349,11 @@ void ZCommand::setOptionsFromSavedConfig(String configArguments[])
   }
   if(pinSupport[pinRTS])
     digitalWrite(pinRTS,rtsActive);
-#if ZMODEM_ESP32
+#ifdef ZIMODEM_ESP32
   if(pinSupport[pinCTS])
-    uart_set_pin(2, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE, pinCTS, /*cts_io_num*/UART_PIN_NO_CHANGE);
+    uart_set_pin(UART_NUM_2, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE, pinCTS, /*cts_io_num*/UART_PIN_NO_CHANGE);
   if(pinSupport[pinRTS])
-    uart_set_pin(2, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE, /*rts_io_num*/UART_PIN_NO_CHANGE, pinRTS);
+    uart_set_pin(UART_NUM_2, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE, /*rts_io_num*/UART_PIN_NO_CHANGE, pinRTS);
 #endif
   if(configArguments[CFG_RIPIN].length()>0)
   {
@@ -2177,8 +2177,8 @@ ZResult ZCommand::doSerialCommand()
                {
                  pinCTS=sval;
                  pinMode(pinCTS,INPUT);
-#if ZMODEM_ESP32
-                uart_set_pin(2, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE, pinCTS, /*cts_io_num*/UART_PIN_NO_CHANGE);
+#ifdef ZIMODEM_ESP32
+                 uart_set_pin(UART_NUM_2, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE, pinCTS, /*cts_io_num*/UART_PIN_NO_CHANGE);
 #endif
                  result=ZOK;
                }
@@ -2198,8 +2198,8 @@ ZResult ZCommand::doSerialCommand()
                  pinMode(pinRTS,OUTPUT);
                  digitalWrite(pinRTS,rtsActive);
                  result=ZOK;
-#if ZMODEM_ESP32
-                uart_set_pin(2, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE, /*rts_io_num*/UART_PIN_NO_CHANGE, pinRTS);
+#ifdef ZIMODEM_ESP32
+                uart_set_pin(UART_NUM_2, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE, /*rts_io_num*/UART_PIN_NO_CHANGE, pinRTS);
 #endif
                }
                else
