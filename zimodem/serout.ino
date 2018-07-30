@@ -64,7 +64,6 @@ static int serialOutBufferBytesRemaining()
 
 static void enqueSerialOut(uint8_t c)
 {
-  debugPrintf("q\n");
   TBUF[TBUFtail] = c;
   TBUFtail++;
   if(TBUFtail >= SER_WRITE_BUFSIZE)
@@ -116,8 +115,38 @@ void ZSerial::setFlowControlType(FlowControlType type)
 #ifdef ZIMODEM_ESP32
   if(flowControlType == FCT_RTSCTS)
   {
+    uart_set_hw_flow_ctrl(UART_NUM_2,UART_HW_FLOWCTRL_DISABLE,0);
+    uint32_t invertMask = 0;
+    if(pinSupport[pinCTS])
+    {
+      uart_set_pin(UART_NUM_2, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE, pinCTS, /*cts_io_num*/UART_PIN_NO_CHANGE);
+      // cts is input to me, output to true RS232
+      if(ctsActive == 0)
+        invertMask = invertMask | UART_INVERSE_RTS;
+    }
+    if(pinSupport[pinRTS])
+    {
+      uart_set_pin(UART_NUM_2, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE, /*rts_io_num*/UART_PIN_NO_CHANGE, pinRTS);
+      s_pinWrite(pinRTS, rtsActive);
+      // rts is output to me, input to true RS232
+      if(rtsActive == 0)
+        invertMask = invertMask | UART_INVERSE_CTS;
+    }
+    uart_set_line_inverse(UART_NUM_2, invertMask); 
+    
+    debugPrintf("invert=%d\n",invertMask); //BZ:DELME
+    
     //uart_set_hw_flow_ctrl(UART_NUM_2,UART_HW_FLOWCTRL_DISABLE,0);
-    uart_set_hw_flow_ctrl(UART_NUM_2,UART_HW_FLOWCTRL_CTS_RTS,SER_BUFSIZE);
+    if(pinSupport[pinRTS])
+    {
+      if(pinSupport[pinCTS])
+        uart_set_hw_flow_ctrl(UART_NUM_2,UART_HW_FLOWCTRL_CTS_RTS,SER_BUFSIZE);
+      else
+        uart_set_hw_flow_ctrl(UART_NUM_2,UART_HW_FLOWCTRL_RTS,SER_BUFSIZE);
+    }
+    else
+    if(pinSupport[pinCTS])
+      uart_set_hw_flow_ctrl(UART_NUM_2,UART_HW_FLOWCTRL_RTS,SER_BUFSIZE);
   }
   else
     uart_set_hw_flow_ctrl(UART_NUM_2,UART_HW_FLOWCTRL_DISABLE,0);

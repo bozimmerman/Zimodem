@@ -201,6 +201,18 @@ static void doNothing(const char* format, ...)
 {
 }
 
+static void s_pinWrite(uint8_t pinNo, uint8_t value)
+{
+  if(pinSupport[pinNo])
+  {
+    digitalWrite(pinNo, value);
+    if(pinNo == pinRTS)
+      debugPrintf("pinRTS=%d = %d\n",pinNo,value);
+    if(pinNo == pinCTS)
+      debugPrintf("pinCTS=%d = %d\n",pinNo,value);
+  }
+}
+
 static bool connectWifi(const char* ssid, const char* password)
 {
   if(WiFi.status() == WL_CONNECTED)
@@ -277,8 +289,7 @@ static int checkOpenConnections()
     &&(dcdStatus != dcdInactive))
     {
       dcdStatus = dcdInactive;
-      if(pinSupport[pinDCD])
-        digitalWrite(pinDCD,dcdStatus);
+      s_pinWrite(pinDCD,dcdStatus);
       if(baudState == BS_SWITCHED_TEMP)
         baudState = BS_SWITCH_NORMAL_NEXT;
       if(currMode == &commandMode)
@@ -291,8 +302,7 @@ static int checkOpenConnections()
     &&(dcdStatus != dcdActive))
     {
       dcdStatus = dcdActive;
-      if(pinSupport[pinDCD])
-        digitalWrite(pinDCD,dcdStatus);
+      s_pinWrite(pinDCD,dcdStatus);
       if((tempBaud > 0) && (baudState == BS_NORMAL))
         baudState = BS_SWITCH_TEMP_NEXT;
     }
@@ -339,8 +349,7 @@ void setup()
   commandMode.loadConfig();
   PhoneBookEntry::loadPhonebook();
   dcdStatus = dcdInactive;
-  if(pinSupport[pinDCD])
-    digitalWrite(pinDCD,dcdStatus);
+  s_pinWrite(pinDCD,dcdStatus);
   flushSerial();
 }
 

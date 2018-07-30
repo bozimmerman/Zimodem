@@ -105,14 +105,10 @@ void ZCommand::setConfigDefaults()
     pinMode(pinDSR,OUTPUT);
   if(pinSupport[pinRI])
     pinMode(pinRI,OUTPUT);
-  if(pinSupport[pinRTS])
-    digitalWrite(pinRTS,rtsActive);
-  if(pinSupport[pinDCD])
-    digitalWrite(pinDCD,dcdStatus);
-  if(pinSupport[pinDSR])
-    digitalWrite(pinDSR,dsrActive);
-  if(pinSupport[pinRI])
-    digitalWrite(pinRI,riInactive);
+  s_pinWrite(pinRTS,rtsActive);
+  s_pinWrite(pinDCD,dcdStatus);
+  s_pinWrite(pinDSR,dsrActive);
+  s_pinWrite(pinRI,riInactive);
   suppressResponses=false;
   numericResponses=false;
   longResponses=true;
@@ -333,8 +329,7 @@ void ZCommand::setOptionsFromSavedConfig(String configArguments[])
       pinMode(pinDCD,OUTPUT);
     dcdStatus=dcdInactive;
   }
-  if(pinSupport[pinDCD])
-    digitalWrite(pinDCD,dcdStatus);
+  s_pinWrite(pinDCD,dcdStatus);
   if(configArguments[CFG_CTSPIN].length()>0)
   {
     pinCTS = atoi(configArguments[CFG_CTSPIN].c_str());
@@ -347,13 +342,9 @@ void ZCommand::setOptionsFromSavedConfig(String configArguments[])
     if(pinSupport[pinRTS])
       pinMode(pinRTS,OUTPUT);
   }
-  if(pinSupport[pinRTS])
-    digitalWrite(pinRTS,rtsActive);
+  s_pinWrite(pinRTS,rtsActive);
 #ifdef ZIMODEM_ESP32
-  if(pinSupport[pinCTS])
-    uart_set_pin(UART_NUM_2, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE, pinCTS, /*cts_io_num*/UART_PIN_NO_CHANGE);
-  if(pinSupport[pinRTS])
-    uart_set_pin(UART_NUM_2, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE, /*rts_io_num*/UART_PIN_NO_CHANGE, pinRTS);
+  serial.setFlowControlType(serial.getFlowControlType());
 #endif
   if(configArguments[CFG_RIPIN].length()>0)
   {
@@ -361,8 +352,7 @@ void ZCommand::setOptionsFromSavedConfig(String configArguments[])
     if(pinSupport[pinRI])
       pinMode(pinRI,OUTPUT);
   }
-  if(pinSupport[pinRI])
-    digitalWrite(pinRI,riInactive);
+  s_pinWrite(pinRI,riInactive);
   if(configArguments[CFG_DTRPIN].length()>0)
   {
     pinDTR = atoi(configArguments[CFG_DTRPIN].c_str());
@@ -375,8 +365,7 @@ void ZCommand::setOptionsFromSavedConfig(String configArguments[])
     if(pinSupport[pinDSR])
       pinMode(pinDSR,OUTPUT);
   }
-  if(pinSupport[pinDSR])
-    digitalWrite(pinDSR,dsrActive);
+  s_pinWrite(pinDSR,dsrActive);
   if(configArguments[CFG_S0_RINGS].length()>0)
     ringCounter = atoi(configArguments[CFG_S0_RINGS].c_str());
   if(configArguments[CFG_S41_STREAM].length()>0)
@@ -2153,8 +2142,7 @@ ZResult ZCommand::doSerialCommand()
                pinModeDecoder(sval,&dcdActive,&dcdInactive,DEFAULT_DCD_HIGH,DEFAULT_DCD_LOW);
                dcdStatus = wasActive?dcdActive:dcdInactive;
                result=ZOK;
-               if(pinSupport[pinDCD])
-                 digitalWrite(pinDCD,dcdStatus);
+               s_pinWrite(pinDCD,dcdStatus);
                break;
              }
              case 47:
@@ -2162,7 +2150,7 @@ ZResult ZCommand::doSerialCommand()
                {
                  pinDCD=sval;
                  pinMode(pinDCD,OUTPUT);
-                 digitalWrite(pinDCD,dcdStatus);
+                 s_pinWrite(pinDCD,dcdStatus);
                  result=ZOK;
                }
                else
@@ -2178,7 +2166,7 @@ ZResult ZCommand::doSerialCommand()
                  pinCTS=sval;
                  pinMode(pinCTS,INPUT);
 #ifdef ZIMODEM_ESP32
-                 uart_set_pin(UART_NUM_2, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE, pinCTS, /*cts_io_num*/UART_PIN_NO_CHANGE);
+                 serial.setFlowControlType(serial.getFlowControlType());
 #endif
                  result=ZOK;
                }
@@ -2188,7 +2176,12 @@ ZResult ZCommand::doSerialCommand()
              case 50:
                pinModeDecoder(sval,&rtsActive,&rtsInactive,DEFAULT_RTS_HIGH,DEFAULT_RTS_LOW);
                if(pinSupport[pinRTS])
-                 digitalWrite(pinRTS,rtsActive);
+               {
+#ifdef ZIMODEM_ESP32
+                 serial.setFlowControlType(serial.getFlowControlType());
+#endif
+                 s_pinWrite(pinRTS,rtsActive);
+               }
                result=ZOK;
                break;
              case 51:
@@ -2196,11 +2189,11 @@ ZResult ZCommand::doSerialCommand()
                {
                  pinRTS=sval;
                  pinMode(pinRTS,OUTPUT);
-                 digitalWrite(pinRTS,rtsActive);
-                 result=ZOK;
 #ifdef ZIMODEM_ESP32
-                uart_set_pin(UART_NUM_2, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE, /*rts_io_num*/UART_PIN_NO_CHANGE, pinRTS);
+                 serial.setFlowControlType(serial.getFlowControlType());
 #endif
+                 s_pinWrite(pinRTS,rtsActive);
+                 result=ZOK;
                }
                else
                  result=ZERROR;
@@ -2208,7 +2201,12 @@ ZResult ZCommand::doSerialCommand()
              case 52:
                pinModeDecoder(sval,&riActive,&riInactive,DEFAULT_RI_HIGH,DEFAULT_RI_LOW);
                if(pinSupport[pinRI])
-                 digitalWrite(pinRI,riInactive);
+               {
+#ifdef ZIMODEM_ESP32
+                 serial.setFlowControlType(serial.getFlowControlType());
+#endif
+                 s_pinWrite(pinRI,riInactive);
+               }
                result=ZOK;
                break;
              case 53:
@@ -2216,7 +2214,7 @@ ZResult ZCommand::doSerialCommand()
                {
                  pinRI=sval;
                  pinMode(pinRI,OUTPUT);
-                 digitalWrite(pinRTS,riInactive);
+                 s_pinWrite(pinRTS,riInactive);
                  result=ZOK;
                }
                else
@@ -2238,8 +2236,7 @@ ZResult ZCommand::doSerialCommand()
                break;
              case 56:
                pinModeDecoder(sval,&dsrActive,&dsrInactive,DEFAULT_DSR_HIGH,DEFAULT_DSR_LOW);
-               if(pinSupport[pinDSR])
-                 digitalWrite(pinDSR,dsrActive);
+               s_pinWrite(pinDSR,dsrActive);
                result=ZOK;
                break;
              case 57:
@@ -2247,7 +2244,7 @@ ZResult ZCommand::doSerialCommand()
                {
                  pinDSR=sval;
                  pinMode(pinDSR,OUTPUT);
-                 digitalWrite(pinDSR,dsrActive);
+                 s_pinWrite(pinDSR,dsrActive);
                  result=ZOK;
                }
                else
@@ -2525,7 +2522,7 @@ ZResult ZCommand::doSerialCommand()
                     result = ZERROR;
                   else
                   {
-                    digitalWrite(pinNum,sval);
+                    s_pinWrite(pinNum,sval);
                     serial.printf("Pin %d FORCED %s.%s",pinNum,(sval==LOW)?"LOW":(sval==HIGH)?"HIGH":"UNK",EOLN.c_str());
                   }
                 }
@@ -3034,8 +3031,7 @@ void ZCommand::acceptNewConnection()
           WiFiClientNode *newClientNode = new WiFiClientNode(newClient, serv->flagsBitmap, futureRings * 2);
           setCharArray(&(newClientNode->delimiters),serv->delimiters);
           setCharArray(&(newClientNode->maskOuts),serv->maskOuts);
-          if(pinSupport[pinRI])
-            digitalWrite(pinRI,riActive);
+          s_pinWrite(pinRI,riActive);
           serial.prints(numericResponses?"2":"RING");
           serial.prints(EOLN);
           lastServerClientId = newClientNode->id;
@@ -3069,8 +3065,7 @@ void ZCommand::acceptNewConnection()
         int rings=conn->ringsRemaining(-1);
         if(rings <= 0)
         {
-          if(pinSupport[pinRI])
-            digitalWrite(pinRI,riInactive);
+          s_pinWrite(pinRI,riInactive);
           if(ringCounter > 0)
           {
             serial.prints(numericResponses?"2":"RING");
@@ -3091,22 +3086,19 @@ void ZCommand::acceptNewConnection()
         else
         if((rings % 2) == 0)
         {
-          if(pinSupport[pinRI])
-            digitalWrite(pinRI,riActive);
+          s_pinWrite(pinRI,riActive);
           serial.prints(numericResponses?"2":"RING");
           serial.prints(EOLN);
         }
         else
-        if(pinSupport[pinRI])
-          digitalWrite(pinRI,riInactive);
+          s_pinWrite(pinRI,riInactive);
       }
     }
     conn = nextConn;
   }
   if(checkOpenConnections()==0)
   {
-    if(pinSupport[pinRI])
-      digitalWrite(pinRI,riInactive);
+    s_pinWrite(pinRI,riInactive);
   }
 }
 

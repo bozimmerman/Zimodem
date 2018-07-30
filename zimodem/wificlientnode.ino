@@ -203,8 +203,7 @@ int WiFiClientNode::flushOverflowBuffer()
     if(bufWrite >= overflowBufLen)
     {
       overflowBufLen = 0;
-      if(pinSupport[pinRTS])
-        digitalWrite(pinRTS,rtsActive);
+      s_pinWrite(pinRTS,rtsActive);
       // fall-through
     }
     else
@@ -215,8 +214,7 @@ int WiFiClientNode::flushOverflowBuffer()
           overflowBuf[i-bufWrite]=overflowBuf[i];
         overflowBufLen -= bufWrite;
       }
-      if(pinSupport[pinRTS])
-        digitalWrite(pinRTS,rtsInactive);
+      s_pinWrite(pinRTS,rtsInactive);
       return bufWrite;
     }
   }
@@ -229,8 +227,7 @@ size_t WiFiClientNode::write(const uint8_t *buf, size_t size)
   {
     if(overflowBufLen>0)
     {
-      if(pinSupport[pinRTS])
-        digitalWrite(pinRTS,rtsActive);
+      s_pinWrite(pinRTS,rtsActive);
     }
     overflowBufLen=0;
     return 0;
@@ -248,8 +245,7 @@ size_t WiFiClientNode::write(const uint8_t *buf, size_t size)
   {
     for(int i=written;i<size && overflowBufLen<OVERFLOW_BUF_SIZE;i++,overflowBufLen++)
       overflowBuf[overflowBufLen]=buf[i];
-    if(pinSupport[pinRTS])
-      digitalWrite(pinRTS,rtsInactive);
+    s_pinWrite(pinRTS,rtsInactive);
   }
   return written;
 }
