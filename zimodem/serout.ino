@@ -132,10 +132,7 @@ void ZSerial::setFlowControlType(FlowControlType type)
       if(rtsActive == 0)
         invertMask = invertMask | UART_INVERSE_CTS;
     }
-    uart_set_line_inverse(UART_NUM_2, invertMask); 
-    
-    debugPrintf("invert=%d\n",invertMask); //BZ:DELME
-    
+    uart_set_line_inverse(UART_NUM_2, invertMask);     
     //uart_set_hw_flow_ctrl(UART_NUM_2,UART_HW_FLOWCTRL_DISABLE,0);
     if(pinSupport[pinRTS])
     {
