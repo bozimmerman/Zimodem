@@ -119,21 +119,20 @@ void ZSerial::setFlowControlType(FlowControlType type)
     uint32_t invertMask = 0;
     if(pinSupport[pinCTS])
     {
-      uart_set_pin(UART_NUM_2, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE, pinCTS, /*cts_io_num*/UART_PIN_NO_CHANGE);
+      uart_set_pin(UART_NUM_2, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE, /*cts_io_num*/pinCTS);
       // cts is input to me, output to true RS232
       if(ctsActive == 0)
-        invertMask = invertMask | UART_INVERSE_RTS;
+        invertMask = invertMask | UART_INVERSE_CTS;
     }
     if(pinSupport[pinRTS])
     {
-      uart_set_pin(UART_NUM_2, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE, /*rts_io_num*/UART_PIN_NO_CHANGE, pinRTS);
+      uart_set_pin(UART_NUM_2, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE, /*rts_io_num*/ pinRTS, UART_PIN_NO_CHANGE);
       s_pinWrite(pinRTS, rtsActive);
       // rts is output to me, input to true RS232
       if(rtsActive == 0)
-        invertMask = invertMask | UART_INVERSE_CTS;
+        invertMask = invertMask | UART_INVERSE_RTS;
     }
-    uart_set_line_inverse(UART_NUM_2, invertMask);     
-    //uart_set_hw_flow_ctrl(UART_NUM_2,UART_HW_FLOWCTRL_DISABLE,0);
+    //uart_set_line_inverse(UART_NUM_2, invertMask);     
     if(pinSupport[pinRTS])
     {
       if(pinSupport[pinCTS])
@@ -143,7 +142,7 @@ void ZSerial::setFlowControlType(FlowControlType type)
     }
     else
     if(pinSupport[pinCTS])
-      uart_set_hw_flow_ctrl(UART_NUM_2,UART_HW_FLOWCTRL_RTS,SER_BUFSIZE);
+      uart_set_hw_flow_ctrl(UART_NUM_2,UART_HW_FLOWCTRL_CTS,SER_BUFSIZE);
   }
   else
     uart_set_hw_flow_ctrl(UART_NUM_2,UART_HW_FLOWCTRL_DISABLE,0);
@@ -170,11 +169,13 @@ bool ZSerial::isSerialOut()
   switch(flowControlType)
   {
   case FCT_RTSCTS:
+#ifndef ZIMODEM_ESP32
     if(pinSupport[pinCTS])
     {
       //debugPrintf("CTS: pin %d (%d == %d)\n",pinCTS,digitalRead(pinCTS),ctsActive);
       return (digitalRead(pinCTS) == ctsActive);
     }
+#endif
     return true;
   case FCT_NORMAL:
   case FCT_AUTOOFF:
@@ -190,11 +191,13 @@ bool ZSerial::isSerialOut()
 
 bool ZSerial::isSerialCancelled()
 {
+#ifndef ZIMODEM_ESP32
   if(flowControlType == FCT_RTSCTS)
   {
     if(pinSupport[pinCTS])
       return (digitalRead(pinCTS) == ctsInactive);
   }
+#endif
   return false;
 }
 
