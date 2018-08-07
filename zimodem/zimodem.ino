@@ -206,10 +206,6 @@ static void s_pinWrite(uint8_t pinNo, uint8_t value)
   if(pinSupport[pinNo])
   {
     digitalWrite(pinNo, value);
-    if(pinNo == pinRTS)
-      debugPrintf("pinRTS=%d = %d\n",pinNo,value);
-    if(pinNo == pinCTS)
-      debugPrintf("pinCTS=%d = %d\n",pinNo,value);
   }
 }
 

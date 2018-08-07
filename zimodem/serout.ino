@@ -121,7 +121,7 @@ void ZSerial::setFlowControlType(FlowControlType type)
     {
       uart_set_pin(UART_NUM_2, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE, /*cts_io_num*/pinCTS);
       // cts is input to me, output to true RS232
-      if(ctsActive == 0)
+      if(ctsActive == HIGH)
         invertMask = invertMask | UART_INVERSE_CTS;
     }
     if(pinSupport[pinRTS])
@@ -129,20 +129,23 @@ void ZSerial::setFlowControlType(FlowControlType type)
       uart_set_pin(UART_NUM_2, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE, /*rts_io_num*/ pinRTS, UART_PIN_NO_CHANGE);
       s_pinWrite(pinRTS, rtsActive);
       // rts is output to me, input to true RS232
-      if(rtsActive == 0)
+      if(rtsActive == HIGH)
         invertMask = invertMask | UART_INVERSE_RTS;
     }
-    //uart_set_line_inverse(UART_NUM_2, invertMask);     
+    debugPrintf("invert = %d magic values = %d %d, RTS_HIGH=%d, RTS_LOW=%d HIGHHIGH=%d LOWLOW=%d\n",invertMask,ctsActive,rtsActive, DEFAULT_RTS_HIGH, DEFAULT_RTS_LOW, HIGH, LOW);
+    if(invertMask != 0)
+      uart_set_line_inverse(UART_NUM_2, invertMask);
+    const int CUTOFF = 5;
     if(pinSupport[pinRTS])
     {
       if(pinSupport[pinCTS])
-        uart_set_hw_flow_ctrl(UART_NUM_2,UART_HW_FLOWCTRL_CTS_RTS,SER_BUFSIZE);
+        uart_set_hw_flow_ctrl(UART_NUM_2,UART_HW_FLOWCTRL_CTS_RTS,CUTOFF);
       else
-        uart_set_hw_flow_ctrl(UART_NUM_2,UART_HW_FLOWCTRL_RTS,SER_BUFSIZE);
+        uart_set_hw_flow_ctrl(UART_NUM_2,UART_HW_FLOWCTRL_CTS_RTS,CUTOFF);
     }
     else
     if(pinSupport[pinCTS])
-      uart_set_hw_flow_ctrl(UART_NUM_2,UART_HW_FLOWCTRL_CTS,SER_BUFSIZE);
+      uart_set_hw_flow_ctrl(UART_NUM_2,UART_HW_FLOWCTRL_CTS_RTS,CUTOFF);
   }
   else
     uart_set_hw_flow_ctrl(UART_NUM_2,UART_HW_FLOWCTRL_DISABLE,0);
