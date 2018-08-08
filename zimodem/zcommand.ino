@@ -2165,9 +2165,7 @@ ZResult ZCommand::doSerialCommand()
                {
                  pinCTS=sval;
                  pinMode(pinCTS,INPUT);
-#ifdef ZIMODEM_ESP32
                  serial.setFlowControlType(serial.getFlowControlType());
-#endif
                  result=ZOK;
                }
                else
@@ -2177,9 +2175,7 @@ ZResult ZCommand::doSerialCommand()
                pinModeDecoder(sval,&rtsActive,&rtsInactive,DEFAULT_RTS_HIGH,DEFAULT_RTS_LOW);
                if(pinSupport[pinRTS])
                {
-#ifdef ZIMODEM_ESP32
                  serial.setFlowControlType(serial.getFlowControlType());
-#endif
                  s_pinWrite(pinRTS,rtsActive);
                }
                result=ZOK;
@@ -2189,9 +2185,7 @@ ZResult ZCommand::doSerialCommand()
                {
                  pinRTS=sval;
                  pinMode(pinRTS,OUTPUT);
-#ifdef ZIMODEM_ESP32
                  serial.setFlowControlType(serial.getFlowControlType());
-#endif
                  s_pinWrite(pinRTS,rtsActive);
                  result=ZOK;
                }
@@ -2202,9 +2196,7 @@ ZResult ZCommand::doSerialCommand()
                pinModeDecoder(sval,&riActive,&riInactive,DEFAULT_RI_HIGH,DEFAULT_RI_LOW);
                if(pinSupport[pinRI])
                {
-#ifdef ZIMODEM_ESP32
                  serial.setFlowControlType(serial.getFlowControlType());
-#endif
                  s_pinWrite(pinRI,riInactive);
                }
                result=ZOK;
@@ -2543,6 +2535,7 @@ ZResult ZCommand::doSerialCommand()
         case 'u':
           result=doUpdateFirmware(vval,vbuf,vlen,isNumber);
           break;
+        //TODO: host name cmd here somewhere...
         default:
           result=ZERROR;
           break;
