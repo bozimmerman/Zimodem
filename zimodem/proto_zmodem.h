@@ -422,6 +422,8 @@ void flush(void* unused)
 
 BOOL data_waiting(void* unused, unsigned timeout /* seconds */)
 {
+  if(timeout < 1)
+    return zserial.available() > 0;
   unsigned long startTime = millis();
   serialOutDeque();
   yield();
