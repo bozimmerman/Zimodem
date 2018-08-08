@@ -393,7 +393,7 @@ int send_byte(void* unused, uchar ch, unsigned timeout)
 {
   //lprintf(LOG_DEBUG, "Send: %d", ch);
   zserial.printb(ch);
-  zserial.flush(); // safe flush
+  //zserial.flush(); // safe flush
   return(0);
 }
 
@@ -422,11 +422,11 @@ void flush(void* unused)
 
 BOOL data_waiting(void* unused, unsigned timeout /* seconds */)
 {
+  serialOutDeque();
+  yield();
   if(timeout < 1)
     return zserial.available() > 0;
   unsigned long startTime = millis();
-  serialOutDeque();
-  yield();
   while(zserial.available()<=0)
   {
     serialOutDeque();
