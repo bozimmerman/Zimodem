@@ -132,7 +132,7 @@ void ZSerial::setFlowControlType(FlowControlType type)
       if(rtsActive == HIGH)
         invertMask = invertMask | UART_INVERSE_RTS;
     }
-    debugPrintf("invert = %d magic values = %d %d, RTS_HIGH=%d, RTS_LOW=%d HIGHHIGH=%d LOWLOW=%d\n",invertMask,ctsActive,rtsActive, DEFAULT_RTS_HIGH, DEFAULT_RTS_LOW, HIGH, LOW);
+    //debugPrintf("invert = %d magic values = %d %d, RTS_HIGH=%d, RTS_LOW=%d HIGHHIGH=%d LOWLOW=%d\n",invertMask,ctsActive,rtsActive, DEFAULT_RTS_HIGH, DEFAULT_RTS_LOW, HIGH, LOW);
     if(invertMask != 0)
       uart_set_line_inverse(UART_NUM_2, invertMask);
     const int CUTOFF = 5;
@@ -172,13 +172,11 @@ bool ZSerial::isSerialOut()
   switch(flowControlType)
   {
   case FCT_RTSCTS:
-#ifndef ZIMODEM_ESP32
     if(pinSupport[pinCTS])
     {
       //debugPrintf("CTS: pin %d (%d == %d)\n",pinCTS,digitalRead(pinCTS),ctsActive);
       return (digitalRead(pinCTS) == ctsActive);
     }
-#endif
     return true;
   case FCT_NORMAL:
   case FCT_AUTOOFF:
@@ -194,13 +192,14 @@ bool ZSerial::isSerialOut()
 
 bool ZSerial::isSerialCancelled()
 {
-#ifndef ZIMODEM_ESP32
   if(flowControlType == FCT_RTSCTS)
   {
     if(pinSupport[pinCTS])
+    {
+      //debugPrintf("CTS: pin %d (%d == %d)\n",pinCTS,digitalRead(pinCTS),ctsActive);
       return (digitalRead(pinCTS) == ctsInactive);
+    }
   }
-#endif
   return false;
 }
 
@@ -243,6 +242,16 @@ void ZSerial::enqueByte(uint8_t c)
       }
       break;
     }
+  }
+  // the car jam of blocked bytes stops HERE
+  //debugPrintf("%d\n",serialOutBufferBytesRemaining());
+  while(serialOutBufferBytesRemaining()<1)
+  {
+    if(!isSerialOut())
+      delay(1);
+    else
+      serialOutDeque();
+    yield();
   }
   enqueSerialOut(c);
 }
