@@ -58,22 +58,6 @@ size_t availableForWrite();
 
 ** Both versions of the firmware are built with SPIFFS enabled.
 
-* NOTES* 
-True RS232 25 pin connector
-PIN  Name    Desc
-1    Ground
-2    Tx      Computer->Modem
-3    Rx      Modem->Computer
-4    RTS     Computer->Modem (RTS is a Modem INPUT, Computer OUTPUT)
-5    CTS     Modem->Computer (CTS is a Modem OUTPUT, Computer INPUT)
-6    DSR     Modem->Computer
-7    Ground
-8    DCD     Modem->Computer
-20   DTR     Computer->Modem
-22   R.I.    Modem->Computer
-
-In my source code, RTS and CTS are reverse named.  I'm aware of this.  I'll fix it eventually.
-
 Using:
 ------
 Upon initialization, or any time the ESP module is reset, the modem will display its version, and some information about the host hardware, and then read a configuration file from the internal SPIFFS to re-establish the previously set baud rate, and to attempt to re-connect to the previously connected wireless router.  The first time it is run, the firmware will set a baud rate of 1200 and display INITALIZED to let you know that no previous wifi configuration was found.  Once the serial terminal displays READY, it is ready to receive commands.  
