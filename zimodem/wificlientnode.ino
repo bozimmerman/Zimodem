@@ -250,6 +250,29 @@ size_t WiFiClientNode::write(const uint8_t *buf, size_t size)
   return written;
 }
 
+String WiFiClientNode::readLine(int timeout)
+{
+  long now=millis();
+  String line = "";
+  while(((millis()-now < timeout) || (available()>0)) && (!isConnected()))
+  {
+    yield();
+    if(available()>0)
+    {
+      char c=read();
+      if((c=='\n')||(c=='\r'))
+      {
+          if(line.length()>0)
+            return line;
+      }
+      else
+      if((c >= 32 ) && (c <= 127))
+        line += c;
+    }
+  }
+  return line;
+}
+
 void WiFiClientNode::answer()
 {
   answered=true;

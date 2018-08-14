@@ -986,16 +986,16 @@ bool ZCommand::doWebGetBytes(const char *hostIp, int port, const char *req, cons
   return (respLength == 0);
 }
 
-ZResult ZCommand::doWebStream(int vval, uint8_t *vbuf, int vlen, bool isNumber, const char *filename, bool cache)
+bool ZCommand::parseWebUrl(uint8_t *vbuf, char **hostIp, char **req, int *port, bool *doSSL)
 {
-  bool doSSL = false;
+  *doSSL = false;
   if(strstr((char *)vbuf,"http://")==(char *)vbuf)
     vbuf = vbuf + 7;
   else
   if(strstr((char *)vbuf,"https://")==(char *)vbuf)
   {
     vbuf = vbuf + 8;
-    doSSL = true;
+    *doSSL = true;
   }
   else
   if(strstr((char *)vbuf,"http:")==(char *)vbuf)
@@ -1004,132 +1004,390 @@ ZResult ZCommand::doWebStream(int vval, uint8_t *vbuf, int vlen, bool isNumber, 
   if(strstr((char *)vbuf,"https:")==(char *)vbuf)
   {
     vbuf = vbuf + 6;
-    doSSL = true;
+    *doSSL = true;
   }
 
+  *port= doSSL ? 443 : 80;
+  *hostIp = (char *)vbuf;
   char *portB=strchr((char *)vbuf,':');
-  bool success = true;
-  if(portB == NULL)
-     success = false;
+  *req = strchr((char *)vbuf,'/');
+  if(*req != NULL)
+  {
+    *(*req)=0;
+    (*req)++;
+  }
   else
   {
-    char *hostIp = (char *)vbuf;
-    *portB = 0;
-    portB++;
-    char *req = strchr(portB,'/');
-    if(req == NULL)
-      success = false;
-    else
+    int len=strlen((char *)vbuf);
+    *req = (char *)(vbuf + len);
+  }
+  if(portB != NULL)
+  {
+     *portB = 0;
+     portB++;
+     *port = atoi(portB);
+     if(port <= 0)
+       return ZERROR;
+  }
+  return ZOK;
+}
+
+ZResult ZCommand::doWebStream(int vval, uint8_t *vbuf, int vlen, bool isNumber, const char *filename, bool cache)
+{
+  char *hostIp;
+  char *req;
+  int port;
+  bool doSSL;
+  if(!parseWebUrl(vbuf,&hostIp,&req,&port,&doSSL))
+    return ZERROR;
+
+  if(cache)
+  {
+    if(!SPIFFS.exists(filename))
     {
-      *req = 0;
-      req++;
-      int port = atoi(portB);
-      if(port <=0)
-        success = false;
-      else
-      {
-        if(cache)
-        {
-          if(!SPIFFS.exists(filename))
-          {
-            if(!doWebGet(hostIp, port, filename, req, doSSL))
-              return ZERROR;
-          }
-        }
-        else
-        if(!doWebGet(hostIp, port, filename, req, doSSL))
-          return ZERROR;
-        int chk8=0;
-        if(!cache)
-        {
-          delay(100);
-          File f = SPIFFS.open(filename, "r");
-          int len = f.size();
-          for(int i=0;i<len;i++)
-          {
-            chk8+=f.read();
-            if(chk8>255)
-              chk8-=256;
-          }
-          f.close();
-        }
-        File f = SPIFFS.open(filename, "r");
-        int len = f.size();
-        if(!cache)
-        {
-          headerOut(0,len,chk8);
-          serial.flush(); // stupid important because otherwise apps that go xoff miss the header info
-        }
-        bool flowControl=!cache;
-        BinType streamType = cache?BTYPE_NORMAL:binType;
-        int bct=0;
-        while(len>0)
-        {
-          if((!flowControl) || serial.isSerialOut())
-          {
-            len--;
-            int c=f.read();
-            if(c<0)
-              break;
-            if(cache && serial.isPetsciiMode())
-              c=ascToPetcii(c);
-            switch(streamType)
-            {
-              case BTYPE_NORMAL:
-                serial.write((uint8_t)c);
-                break;
-              case BTYPE_HEX:
-              {
-                const char *hbuf = TOHEX((uint8_t)c);
-                serial.printb(hbuf[0]); // prevents petscii
-                serial.printb(hbuf[1]);
-                if((++bct)>=39)
-                {
-                  serial.prints(EOLN);
-                  bct=0;
-                }
-                break;
-              }
-              case BTYPE_DEC:
-                serial.printf("%d%s",c,EOLN.c_str());
-                break;
-            }
-          }
-          if(serial.isSerialOut())
-          {
-            serialOutDeque();
-            yield();
-          }
-          if(serial.drainForXonXoff()==3)
-          {
-            serial.setXON(true);
-            f.close();
-            return ZOK;
-          }
-          while(serial.availableForWrite()<5)
-          {
-            if(serial.isSerialOut())
-            {
-              serialOutDeque();
-              yield();
-            }
-            if(serial.drainForXonXoff()==3)
-            {
-              serial.setXON(true);
-              f.close();
-              return ZOK;
-            }
-            delay(1);
-          }
-          yield();
-        }
-        if(bct > 0)
-          serial.prints(EOLN);
-        f.close();
-      }
+      if(!doWebGet(hostIp, port, filename, req, doSSL))
+        return ZERROR;
     }
   }
+  else
+  if(!doWebGet(hostIp, port, filename, req, doSSL))
+    return ZERROR;
+  return doWebDump(filename, cache);
+}
+  
+ZResult ZCommand::doWebDump(const char *filename, const bool cache)
+{
+  int chk8=0;
+  if(!cache)
+  {
+    delay(100);
+    File f = SPIFFS.open(filename, "r");
+    int len = f.size();
+    for(int i=0;i<len;i++)
+    {
+      chk8+=f.read();
+      if(chk8>255)
+        chk8-=256;
+    }
+    f.close();
+  }
+  File f = SPIFFS.open(filename, "r");
+  int len = f.size();
+  if(!cache)
+  {
+    headerOut(0,len,chk8);
+    serial.flush(); // stupid important because otherwise apps that go xoff miss the header info
+  }
+  bool flowControl=!cache;
+  BinType streamType = cache?BTYPE_NORMAL:binType;
+  int bct=0;
+  while(len>0)
+  {
+    if((!flowControl) || serial.isSerialOut())
+    {
+      len--;
+      int c=f.read();
+      if(c<0)
+        break;
+      if(cache && serial.isPetsciiMode())
+        c=ascToPetcii(c);
+      switch(streamType)
+      {
+        case BTYPE_NORMAL:
+          serial.write((uint8_t)c);
+          break;
+        case BTYPE_HEX:
+        {
+          const char *hbuf = TOHEX((uint8_t)c);
+          serial.printb(hbuf[0]); // prevents petscii
+          serial.printb(hbuf[1]);
+          if((++bct)>=39)
+          {
+            serial.prints(EOLN);
+            bct=0;
+          }
+          break;
+        }
+        case BTYPE_DEC:
+          serial.printf("%d%s",c,EOLN.c_str());
+          break;
+      }
+    }
+    if(serial.isSerialOut())
+    {
+      serialOutDeque();
+      yield();
+    }
+    if(serial.drainForXonXoff()==3)
+    {
+      serial.setXON(true);
+      f.close();
+      return ZOK;
+    }
+    while(serial.availableForWrite()<5)
+    {
+      if(serial.isSerialOut())
+      {
+        serialOutDeque();
+        yield();
+      }
+      if(serial.drainForXonXoff()==3)
+      {
+        serial.setXON(true);
+        f.close();
+        return ZOK;
+      }
+      delay(1);
+    }
+    yield();
+  }
+  if(bct > 0)
+    serial.prints(EOLN);
+  f.close();
   return ZIGNORE;
+}
+
+static bool doFTPQuit(WiFiClient **c)
+{
+  if((*c)->connected())
+  {
+    (*c)->printf("QUIT\r\n");
+    delay(500);
+  }
+  (*c)->stop();
+  delete (*c);
+  return false;
+}
+
+static String readLine(WiFiClient *c, int timeout)
+{
+  long now=millis();
+  String line = "";
+  while(((millis()-now < timeout) || (c->available()>0)) && (c->connected()))
+  {
+    yield();
+    if(c->available()>0)
+    {
+      char ch=c->read();
+      if((ch=='\n')||(ch=='\r'))
+      {
+          if(line.length()>0)
+            return line;
+      }
+      else
+      if((ch >= 32 ) && (ch <= 127))
+        line += ch;
+      now=millis();
+    }
+  }
+  return line;
+}
+
+static int getFTPResponseCode(WiFiClient *c, char *buf)
+{
+  String resp = readLine(c,5000);
+  if(resp.length() == 0)
+    return -1; // timeout total
+  while((resp.length()<3)
+      ||(resp[0] < '0')||(resp[0] > '9')
+      ||(resp[1] < '0')||(resp[1] > '9')
+      ||(resp[2] < '0')||(resp[2] > '9'))
+  {
+      yield();
+      resp = readLine(c,1000);
+      if(resp.length()==0)
+        return -1;
+  }
+  if((buf != NULL)&&(resp.length()<132))
+    strcpy(buf,resp.substring(4).c_str());
+  return atoi(resp.substring(0,3).c_str());
+}
+
+bool ZCommand::doFTPGet(const char *hostIp, int port, const char *filename, const char *req, const char *username, const char *pw, const bool doSSL)
+{
+  WiFiClient *cc = createWiFiClient(doSSL);
+  if(WiFi.status() != WL_CONNECTED)
+    return false;
+  cc->setNoDelay(DEFAULT_NO_DELAY);
+  if(!cc->connect(hostIp, port))
+    return doFTPQuit(&cc);
+  long now = millis(); // just eat the intro for 1 second of silence
+  while(millis()-now < 1000)
+  {
+    yield();
+    if(cc->available()>0)
+    {
+      cc->read();
+      now=millis();
+    }
+  }
+  if(username == NULL)
+    cc->printf("USER anonymous\r\n");
+  else
+    cc->printf("USER %s\r\n",username);
+  int respCode = getFTPResponseCode(cc, NULL);
+  if(respCode != 331)
+    return doFTPQuit(&cc);
+  if(pw == NULL)
+    cc->printf("PASS zimodem@zimtime.net\r\n");
+  else
+    cc->printf("PASS %s\r\n",pw);
+  respCode = getFTPResponseCode(cc, NULL);
+  if(respCode != 230)
+    return doFTPQuit(&cc);
+  cc->printf("TYPE I\r\n");
+  respCode = getFTPResponseCode(cc, NULL);
+  if(respCode < 0)
+    return doFTPQuit(&cc);
+  char ipbuf[129];
+  cc->printf("PASV\r\n");
+  respCode = getFTPResponseCode(cc, ipbuf);
+  if(respCode != 227)
+    return doFTPQuit(&cc);
+  // now parse the pasv result in .* (ipv4,ipv4,ipv4,ipv4,
+  char *ipptr = strchr(ipbuf,'(');
+  while((ipptr != NULL) && (strchr(ipptr+1,'(')!= NULL))
+    ipptr=strchr(ipptr+1,'(');
+  if(ipptr == NULL)
+    return doFTPQuit(&cc);
+  int digitCount=0;
+  int digits[10];
+  char *commaPtr=strchr(ipptr+1,',');
+  while((commaPtr != NULL)&&(digitCount < 10))
+  {
+    *commaPtr = 0;
+    digits[digitCount++] = atoi(ipptr+1);
+    ipptr=commaPtr;
+    commaPtr=strchr(ipptr+1,',');
+    if(commaPtr == NULL)
+      commaPtr=strchr(ipptr+1,')');
+  }
+  if(digitCount < 6)
+    return doFTPQuit(&cc);
+  sprintf(ipbuf,"%d.%d.%d.%d",digits[0],digits[1],digits[2],digits[3]);
+  int dataPort = (256 * digits[4]) + digits[5];
+  // ok, now we are ready for DATA!
+  if(WiFi.status() != WL_CONNECTED)
+    return doFTPQuit(&cc);
+  WiFiClient *c = createWiFiClient(doSSL);
+  c->setNoDelay(DEFAULT_NO_DELAY);
+  if(!c->connect(ipbuf, dataPort))
+  {
+    doFTPQuit(&c);
+    return doFTPQuit(&cc);
+  }
+  cc->printf("RETR %s\r\n",req);
+  respCode = getFTPResponseCode(cc, ipbuf);
+  if((respCode < 0)||(respCode > 400))
+    return doFTPQuit(&cc);
+  File f = SPIFFS.open(filename, "w");
+  now=millis();
+  while((cc->connected()) && ((millis()-now) < 30000)) // loop for data, with nice long timeout
+  {
+    if(cc->available()>=0)
+    {
+      now=millis();
+      uint8_t ch=cc->read();
+      //logSocketIn(ch); // this is ALSO not socket input!
+      f.write(ch);
+    }
+    else
+      yield();
+  }
+  f.flush();
+  f.close();
+  cc->stop();
+  delete cc;
+  doFTPQuit(&c);
+  return true;
+}
+
+bool ZCommand::parseFTPUrl(uint8_t *vbuf, char **hostIp, char **req, int *port, bool *doSSL, char **username, char **pw)
+{
+  *doSSL = false;
+  if(strstr((char *)vbuf,"ftp://")==(char *)vbuf)
+    vbuf = vbuf + 7;
+  else
+  if(strstr((char *)vbuf,"ftps://")==(char *)vbuf)
+  {
+    vbuf = vbuf + 8;
+    *doSSL = true;
+  }
+  else
+  if(strstr((char *)vbuf,"ftp:")==(char *)vbuf)
+    vbuf = vbuf + 5;
+  else
+  if(strstr((char *)vbuf,"ftps:")==(char *)vbuf)
+  {
+    vbuf = vbuf + 6;
+    *doSSL = true;
+  }
+
+  *port= 21;
+  *hostIp = (char *)vbuf;
+  char *atSign=strchr((char *)vbuf,'@');
+  *username=NULL;
+  *pw = NULL;
+  if(atSign != NULL)
+  {
+    *hostIp = atSign + 1;
+    *atSign = 0;
+    *username = (char *)vbuf;
+    vbuf = (uint8_t *)(atSign + 1);
+    char *pwB = strchr(*username, ':');
+    if(pwB != NULL)
+    {
+      *pw = pwB+1;
+      *pwB=0;
+    }
+  }
+  char *portB=strchr((char *)vbuf,':');
+  *req = strchr((char *)vbuf,'/');
+  if(*req != NULL)
+  {
+    *(*req)=0;
+    (*req)++;
+  }
+  else
+  {
+    int len=strlen((char *)vbuf);
+    *req = (char *)(vbuf + len);
+  }
+  if(portB != NULL)
+  {
+     *portB = 0;
+     portB++;
+     *port = atoi(portB);
+     if(port <= 0)
+       return ZERROR;
+  }
+  return ZOK;
+}
+
+ZResult ZCommand::doFTPStream(int vval, uint8_t *vbuf, int vlen, bool isNumber, const char *filename, bool cache)
+{
+  char *hostIp;
+  char *req;
+  char *username;
+  char *pw;
+  int port;
+  bool doSSL;
+  if(!parseFTPUrl(vbuf,&hostIp,&req,&port,&doSSL,&username,&pw))
+    return ZERROR;
+
+  if(cache)
+  {
+    if(!SPIFFS.exists(filename))
+    {
+      if(!doFTPGet(hostIp, port, filename, req, username, pw, doSSL))
+        return ZERROR;
+    }
+  }
+  else
+  if(!doFTPGet(hostIp, port, filename, req, username, pw, doSSL))
+    return ZERROR;
+  
+  return doWebDump(filename, cache);
 }
 
 ZResult ZCommand::doUpdateFirmware(int vval, uint8_t *vbuf, int vlen, bool isNumber)

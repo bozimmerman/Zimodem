@@ -838,6 +838,92 @@ void ZBrowser::doModeCommand()
         }
       }
       else
+      if(cmd.equalsIgnoreCase("wget"))
+      {
+        String p1=cleanFirstArg(line);
+        String p2=makePath(cleanRemainArg(line));
+        debugPrintf("wget:%s -> %s\n",p1.c_str(), p2.c_str());
+        if((p1.length()<8)
+        || ((strcmp(p1.substring(0,7).c_str(),"http://") != 0)
+           && (strcmp(p1.substring(0,9).c_str(),"https://") != 0)))
+          serial.printf("Not a url: %s%s",p1.c_str(),EOLNC);
+        else
+        if(SD.exists(p2))
+          serial.printf("File exists: %s%s",p2.c_str(),EOLNC);
+        else
+        {
+          uint8_t buf[p1.length()+1];
+          strcpy((char *)buf,p1.c_str());
+          char *hostIp;
+          char *req;
+          int port;
+          bool doSSL;
+          if(!commandMode.parseWebUrl(buf,&hostIp,&req,&port,&doSSL))
+            serial.printf("Invalid url: %s",p1.c_str());
+          else
+          if(!commandMode.doWebGet(hostIp, port, p2.c_str(), req, doSSL))
+            serial.printf("Wget failed: %s to file %s",p1.c_str(),p2.c_str());
+        }
+      }
+      else
+      if(cmd.equalsIgnoreCase("fget"))
+      {
+        String p1=cleanFirstArg(line);
+        String p2=makePath(cleanRemainArg(line));
+        debugPrintf("fget:%s -> %s\n",p1.c_str(), p2.c_str());
+        char *tmp=0;
+        if((p1.length()<11)
+        || (strcmp(p1.substring(0,6).c_str(),"ftp://") != 0))
+          serial.printf("Not a url: %s%s",p1.c_str(),EOLNC);
+        else
+        if(((tmp=strchr(p1.c_str(),'@'))==0)
+        ||(strchr(p1.c_str()+6,':')>tmp)
+        ||(strchr(p1.c_str()+6,':')==0))
+            serial.printf("Missing username:password@ syntax: %s%s",p1.c_str(),EOLNC);
+        else
+        if(SD.exists(p2))
+          serial.printf("File exists: %s%s",p2.c_str(),EOLNC);
+        else
+        {
+          uint8_t buf[p1.length()+1];
+          strcpy((char *)buf,p1.c_str());
+          char *hostIp;
+          char *req;
+          int port;
+          bool doSSL;
+          char *username;
+          char *password;
+          if(!commandMode.parseFTPUrl(buf,&hostIp,&req,&port,&doSSL,&username,&password))
+            serial.printf("Invalid url: %s",p1.c_str());
+          else
+          if(!commandMode.doFTPGet(hostIp, port, p2.c_str(), req, username, password, doSSL))
+            serial.printf("Fget failed: %s to file %s",p1.c_str(),p2.c_str());
+        }
+      }
+      else
+      if(cmd.equalsIgnoreCase("fls"))
+      {
+        String p1=line;
+        debugPrintf("fls:%s\n",p1.c_str());
+        char *tmp=0;
+        if((p1.length()<11)
+        || (strcmp(p1.substring(0,6).c_str(),"ftp://") != 0))
+          serial.printf("Not a url: %s%s",p1.c_str(),EOLNC);
+        else
+        if(((tmp=strchr(p1.c_str(),'@'))==0)
+        ||(strchr(p1.c_str()+6,':')>tmp)
+        ||(strchr(p1.c_str()+6,':')==0))
+            serial.printf("Missing username:password@ syntax: %s%s",p1.c_str(),EOLNC);
+        else
+        {
+          uint8_t buf[p1.length()+1];
+          strcpy((char *)buf,p1.c_str());
+          ZResult res = commandMode.doFTPStream(0, buf, p1.length()+1,false, NULL, false);
+          if(res == ZERROR)
+            serial.printf("fls failed: %s",p1.c_str());
+        }
+      }
+      else
       if(cmd.equalsIgnoreCase("mv")||cmd.equalsIgnoreCase("move"))
       {
         String argLetters = "";
@@ -892,6 +978,9 @@ void ZBrowser::doModeCommand()
         serial.printf("df/free/info - Show space remaining%s",EOLNC);
         serial.printf("xget/zget [path]  - Download a file%s",EOLNC);
         serial.printf("xput/zput [path]  - Upload a file%s",EOLNC);
+        serial.printf("wget [http://url] [path]  - Download url to file%s",EOLNC);
+        serial.printf("fget [ftp://user:pass@url] [path]  - FTP to file%s",EOLNC);
+        serial.printf("fls [ftp://user:pass@url]  - ftp url dump%s",EOLNC);
         serial.printf("exit/quit/x/endshell  - Quit to command mode%s",EOLNC);
         serial.printf("%s",EOLNC);
       }

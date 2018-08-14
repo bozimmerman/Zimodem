@@ -78,6 +78,7 @@ class WiFiClientNode : public Stream
     void flush();
     int available();
     int read(uint8_t *buf, size_t size);
+    String readLine(int timeout);
 
     static int getNumOpenWiFiConnections();
 };

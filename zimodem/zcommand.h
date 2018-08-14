@@ -119,9 +119,13 @@ class ZCommand : public ZMode
     void headerOut(const int channel, const int sz, const int crc8);
     void sendConnectionNotice(int nodeId);
     void sendNextPacket();
+    bool parseWebUrl(uint8_t *vbuf, char **hostIp, char **req, int *port, bool *doSSL);
     bool doWebGet(const char *hostIp, int port, const char *filename, const char *req, const bool doSSL);
+    ZResult doWebDump(const char *filename, const bool cache);
     bool doWebGetBytes(const char *hostIp, int port, const char *req, const bool doSSL, uint8_t *buf, int *bufSize);
     bool doWebGetStream(const char *hostIp, int port, const char *req, WiFiClient *c, uint32_t *responseSize);
+    bool parseFTPUrl(uint8_t *vbuf, char **hostIp, char **req, int *port, bool *doSSL, char **username, char **pw);
+    bool doFTPGet(const char *hostIp, int port, const char *filename, const char *req, const char *username, const char *pw, const bool doSSL);
 
     ZResult doResetCommand();
     ZResult doNoListenCommand();
@@ -137,6 +141,7 @@ class ZCommand : public ZMode
     ZResult doEOLNCommand(int vval, uint8_t *vbuf, int vlen, bool isNumber);
     ZResult doInfoCommand(int vval, uint8_t *vbuf, int vlen, bool isNumber);
     ZResult doWebStream(int vval, uint8_t *vbuf, int vlen, bool isNumber, const char *filename, bool cache);
+    ZResult doFTPStream(int vval, uint8_t *vbuf, int vlen, bool isNumber, const char *filename, bool cache);
     ZResult doUpdateFirmware(int vval, uint8_t *vbuf, int vlen, bool isNumber);
     ZResult doTimeZoneSetupCommand(int vval, uint8_t *vbuf, int vlen, bool isNumber);
 
