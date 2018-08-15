@@ -874,7 +874,7 @@ void ZBrowser::doModeCommand()
         char *tmp=0;
         if((p1.length()<11)
         || ((strcmp(p1.substring(0,6).c_str(),"ftp://") != 0)
-           && (strcmp(p1.substring(0,8).c_str(),"ftps://") != 0)))
+           && (strcmp(p1.substring(0,7).c_str(),"ftps://") != 0)))
           serial.printf("Not a url: %s%s",p1.c_str(),EOLNC);
         /*
         else
@@ -911,7 +911,7 @@ void ZBrowser::doModeCommand()
         char *tmp=0;
         if((p1.length()<11)
         || ((strcmp(p1.substring(0,6).c_str(),"ftp://") != 0)
-           && (strcmp(p1.substring(0,8).c_str(),"ftps://") != 0)))
+           && (strcmp(p1.substring(0,7).c_str(),"ftps://") != 0)))
           serial.printf("Not a url: %s%s",p1.c_str(),EOLNC);
         /*
         else
