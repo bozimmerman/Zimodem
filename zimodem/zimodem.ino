@@ -124,6 +124,8 @@ class ZMode
 #include "phonebook.h"
 #include "wifiservernode.h"
 #include "zstream.h"
+#include "proto_http.h"
+#include "proto_ftp.h"
 #include "zcommand.h"
 #include "zconfigmode.h"
 
