@@ -213,7 +213,8 @@ void ZStream::loop()
   else
   if(serial.isSerialOut())
   {
-    if((current->isConnected()) && (current->available()>0))
+    if(current->available()>0)
+    //&&(current->isConnected()) // not a requirement to have available bytes to read
     {
       int bufferRemaining=serialOutBufferBytesRemaining();
       if(bufferRemaining > 0)

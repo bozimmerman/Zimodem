@@ -2655,8 +2655,8 @@ void ZCommand::sendNextPacket()
     nextConn = nextConn->next;
   while(serial.isSerialOut() && (nextConn != null) && (packetXOn))
   {
-    if((nextConn->isConnected())
-    && (nextConn->available()>0))
+    if(nextConn->available()>0)
+    //&& (nextConn->isConnected())) // being connected is not required to have buffered bytes waiting!
     {
       int availableBytes = nextConn->available();
       int maxBytes=packetSize;

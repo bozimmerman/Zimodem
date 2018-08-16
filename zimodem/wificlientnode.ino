@@ -254,7 +254,7 @@ String WiFiClientNode::readLine(int timeout)
 {
   long now=millis();
   String line = "";
-  while(((millis()-now < timeout) || (available()>0)) && (!isConnected()))
+  while(((millis()-now < timeout) || (available()>0)))
   {
     yield();
     if(available()>0)
