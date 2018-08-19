@@ -96,6 +96,12 @@ void ZConfig::doModeCommand()
         showMenu=true;
       }
       else
+      if(c=='h') // host
+      {
+        currState=ZCFGMENU_NEWHOST;
+        showMenu=true;
+      }
+      else
       if(c=='f') // flow control
       {
         currState=ZCFGMENU_FLOW;
@@ -435,6 +441,23 @@ void ZConfig::doModeCommand()
       }
       break;
     }
+    case ZCFGMENU_NEWHOST:
+      if(cmd.length()==0)
+        currState=ZCFGMENU_WIMENU;
+      else
+      {
+        hostname=cmd;
+        hostname.replace(',','.');
+        if(WiFi.status()==WL_CONNECTED)
+        {
+            if(!connectWifi(wifiSSI.c_str(),wifiPW.c_str()))
+              serial.printf("%sUnable to connect to %s. :(%s",EOLNC,WiFi.SSID(lastNumber).c_str(),EOLNC);
+            settingsChanged=true;
+        }
+        currState=ZCFGMENU_MAIN;
+        showMenu=true;
+      }
+      break;
     case ZCFGMENU_WIFIPW:
       if(cmd.length()==0)
       {
@@ -499,6 +522,7 @@ void ZConfig::loop()
       case ZCFGMENU_MAIN:
       {
         serial.printf("%sMain Menu%s",EOLNC,EOLNC);
+        serial.printf("[HOST] name: %s%s",hostname.c_str(),EOLNC);
         serial.printf("[WIFI] connection: %s%s",(WiFi.status() == WL_CONNECTED)?wifiSSI.c_str():"Not connected",EOLNC);
         String flowName;
         switch(commandMode.serial.getFlowControlType())
@@ -604,6 +628,11 @@ void ZConfig::loop()
           delay(10);
         }
         serial.printf("%sEnter number to connect, or ENTER: ",EOLNC);
+        break;
+      }
+      case ZCFGMENU_NEWHOST:
+      {
+        serial.printf("%sEnter a new hostname: ",EOLNC);
         break;
       }
       case ZCFGMENU_WIFIPW:

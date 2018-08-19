@@ -214,15 +214,19 @@ static void s_pinWrite(uint8_t pinNo, uint8_t value)
 
 static bool connectWifi(const char* ssid, const char* password)
 {
-  if(WiFi.status() == WL_CONNECTED)
+  while(WiFi.status() == WL_CONNECTED)
+  {
     WiFi.disconnect();
+    delay(100);
+    yield();
+  }
   if(hostname.length() > 0)
   {
     WiFi.hostname(hostname);
   }
   WiFi.mode(WIFI_STA);
   WiFi.begin(ssid, password);
-  boolean amConnected = (WiFi.status() == WL_CONNECTED) && (strcmp(WiFi.localIP().toString().c_str(), "0.0.0.0")!=0);
+  bool amConnected = (WiFi.status() == WL_CONNECTED) && (strcmp(WiFi.localIP().toString().c_str(), "0.0.0.0")!=0);
   int WiFiCounter = 0;
   while ((!amConnected) && (WiFiCounter < 30))
   {

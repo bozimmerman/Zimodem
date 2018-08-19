@@ -28,7 +28,8 @@ class ZConfig : public ZMode
       ZCFGMENU_WICONFIRM=6,
       ZCFGMENU_FLOW=7,
       ZCFGMENU_BBSMENU=8,
-      ZCFGMENU_NEWPORT=9
+      ZCFGMENU_NEWPORT=9,
+      ZCFGMENU_NEWHOST=10
     } currState;
     
     ZSerial serial; // storage for serial settings only
