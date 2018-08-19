@@ -162,6 +162,7 @@ enum BaudState
 static bool wifiConnected =false;
 static String wifiSSI;
 static String wifiPW;
+static String hostname;
 static SerialConfig serialConfig = DEFAULT_SERIAL_CONFIG;
 static int baudRate=DEFAULT_BAUD_RATE;
 static int dequeSize=1+(DEFAULT_BAUD_RATE/768);
@@ -215,6 +216,10 @@ static bool connectWifi(const char* ssid, const char* password)
 {
   if(WiFi.status() == WL_CONNECTED)
     WiFi.disconnect();
+  if(hostname.length() > 0)
+  {
+    WiFi.hostname(hostname);
+  }
   WiFi.mode(WIFI_STA);
   WiFi.begin(ssid, password);
   boolean amConnected = (WiFi.status() == WL_CONNECTED) && (strcmp(WiFi.localIP().toString().c_str(), "0.0.0.0")!=0);

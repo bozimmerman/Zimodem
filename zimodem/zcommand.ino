@@ -253,14 +253,14 @@ void ZCommand::reSaveConfig()
            "%d,%d,%d,%d,%d,%d,%d,"
            "%d,%d,%d,%d,%d,%d,"
            "%d,"
-           "%s,%s", 
+           "%s,%s,%s", 
             wifiSSI.c_str(), wifiPW.c_str(), baudRate, eoln,
             serial.getFlowControlType(), doEcho, suppressResponses, numericResponses,
             longResponses, serial.isPetsciiMode(), dcdMode, serialConfig, ctsMode,
             rtsMode,pinDCD,pinCTS,pinRTS,autoStreamMode,ringCounter,preserveListeners,
             riMode,dtrMode,dsrMode,pinRI,pinDTR,pinDSR,
             zclock.isDisabled()?999:zclock.getTimeZoneCode(),
-            zclock.getFormat().c_str(),zclock.getNtpServerHost().c_str()
+            zclock.getFormat().c_str(),zclock.getNtpServerHost().c_str(),hostname.c_str()
             );
   f.close();
   delay(500);
@@ -435,6 +435,7 @@ void ZCommand::loadConfig()
   changeSerialConfig(serialConfig);
   wifiSSI=argv[CFG_WIFISSI];
   wifiPW=argv[CFG_WIFIPW];
+  hostname = argv[CFG_HOSTNAME];
   if(wifiSSI.length()>0)
   {
     connectWifi(wifiSSI.c_str(),wifiPW.c_str());
@@ -2319,6 +2320,43 @@ ZResult ZCommand::doSerialCommand()
         }
         case 'g':
           result = doWebStream(vval,vbuf,vlen,isNumber,"/temp.web",false);
+          break;
+        case 's':
+          if(vlen<3)
+            result=ZERROR;
+          else
+          {
+            char *eq=strchr((char *)vbuf,'=');
+            if((eq == null)||(eq == (char *)vbuf)||(eq>=(char *)&(vbuf[vlen-1])))
+              result=ZERROR;
+            else
+            {
+              *eq=0;
+              int snum = atoi((char *)vbuf);
+              if((snum == 0)&&((vbuf[0]!='0')||(eq != (char *)(vbuf+1))))
+                result=ZERROR;
+              else
+              {
+                eq++;
+                switch(snum)
+                {
+                  case 40:
+                    if(*eq == 0)
+                      result=ZERROR;
+                    else
+                    {
+                      hostname = eq;
+                      hostname.replace(',','.');
+                      WiFi.hostname(hostname);
+                    }
+                    break;
+                  default:
+                    result=ZERROR;
+                    break;
+                }
+              }
+            }
+          }
           break;
         case 'p':
           serial.setPetsciiMode(vval > 0);

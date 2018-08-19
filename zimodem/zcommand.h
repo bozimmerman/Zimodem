@@ -57,7 +57,8 @@ enum ConfigOptions
   CFG_TIMEZONE=26,
   CFG_TIMEFMT=27,
   CFG_TIMEURL=28,
-  CFG_LAST=28
+  CFG_HOSTNAME=29,
+  CFG_LAST=29
 };
 
 enum BinType
