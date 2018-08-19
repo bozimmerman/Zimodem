@@ -103,6 +103,7 @@ WiFiClientNode::~WiFiClientNode()
     commandMode.current = conns;
   if(commandMode.nextConn == this)
     commandMode.nextConn = conns;
+  underflowBufLen = 0;
   freeCharArray(&delimiters);
   freeCharArray(&maskOuts);
   next=null;
@@ -155,6 +156,12 @@ int WiFiClientNode::read()
 {
   if((host == null)||(!answered))
     return 0;
+  if(underflowBufLen > 0)
+  {
+    int b = underflowBuf[0];
+    memcpy(underflowBuf,underflowBuf+1,--underflowBufLen);
+    return b;
+  }
   return client.read();
 }
 
@@ -162,6 +169,8 @@ int WiFiClientNode::peek()
 {
   if((host == null)||(!answered))
     return 0;
+  if(underflowBufLen > 0)
+    return underflowBuf[0];
   return client.peek();
 }
 
@@ -178,6 +187,8 @@ int WiFiClientNode::available()
 {
   if((host == null)||(!answered))
     return 0;
+  if(underflowBufLen > 0)
+    return underflowBufLen;
   return client.available();
 }
 
@@ -185,11 +196,38 @@ int WiFiClientNode::read(uint8_t *buf, size_t size)
 {
   if((host == null)||(!answered))
     return 0;
-  return client.read(buf,size);
+  // this whole underflow buf len thing is to get around yet another
+  // problem in the underlying library where a socket disconnection
+  // eats away any stray available bytes in their buffers.
+  if(underflowBufLen > 0)
+  {
+    if(underflowBufLen <= size)
+    {
+      memcpy(buf,underflowBuf,underflowBufLen);
+      size = underflowBufLen;
+      underflowBufLen = 0;
+    }
+    else
+    {
+      memcpy(buf,underflowBuf,size);
+      underflowBufLen -= size;
+      memcpy(underflowBuf,underflowBuf+size,underflowBufLen);
+    }
+    return size;
+  }
+  
+  int bytesRead = client.read(buf,size);
+  int newAvail = client.available(); 
+  if((newAvail>0) && (newAvail<size) && (newAvail<UNDERFLOW_BUF_MAX_SIZE))
+    underflowBufLen = client.read(underflowBuf,newAvail); 
+  return bytesRead;
 }
 
 int WiFiClientNode::flushOverflowBuffer()
 {
+  /*
+   * I've never gotten any of this to trigger, and could use those
+   * extra 260 bytes per connection
   if(overflowBufLen > 0)
   {
     // because overflowBuf is not a const char* for some reason
@@ -218,11 +256,14 @@ int WiFiClientNode::flushOverflowBuffer()
       return bufWrite;
     }
   }
+   */
   return 0;
 }
 
 size_t WiFiClientNode::write(const uint8_t *buf, size_t size)
 {
+  int written = 0;
+  /* overflow buf is pretty much useless now
   if(host == null)
   {
     if(overflowBufLen>0)
@@ -232,7 +273,6 @@ size_t WiFiClientNode::write(const uint8_t *buf, size_t size)
     overflowBufLen=0;
     return 0;
   }
-  int written = 0;
   written += flushOverflowBuffer();
   if(written > 0)
   {
@@ -240,13 +280,16 @@ size_t WiFiClientNode::write(const uint8_t *buf, size_t size)
       overflowBuf[overflowBufLen]=buf[i];
     return written;
   }
+  */
   written += client.write(buf, size);
+  /*
   if(written < size)
   {
     for(int i=written;i<size && overflowBufLen<OVERFLOW_BUF_SIZE;i++,overflowBufLen++)
       overflowBuf[overflowBufLen]=buf[i];
     s_pinWrite(pinRTS,rtsInactive);
   }
+  */
   return written;
 }
 
@@ -309,7 +352,12 @@ int WiFiClientNode::getNumOpenWiFiConnections()
   WiFiClientNode *conn = conns;
   while(conn != null)
   {
-    if(conn->isConnected() && conn->isAnswered())
+    if((conn->isConnected()
+     ||(conn->available()>0)
+     ||((conn == conns)
+       &&((serialOutBufferBytesRemaining() > 0)
+         ||(HWSerial.availableForWrite()<SER_BUFSIZE))))
+    && conn->isAnswered())
       num++;
     conn = conn->next;
   }

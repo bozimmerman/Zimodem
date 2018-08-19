@@ -2629,17 +2629,6 @@ bool ZCommand::checkPlusEscape()
   return false;
 }
 
-void ZCommand::serialIncoming()
-{
-  bool crReceived=readSerialStream();
-  clearPlusProgress(); // every serial incoming, without a plus, breaks progress
-  if((!crReceived)||(eon==0))
-    return;
-  //delay(200); // give a pause after receiving command before responding
-  // the delay doesn't affect xon/xoff because its the periodic transmitter that manages that.
-  doSerialCommand();
-}
-
 void ZCommand::sendNextPacket()
 {
   if(serial.availableForWrite()<packetSize)
@@ -2927,6 +2916,17 @@ void ZCommand::acceptNewConnection()
   {
     s_pinWrite(pinRI,riInactive);
   }
+}
+
+void ZCommand::serialIncoming()
+{
+  bool crReceived=readSerialStream();
+  clearPlusProgress(); // every serial incoming, without a plus, breaks progress
+  if((!crReceived)||(eon==0))
+    return;
+  //delay(200); // give a pause after receiving command before responding
+  // the delay doesn't affect xon/xoff because its the periodic transmitter that manages that.
+  doSerialCommand();
 }
 
 void ZCommand::loop()

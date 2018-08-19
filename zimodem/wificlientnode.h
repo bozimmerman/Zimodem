@@ -16,6 +16,7 @@
 
 #define LAST_PACKET_BUF_SIZE 256
 #define OVERFLOW_BUF_SIZE 256
+#define UNDERFLOW_BUF_MAX_SIZE 256
 
 static WiFiClient *createWiFiClient(bool SSL)
 {
@@ -49,8 +50,10 @@ class WiFiClientNode : public Stream
     char *maskOuts = NULL;
     uint8_t lastPacketBuf[LAST_PACKET_BUF_SIZE];
     int lastPacketLen=0;
-    uint8_t overflowBuf[OVERFLOW_BUF_SIZE];
-    int overflowBufLen = 0;
+    //uint8_t overflowBuf[OVERFLOW_BUF_SIZE];
+    //int overflowBufLen = 0;
+    uint8_t underflowBuf[UNDERFLOW_BUF_MAX_SIZE];
+    size_t underflowBufLen = 0;
     WiFiClientNode *next = null;
 
     WiFiClientNode(char *hostIp, int newport, int flagsBitmap);
