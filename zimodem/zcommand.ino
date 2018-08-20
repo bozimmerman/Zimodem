@@ -657,6 +657,11 @@ ZResult ZCommand::doInfoCommand(int vval, uint8_t *vbuf, int vlen, bool isNumber
     serial.prints(EOLN);
   }
   else
+  if(vval == 9)
+  {
+    serial.printf("%d%s",ESP.getFreeHeap(),EOLN.c_str());
+  }
+  else
     return ZERROR;
   return ZOK;
 }
