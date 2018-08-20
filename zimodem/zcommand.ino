@@ -900,13 +900,34 @@ ZResult ZCommand::doWebDump(const char *filename, const bool cache)
     }
     f.close();
   }
+  uint8_t *buf = (uint8_t *)malloc(1);
+  int bufLen = 1;
+  int len = 0;
+  {
+    File f = SPIFFS.open(filename, "r");
+    char *oldMachineState = machineState;
+    String oldMachineQue = machineQue;
+    for(int i=0;i<f.size();i++)
+    {
+        int c=f.read();
+        if(c<0)
+          break;
+        buf[0]=c;
+        bufLen = 1;
+        buf = doMaskOuts(buf,&bufLen,maskOuts);
+        buf = doStateMachine(buf,&bufLen,&machineState,&machineQue,stateMachine);
+        len += bufLen;
+    }
+    machineState = oldMachineState;
+    machineQue = oldMachineQue;
+  }
   File f = SPIFFS.open(filename, "r");
-  int len = f.size();
   if(!cache)
   {
     headerOut(0,len,chk8);
     serial.flush(); // stupid important because otherwise apps that go xoff miss the header info
   }
+  len = f.size();
   bool flowControl=!cache;
   BinType streamType = cache?BTYPE_NORMAL:binType;
   int bct=0;
@@ -918,9 +939,8 @@ ZResult ZCommand::doWebDump(const char *filename, const bool cache)
       int c=f.read();
       if(c<0)
         break;
-      uint8_t *buf = (uint8_t *)malloc(1);
       buf[0] = (uint8_t)c;
-      int bufLen = 1;
+      bufLen = 1;
       buf = doMaskOuts(buf,&bufLen,maskOuts);
       buf = doStateMachine(buf,&bufLen,&machineState,&machineQue,stateMachine);
       for(int i=0;i<bufLen;i++)
@@ -951,7 +971,6 @@ ZResult ZCommand::doWebDump(const char *filename, const bool cache)
             break;
         }
       }
-      free(buf);
     }
     if(serial.isSerialOut())
     {
@@ -961,6 +980,7 @@ ZResult ZCommand::doWebDump(const char *filename, const bool cache)
     if(serial.drainForXonXoff()==3)
     {
       serial.setXON(true);
+      free(buf);
       f.close();
       return ZOK;
     }
@@ -974,6 +994,7 @@ ZResult ZCommand::doWebDump(const char *filename, const bool cache)
       if(serial.drainForXonXoff()==3)
       {
         serial.setXON(true);
+        free(buf);
         f.close();
         return ZOK;
       }
@@ -981,6 +1002,7 @@ ZResult ZCommand::doWebDump(const char *filename, const bool cache)
     }
     yield();
   }
+  free(buf);
   if(bct > 0)
     serial.prints(EOLN);
   f.close();
@@ -2673,8 +2695,11 @@ uint8_t *ZCommand::doStateMachine(uint8_t *buf, int *bufLen, char **machineState
     {
       if(newBuf.length() > 0)
       {
-        free(buf);
-        buf = (uint8_t *)malloc(newBuf.length());
+        if(newBuf.length() > *bufLen)
+        {
+          free(buf);
+          buf = (uint8_t *)malloc(newBuf.length());
+        }
         memcpy(buf,newBuf.c_str(),newBuf.length());
       }
       *bufLen = newBuf.length();
