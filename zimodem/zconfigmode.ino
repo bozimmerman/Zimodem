@@ -451,7 +451,7 @@ void ZConfig::doModeCommand()
         if(WiFi.status()==WL_CONNECTED)
         {
             if(!connectWifi(wifiSSI.c_str(),wifiPW.c_str()))
-              serial.printf("%sUnable to connect to %s. :(%s",EOLNC,WiFi.SSID(lastNumber).c_str(),EOLNC);
+              serial.printf("%sUnable to connect to %s. :(%s",EOLNC,wifiSSI.c_str(),EOLNC);
             settingsChanged=true;
         }
         currState=ZCFGMENU_MAIN;

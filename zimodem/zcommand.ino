@@ -2459,7 +2459,9 @@ ZResult ZCommand::doSerialCommand()
                     {
                       hostname = eq;
                       hostname.replace(',','.');
-                      WiFi.hostname(hostname);
+                      if(WiFi.status()==WL_CONNECTED)
+                          connectWifi(wifiSSI.c_str(),wifiPW.c_str());
+                      result=ZOK;
                     }
                     break;
                   default:
