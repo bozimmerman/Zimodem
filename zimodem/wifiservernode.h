@@ -24,6 +24,7 @@ class WiFiServerSpec
     int flagsBitmap = 0;
     char *delimiters = NULL;
     char *maskOuts = NULL;
+    char *stateMachine = NULL;
 
     WiFiServerSpec();
     WiFiServerSpec(WiFiServerSpec &copy);

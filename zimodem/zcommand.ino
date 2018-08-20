@@ -25,8 +25,11 @@ ZCommand::ZCommand()
   strcpy(ECS,"+++");
   freeCharArray(&tempMaskOuts);
   freeCharArray(&tempDelimiters);
+  freeCharArray(&tempStateMachine);
   setCharArray(&delimiters,"");
   setCharArray(&maskOuts,"");
+  setCharArray(&stateMachine,"");
+  machineState = stateMachine;
 }
 
 byte ZCommand::CRC8(const byte *data, byte len) 
@@ -124,8 +127,10 @@ void ZCommand::setConfigDefaults()
   tempBaud = -1;
   freeCharArray(&tempMaskOuts);
   freeCharArray(&tempDelimiters);
+  freeCharArray(&tempStateMachine);
   setCharArray(&delimiters,"");
-  setCharArray(&maskOuts,"");
+  setCharArray(&stateMachine,"");
+  machineState = stateMachine;
 }
 
 char lc(char c)
@@ -135,6 +140,17 @@ char lc(char c)
   if((c>=193) && (c<=218))
     return c-96;
   return c;
+}
+
+void ZCommand::connectionArgs(WiFiClientNode *c)
+{
+  setCharArray(&(c->delimiters),tempDelimiters);
+  setCharArray(&(c->maskOuts),tempMaskOuts);
+  setCharArray(&(c->stateMachine),tempStateMachine);
+  freeCharArray(&tempDelimiters);
+  freeCharArray(&tempMaskOuts);
+  freeCharArray(&tempStateMachine);
+  c->machineState = c->stateMachine;
 }
 
 ZResult ZCommand::doResetCommand()
@@ -761,10 +777,7 @@ ZResult ZCommand::doConnectCommand(int vval, uint8_t *vbuf, int vlen, bool isNum
       if((c!=null)&&(c->id == vval))
       {
         current = c;
-        setCharArray(&(c->delimiters),tempDelimiters);
-        setCharArray(&(c->maskOuts),tempMaskOuts);
-        freeCharArray(&tempDelimiters);
-        freeCharArray(&tempMaskOuts);
+        connectionArgs(c);
       }
       else
         return ZERROR;
@@ -824,10 +837,7 @@ ZResult ZCommand::doConnectCommand(int vval, uint8_t *vbuf, int vlen, bool isNum
     {
       logPrintfln("Connnect: SUCCESS: %d",c->id);
       current=c;
-      setCharArray(&(c->delimiters),tempDelimiters);
-      setCharArray(&(c->maskOuts),tempMaskOuts);
-      freeCharArray(&tempDelimiters);
-      freeCharArray(&tempMaskOuts);
+      connectionArgs(c);
       return ZCONNECT;
     }
   }
@@ -908,29 +918,40 @@ ZResult ZCommand::doWebDump(const char *filename, const bool cache)
       int c=f.read();
       if(c<0)
         break;
-      if(cache && serial.isPetsciiMode())
-        c=ascToPetcii(c);
-      switch(streamType)
+      uint8_t *buf = (uint8_t *)malloc(1);
+      buf[0] = (uint8_t)c;
+      int bufLen = 1;
+      buf = doMaskOuts(buf,&bufLen,maskOuts);
+      buf = doStateMachine(buf,&bufLen,&machineState,&machineQue,stateMachine);
+      for(int i=0;i<bufLen;i++)
       {
-        case BTYPE_NORMAL:
-          serial.write((uint8_t)c);
-          break;
-        case BTYPE_HEX:
+        c=buf[i];
+        if(cache && serial.isPetsciiMode())
+          c=ascToPetcii(c);
+        
+        switch(streamType)
         {
-          const char *hbuf = TOHEX((uint8_t)c);
-          serial.printb(hbuf[0]); // prevents petscii
-          serial.printb(hbuf[1]);
-          if((++bct)>=39)
+          case BTYPE_NORMAL:
+            serial.write((uint8_t)c);
+            break;
+          case BTYPE_HEX:
           {
-            serial.prints(EOLN);
-            bct=0;
+            const char *hbuf = TOHEX((uint8_t)c);
+            serial.printb(hbuf[0]); // prevents petscii
+            serial.printb(hbuf[1]);
+            if((++bct)>=39)
+            {
+              serial.prints(EOLN);
+              bct=0;
+            }
+            break;
           }
-          break;
+          case BTYPE_DEC:
+            serial.printf("%d%s",c,EOLN.c_str());
+            break;
         }
-        case BTYPE_DEC:
-          serial.printf("%d%s",c,EOLN.c_str());
-          break;
       }
+      free(buf);
     }
     if(serial.isSerialOut())
     {
@@ -1228,10 +1249,7 @@ ZResult ZCommand::doDialStreamCommand(unsigned long vval, uint8_t *vbuf, int vle
     if((c!=null)&&(c->id == vval)&&(c->isConnected()))
     {
       current=c;
-      setCharArray(&(c->delimiters),tempDelimiters);
-      setCharArray(&(c->maskOuts),tempMaskOuts);
-      freeCharArray(&tempDelimiters);
-      freeCharArray(&tempMaskOuts);
+      connectionArgs(c);
       streamMode.switchTo(c);
       return ZCONNECT;
     }
@@ -1258,10 +1276,7 @@ ZResult ZCommand::doDialStreamCommand(unsigned long vval, uint8_t *vbuf, int vle
     else
     {
       current=c;
-      setCharArray(&(c->delimiters),tempDelimiters);
-      setCharArray(&(c->maskOuts),tempMaskOuts);
-      freeCharArray(&tempDelimiters);
-      freeCharArray(&tempMaskOuts);
+      connectionArgs(c);
       streamMode.switchTo(c);
       return ZCONNECT;
     }
@@ -1382,8 +1397,10 @@ ZResult ZCommand::doAnswerCommand(int vval, uint8_t *vbuf, int vlen, bool isNumb
     WiFiServerNode *newServer = new WiFiServerNode(vval, flagsBitmap);
     setCharArray(&(newServer->delimiters),tempDelimiters);
     setCharArray(&(newServer->maskOuts),tempMaskOuts);
+    setCharArray(&(newServer->stateMachine),tempStateMachine);
     freeCharArray(&tempDelimiters);
     freeCharArray(&tempMaskOuts);
+    freeCharArray(&tempStateMachine);
     return ZOK;
   }
 }
@@ -2195,6 +2212,46 @@ ZResult ZCommand::doSerialCommand()
           }
           result=ZOK;
           break;
+        case 'y':
+          {
+            if((vlen % ZI_STATE_MACHINE_LEN) != 0)
+              result=ZERROR;
+            else
+            {
+              bool ok = true;
+              const char *HEX_DIGITS = "0123456789abcdefABCDEF";
+              for(int i=0;ok && (i<vlen);i+=ZI_STATE_MACHINE_LEN)
+              {
+                if((strchr(HEX_DIGITS,vbuf[i]) == NULL)
+                ||(strchr(HEX_DIGITS,vbuf[i+1]) == NULL)
+                ||(strchr("epdqxr",lc(vbuf[i+2])) == NULL)
+                ||(strchr(HEX_DIGITS,vbuf[i+5]) == NULL)
+                ||(strchr(HEX_DIGITS,vbuf[i+6]) == NULL))
+                  ok = false;
+                else
+                if((lc(vbuf[i+2])=='r')
+                &&((strchr(HEX_DIGITS,vbuf[i+3]) == NULL)
+                  ||(strchr(HEX_DIGITS,vbuf[i+4]) == NULL)))
+                  ok=false;
+                else
+                if((strchr("epdqx-",lc(vbuf[i+3])) == NULL)
+                ||(strchr("epdqx-",lc(vbuf[i+4])) == NULL))
+                  ok=false;
+              }
+              if(ok)
+              {
+                char newStateMachine[vlen+1];
+                newStateMachine[vlen]=0;
+                if(vlen > 0)
+                  memcpy(newStateMachine,vbuf,vlen);
+                setCharArray(&tempStateMachine,newStateMachine);
+                result=ZOK;
+              }
+              else
+                result=ZERROR;
+            }
+          }
+          break;
         case 'd':
           if(vval > 0)
           {
@@ -2419,11 +2476,22 @@ ZResult ZCommand::doSerialCommand()
       }
     }
 
-    setCharArray(&delimiters,tempDelimiters);
-    freeCharArray(&tempDelimiters);
-    setCharArray(&maskOuts,tempMaskOuts);
-    freeCharArray(&tempMaskOuts);
-  
+    if(tempDelimiters != NULL)
+    {
+      setCharArray(&delimiters,tempDelimiters);
+      freeCharArray(&tempDelimiters);
+    }
+    if(tempMaskOuts != NULL)
+    {
+      setCharArray(&maskOuts,tempMaskOuts);
+      freeCharArray(&tempMaskOuts);
+    }
+    if(tempStateMachine != NULL)
+    {
+      setCharArray(&stateMachine,tempStateMachine);
+      freeCharArray(&tempStateMachine);
+      machineState = stateMachine;
+    }
     if(result != ZIGNORE_SPECIAL)
       previousCommand = saveCommand;
     if(suppressResponses)
@@ -2530,6 +2598,111 @@ void ZCommand::showInitMessage()
   serial.flush();
 }
 
+uint8_t *ZCommand::doStateMachine(uint8_t *buf, int *bufLen, char **machineState, String *machineQue, char *stateMachine)
+{
+  if((*machineState != NULL) && ((*machineState)[0] != 0))
+  {
+    String newBuf = "";
+    for(int i=0;i<*bufLen;)
+    {
+      char matchChar = FROMHEX((*machineState)[0],(*machineState)[1]);
+      if((matchChar == 0)||(matchChar == buf[i]))
+      {
+        char c= buf[i++];
+        short cmddex=1;
+        do
+        {
+          cmddex++;
+          switch(lc((*machineState)[cmddex]))
+          {
+            case '-': // do nothing
+            case 'e': // do nothing
+              break; 
+            case 'p': // push to the que 
+              if(machineQue->length() < 256)
+                *machineQue += c;
+              break;
+            case 'd': // display this char
+              newBuf += c;
+              break;
+            case 'x': // flush queue
+              *machineQue = "";
+              break;
+            case 'q': // eat this char, but flush the queue
+              if(machineQue->length()>0)
+              {
+                newBuf += *machineQue;
+                *machineQue = "";
+              }
+              break;
+            case 'r': // replace this char
+              if(cmddex == 2)
+              {
+                char newChar = FROMHEX((*machineState)[cmddex+1],(*machineState)[cmddex+2]);
+                newBuf += newChar;
+              }
+              break;
+            default:
+              break;
+          }
+        }
+        while((cmddex<4) && (lc((*machineState)[cmddex])!='r'));
+        char *newstate = stateMachine + (ZI_STATE_MACHINE_LEN * FROMHEX((*machineState)[5],(*machineState)[6]));
+        char *test = stateMachine;
+        while(test[0] != 0)
+        {
+          if(test == newstate)
+          {
+            (*machineState) = test;
+            break;
+          }
+          test += ZI_STATE_MACHINE_LEN;
+        }
+      }
+      else
+      {
+        *machineState += ZI_STATE_MACHINE_LEN;
+        if((*machineState)[0] == 0)
+        {
+          *machineState = stateMachine;
+          i++;
+        }
+      }
+    }
+    if((*bufLen != newBuf.length()) || (memcmp(buf,newBuf.c_str(),*bufLen)!=0))
+    {
+      if(newBuf.length() > 0)
+      {
+        free(buf);
+        buf = (uint8_t *)malloc(newBuf.length());
+        memcpy(buf,newBuf.c_str(),newBuf.length());
+      }
+      *bufLen = newBuf.length();
+    }
+  }
+  return buf;
+}
+
+uint8_t *ZCommand::doMaskOuts(uint8_t *buf, int *bufLen, char *maskOuts)
+{
+  if(maskOuts[0] != 0)
+  {
+    int oldLen=*bufLen;
+    for(int i=0,o=0;i<oldLen;i++,o++)
+    {
+      if(strchr(maskOuts,buf[i])!=null)
+      {
+        o--;
+        (*bufLen)--;
+      }
+      else
+        buf[o]=buf[i];
+    }
+  }
+  return buf;
+}
+
+
 void ZCommand::reSendLastPacket(WiFiClientNode *conn)
 {
   if(conn == NULL)
@@ -2547,21 +2720,10 @@ void ZCommand::reSendLastPacket(WiFiClientNode *conn)
     uint8_t *buf = (uint8_t *)malloc(bufLen);
     memcpy(buf,conn->lastPacketBuf,bufLen);
 
-    if((conn->maskOuts[0] != 0) || (maskOuts[0] != 0))
-    {
-      int oldLen=bufLen;
-      for(int i=0,o=0;i<oldLen;i++,o++)
-      {
-        if((strchr(conn->maskOuts,buf[i])!=null)
-        ||(strchr(maskOuts,buf[i])!=null))
-        {
-          o--;
-          bufLen--;
-        }
-        else
-          buf[o]=buf[i];
-      }
-    }
+    buf = doMaskOuts(buf,&bufLen,maskOuts);
+    buf = doMaskOuts(buf,&bufLen,conn->maskOuts);
+    buf = doStateMachine(buf,&bufLen,&machineState,&machineQue,stateMachine);
+    buf = doStateMachine(buf,&bufLen,&(conn->machineState),&(conn->machineQue),conn->stateMachine);
     if(nextConn->isPETSCII())
     {
       int oldLen=bufLen;
@@ -2885,6 +3047,8 @@ void ZCommand::acceptNewConnection()
           WiFiClientNode *newClientNode = new WiFiClientNode(newClient, serv->flagsBitmap, futureRings * 2);
           setCharArray(&(newClientNode->delimiters),serv->delimiters);
           setCharArray(&(newClientNode->maskOuts),serv->maskOuts);
+          setCharArray(&(newClientNode->stateMachine),serv->stateMachine);
+          newClientNode->machineState = newClientNode->stateMachine;
           s_pinWrite(pinRI,riActive);
           serial.prints(numericResponses?"2":"RING");
           serial.prints(EOLN);

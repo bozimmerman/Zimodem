@@ -15,6 +15,7 @@
 */
 
 const int MAX_COMMAND_SIZE=256;
+#define ZI_STATE_MACHINE_LEN 7
 
 enum ZResult
 {
@@ -97,8 +98,12 @@ class ZCommand : public ZMode
     unsigned long currentExpiresTimeMs = 0;
     char *tempDelimiters = NULL;
     char *tempMaskOuts = NULL;
+    char *tempStateMachine = NULL;
     char *delimiters = NULL;
     char *maskOuts = NULL;
+    char *stateMachine = NULL;
+    char *machineState = NULL;
+    String machineQue = "";
     String previousCommand = "";
     WiFiClientNode *nextConn=null;
     int lastPacketId = -1;
@@ -120,6 +125,9 @@ class ZCommand : public ZMode
     void headerOut(const int channel, const int sz, const int crc8);
     void sendConnectionNotice(int nodeId);
     void sendNextPacket();
+    void connectionArgs(WiFiClientNode *c);
+    uint8_t *doStateMachine(uint8_t *buf, int *bufLen, char **machineState, String *machineQue, char *stateMachine);
+    uint8_t *doMaskOuts(uint8_t *buf, int *bufLen, char *maskOuts);
     ZResult doWebDump(const char *filename, const bool cache);
 
     ZResult doResetCommand();

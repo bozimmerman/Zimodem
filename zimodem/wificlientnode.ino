@@ -41,6 +41,8 @@ WiFiClientNode::WiFiClientNode(char *hostIp, int newport, int flagsBitmap)
   client.setNoDelay(DEFAULT_NO_DELAY);
   setCharArray(&delimiters,"");
   setCharArray(&maskOuts,"");
+  setCharArray(&stateMachine,"");
+  machineState = stateMachine;
   if(!client.connect(hostIp, port))
   {
     // deleted when it returns and is deleted
@@ -59,6 +61,8 @@ WiFiClientNode::WiFiClientNode(WiFiClient newClient, int flagsBitmap, int ringDe
   port=newClient.localPort();
   setCharArray(&delimiters,"");
   setCharArray(&maskOuts,"");
+  setCharArray(&stateMachine,"");
+  machineState = stateMachine;
   String remoteIPStr = newClient.remoteIP().toString();
   const char *remoteIP=remoteIPStr.c_str();
   host=new char[remoteIPStr.length()+1];
@@ -106,6 +110,8 @@ WiFiClientNode::~WiFiClientNode()
   underflowBufLen = 0;
   freeCharArray(&delimiters);
   freeCharArray(&maskOuts);
+  freeCharArray(&stateMachine);
+  machineState = NULL;
   next=null;
   checkOpenConnections();
 }
