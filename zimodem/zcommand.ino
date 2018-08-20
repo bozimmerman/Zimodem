@@ -886,47 +886,48 @@ ZResult ZCommand::doWebStream(int vval, uint8_t *vbuf, int vlen, bool isNumber, 
 
 ZResult ZCommand::doWebDump(const char *filename, const bool cache)
 {
+  machineState = stateMachine;
   int chk8=0;
-  if(!cache)
-  {
-    delay(100);
-    File f = SPIFFS.open(filename, "r");
-    int len = f.size();
-    for(int i=0;i<len;i++)
-    {
-      chk8+=f.read();
-      if(chk8>255)
-        chk8-=256;
-    }
-    f.close();
-  }
   uint8_t *buf = (uint8_t *)malloc(1);
   int bufLen = 1;
   int len = 0;
+  //if(!cache)
   {
-    File f = SPIFFS.open(filename, "r");
+    delay(100);
     char *oldMachineState = machineState;
     String oldMachineQue = machineQue;
-    for(int i=0;i<f.size();i++)
+    File f = SPIFFS.open(filename, "r");
+    int flen = f.size();
+    for(int i=0;i<flen;i++)
     {
-        int c=f.read();
-        if(c<0)
-          break;
-        buf[0]=c;
-        bufLen = 1;
-        buf = doMaskOuts(buf,&bufLen,maskOuts);
-        buf = doStateMachine(buf,&bufLen,&machineState,&machineQue,stateMachine);
-        len += bufLen;
+      int c=f.read();
+      if(c<0)
+        break;
+      buf[0]=c;
+      bufLen = 1;
+      buf = doMaskOuts(buf,&bufLen,maskOuts);
+      buf = doStateMachine(buf,&bufLen,&machineState,&machineQue,stateMachine);
+      len += bufLen;
+      if(!cache)
+      {
+        for(int i1=0;i1<bufLen;i1++)
+        {
+          chk8+=buf[i1];
+          if(chk8>255)
+            chk8-=256;
+        }
+      }
     }
+    f.close();
     machineState = oldMachineState;
     machineQue = oldMachineQue;
   }
-  File f = SPIFFS.open(filename, "r");
   if(!cache)
   {
     headerOut(0,len,chk8);
     serial.flush(); // stupid important because otherwise apps that go xoff miss the header info
   }
+  File f = SPIFFS.open(filename, "r");
   len = f.size();
   bool flowControl=!cache;
   BinType streamType = cache?BTYPE_NORMAL:binType;
@@ -982,6 +983,7 @@ ZResult ZCommand::doWebDump(const char *filename, const bool cache)
       serial.setXON(true);
       free(buf);
       f.close();
+      machineState = stateMachine;
       return ZOK;
     }
     while(serial.availableForWrite()<5)
@@ -995,6 +997,7 @@ ZResult ZCommand::doWebDump(const char *filename, const bool cache)
       {
         serial.setXON(true);
         free(buf);
+        machineState = stateMachine;
         f.close();
         return ZOK;
       }
@@ -1003,6 +1006,7 @@ ZResult ZCommand::doWebDump(const char *filename, const bool cache)
     yield();
   }
   free(buf);
+  machineState = stateMachine;
   if(bct > 0)
     serial.prints(EOLN);
   f.close();
@@ -2236,6 +2240,28 @@ ZResult ZCommand::doSerialCommand()
           break;
         case 'y':
           {
+            if(isNumber && ((vval > 0)||(vbuf[0]=='0')))
+            {
+              machineState = stateMachine;
+              machineQue = "";
+              if(current != null)
+              {
+                current->machineState = current->stateMachine;
+                current->machineQue = "";
+              }
+              while(vval > 0)
+              {
+                  vval--;
+                  if((machineState != null)&&(machineState[0]!=0))
+                    machineState += ZI_STATE_MACHINE_LEN;
+                  if(current != null)
+                  {
+                    if((current->machineState != null)&&(current->machineState[0]!=0))
+                      current->machineState += ZI_STATE_MACHINE_LEN;
+                  }
+              }
+            }
+            else
             if((vlen % ZI_STATE_MACHINE_LEN) != 0)
               result=ZERROR;
             else
@@ -2270,7 +2296,9 @@ ZResult ZCommand::doSerialCommand()
                 result=ZOK;
               }
               else
+              {
                 result=ZERROR;
+              }
             }
           }
           break;
@@ -2622,7 +2650,7 @@ void ZCommand::showInitMessage()
 
 uint8_t *ZCommand::doStateMachine(uint8_t *buf, int *bufLen, char **machineState, String *machineQue, char *stateMachine)
 {
-  if((*machineState != NULL) && ((*machineState)[0] != 0))
+  if((stateMachine != NULL) && ((stateMachine)[0] != 0) && (*machineState != NULL) && ((*machineState)[0] != 0))
   {
     String newBuf = "";
     for(int i=0;i<*bufLen;)
