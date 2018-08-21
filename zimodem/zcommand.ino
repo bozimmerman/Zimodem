@@ -423,8 +423,13 @@ void ZCommand::parseConfigOptions(String configArguments[])
     int argn=0;
     for(int i=0;i<str.length();i++)
     {
-      if((str[i]==',')&&(argn<=CFG_LAST))
-        argn++;
+      if(str[i]==',')
+      {
+        if(argn<=CFG_LAST)
+          argn++;
+        else
+          break;
+      }
       else
         configArguments[argn] += str[i];
     }
