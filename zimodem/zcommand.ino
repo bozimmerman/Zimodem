@@ -35,11 +35,12 @@ ZCommand::ZCommand()
 byte ZCommand::CRC8(const byte *data, byte len) 
 {
   byte crc = 0x00;
-  logPrint("CRC8: ");
+  //logPrint("CRC8: ");
   int c=0;
   while (len--) 
   {
     byte extract = *data++;
+    /* save for later debugging
     if(logFileOpen)
     {
         logFile.print(TOHEX(extract));
@@ -51,6 +52,7 @@ byte ZCommand::CRC8(const byte *data, byte len)
         else
           logFile.print(" ");
     }
+    */
     for (byte tempI = 8; tempI; tempI--) 
     {
       byte sum = (crc ^ extract) & 0x01;
@@ -833,8 +835,11 @@ ZResult ZCommand::doConnectCommand(int vval, uint8_t *vbuf, int vlen, bool isNum
       (*colon)=0;
       port=atoi((char *)(++colon));
     }
-    ConnSettings flags(dmodifiers);
-    int flagsBitmap = flags.getBitmap(serial.getFlowControlType());
+    int flagsBitmap=0;
+    {
+      ConnSettings flags(dmodifiers);
+      flagsBitmap = flags.getBitmap(serial.getFlowControlType());
+    }
     logPrintfln("Connnecting: %s %d %d",(char *)vbuf,port,flagsBitmap);
     WiFiClientNode *c = new WiFiClientNode((char *)vbuf,port,flagsBitmap);
     if(!c->isConnected())
