@@ -361,7 +361,7 @@ int WiFiClientNode::getNumOpenWiFiConnections()
     if((conn->isConnected()
      ||(conn->available()>0)
      ||((conn == conns)
-       &&((serialOutBufferBytesRemaining() > 0)
+       &&((serialOutBufferBytesRemaining() <SER_WRITE_BUFSIZE-1)
          ||(HWSerial.availableForWrite()<SER_BUFSIZE))))
     && conn->isAnswered())
       num++;
