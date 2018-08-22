@@ -105,6 +105,7 @@ const char compile_date[] = __DATE__ " " __TIME__;
 #define DEFAULT_BAUD_RATE 1200
 #define DEFAULT_SERIAL_CONFIG SERIAL_8N1
 #define MAX_PIN_NO 50
+#define INTERNAL_FLOW_CONTROL_DIV 380
 
 
 class ZMode
@@ -165,7 +166,7 @@ static String wifiPW;
 static String hostname;
 static SerialConfig serialConfig = DEFAULT_SERIAL_CONFIG;
 static int baudRate=DEFAULT_BAUD_RATE;
-static int dequeSize=1+(DEFAULT_BAUD_RATE/768);
+static int dequeSize=1+(DEFAULT_BAUD_RATE/INTERNAL_FLOW_CONTROL_DIV);
 static BaudState baudState = BS_NORMAL; 
 static int tempBaud = -1; // -1 do nothing
 static int dcdStatus = LOW;
@@ -267,7 +268,7 @@ static void changeBaudRate(int baudRate)
   flushSerial(); // blocking, but very very necessary
   delay(500); // give the client half a sec to catch up
   debugPrintf("Baud change to %d.\n",baudRate);
-  dequeSize=1+(baudRate/768);
+  dequeSize=1+(baudRate/INTERNAL_FLOW_CONTROL_DIV);
   debugPrintf("Deque constant now: %d\n",dequeSize);
 #ifdef ZIMODEM_ESP32
   HWSerial.changeBaudRate(baudRate);
@@ -281,7 +282,7 @@ static void changeSerialConfig(SerialConfig conf)
   flushSerial(); // blocking, but very very necessary
   delay(500); // give the client half a sec to catch up
   debugPrintf("Config changing %d.\n",(int)conf);
-  dequeSize=1+(baudRate/768);
+  dequeSize=1+(baudRate/INTERNAL_FLOW_CONTROL_DIV);
   debugPrintf("Deque constant now: %d\n",dequeSize);
 #ifdef ZIMODEM_ESP32
   HWSerial.changeConfig(conf);

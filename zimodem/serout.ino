@@ -35,10 +35,10 @@ static void serialOutDeque()
 {
 #ifdef ZIMODEM_ESP32
   while((TBUFhead != TBUFtail)
-  &&(SER_BUFSIZE - HWSerial.availableForWrite()<dequeSize))
+  &&((SER_BUFSIZE - HWSerial.availableForWrite())<dequeSize))
 #else
   if((TBUFhead != TBUFtail)
-  &&(HWSerial.availableForWrite()>=SER_BUFSIZE))
+  &&(HWSerial.availableForWrite()>=SER_BUFSIZE)) // necessary for esp8266 flow control
 #endif
   {
     serialDirectWrite(TBUF[TBUFhead]);
@@ -222,7 +222,7 @@ void ZSerial::enqueByte(uint8_t c)
 #ifdef ZIMODEM_ESP32
       if(isSerialOut())
 #else
-      if((HWSerial.availableForWrite() >= SER_BUFSIZE)
+      if((HWSerial.availableForWrite() >= SER_BUFSIZE) // necessary for esp8266 flow control
       &&(isSerialOut()))
 #endif
       {
