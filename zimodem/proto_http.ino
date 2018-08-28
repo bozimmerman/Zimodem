@@ -262,24 +262,30 @@ WiFiClient *doWebGetStream(const char *hostIp, int port, const char *req, bool d
         respCode = atoi(ln.c_str());
       }
       else
-      if(ln.startsWith("Content-length: ")
-      ||ln.startsWith("Content-Length: "))
       {
-        ln.remove(0,16);
-        respLength = atoi(ln.c_str());
-      }
-      else
-      if(ln.startsWith("Location: ")
-      ||ln.startsWith("location: "))
-      {
-        reUrl = ln;
-        reUrl.remove(0,10);
-      }
-      else
-      if(ln.startsWith("Transfer-Encoding: ")
-      ||ln.startsWith("Transfer-encoding: "))
-      {
-          chunked = (ln.indexOf("chunked") > 0) || (ln.indexOf("Chunked") > 0) || (ln.indexOf("CHUNKED") > 0);  
+        int x=ln.indexOf(':');
+        if(x>0)
+        {
+          String header = ln.substring(0,x);
+          header.toLowerCase();
+          if(header == "content-length")
+          {
+            ln.remove(0,16);
+            respLength = atoi(ln.c_str());
+          }
+          else
+          if(header == "location")
+          {
+            reUrl = ln;
+            reUrl.remove(0,10);
+          }
+          else
+          if(header == "transfer-encoding")
+          {
+              ln.toLowerCase();
+              chunked = ln.indexOf("chunked") > 0;  
+          }
+        }
       }
       ln = "";
     }
@@ -312,6 +318,7 @@ WiFiClient *doWebGetStream(const char *hostIp, int port, const char *req, bool d
   ||(respCode != 200)
   ||(respLength <= 0))
   {
+    
     c->stop();
     delete c;
     return null;
