@@ -51,19 +51,172 @@ bool parseWebUrl(uint8_t *vbuf, char **hostIp, char **req, int *port, bool *doSS
   }
   return true;
 }
+/*
+ * It just breaks too many things to allow a stream to go forward without
+ * a determined length.  For example: firmware updates, and even at&g returns 
+ * a page length for the client.  Let true clients use sockets and handle
+ * their own chunked encoding.
+class ChunkedStream : public WiFiClient
+{
+private:
+  WiFiClient *wifi = null;
+  int chunkCount = 0;
+  int chunkSize = 0;
+  uint8_t state = 0; //0
 
-bool doWebGetStream(const char *hostIp, int port, const char *req, WiFiClient *c, uint32_t *responseSize)
+public:
+
+    ChunkedStream(WiFiClient *s)
+    {
+      wifi = s;
+    }
+
+    ~ChunkedStream()
+    {
+      if(wifi != null)
+      {
+        wifi->stop();
+        delete wifi;
+      }
+    }
+
+    virtual int read()
+    {
+      if(available()<=0)
+        return -1;
+      char c=wifi->read();
+      bool gotC = false;
+      int errors = 0;
+      while((!gotC) && (errors < 5000))
+      {
+        switch(state)
+        {
+          case 0:
+            if(c=='0')
+              return '\0';
+            if((c>='0')&&(c<='9'))
+            {
+              chunkSize = (c - '0');
+              state=1;
+            }
+            else
+            if((c>='a')&&(c<='f'))
+            {
+              chunkSize = 10 + (c-'a');
+              state=1;
+            }
+            break;
+          case 1:
+          {
+            if((c>='0')&&(c<='9'))
+              chunkSize = (chunkSize * 16) + (c - '0');
+            else
+            if((c>='a')&&(c<='f'))
+              chunkSize = (chunkSize * 16) + (c-'a');
+            else
+            if(c=='\r')
+              state=2;
+            break;
+          }
+          case 2:
+            if(c == '\n')
+            {
+              state = 3;
+              chunkCount=0;
+            }
+            else
+              state = 0;
+            break;
+          case 3:
+            if(chunkCount < chunkSize)
+            {
+              gotC = true;
+              chunkCount++;
+            }
+            else
+            if(c == '\r')
+              state = 4;
+            else
+              state = 0;
+            break;
+          case 4:
+            if(c == '\n')
+              state = 0;
+            else
+              state = 0; // what else is there to do?!
+            break;
+        }
+        while((!gotC) && (errors < 5000))
+        {
+            if(available()>0)
+            {
+              c=wifi->read();
+              break;
+            }
+            else
+            if(++errors > 5000)
+              break;
+            else
+              delay(1);
+        }
+      }
+      return c;
+    }
+    virtual int peek()
+    {
+      return wifi->peek();
+    }
+
+    virtual int read(uint8_t *buf, size_t size)
+    {
+      if(size == 0)
+        return 0;
+      int num = available();
+      if(num > size)
+        num=size;
+      for(int i=0;i<num;i++)
+        buf[i]=read();
+      return num;
+    }
+
+    bool getNoDelay()
+    {
+      return wifi->getNoDelay();
+    }
+    void setNoDelay(bool nodelay)
+    {
+      wifi->setNoDelay(nodelay);
+    }
+
+    virtual int available()
+    {
+      return wifi->available();
+    }
+
+    virtual void stop()
+    {
+      wifi->stop();
+    }
+    virtual uint8_t connected()
+    {
+      return wifi->connected();
+    }
+};
+ */
+WiFiClient *doWebGetStream(const char *hostIp, int port, const char *req, bool doSSL, uint32_t *responseSize)
 {
   *responseSize = 0;
   if(WiFi.status() != WL_CONNECTED)
     return false;
+  WiFiClient *c = createWiFiClient(doSSL);
   if(port == 0)
     port = 80;
   c->setNoDelay(DEFAULT_NO_DELAY);
   if(!c->connect(hostIp, port))
   {
     c->stop();
-    return false;
+    delete c;
+    return null;
   }
   const char *root = "";
   if(req == NULL)
@@ -77,8 +230,10 @@ bool doWebGetStream(const char *hostIp, int port, const char *req, WiFiClient *c
   c->printf("Connection: close\r\n\r\n");
   
   String ln = "";
+  String reUrl = "";
   uint32_t respLength = 0;
   int respCode = -1;
+  bool chunked = false;
   while(c->connected())
   {
     yield();
@@ -113,45 +268,86 @@ bool doWebGetStream(const char *hostIp, int port, const char *req, WiFiClient *c
         ln.remove(0,16);
         respLength = atoi(ln.c_str());
       }
+      else
+      if(ln.startsWith("Location: ")
+      ||ln.startsWith("location: "))
+      {
+        reUrl = ln;
+        reUrl.remove(0,10);
+      }
+      else
+      if(ln.startsWith("Transfer-Encoding: ")
+      ||ln.startsWith("Transfer-encoding: "))
+      {
+          chunked = (ln.indexOf("chunked") > 0) || (ln.indexOf("Chunked") > 0) || (ln.indexOf("CHUNKED") > 0);  
+      }
       ln = "";
     }
     else
       ln.concat(ch);
   }
+  
+  if((respCode >= 300) 
+  && (respCode <= 399) 
+  && (reUrl.length() > 0)
+  && (reUrl.length() < 1024))
+  {
+    char newUrlBuf[reUrl.length()+1];
+    strcpy(newUrlBuf,reUrl.c_str());
+    char *hostIp2;
+    char *req2;
+    int port2;
+    bool doSSL2;
+    if(parseWebUrl((uint8_t *)newUrlBuf, &hostIp2,&req2,&port2,&doSSL2))
+    {
+        c->stop();
+        delete c;
+        return doWebGetStream(hostIp2,port2,req2,doSSL2,responseSize);
+      
+    }
+  }
+  
   *responseSize = respLength;
   if((!c->connected())
   ||(respCode != 200)
   ||(respLength <= 0))
   {
     c->stop();
-    return false;
+    delete c;
+    return null;
   }
-  return true;
+  //if(chunked) // technically, if a length was returned, chunked would be ok, but that's not in the cards.
+  //  return new ChunkedStream(c);
+  return c;
 }
 
 bool doWebGet(const char *hostIp, int port, FS *fs, const char *filename, const char *req, const bool doSSL)
 {
   uint32_t respLength=0;
-  WiFiClient *c = createWiFiClient(doSSL);
-  if((!doWebGetStream(hostIp, port, req, c, &respLength))
-  ||(respLength == 0))
+  WiFiClient *c = doWebGetStream(hostIp, port, req, doSSL, &respLength);
+  if(c==null)
   {
-    c->stop();
-    delete c;
+    if(c != null)
+    {
+      c->stop();
+      delete c;
+    }
     return false;
   }
-  
+  uint32_t bytesRead = 0;
   File f = fs->open(filename, "w");
   long now = millis();
-  while((respLength>0) && (c->connected()) && ((millis()-now)<10000))
+  while((bytesRead < respLength) // this can be removed for chunked encoding support 
+  && (c->connected()) 
+  && ((millis()-now)<10000))
   {
-    if(c->available()>=0)
+    if(c->available()>0)
     {
       now=millis();
       uint8_t ch=c->read();
       //logSocketIn(ch); // this is ALSO not socket input!
       f.write(ch);
-      respLength--;
+      bytesRead++;
     }
     else
       yield();
@@ -160,17 +356,16 @@ bool doWebGet(const char *hostIp, int port, FS *fs, const char *filename, const 
   f.close();
   c->stop();
   delete c;
-  return (respLength == 0);
+  return (respLength == 0) || (bytesRead == respLength);
 }
 
 bool doWebGetBytes(const char *hostIp, int port, const char *req, const bool doSSL, uint8_t *buf, int *bufSize)
 {
-  WiFiClient *c = createWiFiClient(doSSL);
   uint32_t respLength=0;
-  if(!doWebGetStream(hostIp, port, req, c, &respLength))
+  WiFiClient *c = doWebGetStream(hostIp, port, req, doSSL, &respLength);
+  if(c==null)
   {
     c->stop();
-    delete c;
     return false;
   }
   if((!c->connected())
@@ -182,19 +377,23 @@ bool doWebGetBytes(const char *hostIp, int port, const char *req, const bool doS
   }
   *bufSize = (int)respLength;
   int index=0;
-  while((respLength>0) && (c->connected()))
+  long now = millis();
+  while((index < respLength) // this can be removed for chunked encoding support
+  &&(c->connected()) 
+  && ((millis()-now)<10000))
   {
-    if(c->available()>=0)
+    if(c->available()>0)
     {
       uint8_t ch=c->read();
+      now = millis();
       //logSocketIn(ch); // again, NOT SOCKET INPUT!
       buf[index++] = ch;
-      respLength--;
     }
     else
       yield();
   }
+  *bufSize = index;
   c->stop();
   delete c;
-  return (respLength == 0);
+  return (respLength == 0) || (index == respLength);
 }

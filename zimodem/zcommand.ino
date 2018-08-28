@@ -1076,28 +1076,34 @@ ZResult ZCommand::doUpdateFirmware(int vval, uint8_t *vbuf, int vlen, bool isNum
   
   serial.printf("Updating to %s, wait for modem restart...",buf);
   serial.flush();
-  uint32_t respLength=0;
-  WiFiClient c;
   char firmwareName[100];
 #ifdef ZIMODEM_ESP32
   sprintf(firmwareName,"/otherprojs/guru-firmware-%s.bin",buf);
 #else
   sprintf(firmwareName,"/otherprojs/c64net-firmware-%s.bin",buf);
 #endif
-  if(!doWebGetStream("www.zimmers.net", 80, firmwareName, &c, &respLength))
+  uint32_t respLength=0;
+  WiFiClient *c = doWebGetStream("www.zimmers.net", 80, firmwareName, false, &respLength); 
+  if(c==null)
   {
     serial.prints(EOLN);
     return ZERROR;
   }
 
-  if(!Update.begin(respLength))
+  if(!Update.begin((respLength == 0) ? 4096 : respLength))
+  {
+    c->stop();
+    delete c;
     return ZERROR;
+  }
 
   serial.prints(".");
   serial.flush();
-  int writeBytes = Update.writeStream(c);
+  int writeBytes = Update.writeStream(*c);
   if(writeBytes != respLength)
   {
+    c->stop();
+    delete c;
     serial.prints(EOLN);
     return ZERROR;
   }
@@ -1105,9 +1111,13 @@ ZResult ZCommand::doUpdateFirmware(int vval, uint8_t *vbuf, int vlen, bool isNum
   serial.flush();
   if(!Update.end())
   {
+    c->stop();
+    delete c;
     serial.prints(EOLN);
     return ZERROR;
   }
+  c->stop();
+  delete c;
   serial.prints("Done");
   serial.prints(EOLN);
   serial.prints("Modem will now restart. If restart fails, you might need to power-cycle or reset your modem.");
