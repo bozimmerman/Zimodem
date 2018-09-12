@@ -194,7 +194,7 @@ static int getDefaultCtsPin()
 #ifdef ZIMODEM_ESP32
   return DEFAULT_PIN_CTS;
 #else
-  if((ESP.getFlashChipSize()/1024)>=4096) // assume this is a striketerm/esp12e
+  if((ESP.getFlashChipRealSize()/1024)>=4096) // assume this is a striketerm/esp12e
     return DEFAULT_PIN_CTS;
   else
     return 0;
@@ -340,7 +340,7 @@ void setup()
 #else
   pinSupport[0]=true;
   pinSupport[2]=true;
-  if((ESP.getFlashChipSize()/1024)>=4096) // assume this is a strykelink/esp12e
+  if((ESP.getFlashChipRealSize()/1024)>=4096) // assume this is a strykelink/esp12e
   {
     pinSupport[4]=true;
     pinSupport[5]=true;
