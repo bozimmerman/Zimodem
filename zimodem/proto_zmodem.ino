@@ -64,20 +64,6 @@ char* getfname(const char* path)
   return((char*)fname);
 }
 
-static int lprintf(zmodem_t* zm, int level, const char *fmt, ...)
-{
-  va_list argptr;
-  char  sbuf[1024];
-
-  if(zm->lputs==NULL)
-    return(-1);
-  va_start(argptr,fmt);
-  vsnprintf(sbuf,sizeof(sbuf),fmt,argptr);
-  sbuf[sizeof(sbuf)-1]=0;
-  va_end(argptr);
-  return(zm->lputs(zm->cbdata,level,sbuf));
-}
-
 static BOOL is_connected(zmodem_t* zm)
 {
   if(zm->is_connected!=NULL)
@@ -97,6 +83,22 @@ int zmodem_data_waiting(zmodem_t* zm, unsigned timeout)
   if(zm->data_waiting)
     return(zm->data_waiting(zm->cbdata, timeout));
   return(FALSE);
+}
+
+#ifdef DEBUG_ZMODEM
+
+static int lprintf(zmodem_t* zm, int level, const char *fmt, ...)
+{
+  va_list argptr;
+  char  sbuf[1024];
+
+  if(zm->lputs==NULL)
+    return(-1);
+  va_start(argptr,fmt);
+  vsnprintf(sbuf,sizeof(sbuf),fmt,argptr);
+  sbuf[sizeof(sbuf)-1]=0;
+  va_end(argptr);
+  return(zm->lputs(zm->cbdata,level,sbuf));
 }
 
 static char *chr(int ch)
@@ -190,6 +192,9 @@ static char* frame_desc(int frame)
     sprintf(str,"%d",frame);
   return(str); 
 }
+#else
+#define lprintf(...)
+#endif
 
 ulong frame_pos(zmodem_t* zm, int type)
 {

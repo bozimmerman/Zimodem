@@ -29,6 +29,8 @@
 #ifndef _ZMODEM_H
 #define _ZMODEM_H
 
+//#define DEBUG_ZMODEM 1
+
 #define ZMODEM_FILE_SIZE_MAX  0xffffffff  /* 32-bits, blame Chuck */
 
 /*
@@ -343,6 +345,7 @@ int zmodem_send_ack(zmodem_t*, int32_t pos);
 int zmodem_send_nak(zmodem_t*);
 int zmodem_send_zskip(zmodem_t* zm);
 int zmodem_send_zrinit(zmodem_t*);
+int zmodem_get_zfin(zmodem_t* zm);
 int zmodem_send_pos_header(zmodem_t* zm, int type, int32_t pos, BOOL hex);
 int zmodem_get_zrinit(zmodem_t*);
 int zmodem_get_zfin(zmodem_t* zm);
@@ -459,6 +462,8 @@ static boolean zDownload(FS &fs, String filePath, String &errors)
   zm.bytes_remaining = F.size();
   strcpy(filePathC,filePath.c_str());
   success=zmodem_send_file(&zm, filePathC, &F, TRUE, &starttime, &bytes_sent);
+  if(success)
+    zmodem_get_zfin(&zm);
   F.close();
 
   zserial.flushAlways();
@@ -513,6 +518,9 @@ static boolean zUpload(FS &fs, String dirPath, String &errors)
 
   if(errors<=zm.max_errors && !zm.cancelled)
     success=TRUE;
+
+  if(success)
+    zmodem_send_zfin(&zm);
 
   fp.close();
   if(zm.local_abort)

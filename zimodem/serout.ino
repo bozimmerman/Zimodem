@@ -411,6 +411,8 @@ int ZSerial::read()
     if((TBUFtail != TBUFhead) && isSerialOut())
       serialOutDeque();
   }
+  else
+    logSerialIn(c);
   return c;
 }
 
