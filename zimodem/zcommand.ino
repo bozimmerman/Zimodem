@@ -19,7 +19,7 @@ extern "C" void esp_yield();
 ZCommand::ZCommand()
 {
   strcpy(CRLF,"\r\n");
-  strcpy(LFCR,"\r\n");
+  strcpy(LFCR,"\n\r");
   strcpy(LF,"\n");
   strcpy(CR,"\r");
   strcpy(ECS,"+++");
