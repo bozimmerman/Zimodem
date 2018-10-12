@@ -1056,7 +1056,10 @@ ZResult ZCommand::doUpdateFirmware(int vval, uint8_t *vbuf, int vlen, bool isNum
   
   while((bufSize>0)
   &&((buf[bufSize-1]==10)||(buf[bufSize-1]==13)))
+  {
     bufSize--;
+    buf[bufSize] = 0;
+  }
   
   if((strlen(ZIMODEM_VERSION)==bufSize) && memcmp(buf,ZIMODEM_VERSION,strlen(ZIMODEM_VERSION))==0)
   {
