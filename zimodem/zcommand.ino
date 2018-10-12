@@ -1578,7 +1578,7 @@ bool ZCommand::readSerialStream()
     {
       if(doEcho)
       {
-        serial.prints(EOLN);
+        echoEOLN(c);
         if(serial.isSerialOut())
           serialOutDeque();
       }
@@ -2589,6 +2589,7 @@ ZResult ZCommand::doSerialCommand()
         if(index >= len)
         {
           logPrintln("Response: OK");
+          preEOLN(EOLN);
           if(numericResponses)
             serial.prints("0");
           else
@@ -2598,6 +2599,7 @@ ZResult ZCommand::doSerialCommand()
         break;
       case ZERROR:
         logPrintln("Response: ERROR");
+        preEOLN(EOLN);
         if(numericResponses)
           serial.prints("4");
         else
@@ -2884,6 +2886,7 @@ bool ZCommand::checkPlusEscape()
       {
         if(!suppressResponses)
         {
+          preEOLN(EOLN);
           if(numericResponses)
           {
             serial.prints("3");
@@ -3007,12 +3010,14 @@ void ZCommand::sendNextPacket()
         {
           if(numericResponses)
           {
+            preEOLN(EOLN);
             serial.prints("3");
             serial.prints(EOLN);
           }
           else
           if(nextConn->isAnswered())
           {
+            preEOLN(EOLN);
             serial.prints("NO CARRIER ");
             serial.printi(nextConn->id);
             serial.prints(EOLN);
@@ -3054,6 +3059,7 @@ void ZCommand::sendNextPacket()
 
 void ZCommand::sendConnectionNotice(int id)
 {
+  preEOLN(EOLN);
   if(numericResponses)
   {
     if(!longResponses)
@@ -3130,6 +3136,7 @@ void ZCommand::acceptNewConnection()
           setCharArray(&(newClientNode->stateMachine),serv->stateMachine);
           newClientNode->machineState = newClientNode->stateMachine;
           s_pinWrite(pinRI,riActive);
+          preEOLN(EOLN);
           serial.prints(numericResponses?"2":"RING");
           serial.prints(EOLN);
           lastServerClientId = newClientNode->id;
@@ -3166,6 +3173,7 @@ void ZCommand::acceptNewConnection()
           s_pinWrite(pinRI,riInactive);
           if(ringCounter > 0)
           {
+            preEOLN(EOLN);
             serial.prints(numericResponses?"2":"RING");
             serial.prints(EOLN);
             conn->answer();
@@ -3185,6 +3193,7 @@ void ZCommand::acceptNewConnection()
         if((rings % 2) == 0)
         {
           s_pinWrite(pinRI,riActive);
+          preEOLN(EOLN);
           serial.prints(numericResponses?"2":"RING");
           serial.prints(EOLN);
         }

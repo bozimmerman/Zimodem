@@ -100,12 +100,14 @@ void ZStream::switchBackToCommandMode(bool logout)
     {
       if(commandMode.numericResponses)
       {
+        preEOLN(commandMode.EOLN);
         serial.prints("3");
         serial.prints(commandMode.EOLN);
       }
       else
       if(current->isAnswered())
       {
+        preEOLN(commandMode.EOLN);
         serial.prints("NO CARRIER");
         serial.prints(commandMode.EOLN);
       }
