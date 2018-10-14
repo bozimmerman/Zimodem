@@ -228,7 +228,7 @@ static bool connectWifi(const char* ssid, const char* password)
   if(hostname.length() > 0)
   {
 #ifdef ZIMODEM_ESP32
-      tcpip_adapter_set_hostname(TCPIP_ADAPTER_IF_STA, hostname.c_str());
+      //tcpip_adapter_set_hostname(TCPIP_ADAPTER_IF_STA, hostname.c_str());
 #else
       WiFi.hostname(hostname);
 #endif
