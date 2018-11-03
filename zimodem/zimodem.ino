@@ -217,6 +217,15 @@ static void s_pinWrite(uint8_t pinNo, uint8_t value)
   }
 }
 
+static void setHostName(const char *hname)
+{
+#ifdef ZIMODEM_ESP32
+      //tcpip_adapter_set_hostname(TCPIP_ADAPTER_IF_STA, hname.c_str());
+#else
+      WiFi.hostname(hname);
+#endif
+}
+
 static bool connectWifi(const char* ssid, const char* password)
 {
   while(WiFi.status() == WL_CONNECTED)
@@ -226,15 +235,11 @@ static bool connectWifi(const char* ssid, const char* password)
     yield();
   }
   if(hostname.length() > 0)
-  {
-#ifdef ZIMODEM_ESP32
-      //tcpip_adapter_set_hostname(TCPIP_ADAPTER_IF_STA, hostname.c_str());
-#else
-      WiFi.hostname(hostname);
-#endif
-  }
+    setHostName(hostname.c_str());
   WiFi.mode(WIFI_STA);
   WiFi.begin(ssid, password);
+  if(hostname.length() > 0)
+    setHostName(hostname.c_str());
   bool amConnected = (WiFi.status() == WL_CONNECTED) && (strcmp(WiFi.localIP().toString().c_str(), "0.0.0.0")!=0);
   int WiFiCounter = 0;
   while ((!amConnected) && (WiFiCounter < 30))
