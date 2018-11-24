@@ -132,7 +132,10 @@ bool WiFiServerNode::ReadWiFiServer(File &f, WiFiServerSpec &node)
     int chars=atoi(str.c_str());
     str = "";
     for(int i=0;i<chars && f.available()>0;i++)
-      str += (char)f.read();
+    {
+      c=f.read();
+      str += c;
+    }
     setCharArray(&node.maskOuts,str.c_str());
     if(f.available()<=0 || f.read()!='\n')
       return false;
@@ -148,7 +151,10 @@ bool WiFiServerNode::ReadWiFiServer(File &f, WiFiServerSpec &node)
     chars=atoi(str.c_str());
     str = "";
     for(int i=0;i<chars && f.available()>0;i++)
-      str += (char)f.read();
+    {
+      c=f.read();
+      str += c;
+    }
     setCharArray(&node.delimiters,str.c_str());
     if(f.available()<=0 || f.read()!='\n')
       return true;
@@ -164,7 +170,10 @@ bool WiFiServerNode::ReadWiFiServer(File &f, WiFiServerSpec &node)
     chars=atoi(str.c_str());
     str = "";
     for(int i=0;i<chars && f.available()>0;i++)
-      str += (char)f.read();
+    {
+      str += c;
+      c=f.read();
+    }
     setCharArray(&node.stateMachine,str.c_str());
   }
   return true;
@@ -201,7 +210,7 @@ void WiFiServerNode::SaveWiFiServers()
   {
     File f = SPIFFS.open("/zlisteners.txt", "r");
     bool fail=false;
-    while(f.available()>0)
+    while(f.available()>5)
     {
       WiFiServerSpec snode;
       if(!ReadWiFiServer(f,snode))

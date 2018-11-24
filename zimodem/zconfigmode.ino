@@ -448,7 +448,7 @@ void ZConfig::doModeCommand()
       {
         hostname=cmd;
         hostname.replace(',','.');
-        if(WiFi.status()==WL_CONNECTED)
+        if((wifiSSI.length() > 0) && (WiFi.status()==WL_CONNECTED))
         {
             if(!connectWifi(wifiSSI.c_str(),wifiPW.c_str()))
               serial.printf("%sUnable to connect to %s. :(%s",EOLNC,wifiSSI.c_str(),EOLNC);
