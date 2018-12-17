@@ -522,9 +522,7 @@ void ZConfig::loop()
       case ZCFGMENU_MAIN:
       {
         serial.printf("%sMain Menu%s",EOLNC,EOLNC);
-#ifndef ZIMODEM_ESP32
         serial.printf("[HOST] name: %s%s",hostname.c_str(),EOLNC);
-#endif
         serial.printf("[WIFI] connection: %s%s",(WiFi.status() == WL_CONNECTED)?wifiSSI.c_str():"Not connected",EOLNC);
         String flowName;
         switch(commandMode.serial.getFlowControlType())
