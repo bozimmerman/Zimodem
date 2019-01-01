@@ -18,6 +18,7 @@
 */
 bool parseFTPUrl(uint8_t *vbuf, char **hostIp, char **req, int *port, bool *doSSL, char **username, char **pw);
 bool doFTPGet(FS *fs, const char *hostIp, int port, const char *filename, const char *req, const char *username, const char *pw, const bool doSSL);
+bool doFTPPut(File &f, const char *hostIp, int port, const char *req, const char *username, const char *pw, const bool doSSL);
 bool doFTPLS(ZSerial *serial, const char *hostIp, int port, const char *req, const char *username, const char *pw, const bool doSSL)
 #endif
 #endif

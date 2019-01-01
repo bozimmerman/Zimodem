@@ -904,6 +904,51 @@ void ZBrowser::doModeCommand()
         }
       }
       else
+      if(cmd.equalsIgnoreCase("fput"))
+      {
+        String p1=makePath(cleanFirstArg(line));
+        String p2=cleanRemainArg(line);
+        debugPrintf("fput:%s -> %s\n",p1.c_str(), p2.c_str());
+        char *tmp=0;
+        if((p2.length()<11)
+        || ((strcmp(p2.substring(0,6).c_str(),"ftp://") != 0)
+           && (strcmp(p2.substring(0,7).c_str(),"ftps://") != 0)))
+          serial.printf("Not a url: %s%s",p2.c_str(),EOLNC);
+        /*
+        else
+        if(((tmp=strchr(p2.c_str(),'@'))==0)
+        ||(strchr(p2.c_str()+6,':')>tmp)
+        ||(strchr(p2.c_str()+6,':')==0))
+            serial.printf("Missing username:password@ syntax: %s%s",p2.c_str(),EOLNC);
+        */
+        else
+        if(!SD.exists(p1))
+          serial.printf("File not found: %s%s",p1.c_str(),EOLNC);
+        else
+        {
+          uint8_t buf[p2.length()+1];
+          strcpy((char *)buf,p2.c_str());
+          char *hostIp;
+          char *req;
+          int port;
+          bool doSSL;
+          char *username;
+          char *password;
+          File file = SD.open(p1);
+          if(!parseFTPUrl(buf,&hostIp,&req,&port,&doSSL,&username,&password))
+            serial.printf("Invalid url: %s",p2.c_str());
+          else
+          if(!file)
+            serial.printf("File not found: %s%s",p1.c_str(),EOLNC);
+          else
+          {
+            if(!doFTPPut(file, hostIp, port, req, username, password, doSSL))
+              serial.printf("Fput failed: %s from file %s",p2.c_str(),p1.c_str());
+            file.close();
+          }
+        }
+      }
+      else
       if(cmd.equalsIgnoreCase("fls") || cmd.equalsIgnoreCase("fdir"))
       {
         String p1=line;
@@ -993,7 +1038,8 @@ void ZBrowser::doModeCommand()
         serial.printf("xget/zget [path]  - Download a file%s",EOLNC);
         serial.printf("xput/zput [path]  - Upload a file%s",EOLNC);
         serial.printf("wget [http://url] [path]  - Download url to file%s",EOLNC);
-        serial.printf("fget [ftp://user:pass@url] [path]  - FTP to file%s",EOLNC);
+        serial.printf("fget [ftp://user:pass@url] [path]  - FTP get file%s",EOLNC);
+        serial.printf("fput [path] [ftp://user:pass@url]  - FTP put file%s",EOLNC);
         serial.printf("fdir [ftp://user:pass@url]  - ftp url dir%s",EOLNC);
         serial.printf("exit/quit/x/endshell  - Quit to command mode%s",EOLNC);
         serial.printf("%s",EOLNC);
