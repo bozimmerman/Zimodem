@@ -18,13 +18,17 @@
 #define OVERFLOW_BUF_SIZE 256
 #define UNDERFLOW_BUF_MAX_SIZE 256
 
+#ifdef ZIMODEM_ESP32
+#include <WiFiClientSecure.h>
+#endif
+
 static WiFiClient *createWiFiClient(bool SSL)
 {
-  /*** adds like 8% to the total!
+#ifdef ZIMODEM_ESP32
   if(SSL)
     return new WiFiClientSecure();
   else
-  */
+#endif
   return new WiFiClient();
 }
 

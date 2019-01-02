@@ -339,6 +339,7 @@ void setup()
     pinSupport[i]=false;
 #ifdef ZIMODEM_ESP32
   Serial.begin(115200); //the debug port
+  Serial.setDebugOutput(true);
   debugPrintf("Debug port open and ready.\n");
   for(int i=12;i<=23;i++)
     pinSupport[i]=true;
