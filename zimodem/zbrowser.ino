@@ -47,6 +47,8 @@ void ZBrowser::serialIncoming()
   commandMode.clearPlusProgress(); // re-check the plus-escape mode
   if(crReceived)
   {
+    if(commandMode.doEcho)
+      serial.prints(EOLN);
     doModeCommand();
   }
 }
@@ -88,8 +90,11 @@ String ZBrowser::fixPathNoSlash(String p)
           finalPath += "/";
           backStack[++backX]=finalPath.length();
         }
-        lastX=i+1;
       }
+      else
+      if((i==0) && (i<p.length()-1))
+        finalPath = "/";
+      lastX=i+1;
     }
   }
 
@@ -109,7 +114,7 @@ String ZBrowser::fixPathNoSlash(String p)
     else
     {
       finalPath += sub;
-      finalPath += "/";
+      finalPath += "/"; // why this?! -- oh, so it can be removed below?
     }
   }
   if(finalPath.length()==0)
@@ -564,11 +569,15 @@ void ZBrowser::doModeCommand()
         }
         else
         {
-          p=stripDir(rawPath);
           mask=stripFilename(rawPath);
+          if((mask.length()>0)&&(isMask(mask)))
+            p=stripDir(rawPath);
+          else
+          {
+            mask="";
+            p=rawPath;
+          }
         }
-        
-        debugPrintf("ls:%s (%s)\n",p.c_str(),mask.c_str());
         showDirectory(p,mask,"",recurse);
       }
       else
@@ -811,7 +820,6 @@ void ZBrowser::doModeCommand()
           mask=stripFilename(p1);
           p1=stripDir(p1);
         }
-        
         debugPrintf("cp:%s (%s) -> %s\n",p1.c_str(),mask.c_str(), p2.c_str());
         copyFiles(p1,mask,p2,recurse,overwrite);
       }
@@ -823,6 +831,7 @@ void ZBrowser::doModeCommand()
       else
       if(cmd.equalsIgnoreCase("ren")||cmd.equalsIgnoreCase("rename"))
       {
+        
         String p1=makePath(cleanFirstArg(line));
         String p2=makePath(cleanRemainArg(line));
         debugPrintf("ren:%s -> %s\n",p1.c_str(), p2.c_str());
@@ -997,11 +1006,23 @@ void ZBrowser::doModeCommand()
         else
         {
           mask=stripFilename(p1);
-          p1=stripDir(p1);
+          if((mask.length()>0)&&(isMask(mask)))
+            p1=stripDir(p1);
+          else
+            mask = "";
         }
-        debugPrintf("mv:%s -> %s\n",p1.c_str(),p2.c_str());
+        debugPrintf("mv:%s(%s) -> %s\n",p1.c_str(),mask.c_str(),p2.c_str());
         if((mask.length()==0)||(!isMask(mask)))
         {
+          File root = SD.open(p2);
+          if(root && root.isDirectory())
+          {
+            if (!p2.endsWith("/"))
+              p2 += "/";
+            p2 += stripFilename(p1);
+            debugPrintf("mv:%s -> %s\n",p1.c_str(),p2.c_str());
+          }
+          root.close();
           if(p1 == p2)
             serial.printf("File exists: %s%s",p1.c_str(),EOLNC);
           else
@@ -1012,7 +1033,7 @@ void ZBrowser::doModeCommand()
             if(SD.exists(p2))
               SD.remove(p2);
             if(!SD.rename(p1,p2))
-              serial.printf("Failed to rename: %s%s",p1.c_str(),EOLNC);
+              serial.printf("Failed to move: %s%s",p1.c_str(),EOLNC);
           }
         }
         else
