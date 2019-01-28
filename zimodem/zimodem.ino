@@ -1,5 +1,5 @@
 /*
-   Copyright 2016-2017 Bo Zimmerman
+   Copyright 2016-2019 Bo Zimmerman
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
    limitations under the License.
 */
 //#define TCP_SND_BUF                     4 * TCP_MSS
-#define ZIMODEM_VERSION "3.4.2"
+#define ZIMODEM_VERSION "3.4.3"
 const char compile_date[] = __DATE__ " " __TIME__;
 #define DEFAULT_NO_DELAY true
 #define null 0
@@ -145,6 +145,7 @@ static WiFiServerNode *servs = null;
 static PhoneBookEntry *phonebook = null;
 static bool pinSupport[MAX_PIN_NO];
 static bool browseEnabled = false;
+static String termType = "Zimodem";
 
 static ZMode *currMode = null;
 static ZStream streamMode;

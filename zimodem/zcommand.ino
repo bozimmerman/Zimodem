@@ -1,5 +1,5 @@
 /*
-   Copyright 2016-2017 Bo Zimmerman
+   Copyright 2016-2019 Bo Zimmerman
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -2489,6 +2489,15 @@ ZResult ZCommand::doSerialCommand()
                       hostname.replace(',','.');
                       if(WiFi.status()==WL_CONNECTED)
                           connectWifi(wifiSSI.c_str(),wifiPW.c_str());
+                      result=ZOK;
+                    }
+                    break;
+                  case 41:
+                    if(*eq == 0)
+                      result=ZERROR;
+                    else
+                    {
+                      termType = eq;
                       result=ZOK;
                     }
                     break;

@@ -1,5 +1,5 @@
 /*
-   Copyright 2016-2017 Bo Zimmerman
+   Copyright 2016-2019 Bo Zimmerman
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -156,8 +156,13 @@ bool handleAsciiIAC(char *c, Stream *stream)
       }
       if(what == TELNET_TERMTYPE)
       {
-        uint8_t resp[] = {TELNET_IAC,TELNET_SB,TELNET_TERMTYPE,0,'Z','i','m','o','d','e','m',TELNET_IAC,TELNET_SE};
-        stream->write(resp,13);
+        stream->write(TELNET_IAC);
+        stream->write(TELNET_SB);
+        stream->write(TELNET_TERMTYPE);
+        stream->write((uint8_t)0);
+        stream->write(termType.c_str(),termType.length());
+        stream->write(TELNET_IAC);
+        stream->write(TELNET_SE);
         return false;
       }
     }
