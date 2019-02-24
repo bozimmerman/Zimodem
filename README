@@ -210,7 +210,7 @@ ATT+"[MESSAGE] : A + argument may be used to force the 'T' command to return the
 ATL0  : Re-sends the most recently sent data packet again
 ATLn  : Re-sends the most recently sent data packet for connection id n.
 
-AT&H  : Shows a help file from the web, or brief help otherwise.  Use &H6502 to reforce web download.
+AT&H  : Shows a help file from the web, or brief help otherwise.  Use &H6502 to reiforce web download.
 AT&L  : Reloads the saved configuration.
 AT&W  : Saves the current configuration: WiFi settings(ATW), baud rate (ATB), end of line (ATR) settings, flow control (ATF), echo mode (ATE), extended responses (ATX), verbose responses (ATV), quiet responses (ATQ), PETSCII mode (AT&P1), pin statuses (ATS46 - S58), Rings (ATS0), Listener Stream-mode (ATS41), and Listener restore (ATS60)
 AT&F  : Restores the modem to factory default settings.  Use &F86 to reformat the SPIFFS.
@@ -224,7 +224,7 @@ AT&Nx : Shows the status of ESP module I/O pin x
 AT&Mn : Adds the byte denoted by n to a list of mask-out bytes.  These are bytes that are not transmitted to the serial port in command mode incoming packets.  If this command is followed by a C, N, or A command on the SAME LINE, then the setting will apply ONLY to that connection or listener.
 AT&M  : Resets the mask-out bytes list. No bytes will be masked-out. If this command is followed by a C, N, or A command on the SAME LINE, then the setting will apply ONLY to that connection or listener.
 AT&Dn : Adds the byte denoted by n to a list of delimiter bytes.  These are bytes that will compose the last byte in a command-mode incoming packet that is still shorter than the limit set by ATS40. This is useful for CR-LF formatted data.  If this command is followed by a C, N, or A command on the SAME LINE, then the setting will apply ONLY to that connection or listener.
-AT&D  : Resets the delimiter bytes lis. No bytes will be delimited, and packets will contain as many bytes as are received and allowed by ATS40.  If this command is followed by a C, N, or A command on the SAME LINE, then the setting will apply ONLY to that connection or listener.
+AT&D  : Resets the delimiter bytes list. No bytes will be delimited, and packets will contain as many bytes as are received and allowed by ATS40.  If this command is followed by a C, N, or A command on the SAME LINE, then the setting will apply ONLY to that connection or listener.
 
 AT&S"40=[HOSTNAME]" : Change the modem hostname
 AT&S"41=[TERMTYPE]" : Change the telnet 'termtype' response string

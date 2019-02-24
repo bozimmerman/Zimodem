@@ -221,6 +221,12 @@ void ZConfig::doModeCommand()
         showMenu=true;
       }
       else
+      if(cmd.length()==0)
+      {
+        currState=ZCFGMENU_MAIN;
+        showMenu=true;
+      }
+      else
       {
         lastNumber = atol((char *)cmd.c_str());
         lastAddress = "";
@@ -540,7 +546,7 @@ void ZConfig::loop()
             flowName = "OTHER";
             break;
         }
-        String bbsMode = "OFF";
+        String bbsMode = "DISABLED";
         if(newListen)
         {
           bbsMode = "Port ";

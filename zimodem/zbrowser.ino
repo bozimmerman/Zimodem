@@ -583,7 +583,7 @@ void ZBrowser::doModeCommand()
       else
       if(cmd.equalsIgnoreCase("md")||cmd.equalsIgnoreCase("mkdir")||cmd.equalsIgnoreCase("makedir"))
       {
-        String p = makePath(line);
+        String p = makePath(cleanOneArg(line));
         debugPrintf("md:%s\n",p.c_str());
         if((p.length() < 2) || isMask(p) || !SD.mkdir(p))
           serial.printf("Illegal path: %s%s",p.c_str(),EOLNC);
@@ -591,7 +591,7 @@ void ZBrowser::doModeCommand()
       else
       if(cmd.equalsIgnoreCase("cd"))
       {
-        String p = makePath(line);
+        String p = makePath(cleanOneArg(line));
         debugPrintf("cd:%s\n",p.c_str());
         if(p.length()==0)
           serial.printf("Current path: %s%s",p.c_str(),EOLNC);
@@ -614,7 +614,7 @@ void ZBrowser::doModeCommand()
       else
       if(cmd.equalsIgnoreCase("rd")||cmd.equalsIgnoreCase("rmdir")||cmd.equalsIgnoreCase("deletedir"))
       {
-        String p = makePath(line);
+        String p = makePath(cleanOneArg(line));
         debugPrintf("rd:%s\n",p.c_str());
         File root = SD.open(p);
         if(!root)
@@ -629,7 +629,7 @@ void ZBrowser::doModeCommand()
       else
       if(cmd.equalsIgnoreCase("cat")||cmd.equalsIgnoreCase("type"))
       {
-        String p = makePath(line);
+        String p = makePath(cleanOneArg(line));
         debugPrintf("cat:%s\n",p.c_str());
         File root = SD.open(p);
         if(!root)
@@ -649,7 +649,7 @@ void ZBrowser::doModeCommand()
       else
       if(cmd.equalsIgnoreCase("xget"))
       {
-        String p = makePath(line);
+        String p = makePath(cleanOneArg(line));
         debugPrintf("xget:%s\n",p.c_str());
         File root = SD.open(p);
         if(!root)
@@ -685,7 +685,7 @@ void ZBrowser::doModeCommand()
       else
       if(cmd.equalsIgnoreCase("xput"))
       {
-        String p = makePath(line);
+        String p = makePath(cleanOneArg(line));
         debugPrintf("xput:%s\n",p.c_str());
         File root = SD.open(p);
         if(root)
@@ -728,7 +728,7 @@ void ZBrowser::doModeCommand()
       else
       if(cmd.equalsIgnoreCase("zget")||cmd.equalsIgnoreCase("rz")||cmd.equalsIgnoreCase("rz.exe"))
       {
-        String p = makePath(line);
+        String p = makePath(cleanOneArg(line));
         debugPrintf("zget:%s\n",p.c_str());
         File root = SD.open(p);
         if(!root)
@@ -759,7 +759,7 @@ void ZBrowser::doModeCommand()
       else
       if(cmd.equalsIgnoreCase("zput")||cmd.equalsIgnoreCase("sz"))
       {
-        String p = makePath(line);
+        String p = makePath(cleanOneArg(line));
         debugPrintf("zput:%s\n",p.c_str());
         String dirNm=p;
         File rootDir=SD.open(dirNm);
@@ -796,7 +796,7 @@ void ZBrowser::doModeCommand()
         line = stripArgs(line,argLetters);
         argLetters.toLowerCase();
         bool recurse=argLetters.indexOf('r')>=0;
-        String rawPath = makePath(line);
+        String rawPath = makePath(cleanOneArg(line));
         String p=stripDir(rawPath);
         String mask=stripFilename(rawPath);
         debugPrintf("rm:%s (%s)\n",p.c_str(),mask.c_str());
@@ -960,7 +960,7 @@ void ZBrowser::doModeCommand()
       else
       if(cmd.equalsIgnoreCase("fls") || cmd.equalsIgnoreCase("fdir"))
       {
-        String p1=line;
+        String p1=cleanOneArg(line);
         debugPrintf("fls:%s\n",p1.c_str());
         char *tmp=0;
         if((p1.length()<11)
