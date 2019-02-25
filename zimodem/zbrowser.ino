@@ -1046,23 +1046,23 @@ void ZBrowser::doModeCommand()
       if(cmd.equals("?")||cmd.equals("help"))
       {
         serial.printf("Commands:%s",EOLNC);
-        serial.printf("ls/dir/list/$ (-r) ([path])  - List files%s",EOLNC);
-        serial.printf("cd [path]  - Change to new directory%s",EOLNC);
-        serial.printf("md/mkdir/makedir [path]  - Create a new directory%s",EOLNC);
-        serial.printf("rd/rmdir/deletedir [path]  - Delete a directory%s",EOLNC);
-        serial.printf("rm/del/delete (-r) [path]  - Delete a file%s",EOLNC);
-        serial.printf("cp/copy (-r) (-f) [path] [path]  - Copy file(s)%s",EOLNC);
-        serial.printf("ren/rename [path] [path]  - Rename a file%s",EOLNC);
-        serial.printf("mv/move (-f) [path] [path]  - Move file(s)%s",EOLNC);
-        serial.printf("cat/type [path]  - View a file(s)%s",EOLNC);
-        serial.printf("df/free/info - Show space remaining%s",EOLNC);
-        serial.printf("xget/zget [path]  - Download a file%s",EOLNC);
-        serial.printf("xput/zput [path]  - Upload a file%s",EOLNC);
-        serial.printf("wget [http://url] [path]  - Download url to file%s",EOLNC);
-        serial.printf("fget [ftp://user:pass@url] [path]  - FTP get file%s",EOLNC);
-        serial.printf("fput [path] [ftp://user:pass@url]  - FTP put file%s",EOLNC);
-        serial.printf("fdir [ftp://user:pass@url]  - ftp url dir%s",EOLNC);
-        serial.printf("exit/quit/x/endshell  - Quit to command mode%s",EOLNC);
+        serial.printf("ls/dir/list/$ [-r] [/][path]                   - List files%s",EOLNC);
+        serial.printf("cd [/][path][..]                               - Change to new directory%s",EOLNC);
+        serial.printf("md/mkdir/makedir [/][path]                     - Create a new directory%s",EOLNC);
+        serial.printf("rd/rmdir/deletedir [/][path]                   - Delete a directory%s",EOLNC);
+        serial.printf("rm/del/delete [-r] [/][path]filename           - Delete a file%s",EOLNC);
+        serial.printf("cp/copy [-r] [-f] [/][path]file [/][path]file  - Copy file(s)%s",EOLNC);
+        serial.printf("ren/rename [/][path]file [/][path]file         - Rename a file%s",EOLNC);
+        serial.printf("mv/move [-f] [/][path]file [/][path]file       - Move file(s)%s",EOLNC);
+        serial.printf("cat/type [/][path]filename                     - View a file(s)%s",EOLNC);
+        serial.printf("df/free/info                                   - Show space remaining%s",EOLNC);
+        serial.printf("xget/zget [/][path]filename                    - Download a file%s",EOLNC);
+        serial.printf("xput/zput [/][path]filename                    - Upload a file%s",EOLNC);
+        serial.printf("wget [http://url] [/][path]filename            - Download url to file%s",EOLNC);
+        serial.printf("fget [ftp://user:pass@url/file] [/][path]file  - FTP get file%s",EOLNC);
+        serial.printf("fput [/][path]file [ftp://user:pass@url/file]  - FTP put file%s",EOLNC);
+        serial.printf("fdir [ftp://user:pass@url/path]                - ftp url dir%s",EOLNC);
+        serial.printf("exit/quit/x/endshell                           - Quit to command mode%s",EOLNC);
         serial.printf("%s",EOLNC);
       }
       else
