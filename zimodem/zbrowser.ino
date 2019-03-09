@@ -290,130 +290,95 @@ void ZBrowser::copyFiles(String source, String mask, String target, bool recurse
 
   File root = SD.open(source);
   if(!root)
+  {
     serial.printf("Unknown path: %s%s",source.c_str(),EOLNC);
-  else
+    return;
+  }
+  
   if(root.isDirectory())
   {
+    if(!SD.exists(target)) // cp d a
+    {
+      SD.mkdir(target);
+    }
+    else
+    {
+      File DD=SD.open(target); //cp d d2, cp d f 
+      if(!DD.isDirectory())
+      {
+        serial.printf("File exists: %s%s",DD.name(),EOLNC);
+        DD.close();
+        return;
+      }
+    }
     for(File file = root.openNextFile(); file != null; file = root.openNextFile())
     {
       if(matches(file.name()+maskFilterLen, mask))
       {
+        debugPrintf("file matched:%s\n",file.name());
+        String tpath = target;
         if(file.isDirectory())
         {
-          if((mask.length()>0)&&(!recurse))
-          {
-            if(isMask(mask))
-            {
-              serial.printf("Skipping: %s%s",file.name(),EOLNC);
-              continue;
-            }
-            if(!SD.exists(target))
-              SD.mkdir(target);
-            else
-            {
-              File tstTarg = SD.open(target);
-              if(!tstTarg.isDirectory())
-              {
-                if(!overwrite)
-                {
-                  serial.printf("Skipping: %s%s",file.name(),EOLNC);
-                  continue;
-                }
-                tstTarg.close();
-                SD.remove(target);
-                SD.mkdir(target);
-              }
-              else
-                tstTarg.close();
-              if(strcmp(tstTarg.name(),file.name())==0)
-              {
-                  serial.printf("Skipping: %s%s",file.name(),EOLNC);
-                  continue;
-              }
-            }
-            copyFiles(file.name(),"*",target,false,overwrite);
-            continue;
-          }
-          String tpath=target;
-          tpath += "/";
-          tpath += stripFilename(file.name());
-          if(!SD.exists(tpath))
-          {
-            SD.mkdir(tpath);
-          }
+          if(!recurse)
+            serial.printf("Skipping: %s%s",file.name(),EOLNC);
           else
           {
-            File tdir = SD.open(tpath);
-            String tnamestr=tdir.name();
-            if(!tdir.isDirectory())
-            {
-              tdir.close();
-              if(overwrite)
-              {
-                SD.remove(tnamestr);
-                SD.mkdir(tnamestr);
-              }
-              else
-              {
-                  serial.printf("Skipping: %s%s",file.name(),EOLNC);
-                  continue;
-              }
-            }
-            else
-              tdir.close();
-            if(strcmp(tnamestr.c_str(),file.name())==0)
-            {
-              serial.printf("Skipping: %s%s",file.name(),EOLNC);
-              continue;
-            }
-          }
-          if(recurse)
-          {
-            copyFiles(file.name(),"",tpath,recurse,overwrite);
-          } 
-        }
-        else 
-        {
-          String tpath=target;
-          File tchk = SD.open(target);
-          if(tchk)
-          {
-            if(tchk.isDirectory())
-            {
+            if(!tpath.endsWith("/"))
               tpath += "/";
-              tpath += stripFilename(file.name());
-              tchk.close();
-            }
-            else
-            {
-              if(!overwrite)
-              {
-                serial.printf("File exists: %s%s",tchk.name(),EOLNC);
-                tchk.close();
-                continue;
-              }
-              else
-              {
-                SD.remove(tchk.name());
-                tchk.close();
-              }
-            }
+            tpath += stripFilename(file.name());
           }
-          String sname=file.name();
-          size_t len=file.size();
-          File tfile = SD.open(tpath,FILE_WRITE);
-          for(int i=0;i<len;i++)
-          {
-            uint8_t c=file.read();
-            tfile.write(c);
-          }
-          tfile.close();
         }
+        copyFiles(file.name(),"",tpath,false,overwrite);
       }
     }
   }
+  else
+  {
+    String tpath = target;
+    if(SD.exists(tpath))
+    {
+      File DD=SD.open(tpath);
+      if(DD.isDirectory()) // cp f d, cp f .
+      {
+        if(!tpath.endsWith("/"))
+          tpath += "/";
+        tpath += stripFilename(root.name());
+        debugPrintf("file xform to file in dir:%s\n",tpath.c_str());
+      }
+      DD.close();
+    }
+    if(SD.exists(tpath))
+    {
+      File DD=SD.open(tpath);
+      if(strcmp(DD.name(),root.name())==0)
+      {
+        serial.printf("File exists: %s%s",DD.name(),EOLNC);
+        DD.close();
+        return;
+      }
+      else
+      if(!overwrite) // cp f a, cp f e
+      {
+        serial.printf("File exists: %s%s",DD.name(),EOLNC);
+        DD.close();
+        return;
+      }
+      else
+      {
+        DD.close();
+        SD.remove(tpath);
+      }
+    }
+    size_t len=root.size();
+    File tfile = SD.open(tpath,FILE_WRITE);
+    for(int i=0;i<len;i++)
+    {
+      uint8_t c=root.read();
+      tfile.write(c);
+    }
+    tfile.close();
+  }
 }
-
 
 void ZBrowser::deleteFile(String p, String mask, bool recurse)
 {
@@ -829,7 +794,10 @@ void ZBrowser::doModeCommand()
         else
         {
           mask=stripFilename(p1);
-          p1=stripDir(p1);
+          if(!isMask(mask))
+            mask="";
+          else
+            p1=stripDir(p1);
         }
         debugPrintf("cp:%s (%s) -> %s\n",p1.c_str(),mask.c_str(), p2.c_str());
         copyFiles(p1,mask,p2,recurse,overwrite);

@@ -14,7 +14,7 @@
    limitations under the License.
 */
 //#define TCP_SND_BUF                     4 * TCP_MSS
-#define ZIMODEM_VERSION "3.4.3"
+#define ZIMODEM_VERSION "3.4.5"
 const char compile_date[] = __DATE__ " " __TIME__;
 #define DEFAULT_NO_DELAY true
 #define null 0
