@@ -1,8 +1,3 @@
-BUG: cp -r test test1
-BUG: cp test test1
-  test had test1
-
-  
   *. make a persistent-ish ftp shell
   *. Support ring signal, Server Conns on Hold, and true RING msgs.
   *. Ability to use protocols for at&g, and maybe have alternative at+web
