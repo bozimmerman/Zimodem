@@ -81,6 +81,11 @@ void ZCommand::setConfigDefaults()
   serialDelayMs=0;
   dcdActive=DEFAULT_DCD_HIGH;
   dcdInactive=DEFAULT_DCD_LOW;
+# ifdef HARD_DCD_HIGH
+  dcdInactive=DEFAULT_DCD_HIGH;
+# elif defined(HARD_DCD_LOW)
+  dcdActive=DEFAULT_DCD_LOW;
+# endif 
   ctsActive=DEFAULT_CTS_HIGH;
   ctsInactive=DEFAULT_CTS_LOW;
   rtsActive=DEFAULT_RTS_HIGH;
