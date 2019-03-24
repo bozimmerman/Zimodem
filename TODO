@@ -1,3 +1,4 @@
+  *. if prog button held for 4 seconds, do a factory reset.
   *. make a persistent-ish ftp shell
   *. Support ring signal, Server Conns on Hold, and true RING msgs.
   *. Ability to use protocols for at&g, and maybe have alternative at+web
