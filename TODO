@@ -1,3 +1,9 @@
+Bugs Reported (nor reproduced):
+  *. At 38400, upload with linux rz -e is very slow, but download with linux sz -e is plenty fast.
+  *. 90% stream download with instr: ATD davebiz.com:80,GET DPC5020.MXT HTTP/1.1,CR/LF,Host: davebiz.com,CR/LF CR/LF. http://davebiz.com/DPC5020.MXT
+  *. Disable HW flow control, use 300 or 1200, connect to a bbs, fill the buffer..crash
+
+New Features:
   *. if prog button held for 4 seconds, do a factory reset.
   *. make a persistent-ish ftp shell
   *. Support ring signal, Server Conns on Hold, and true RING msgs.
