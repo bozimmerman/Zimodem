@@ -3182,7 +3182,7 @@ void ZCommand::acceptNewConnection()
   }
   // handle rings properly
   WiFiClientNode *conn = conns;
-  long now=millis();
+  unsigned long now=millis();
   while(conn != null)
   {
     WiFiClientNode *nextConn = conn->next;

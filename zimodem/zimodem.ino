@@ -39,6 +39,7 @@ const char compile_date[] = __DATE__ " " __TIME__;
 
 
 #ifdef ZIMODEM_ESP32
+# define PIN_FACTORY_RESET GPIO_NUM_0
 # define DEFAULT_PIN_DCD GPIO_NUM_14
 # define DEFAULT_PIN_CTS GPIO_NUM_13
 # define DEFAULT_PIN_RTS GPIO_NUM_15 // unused
@@ -175,6 +176,7 @@ static SerialConfig serialConfig = DEFAULT_SERIAL_CONFIG;
 static int baudRate=DEFAULT_BAUD_RATE;
 static int dequeSize=1+(DEFAULT_BAUD_RATE/INTERNAL_FLOW_CONTROL_DIV);
 static BaudState baudState = BS_NORMAL; 
+static unsigned long resetPushTimer=0;
 static int tempBaud = -1; // -1 do nothing
 static int dcdStatus = LOW;
 static int pinDCD = DEFAULT_PIN_DCD;
@@ -380,8 +382,47 @@ void setup()
   flushSerial();
 }
 
+void checkFactoryReset()
+{
+#ifdef ZIMODEM_ESP32
+    if(digitalRead(PIN_FACTORY_RESET))
+    {
+      if(resetPushTimer != 1)
+      {
+        if(resetPushTimer==0)
+        {
+          resetPushTimer=millis();
+          if(resetPushTimer==1)
+            resetPushTimer++;
+        }
+        else
+        if((millis() - resetPushTimer) > 5000)
+        {
+          SPIFFS.end();
+          SPIFFS.format();
+          SPIFFS.begin();
+          PhoneBookEntry::clearPhonebook();
+          if(WiFi.status() == WL_CONNECTED)
+            WiFi.disconnect();
+          wifiSSI="";
+          wifiConnected=false;
+          delay(500);
+          zclock.reset();
+          zcommand.doResetCommand();
+          zcommand.showInitMessage();
+          resetPushTimer=1;
+        }
+      }
+    }
+    else
+    if(resetPushTimer != 0)
+      resetPushTimer=0;
+#endif
+}
+
 void loop() 
 {
+  checkFactoryReset();
   if(HWSerial.available())
   {
     currMode->serialIncoming();

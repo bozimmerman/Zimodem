@@ -299,9 +299,9 @@ size_t WiFiClientNode::write(const uint8_t *buf, size_t size)
   return written;
 }
 
-String WiFiClientNode::readLine(int timeout)
+String WiFiClientNode::readLine(unsigned int timeout)
 {
-  long now=millis();
+  unsigned long now=millis();
   String line = "";
   while(((millis()-now < timeout) || (available()>0)))
   {
@@ -340,7 +340,7 @@ int WiFiClientNode::ringsRemaining(int delta)
   return ringsRemain;
 }
 
-long WiFiClientNode::nextRingTime(long delta)
+unsigned long WiFiClientNode::nextRingTime(long delta)
 {
   nextRingMillis += delta;
   return nextRingMillis;

@@ -41,7 +41,7 @@ class WiFiClientNode : public Stream
     WiFiClient *clientPtr;
     bool answered=true;
     int ringsRemain=0;
-    long nextRingMillis = 0;
+    unsigned long nextRingMillis = 0;
 
   public:
     int id=0;
@@ -77,7 +77,7 @@ class WiFiClientNode : public Stream
     bool isAnswered();
     void answer();
     int ringsRemaining(int delta);
-    long nextRingTime(long delta);
+    unsigned long nextRingTime(long delta);
 
     bool isDisconnectedOnStreamExit();
     void setDisconnectOnStreamExit(bool tf);
@@ -89,7 +89,7 @@ class WiFiClientNode : public Stream
     void flush();
     int available();
     int read(uint8_t *buf, size_t size);
-    String readLine(int timeout);
+    String readLine(unsigned int timeout);
 
     static int getNumOpenWiFiConnections();
 };

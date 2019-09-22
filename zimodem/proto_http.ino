@@ -343,7 +343,7 @@ bool doWebGet(const char *hostIp, int port, FS *fs, const char *filename, const 
   }
   uint32_t bytesRead = 0;
   File f = fs->open(filename, "w");
-  long now = millis();
+  unsigned long now = millis();
   while((bytesRead < respLength) // this can be removed for chunked encoding support 
   && (c->connected()) 
   && ((millis()-now)<10000))
@@ -384,7 +384,7 @@ bool doWebGetBytes(const char *hostIp, int port, const char *req, const bool doS
   }
   *bufSize = (int)respLength;
   int index=0;
-  long now = millis();
+  unsigned long now = millis();
   while((index < respLength) // this can be removed for chunked encoding support
   &&(c->connected()) 
   && ((millis()-now)<10000))

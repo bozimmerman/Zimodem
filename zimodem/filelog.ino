@@ -19,9 +19,9 @@
 static char HD[3];
 static char HDL[17];
 
-static long logStartTime = millis();
-static long lastLogTime = millis();
-static long logCurCount = 0;
+static unsigned long logStartTime = millis();
+static unsigned long lastLogTime = millis();
+static unsigned long logCurCount = 0;
 static LogMode logMode = NADA;
 
 static uint8_t FROMHEXDIGIT(uint8_t a1)

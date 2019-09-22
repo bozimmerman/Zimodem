@@ -23,7 +23,7 @@ class ZStream : public ZMode
     int plussesInARow=0;
     ZSerial serial;
     int lastDTR=0;
-    long nextAlarm = millis() + 5000;
+    unsigned long nextAlarm = millis() + 5000;
     const String busyMsg = "\r\n\r\n\r\n\r\n\r\nBUSY\r\n7\r\n";
     
     void switchBackToCommandMode(bool logout);

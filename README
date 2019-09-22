@@ -56,7 +56,7 @@ void changeBaudRate(int baudRate);
 void changeConfig(uint32_t config);
 size_t availableForWrite();
 
-** Both versions of the firmware are built with SPIFFS enabled.
+** Both versions of the firmware are built with SPIFFS enabled.  On the ESP8266, I used settings of 1M/160k, but you may want to alter that depending on your hardware and needs.
 
 Using:
 ------
