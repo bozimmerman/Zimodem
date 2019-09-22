@@ -1075,6 +1075,8 @@ ZResult ZCommand::doUpdateFirmware(int vval, uint8_t *vbuf, int vlen, bool isNum
   {
     serial.prints("Your modem is up-to-date.");
     serial.prints(EOLN);
+    if(vval == 6502)
+      return ZOK;
   }
   else
   {
