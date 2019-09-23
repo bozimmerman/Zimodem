@@ -408,6 +408,11 @@ void checkFactoryReset()
           PhoneBookEntry::clearPhonebook();
           if(WiFi.status() == WL_CONNECTED)
             WiFi.disconnect();
+          baudRate = DEFAULT_BAUD_RATE;
+          commandMode.loadConfig();
+          PhoneBookEntry::loadPhonebook();
+          dcdStatus = dcdInactive;
+          s_pinWrite(pinDCD,dcdStatus);
           wifiSSI="";
           wifiConnected=false;
           delay(500);
