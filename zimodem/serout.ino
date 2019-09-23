@@ -216,8 +216,15 @@ void ZSerial::enqueByte(uint8_t c)
     {
     case FCT_DISABLED:
     case FCT_INVALID:
-      serialDirectWrite(c);
-      return;
+#ifndef ZIMODEM_ESP32
+      if((HWSerial.availableForWrite() > 0)
+      &&(HWSerial.available() == 0))
+#endif
+      {
+        serialDirectWrite(c);
+        return;
+      }
+      break;
     case FCT_RTSCTS:
 #ifdef ZIMODEM_ESP32
       if(isSerialOut())
