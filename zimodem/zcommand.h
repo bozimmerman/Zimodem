@@ -162,6 +162,7 @@ class ZCommand : public ZMode
     FlowControlType getFlowControlType();
     void serialIncoming();
     void loop();
+    void reset();
 };
 
 

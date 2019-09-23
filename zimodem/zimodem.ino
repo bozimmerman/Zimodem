@@ -385,7 +385,7 @@ void setup()
 void checkFactoryReset()
 {
 #ifdef ZIMODEM_ESP32
-    if(digitalRead(PIN_FACTORY_RESET))
+    if(!digitalRead(PIN_FACTORY_RESET))
     {
       if(resetPushTimer != 1)
       {
@@ -398,6 +398,10 @@ void checkFactoryReset()
         else
         if((millis() - resetPushTimer) > 5000)
         {
+          SPIFFS.remove("/zconfig.txt");
+          SPIFFS.remove("/zphonebook.txt");
+          SPIFFS.remove("/zlisteners.txt");
+          PhoneBookEntry::clearPhonebook();
           SPIFFS.end();
           SPIFFS.format();
           SPIFFS.begin();
@@ -408,8 +412,7 @@ void checkFactoryReset()
           wifiConnected=false;
           delay(500);
           zclock.reset();
-          zcommand.doResetCommand();
-          zcommand.showInitMessage();
+          commandMode.reset();
           resetPushTimer=1;
         }
       }

@@ -32,6 +32,13 @@ ZCommand::ZCommand()
   machineState = stateMachine;
 }
 
+void ZCommand::reset()
+{
+  doResetCommand();
+  showInitMessage();
+}
+
+
 byte ZCommand::CRC8(const byte *data, byte len) 
 {
   byte crc = 0x00;
