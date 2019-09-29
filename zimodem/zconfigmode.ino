@@ -474,7 +474,18 @@ void ZConfig::doModeCommand()
       {
           if(!connectWifi(WiFi.SSID(lastNumber).c_str(),cmd.c_str()))
           {
-            serial.printf("%sUnable to connect to %s. :(%s",EOLNC,WiFi.SSID(lastNumber).c_str(),EOLNC);
+            serial.printf("%sConnection failed.  Retrying %s.%s",EOLNC,WiFi.SSID(lastNumber).c_str(),EOLNC);
+            for(int t=0;t<3;t++)
+            {
+              for(int i=0;i<500;i++)
+              {
+                if(serial.isSerialOut())
+                  serialOutDeque();
+                delay(1);
+              }
+            }
+            if((wifiSSI.length() == 0) || (WiFi.status()!=WL_CONNECTED))
+              serial.printf("%sUnable to connect to %s.%s",EOLNC,WiFi.SSID(lastNumber).c_str(),EOLNC);
           }
           else
           {
