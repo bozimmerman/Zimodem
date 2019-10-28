@@ -421,7 +421,7 @@ void ZCommand::setOptionsFromSavedConfig(String configArguments[])
     zclock.setFormat(configArguments[CFG_TIMEFMT]);
   if((!zclock.isDisabled())&&(configArguments[CFG_TIMEURL].length()>0))
     zclock.setNtpServerHost(configArguments[CFG_TIMEURL]);
-  if(!zclock.isDisabled())
+  if((!zclock.isDisabled()) && (WiFi.status() == WL_CONNECTED))
     zclock.forceUpdate();
 }
 
@@ -473,10 +473,15 @@ void ZCommand::loadConfig()
   hostname = argv[CFG_HOSTNAME];
   if(wifiSSI.length()>0)
   {
+    debugPrintf("Connecting to %s\n",wifiSSI.c_str());
     connectWifi(wifiSSI.c_str(),wifiPW.c_str());
+    debugPrintf("Done connecting to %s\n",wifiSSI.c_str());
   }
+  debugPrintf("Reset start.\n");
   doResetCommand();
+  debugPrintf("Reset complete.  Init start\n");
   showInitMessage();
+  debugPrintf("Init complete.\n");
 }
 
 ZResult ZCommand::doInfoCommand(int vval, uint8_t *vbuf, int vlen, bool isNumber)
