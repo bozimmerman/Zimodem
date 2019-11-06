@@ -403,7 +403,7 @@ int send_byte(void* unused, uchar ch, unsigned timeout)
 int recv_byte(void* unused, unsigned timeout /* seconds */)
 {
   unsigned long startTime = millis();
-  while(zserial.available()<=0)
+  while(zserial.available()==0)
   {
     serialOutDeque();
     yield();
@@ -430,7 +430,7 @@ BOOL data_waiting(void* unused, unsigned timeout /* seconds */)
   if(timeout < 1)
     return zserial.available() > 0;
   unsigned long startTime = millis();
-  while(zserial.available()<=0)
+  while(zserial.available()==0)
   {
     serialOutDeque();
     yield();

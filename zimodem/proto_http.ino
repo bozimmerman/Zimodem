@@ -82,7 +82,7 @@ public:
 
     virtual int read()
     {
-      if(available()<=0)
+      if(available()==0)
         return -1;
       char c=wifi->read();
       bool gotC = false;
@@ -207,7 +207,8 @@ WiFiClient *doWebGetStream(const char *hostIp, int port, const char *req, bool d
 {
   *responseSize = 0;
   if(WiFi.status() != WL_CONNECTED)
-    return false;
+    return null;
+  
   WiFiClient *c = createWiFiClient(doSSL);
   if(port == 0)
     port = 80;
@@ -218,6 +219,7 @@ WiFiClient *doWebGetStream(const char *hostIp, int port, const char *req, bool d
     delete c;
     return null;
   }
+
   const char *root = "";
   if(req == NULL)
     req=root;
@@ -234,14 +236,13 @@ WiFiClient *doWebGetStream(const char *hostIp, int port, const char *req, bool d
   uint32_t respLength = 0;
   int respCode = -1;
   bool chunked = false;
-  while(c->connected())
+  while(c->connected() || (c->available()>0))
   {
     yield();
-    if(c->available()<=0)
+    if(c->available()==0)
       continue;
-      
+
     char ch = (char)c->read();
-    //logSocketIn(ch); // this is NOT socket input!!
     if(ch == '\r')
       continue;
     else
@@ -314,11 +315,10 @@ WiFiClient *doWebGetStream(const char *hostIp, int port, const char *req, bool d
   }
   
   *responseSize = respLength;
-  if((!c->connected())
+  if(((!c->connected())&&(c->available()==0))
   ||(respCode != 200)
   ||(respLength <= 0))
   {
-    
     c->stop();
     delete c;
     return null;
@@ -333,19 +333,12 @@ bool doWebGet(const char *hostIp, int port, FS *fs, const char *filename, const 
   uint32_t respLength=0;
   WiFiClient *c = doWebGetStream(hostIp, port, req, doSSL, &respLength);
   if(c==null)
-  {
-    if(c != null)
-    {
-      c->stop();
-      delete c;
-    }
     return false;
-  }
   uint32_t bytesRead = 0;
   File f = fs->open(filename, "w");
   unsigned long now = millis();
   while((bytesRead < respLength) // this can be removed for chunked encoding support 
-  && (c->connected()) 
+  && (c->connected()||(c->available()>0)) 
   && ((millis()-now)<10000))
   {
     if(c->available()>0)
@@ -368,14 +361,12 @@ bool doWebGet(const char *hostIp, int port, FS *fs, const char *filename, const 
 
 bool doWebGetBytes(const char *hostIp, int port, const char *req, const bool doSSL, uint8_t *buf, int *bufSize)
 {
+  *bufSize = -1;
   uint32_t respLength=0;
   WiFiClient *c = doWebGetStream(hostIp, port, req, doSSL, &respLength);
   if(c==null)
-  {
-    c->stop();
     return false;
-  }
-  if((!c->connected())
+  if(((!c->connected())&&(c->available()==0))
   ||(respLength > *bufSize))
   {
     c->stop();
@@ -386,7 +377,7 @@ bool doWebGetBytes(const char *hostIp, int port, const char *req, const bool doS
   int index=0;
   unsigned long now = millis();
   while((index < respLength) // this can be removed for chunked encoding support
-  &&(c->connected()) 
+  &&(c->connected()||(c->available()>0)) 
   && ((millis()-now)<10000))
   {
     if(c->available()>0)

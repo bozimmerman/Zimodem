@@ -85,7 +85,8 @@ static String readLine(WiFiClient *c, int timeout)
 {
   unsigned long now=millis();
   String line = "";
-  while(((millis()-now < timeout) || (c->available()>0)) && (c->connected()))
+  while(((millis()-now < timeout) || (c->available()>0)) 
+  && (c->connected()|| (c->available()>0)))
   {
     yield();
     if(c->available()>0)
@@ -210,7 +211,8 @@ bool doFTPGet(FS *fs, const char *hostIp, int port, const char *filename, const 
     return doFTPQuit(&cc);
   File f = fs->open(filename, "w");
   unsigned long now=millis();
-  while((c->connected()) && ((millis()-now) < 30000)) // loop for data, with nice long timeout
+  while((c->connected()||(c->available()>0)) 
+  && ((millis()-now) < 30000)) // loop for data, with nice long timeout
   {
     if(c->available()>=0)
     {
@@ -304,7 +306,8 @@ bool doFTPPut(File &f, const char *hostIp, int port, const char *req, const char
     return doFTPQuit(&cc);
   unsigned long now=millis();
   debugPrintf(" Storing... %d\r\n",f.available());
-  while((c->connected()) && (f.available()>0) && ((millis()-now) < 30000)) // loop for data, with nice long timeout
+  while((c->connected()) 
+  && (f.available()>0) && ((millis()-now) < 30000)) // loop for data, with nice long timeout
   {
     if(f.available()>=0)
     {
@@ -402,7 +405,8 @@ bool doFTPLS(ZSerial *serial, const char *hostIp, int port, const char *req, con
   if((respCode < 0)||(respCode > 400))
     return doFTPQuit(&cc);
   unsigned long now=millis();
-  while((c->connected()) && ((millis()-now) < 30000)) // loop for data, with nice long timeout
+  while((c->connected()||(c->available()>0)) 
+  && ((millis()-now) < 30000)) // loop for data, with nice long timeout
   {
     if(c->available()>=0)
     {

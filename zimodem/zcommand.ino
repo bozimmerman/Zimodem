@@ -1052,7 +1052,7 @@ ZResult ZCommand::doUpdateFirmware(int vval, uint8_t *vbuf, int vlen, bool isNum
   serial.prints(ZIMODEM_VERSION);
   serial.prints(".");
   serial.prints(EOLN);
-  
+
   uint8_t buf[255];
   int bufSize = 254;
 #ifdef ZIMODEM_ESP32
@@ -1062,7 +1062,7 @@ ZResult ZCommand::doUpdateFirmware(int vval, uint8_t *vbuf, int vlen, bool isNum
   if((!doWebGetBytes("www.zimmers.net", 80, "/otherprojs/c64net-latest-version.txt", false, buf, &bufSize))||(bufSize<=0))
     return ZERROR;
 #endif
-  
+
   if((!isNumber)&&(vlen>2))
   {
     if(vbuf[0]=='=')
