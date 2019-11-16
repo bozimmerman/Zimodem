@@ -12,11 +12,11 @@ Building:
 ---------
 To build this firmware for the ESP-01 or ESP-12, I used the Arduino IDE rev1.8.10 with the Arduino Generic ESP8266 Module installed from the head dev at https://github.com/esp8266/Arduino.  Using that version of the library not the official Boards Manager distribution (via Additional Boards Manager URL http://arduino.esp8266.com/stable/package_esp8266com_index.json) was important to resolving several problems (specifically 300ms/byte socket write times).  How you get there from here was tricky.  I followed the standard instructions for installing an ESP board, found where it dropped the package (on Windows 10, it was in:c:\users\<myname>\AppData\Local\Arduino15\packages\esp8266\hardware\esp8266\... I dropped the new stuff from github in there instead of the old stuff, and then went into the new "tools" directory and ran get.py. ** 
 
-To build this firmware for the ESP-32, I also used the Arduino IDE rev 1.8.10 with the Arduino ESP32 Dev Module installed from the head dev at https://github.com/espressif/arduino-esp32, with the following settings: QIO, 4MB, 80MHZ, 921600, NONE, Avrisp Mk II **.  I found that baud changing corrupts the serial bus as of 1/13/2018, so the following changes were made to the base libraries: 
+To build this firmware for the ESP-32*, I also used the Arduino IDE rev 1.8.10 with the Arduino ESP32 Dev Module installed from the head dev at https://github.com/espressif/arduino-esp32, with the following settings: QIO, 4MB, 80MHZ, 921600, NONE, Avrisp Mk II **.  I found that baud changing corrupts the serial bus as of 1/13/2018, so the following changes were made to the base libraries: 
 > Added to esp32-hal-uart.c:
 void uartChangeBaudRate(uint8_t uart_nr, uint32_t baudrate)
 { 
-	uartSetBaudRate(&_uart_bus_array[uart_nr], baudrate); 
+    uartSetBaudRate(&_uart_bus_array[uart_nr], baudrate); 
 }
 void uartChangeConfig(uint8_t uart_nr, uint32_t config)
 {
@@ -54,6 +54,7 @@ void HardwareSerial::changeConfig(uint32_t config) { uartChangeConfig(_uart_nr, 
 void changeBaudRate(int baudRate);
 void changeConfig(uint32_t config);
 
+* On the ESP32, if you want to build firmware that is Update compatible with the official production zimodem, you'll need to do your upload using esptool and the binaries in the esp32_prod_bin directory.
 ** Both versions of the firmware are built with SPIFFS enabled.  On the ESP8266, I used settings of 1M/160k, but you may want to alter that depending on your hardware and needs.
 
 Using:
@@ -173,9 +174,9 @@ ATP"[NUMBER]=DELETE" : Removes the phonebook entry with the given number.
 ATS0=n : Changes the number of RING messages received before a CONNECT response is sent, on incoming Server listeners.
 ATS1=n : Unimplemented, always returns OK
 ATS2=n : Change the escape character (n = 0-255), Defaults to ASCII decimal 43 ("+")
-ATS3=n : Change the Carriage Return Character	(n = 0-127), Defaults to ASCII decimal 13 (Carriage Return)
-ATS4=n : Change the Line Feed Character	(0-127), Defaults ASCII decimal 10 (Line Feed)
-ATS5=n : Change the Backspace Character	(0-32), ASCII decimal 8 (Backspace)
+ATS3=n : Change the Carriage Return Character   (n = 0-127), Defaults to ASCII decimal 13 (Carriage Return)
+ATS4=n : Change the Line Feed Character (0-127), Defaults ASCII decimal 10 (Line Feed)
+ATS5=n : Change the Backspace Character (0-32), ASCII decimal 8 (Backspace)
 ATS6 ... 39=n : Unimplemented, always returns OK
 ATS40=n : Change the size of the connection packets (n > 0), Defaults to 127 bytes
 ATS41=n : When n > 0, all incoming Server listener connections are immediately sent to Stream mode.  If n=0, connections remain in normal command mode (default).
