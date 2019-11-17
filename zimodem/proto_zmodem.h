@@ -403,17 +403,15 @@ int send_byte(void* unused, uchar ch, unsigned timeout)
 int recv_byte(void* unused, unsigned timeout /* seconds */)
 {
   unsigned long startTime = millis();
+  timeout *= 1000;
   while(zserial.available()==0)
   {
-    serialOutDeque();
-    yield();
     unsigned long currentTime = millis();
     unsigned long elapsedTime = currentTime - startTime;
-    if((elapsedTime / 1000) > timeout)
+    if(elapsedTime >= timeout)
       return(NOINP);
+    delay(1);
   }
-  serialOutDeque();
-  yield();
   int ch = zserial.read();
   //lprintf(LOG_DEBUG, "Recvd: %d", ch);
   return ch;
@@ -425,19 +423,15 @@ void flush(void* unused)
 
 BOOL data_waiting(void* unused, unsigned timeout /* seconds */)
 {
-  serialOutDeque();
-  yield();
-  if(timeout < 1)
-    return zserial.available() > 0;
+  timeout *= 1000;
   unsigned long startTime = millis();
   while(zserial.available()==0)
   {
-    serialOutDeque();
-    yield();
     unsigned long currentTime = millis();
     unsigned long elapsedTime = currentTime - startTime;
-    if((elapsedTime / 1000) > timeout)
+    if(elapsedTime >= timeout)
       return FALSE;
+    delay(1);
   }
   return TRUE;
 }
@@ -446,7 +440,6 @@ BOOL is_connected(void* unused)
 {
   return TRUE; // modem connection, so...
 }
-
 
 static boolean zDownload(FS &fs, String filePath, String &errors)
 {
