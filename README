@@ -10,7 +10,7 @@ The default baud rate that the firmware establishes is 1200.  Be sure to use the
 
 Building:
 ---------
-To build this firmware for the ESP-01 or ESP-12, I used the Arduino IDE rev1.8.10 with the Arduino Generic ESP8266 Module installed from the head dev at https://github.com/esp8266/Arduino.  Using that version of the library not the official Boards Manager distribution (via Additional Boards Manager URL http://arduino.esp8266.com/stable/package_esp8266com_index.json) was important to resolving several problems (specifically 300ms/byte socket write times).  How you get there from here was tricky.  I followed the standard instructions for installing an ESP board, found where it dropped the package (on Windows 10, it was in:c:\users\<myname>\AppData\Local\Arduino15\packages\esp8266\hardware\esp8266\... I dropped the new stuff from github in there instead of the old stuff, and then went into the new "tools" directory and ran get.py. ** 
+To build this firmware for the ESP-01 or ESP-12, I used the Arduino IDE rev1.8.10 with the latest Arduino ESP8266 libraries using the Generic ESP8266 Module. Install the libraries from the Boards Manager using http://arduino.esp8266.com/stable/package_esp8266com_index.json . Both versions of the firmware are built with SPIFFS enabled.  On the ESP8266, I used settings of 1M/160k, but you may want to alter that depending on your hardware and needs. 
 
 To build this firmware for the ESP-32, I also used the Arduino IDE rev 1.8.10 with the Arduino ESP32 Dev Module installed from the board manager * , with the following settings: QIO, 4MB, 80MHZ, 921600, NONE, Avrisp Mk II **.  I found that baud changing corrupts the serial bus as of 1/13/2018, so the following changes were made to the base libraries: 
 > Added to esp32-hal-uart.c:
@@ -55,7 +55,6 @@ void changeBaudRate(int baudRate);
 void changeConfig(uint32_t config);
 
 * On the ESP32, if you want to build firmware that is Update compatible with the official production zimodem, you'll need to install the exact libraries I use from http://www.zimmers.net/otherprojs/esp32_v0.zip .  If you don't care about that, using the latest libs work just fine.
-** Both versions of the firmware are built with SPIFFS enabled.  On the ESP8266, I used settings of 1M/160k, but you may want to alter that depending on your hardware and needs.
 
 Using:
 ------
