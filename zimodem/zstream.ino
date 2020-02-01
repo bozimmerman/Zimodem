@@ -124,9 +124,9 @@ void ZStream::socketWrite(uint8_t c)
   {
     current->write(c);
     logSocketOut(c);
-    current->flush(); // rendered safe by available check
-    delay(0);
-    yield();
+    //current->flush(); // rendered safe by available check
+    //delay(0);
+    //yield();
   }
 }
 
