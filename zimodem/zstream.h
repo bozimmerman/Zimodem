@@ -20,7 +20,7 @@ class ZStream : public ZMode
     WiFiClientNode *current = null;
     unsigned long lastNonPlusTimeMs = 0;
     unsigned long currentExpiresTimeMs = 0;
-    unsigned long lastWrittenMs = 0;
+    unsigned long nextFlushMs = 0;
     int plussesInARow=0;
     ZSerial serial;
     int lastDTR=0;

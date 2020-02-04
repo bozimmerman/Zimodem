@@ -126,7 +126,7 @@ void ZStream::socketWrite(uint8_t c)
       current->write(c); 
     current->write(c);
     logSocketOut(c);
-    lastWrittenMs=millis();
+    nextFlushMs=millis()+250;
     //current->flush(); // rendered safe by available check
     //delay(0);
     //yield();
@@ -244,9 +244,9 @@ void ZStream::loop()
     }
     if(serial.isSerialOut())
     {
-      if((lastWrittenMs > 0) && (millis() > lastWrittenMs + 200))
+      if((nextFlushMs > 0) && (millis() > nextFlushMs))
       {
-        lastWrittenMs = 0;
+        nextFlushMs = 0;
         serial.flush();
       }
       serialOutDeque();
