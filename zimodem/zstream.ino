@@ -122,8 +122,11 @@ void ZStream::socketWrite(uint8_t c)
 {
   if(current->isConnected())
   {
+    if(c == 0xFF && isTelnet()) 
+      current->write(c); 
     current->write(c);
     logSocketOut(c);
+    lastWrittenMs=millis();
     //current->flush(); // rendered safe by available check
     //delay(0);
     //yield();
@@ -240,7 +243,14 @@ void ZStream::loop()
       }
     }
     if(serial.isSerialOut())
+    {
+      if((lastWrittenMs > 0) && (millis() > lastWrittenMs + 200))
+      {
+        lastWrittenMs = 0;
+        serial.flush();
+      }
       serialOutDeque();
+    }
   }
   checkBaudChange();
 }
