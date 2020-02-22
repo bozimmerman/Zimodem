@@ -158,6 +158,19 @@ void WiFiClientNode::setDisconnectOnStreamExit(bool tf)
     flagsBitmap = flagsBitmap & ~FLAG_DISCONNECT_ON_EXIT;
 }
 
+void WiFiClientNode::fillUnderflowBuf()
+{
+  int newAvail = client.available();
+  if(newAvail > 0)
+  {
+    int maxBufAvail = UNDERFLOW_BUF_MAX_SIZE-underflowBufLen;
+    if(newAvail>maxBufAvail)
+      newAvail=maxBufAvail;
+    if(newAvail > 0)
+      underflowBufLen += client.read(underflowBuf+underflowBufLen, newAvail);
+  }
+}
+
 int WiFiClientNode::read()
 {
   if((host == null)||(!answered))
@@ -168,7 +181,9 @@ int WiFiClientNode::read()
     memcpy(underflowBuf,underflowBuf+1,--underflowBufLen);
     return b;
   }
-  return client.read();
+  int c = client.read();
+  fillUnderflowBuf();
+  return c;
 }
 
 int WiFiClientNode::peek()
@@ -193,9 +208,7 @@ int WiFiClientNode::available()
 {
   if((host == null)||(!answered))
     return 0;
-  if(underflowBufLen > 0)
-    return underflowBufLen;
-  return client.available();
+  return underflowBufLen + client.available();
 }
 
 int WiFiClientNode::read(uint8_t *buf, size_t size)
@@ -205,12 +218,14 @@ int WiFiClientNode::read(uint8_t *buf, size_t size)
   // this whole underflow buf len thing is to get around yet another
   // problem in the underlying library where a socket disconnection
   // eats away any stray available bytes in their buffers.
+  int previouslyRead = 0;
   if(underflowBufLen > 0)
   {
     if(underflowBufLen <= size)
     {
+      previouslyRead += underflowBufLen;
       memcpy(buf,underflowBuf,underflowBufLen);
-      size = underflowBufLen;
+      size -= underflowBufLen;
       underflowBufLen = 0;
     }
     else
@@ -218,15 +233,15 @@ int WiFiClientNode::read(uint8_t *buf, size_t size)
       memcpy(buf,underflowBuf,size);
       underflowBufLen -= size;
       memcpy(underflowBuf,underflowBuf+size,underflowBufLen);
+      return size;
     }
-    return size;
   }
-  
+  if(size == 0)
+    return previouslyRead;
+
   int bytesRead = client.read(buf,size);
-  int newAvail = client.available(); 
-  if((newAvail>0) && (newAvail<size) && (newAvail<UNDERFLOW_BUF_MAX_SIZE))
-    underflowBufLen = client.read(underflowBuf,newAvail); 
-  return bytesRead;
+  fillUnderflowBuf();
+  return previouslyRead + bytesRead;
 }
 
 int WiFiClientNode::flushOverflowBuffer()

@@ -37,6 +37,7 @@ class WiFiClientNode : public Stream
   private:
     void finishConnectionLink();
     int flushOverflowBuffer();
+    void fillUnderflowBuf();
     WiFiClient client;
     WiFiClient *clientPtr;
     bool answered=true;
