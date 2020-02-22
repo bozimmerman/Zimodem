@@ -367,7 +367,7 @@ static zmodem_t zm;
 
 static int lputs(void* unused, int level, const char* str)
 {
-  debugPrintf("%s\n",str); // debug off
+  // debugPrintf("%s\n",str); // debug off -- seems like can't print to both serials too near each other.
   return TRUE;
 }
 
