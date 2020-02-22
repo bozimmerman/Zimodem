@@ -2441,7 +2441,9 @@ ZResult ZCommand::doSerialCommand()
           {
             logFileOpen = true;
             SPIFFS.remove("/logfile.txt");
-            logFile = SPIFFS.open("/logfile.txt", "w");              
+            logFile = SPIFFS.open("/logfile.txt", "w");
+            if(vval==88)
+              logFileDebug=true;
             result=ZOK;
           }
           break;

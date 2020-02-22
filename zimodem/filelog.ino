@@ -104,28 +104,28 @@ static void logInternalOut(const LogMode m, const uint8_t c)
       logCurCount=0;
       
       logMode = m;
-      logFile.println("");
+      rawLogPrintln("");
       switch(m)
       {
       case NADA:
         break;
       case SocketIn:
-        logFile.printf("%s SocI: ",TOHEX(millis()-logStartTime));
+        rawLogPrintf("%s SocI: ",TOHEX(millis()-logStartTime));
         break;
       case SocketOut:
-        logFile.printf("%s SocO: ",TOHEX(millis()-logStartTime));
+        rawLogPrintf("%s SocO: ",TOHEX(millis()-logStartTime));
         break;
       case SerialIn:
-        logFile.printf("%s SerI: ",TOHEX(millis()-logStartTime));
+        rawLogPrintf("%s SerI: ",TOHEX(millis()-logStartTime));
         break;
       case SerialOut:
-        logFile.printf("%s SerO: ",TOHEX(millis()-logStartTime));
+        rawLogPrintf("%s SerO: ",TOHEX(millis()-logStartTime));
         break;
       }
     }
     lastLogTime=millis();
-    logFile.print(TOHEX(c));
-    logFile.print(" ");
+    rawLogPrint(TOHEX(c));
+    rawLogPrint(" ");
   }
 }
 
@@ -158,20 +158,50 @@ static void logSocketIn(const uint8_t *c, int n)
   }
 }
 
+static void rawLogPrintf(const char* format, ...)
+{
+  int ret;
+  va_list arglist;
+  va_start(arglist, format);
+  vsnprintf(FBUF,sizeof(FBUF), format, arglist);
+  rawLogPrint(FBUF);
+  va_end(arglist);
+  
+}
+
+static void rawLogPrint(const char* str)
+{
+  if(logFileDebug)
+    debugPrintf(str);
+  else
+    logFile.print(str);
+}
+
+static void rawLogPrintln(const char* str)
+{
+  if(logFileDebug)
+  {
+    debugPrintf(str);
+    debugPrintf("\n");
+  }
+  else
+    logFile.println(str);
+}
+
 static void logPrintfln(const char* format, ...) 
 {
   if(logFileOpen)
   {
     if(logMode != NADA)
     {
-      logFile.println("");
+      rawLogPrintln("");
       logMode = NADA;
     }
     int ret;
     va_list arglist;
     va_start(arglist, format);
     vsnprintf(FBUF,sizeof(FBUF), format, arglist);
-    logFile.println(FBUF);
+    rawLogPrintln(FBUF);
     va_end(arglist);
   }
 }
@@ -182,14 +212,14 @@ static void logPrintf(const char* format, ...)
   {
     if(logMode != NADA)
     {
-      logFile.println("");
+      rawLogPrintln("");
       logMode = NADA;
     }
     int ret;
     va_list arglist;
     va_start(arglist, format);
     vsnprintf(FBUF, sizeof(FBUF), format, arglist);
-    logFile.print(FBUF);
+    rawLogPrint(FBUF);
     va_end(arglist);
   }
 }
@@ -200,10 +230,10 @@ static void logPrint(const char* msg)
   {
     if(logMode != NADA)
     {
-      logFile.println("");
+      rawLogPrintln("");
       logMode = NADA;
     }
-    logFile.print(msg);
+    rawLogPrint(msg);
   }
 }
 
@@ -213,10 +243,10 @@ static void logPrintln(const char* msg)
   {
     if(logMode != NADA)
     {
-      logFile.println("");
+      rawLogPrintln("");
       logMode = NADA;
     }
-    logFile.println(msg);
+    rawLogPrintln(msg);
   }
 }
 

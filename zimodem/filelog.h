@@ -26,6 +26,7 @@ enum LogMode
 static unsigned long expectedSerialTime = 1000;
 
 static bool logFileOpen = false;
+static bool logFileDebug= false;
 static File logFile; 
 
 static void logSerialOut(const uint8_t c);

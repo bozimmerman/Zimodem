@@ -243,6 +243,7 @@ WiFiClient *doWebGetStream(const char *hostIp, int port, const char *req, bool d
       continue;
 
     char ch = (char)c->read();
+    logSocketIn(ch); // this is very much socket input!
     if(ch == '\r')
       continue;
     else
@@ -345,7 +346,7 @@ bool doWebGet(const char *hostIp, int port, FS *fs, const char *filename, const 
     {
       now=millis();
       uint8_t ch=c->read();
-      //logSocketIn(ch); // this is ALSO not socket input!
+      logSocketIn(ch); // this is very much socket input!
       f.write(ch);
       bytesRead++;
     }
@@ -384,7 +385,7 @@ bool doWebGetBytes(const char *hostIp, int port, const char *req, const bool doS
     {
       uint8_t ch=c->read();
       now = millis();
-      //logSocketIn(ch); // again, NOT SOCKET INPUT!
+      logSocketIn(ch); // how is this not socket input -- it's coming from a WiFiClient -- that's THE SOCKET!
       buf[index++] = ch;
     }
     else
