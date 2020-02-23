@@ -29,8 +29,6 @@
 #ifndef _ZMODEM_H
 #define _ZMODEM_H
 
-//#define DEBUG_ZMODEM 1
-
 #define ZMODEM_FILE_SIZE_MAX  0xffffffff  /* 32-bits, blame Chuck */
 
 /*
@@ -389,6 +387,7 @@ static int lprintf(int level, const char *fmt, ...)
  */
 void zmodem_progress(void* cbdata, int64_t current_pos)
 {
+  //debugPrintf("POGRESS %lld\n",current_pos);
   // do nothing?
 }
 
@@ -411,6 +410,7 @@ int recv_byte(void* unused, unsigned timeout /* seconds */)
     if(elapsedTime >= timeout)
       return(NOINP);
     delay(1);
+    yield();
   }
   int ch = zserial.read();
   //lprintf(LOG_DEBUG, "Recvd: %d", ch);
