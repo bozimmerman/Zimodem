@@ -647,13 +647,13 @@ void ZBrowser::doModeCommand()
           if(xDownload(rfile,errors))
           {
             rfile.close();
-            delay(1000);
+            delay(2000);
             serial.printf("Download completed successfully.%s",EOLNC);
           }
           else
           {
             rfile.close();
-            delay(1000);
+            delay(2000);
             serial.printf("Download failed (%s).%s",errors.c_str(),EOLNC);
           }
         }
@@ -689,13 +689,13 @@ void ZBrowser::doModeCommand()
             if(xUpload(rfile,errors))
             {
               rfile.close();
-              delay(1000);
+              delay(2000);
               serial.printf("Upload completed successfully.%s",EOLNC);
             }
             else
             {
               rfile.close();
-              delay(1000);
+              delay(2000);
               serial.printf("Upload failed (%s).%s",errors.c_str(),EOLNC);
             }
           }
@@ -722,12 +722,12 @@ void ZBrowser::doModeCommand()
           initZSerial(commandMode.getFlowControlType());
           if(zDownload(SD,p,errors))
           {
-            delay(1000);
+            delay(2000);
             serial.printf("Download completed successfully.%s",EOLNC);
           }
           else
           {
-            delay(1000);
+            delay(2000);
             serial.printf("Download failed (%s).%s",errors.c_str(),EOLNC);
           }
         }
@@ -755,12 +755,12 @@ void ZBrowser::doModeCommand()
           initZSerial(commandMode.getFlowControlType());
           if(zUpload(SD,rootDirNm,errors))
           {
-            delay(1000);
+            delay(2000);
             serial.printf("Upload completed successfully.%s",EOLNC);
           }
           else
           {
-            delay(1000);
+            delay(2000);
             serial.printf("Upload failed (%s).%s",errors.c_str(),EOLNC);
           }
         }
