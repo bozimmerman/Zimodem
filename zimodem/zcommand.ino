@@ -2208,6 +2208,9 @@ ZResult ZCommand::doSerialCommand()
         }
 #endif
         else
+        if((strcmp((const char *)vbuf,"print")==0)||(strcmp((const char *)vbuf,"PRINT")==0))
+            result = printMode.switchTo((char *)vbuf+5,vlen-5,serial.isPetsciiMode());
+        else
           result=ZERROR; //todo: branch based on vbuf contents
         break;
       case '%':
