@@ -31,19 +31,16 @@ size_t ZPrint::writeStr(char *s)
 
 size_t ZPrint::writeChunk(char *s, int len)
 {
-  char buf[8];
-  int tot=len;
-  itoa(len,buf,16);
-  tot += strlen(buf);
+  char buf[25];
+  sprintf(buf,"%x\r\n",len);
   writeStr(buf);
-  writeStr("\r\n");
   for(int i=0;i<len;i++)
   {
     current->write(s[i]);
     logSocketOut(s[i]);
   }
   writeStr("\r\n");
-  return tot+4;
+  return len+strlen(buf)+4;
 }
 
 ZResult ZPrint::switchTo(char *vbuf, int vlen, bool petscii)
@@ -75,17 +72,15 @@ ZResult ZPrint::switchTo(char *vbuf, int vlen, bool petscii)
   bool doSSL;
   if(!parseWebUrl((uint8_t *)vbuf+2,&hostIp,&req,&port,&doSSL))
     return ZERROR;
-  current = new WiFiClientNode(hostIp,port,0);
+  current = new WiFiClientNode(hostIp,port,doSSL?FLAG_SECURE:0);
   if(!current->isConnected())
   {
     delete current;
     return ZERROR;
   }
-  currMode=&printMode;
-  currentExpiresTimeMs = millis()+5000;
   
   // send the request and http headers:
-  sprintf(pbuf,"POST %s HTTP/1.1\r\n",req);
+  sprintf(pbuf,"POST /%s HTTP/1.1\r\n",req);
   writeStr(pbuf);
   writeStr("Transfer-Encoding: chunked\r\n");
   writeStr("Content-Type: application/ipp\r\n");
@@ -97,13 +92,20 @@ ZResult ZPrint::switchTo(char *vbuf, int vlen, bool petscii)
   writeStr("\r\n");
   // send the ipp header
   current->flush();
+  if(!current->isConnected())
+  {
+    delete current;
+    return ZERROR;
+  }
   sprintf(pbuf,"%c%c%c%c%c%c%c%c%c",0x01,0x01,0x00,0x02,0x00,0x00,0x00,0x01,0x01);
   writeChunk(pbuf,9);
   sprintf(pbuf,"%c%c%cattributes-charset%c%cutf-8",0x47,0x00,0x12,0x00,0x05);
   writeChunk(pbuf,28);
   sprintf(pbuf,"%c%c%cattributes-natural-language%c%cen-us",0x48,0x00,0x1b,0x00,0x05);
   writeChunk(pbuf,37);
-  //TODO:ippAttribs.add(i.add(new byte[]{0x45,0x00,0x0b}).add("printer-uri").add(new byte[]{0x00,0x3b}).add("http://192.168.1.10/printers/HP_ColorLaserJet_MFP_M278-M281").toBytes());
+  int urllen = strlen(hostIp) + strlen(req)+8;
+  sprintf(pbuf,"%c%c%cprinter-uri%c%chttp://%s/%s",0x45,0x00,0x0b,0x00,urllen,hostIp,req);
+  writeChunk(pbuf,urllen+16);
   sprintf(pbuf,"%c%c%crequesting-user-name%c%czimodem",0x42,0x00,0x14,0x00,0x07);
   writeChunk(pbuf,32);
   sprintf(pbuf,"%c%c%cjob-name%c%czimodem-job",0x42,0x00,0x08,0x00,0x0b);
@@ -115,15 +117,23 @@ ZResult ZPrint::switchTo(char *vbuf, int vlen, bool petscii)
   sprintf(pbuf,"%c%c%coutput-mode%c%cmonochrome%c",0x44,0x00,0x0b,0x00,0x0a,     0x03);
   writeChunk(pbuf,27);
   current->flush();
+  if(!current->isConnected())
+  {
+    delete current;
+    return ZERROR;
+  }
   pdex=0;
-  return ZOK;
+  coldex=0;
+  currentExpiresTimeMs = millis()+5000;
+  currMode=&printMode;
+  return ZIGNORE;
 }
 
 void ZPrint::serialIncoming()
 {
   if(HWSerial.available() > 0)
   {
-    while(HWSerial.available() >= 0)
+    while(HWSerial.available() > 0)
     {
       uint8_t c=HWSerial.read();
       logSerialIn(c);
