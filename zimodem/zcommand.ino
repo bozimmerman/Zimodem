@@ -283,14 +283,16 @@ void ZCommand::reSaveConfig()
            "%d,%d,%d,%d,%d,%d,%d,"
            "%d,%d,%d,%d,%d,%d,"
            "%d,"
-           "%s,%s,%s", 
+           "%s,%s,%s,"
+           "%d,%s", 
             wifiSSI.c_str(), wifiPW.c_str(), baudRate, eoln,
             serial.getFlowControlType(), doEcho, suppressResponses, numericResponses,
             longResponses, serial.isPetsciiMode(), dcdMode, serialConfig, ctsMode,
             rtsMode,pinDCD,pinCTS,pinRTS,autoStreamMode,ringCounter,preserveListeners,
             riMode,dtrMode,dsrMode,pinRI,pinDTR,pinDSR,
             zclock.isDisabled()?999:zclock.getTimeZoneCode(),
-            zclock.getFormat().c_str(),zclock.getNtpServerHost().c_str(),hostname.c_str()
+            zclock.getFormat().c_str(),zclock.getNtpServerHost().c_str(),hostname.c_str(),
+            printMode.getTimeoutDelayMs(),printMode.getLastPrinterSpec()
             );
   f.close();
   delay(500);
@@ -423,6 +425,9 @@ void ZCommand::setOptionsFromSavedConfig(String configArguments[])
     zclock.setNtpServerHost(configArguments[CFG_TIMEURL]);
   if((!zclock.isDisabled()) && (WiFi.status() == WL_CONNECTED))
     zclock.forceUpdate();
+  if(configArguments[CFG_PRINTDELAYMS].length()>0)
+    printMode.setTimeoutDelayMs(atoi(configArguments[CFG_PRINTDELAYMS].c_str()));
+  printMode.setLastPrinterSpec(configArguments[CFG_PRINTSPEC].c_str());
 }
 
 void ZCommand::parseConfigOptions(String configArguments[])

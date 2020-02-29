@@ -21,10 +21,14 @@ enum PrintPayloadType
   RAW
 };
 
+static unsigned int DEFAULT_DELAY_MS = 1000;
+
 class ZPrint : public ZMode
 {
   private:
     WiFiClientNode *current = null;
+    unsigned int timeoutDelayMs = DEFAULT_DELAY_MS;
+    char *lastPrinterSpec = 0;
     unsigned long currentExpiresTimeMs = 0;
     unsigned long nextFlushMs = 0;
     PrintPayloadType payloadType = PETSCII;
@@ -32,6 +36,8 @@ class ZPrint : public ZMode
     size_t coldex=0;
     char pbuf[256];
     ZSerial serial;
+    char lastLastC = 0;
+    char lastC = 0;
 
     size_t writeStr(char *s);
     size_t writeChunk(char *s, int len);
@@ -40,6 +46,10 @@ class ZPrint : public ZMode
   public:
 
     ZResult switchTo(char *vbuf, int vlen, bool petscii);
+    void setLastPrinterSpec(const char *spec);
+    char *getLastPrinterSpec();
+    void setTimeoutDelayMs(int ms);
+    int getTimeoutDelayMs();
 
     void serialIncoming();
     void loop();

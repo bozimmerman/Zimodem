@@ -29,6 +29,38 @@ size_t ZPrint::writeStr(char *s)
   return 0;
 }
 
+char *ZPrint::getLastPrinterSpec()
+{
+  if(lastPrinterSpec==0)
+    return "";
+  return lastPrinterSpec;
+}
+
+void ZPrint::setLastPrinterSpec(const char *spec)
+{
+  if(lastPrinterSpec != 0)
+    free(lastPrinterSpec);
+  lastPrinterSpec = 0;
+  if((spec != 0) && (*spec != 0))
+  {
+    int newLen = strlen(spec);
+    lastPrinterSpec = (char *)malloc(newLen + 1);
+    strcpy(lastPrinterSpec,spec);
+  }
+}
+
+
+int ZPrint::getTimeoutDelayMs()
+{
+  return timeoutDelayMs;
+}
+
+void ZPrint::setTimeoutDelayMs(int ms)
+{
+  if(ms > 50)
+    timeoutDelayMs = ms;
+}
+
 size_t ZPrint::writeChunk(char *s, int len)
 {
   char buf[25];
@@ -45,13 +77,24 @@ size_t ZPrint::writeChunk(char *s, int len)
 
 ZResult ZPrint::switchTo(char *vbuf, int vlen, bool petscii)
 {
-  if((vlen <= 2)||(vbuf[1]!=':'))
-    return ZERROR;
   if(petscii)
   {
     for(int i=0;i<vlen;i++)
       vbuf[i] = petToAsc(vbuf[i]);
   }
+  if((vlen <= 2)||(vbuf[1]!=':'))
+  {
+    if((lastPrinterSpec==0)
+    ||(strlen(lastPrinterSpec)<=5)
+    ||(lastPrinterSpec[1]!=':'))
+      return ZERROR;
+    if((vlen == 1)
+    &&(strchr("parPAR",vbuf[0])!=0))
+      lastPrinterSpec[0]=vbuf[0];
+    vbuf=lastPrinterSpec;
+    vlen=strlen(vbuf);
+  }
+  
   switch(vbuf[0])
   {
   case 'P': case 'p': 
@@ -66,6 +109,8 @@ ZResult ZPrint::switchTo(char *vbuf, int vlen, bool petscii)
   default:
     return ZERROR;
   }
+  if(vbuf != lastPrinterSpec)
+    setLastPrinterSpec(vbuf);
   char *hostIp;
   char *req;
   int port;
@@ -78,6 +123,8 @@ ZResult ZPrint::switchTo(char *vbuf, int vlen, bool petscii)
     delete current;
     return ZERROR;
   }
+  char portStr[10];
+  sprintf(portStr,"%d",port);
   
   // send the request and http headers:
   sprintf(pbuf,"POST /%s HTTP/1.1\r\n",req);
@@ -103,8 +150,9 @@ ZResult ZPrint::switchTo(char *vbuf, int vlen, bool petscii)
   writeChunk(pbuf,28);
   sprintf(pbuf,"%c%c%cattributes-natural-language%c%cen-us",0x48,0x00,0x1b,0x00,0x05);
   writeChunk(pbuf,37);
-  int urllen = strlen(hostIp) + strlen(req)+8;
-  sprintf(pbuf,"%c%c%cprinter-uri%c%chttp://%s/%s",0x45,0x00,0x0b,0x00,urllen,hostIp,req);
+  
+  int urllen = strlen(hostIp) + strlen(req)+ strlen(portStr)+9;
+  sprintf(pbuf,"%c%c%cprinter-uri%c%chttp://%s:%s/%s",0x45,0x00,0x0b,0x00,urllen,hostIp,portStr,req);
   writeChunk(pbuf,urllen+16);
   sprintf(pbuf,"%c%c%crequesting-user-name%c%czimodem",0x42,0x00,0x14,0x00,0x07);
   writeChunk(pbuf,32);
@@ -146,7 +194,9 @@ void ZPrint::serialIncoming()
           if(c<32)
           {
             if((c=='\r')||(c=='\n'))
+            {
               coldex=0;
+            }
           }
           else
           {
@@ -154,12 +204,21 @@ void ZPrint::serialIncoming()
             if(coldex > 80)
             {
               pbuf[pdex++]='\n';
+              pbuf[pdex++]='\r';
               coldex=1;
             }
+            else
+            if((lastC == '\n')&&(lastLastC!='\r'))
+                pbuf[pdex++]='\r';
+            else
+            if((lastC == '\r')&&(lastLastC!='\n'))
+                pbuf[pdex++]='\n';
           }
         }
         pbuf[pdex++]=(char)c;
-        if(pdex>=254)
+        lastLastC=lastC;
+        lastC=c;
+        if(pdex>=250)
         {
           if((current!=null)&&(current->isConnected()))
           {
@@ -170,7 +229,7 @@ void ZPrint::serialIncoming()
         }
       }
     }
-    currentExpiresTimeMs = millis()+1000;
+    currentExpiresTimeMs = millis()+timeoutDelayMs;
   }
 }
 

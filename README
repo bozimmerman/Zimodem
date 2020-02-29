@@ -74,7 +74,7 @@ If you want to use Q-Link, you need to add a phone number alias first.  To do th
 
 If you want to run a Commodore BBS program using the modem, you'll want to configure the BBS program to the same idle baud rate that your modem is using (1200 baud by default), configure it for a Hayes style modem (or the C=1670), and either create a persistant listener using AT+CONFIG, or use an initialization string of "ATR0E0S0=1S41=1A6400" plus any other recommended settings from the BBS program. This creates a listener at port 6400 that switches directly to stream mode on the first ring, with no linefeed carriage returns, and no keystroke echo.  Your BBS program may require you add certain other settings, such as V0 or X1.. which you should also do.
 
-If you want to try printing to a CUPS/IPP-printer, enter AT+PRINT?:<printer url>, followed by your data.  Where ? is A)scii, P)etscii, or R)aw.  A one second pause in incoming data completes the document and returns to command mode.  Example: AT+PRINTR:192.168.1.10:631/ipp/printer  -- followed by ENTER and then the data to print, without any pause longer than 1 second.
+If you want to try printing to a CUPS/IPP-printer, enter AT+PRINT?:<host>:<port>/<path>, followed by your data.  Where ? is A)scii, P)etscii, or R)aw.  A one second pause in incoming data completes the document and returns to command mode.  Example: AT+PRINTR:192.168.1.10:631/ipp/printer  -- followed by ENTER and then the data to print, without any pause longer than 1 second.  Subsequent to doing this, using AT+PRINT will repeat the previous URL.
 
 ESP32 Guru Modem users with SD-cards can enter AT+SHELL to get a shell command prompt.  Enter ? to get a list of shell commands.
 
@@ -212,7 +212,7 @@ ATLn  : Re-sends the most recently sent data packet for connection id n.
 
 AT&H  : Shows a help file from the web, or brief help otherwise.  Use &H6502 to reiforce web download.
 AT&L  : Reloads the saved configuration.
-AT&W  : Saves the current configuration: WiFi settings(ATW), baud rate (ATB), end of line (ATR) settings, flow control (ATF), echo mode (ATE), extended responses (ATX), verbose responses (ATV), quiet responses (ATQ), PETSCII mode (AT&P1), pin statuses (ATS46 - S58), Rings (ATS0), Listener Stream-mode (ATS41), and Listener restore (ATS60)
+AT&W  : Saves the current configuration: WiFi settings(ATW), baud rate (ATB), end of line (ATR) settings, flow control (ATF), echo mode (ATE), extended responses (ATX), verbose responses (ATV), quiet responses (ATQ), PETSCII mode (AT&P1), pin statuses (ATS46 - S58), Rings (ATS0), Listener Stream-mode (ATS41), and Listener restore (ATS60), printer spec (AT+PRINT)
 AT&F  : Restores the modem to factory default settings.  Use &F86 to reformat the SPIFFS.
 AT&On : n is 1 to turn on internal serial-reception log, n is 0 to turn off or view a previously turned-on log.
 AT&U  : Checks the firmware home page to see if a new version is available.
