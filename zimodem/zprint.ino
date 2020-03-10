@@ -118,6 +118,8 @@ ZResult ZPrint::switchTo(char *vbuf, int vlen, bool petscii)
   if(!parseWebUrl((uint8_t *)vbuf+2,&hostIp,&req,&port,&doSSL))
     return ZERROR;
   current = new WiFiClientNode(hostIp,port,doSSL?FLAG_SECURE:0);
+  rawLogPrintf("\r\nPrint Request to host=%s, port=%d\r\n",hostIp,port);
+  rawLogPrintf("Print Request is /%s\r\n",req);
   if(!current->isConnected())
   {
     delete current;
@@ -125,7 +127,6 @@ ZResult ZPrint::switchTo(char *vbuf, int vlen, bool petscii)
   }
   char portStr[10];
   sprintf(portStr,"%d",port);
-  
   // send the request and http headers:
   sprintf(pbuf,"POST /%s HTTP/1.1\r\n",req);
   writeStr(pbuf);
