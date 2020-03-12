@@ -77,25 +77,34 @@ size_t ZPrint::writeChunk(char *s, int len)
 
 ZResult ZPrint::switchTo(char *vbuf, int vlen, bool petscii)
 {
+  char *workBuf = (char *)malloc(vlen+1);
+  strcpy(workBuf, vbuf);
   if(petscii)
   {
     for(int i=0;i<vlen;i++)
-      vbuf[i] = petToAsc(vbuf[i]);
+      workBuf[i] = petToAsc(workBuf[i]);
   }
-  if((vlen <= 2)||(vbuf[1]!=':'))
+  bool newUrl = true;
+  if((vlen <= 2)||(workBuf[1]!=':'))
   {
     if((lastPrinterSpec==0)
     ||(strlen(lastPrinterSpec)<=5)
     ||(lastPrinterSpec[1]!=':'))
+    {
+      free(workBuf);
       return ZERROR;
+    }
     if((vlen == 1)
-    &&(strchr("parPAR",vbuf[0])!=0))
-      lastPrinterSpec[0]=vbuf[0];
-    vbuf=lastPrinterSpec;
-    vlen=strlen(vbuf);
+    &&(strchr("parPAR",workBuf[0])!=0))
+      lastPrinterSpec[0]=workBuf[0];
+    free(workBuf);
+    workBuf = (char *)malloc(strlen(lastPrinterSpec) +1);
+    strcpy(workBuf, lastPrinterSpec);
+    vlen=strlen(workBuf);
+    newUrl = false;
   }
   
-  switch(vbuf[0])
+  switch(workBuf[0])
   {
   case 'P': case 'p': 
     payloadType = PETSCII;
@@ -107,22 +116,27 @@ ZResult ZPrint::switchTo(char *vbuf, int vlen, bool petscii)
     payloadType = RAW;
     break;
   default:
+    free(workBuf);
     return ZERROR;
   }
-  if(vbuf != lastPrinterSpec)
-    setLastPrinterSpec(vbuf);
   char *hostIp;
   char *req;
   int port;
   bool doSSL;
-  if(!parseWebUrl((uint8_t *)vbuf+2,&hostIp,&req,&port,&doSSL))
+  if(!parseWebUrl((uint8_t *)workBuf+2,&hostIp,&req,&port,&doSSL))
+  {
+    free(workBuf);
     return ZERROR;
+  }
+  if(newUrl)
+    setLastPrinterSpec(vbuf);
   current = new WiFiClientNode(hostIp,port,doSSL?FLAG_SECURE:0);
-  rawLogPrintf("\r\nPrint Request to host=%s, port=%d\r\n",hostIp,port);
-  rawLogPrintf("Print Request is /%s\r\n",req);
+  logPrintfln("Print Request to host=%s, port=%d",hostIp,port);
+  logPrintfln("Print Request is /%s",req);
   if(!current->isConnected())
   {
     delete current;
+    free(workBuf);
     return ZERROR;
   }
   char portStr[10];
@@ -143,6 +157,7 @@ ZResult ZPrint::switchTo(char *vbuf, int vlen, bool petscii)
   if(!current->isConnected())
   {
     delete current;
+    free(workBuf);
     return ZERROR;
   }
   sprintf(pbuf,"%c%c%c%c%c%c%c%c%c",0x01,0x01,0x00,0x02,0x00,0x00,0x00,0x01,0x01);
@@ -169,12 +184,14 @@ ZResult ZPrint::switchTo(char *vbuf, int vlen, bool petscii)
   if(!current->isConnected())
   {
     delete current;
+    free(workBuf);
     return ZERROR;
   }
   pdex=0;
   coldex=0;
   currentExpiresTimeMs = millis()+5000;
   currMode=&printMode;
+  free(workBuf);
   return ZIGNORE;
 }
 
@@ -188,46 +205,46 @@ void ZPrint::serialIncoming()
       logSerialIn(c);
       if(payloadType == PETSCII)
         c=petToAsc(c);
-      if(c != 0)
+      if(payloadType != RAW)
       {
-        if(payloadType != RAW)
+        if(c==0)
+          continue;
+        else
+        if(c<32)
         {
-          if(c<32)
+          if((c=='\r')||(c=='\n'))
           {
-            if((c=='\r')||(c=='\n'))
-            {
-              coldex=0;
-            }
+            coldex=0;
+          }
+        }
+        else
+        {
+          coldex++;
+          if(coldex > 80)
+          {
+            pbuf[pdex++]='\n';
+            pbuf[pdex++]='\r';
+            coldex=1;
           }
           else
-          {
-            coldex++;
-            if(coldex > 80)
-            {
-              pbuf[pdex++]='\n';
+          if((lastC == '\n')&&(lastLastC!='\r'))
               pbuf[pdex++]='\r';
-              coldex=1;
-            }
-            else
-            if((lastC == '\n')&&(lastLastC!='\r'))
-                pbuf[pdex++]='\r';
-            else
-            if((lastC == '\r')&&(lastLastC!='\n'))
-                pbuf[pdex++]='\n';
-          }
+          else
+          if((lastC == '\r')&&(lastLastC!='\n'))
+              pbuf[pdex++]='\n';
         }
-        pbuf[pdex++]=(char)c;
-        lastLastC=lastC;
-        lastC=c;
-        if(pdex>=250)
+      }
+      pbuf[pdex++]=(char)c;
+      lastLastC=lastC;
+      lastC=c;
+      if(pdex>=250)
+      {
+        if((current!=null)&&(current->isConnected()))
         {
-          if((current!=null)&&(current->isConnected()))
-          {
-            writeChunk(pbuf,pdex);
-            current->flush();
-          }
-          pdex=0;
+          writeChunk(pbuf,pdex);
+          current->flush();
         }
+        pdex=0;
       }
     }
     currentExpiresTimeMs = millis()+timeoutDelayMs;

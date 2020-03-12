@@ -21,7 +21,7 @@ enum PrintPayloadType
   RAW
 };
 
-static unsigned int DEFAULT_DELAY_MS = 1000;
+static unsigned int DEFAULT_DELAY_MS = 5000;
 
 class ZPrint : public ZMode
 {
