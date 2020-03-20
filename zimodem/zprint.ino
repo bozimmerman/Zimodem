@@ -16,12 +16,12 @@
 
 size_t ZPrint::writeStr(char *s)
 {
-  if(current != null)
+  if(wifiSock != null)
   {
     int len=strlen(s);
     for(int i=0;i<len;i++)
     {
-      current->write(s[i]);
+      wifiSock->write(s[i]);
       logSocketOut(s[i]);
     }
     return len;
@@ -68,7 +68,7 @@ size_t ZPrint::writeChunk(char *s, int len)
   writeStr(buf);
   for(int i=0;i<len;i++)
   {
-    current->write(s[i]);
+    wifiSock->write(s[i]);
     logSocketOut(s[i]);
   }
   writeStr("\r\n");
@@ -130,12 +130,12 @@ ZResult ZPrint::switchTo(char *vbuf, int vlen, bool petscii)
   }
   if(newUrl)
     setLastPrinterSpec(vbuf);
-  current = new WiFiClientNode(hostIp,port,doSSL?FLAG_SECURE:0);
+  wifiSock = new WiFiClientNode(hostIp,port,doSSL?FLAG_SECURE:0);
   logPrintfln("Print Request to host=%s, port=%d",hostIp,port);
   logPrintfln("Print Request is /%s",req);
-  if(!current->isConnected())
+  if(!wifiSock->isConnected())
   {
-    delete current;
+    delete wifiSock;
     free(workBuf);
     return ZERROR;
   }
@@ -153,14 +153,20 @@ ZResult ZPrint::switchTo(char *vbuf, int vlen, bool petscii)
   writeStr("Accept-Encoding: gzip,deflate\r\n");
   writeStr("\r\n");
   // send the ipp header
-  current->flush();
-  if(!current->isConnected())
+  wifiSock->flush();
+  if(!wifiSock->isConnected())
   {
-    delete current;
+    delete wifiSock;
     free(workBuf);
     return ZERROR;
   }
-  sprintf(pbuf,"%c%c%c%c%c%c%c%c%c",0x01,0x01,0x00,0x02,0x00,0x00,0x00,0x01,0x01);
+  
+  char jobChar1 = '0' + (jobNum / 10);
+  char jobChar2 = '0' + (jobNum % 10);
+  if(++jobNum>94)
+    jobNum=0;
+  //                                version  operatid  reqid------------------ attribtabid
+  sprintf(pbuf,"%c%c%c%c%c%c%c%c%c",0x01,0x01,0x00,0x02,0x00,0x00,0x00,jobNum+1,0x01);
   writeChunk(pbuf,9);
   sprintf(pbuf,"%c%c%cattributes-charset%c%cutf-8",0x47,0x00,0x12,0x00,0x05);
   writeChunk(pbuf,28);
@@ -172,7 +178,7 @@ ZResult ZPrint::switchTo(char *vbuf, int vlen, bool petscii)
   writeChunk(pbuf,urllen+16);
   sprintf(pbuf,"%c%c%crequesting-user-name%c%czimodem",0x42,0x00,0x14,0x00,0x07);
   writeChunk(pbuf,32);
-  sprintf(pbuf,"%c%c%cjob-name%c%czimodem-job",0x42,0x00,0x08,0x00,0x0b);
+  sprintf(pbuf,"%c%c%cjob-name%c%czimodem-j%c%c",0x42,0x00,0x08,0x00,0x0b,jobChar1,jobChar2);
   writeChunk(pbuf,24);
   sprintf(pbuf,"%c%c%c%ccopies%c%c%c%c%c%c",0x02,0x21,0x00,0x06,0x00,0x04,0x00,0x00,0x00,0x01);
   writeChunk(pbuf,16);
@@ -180,10 +186,10 @@ ZResult ZPrint::switchTo(char *vbuf, int vlen, bool petscii)
   writeChunk(pbuf,30);
   sprintf(pbuf,"%c%c%coutput-mode%c%cmonochrome%c",0x44,0x00,0x0b,0x00,0x0a,     0x03);
   writeChunk(pbuf,27);
-  current->flush();
-  if(!current->isConnected())
+  wifiSock->flush();
+  if(!wifiSock->isConnected())
   {
-    delete current;
+    delete wifiSock;
     free(workBuf);
     return ZERROR;
   }
@@ -239,10 +245,10 @@ void ZPrint::serialIncoming()
       lastC=c;
       if(pdex>=250)
       {
-        if((current!=null)&&(current->isConnected()))
+        if((wifiSock!=null)&&(wifiSock->isConnected()))
         {
           writeChunk(pbuf,pdex);
-          current->flush();
+          //wifiSock->flush();
         }
         pdex=0;
       }
@@ -253,31 +259,31 @@ void ZPrint::serialIncoming()
 
 void ZPrint::switchBackToCommandMode(bool error)
 {
-  if(current != null)
+  if(wifiSock != null)
   {
-    serial.prints(commandMode.EOLN);
     if(error)
-      serial.prints("ERROR");
+      commandMode.sendOfficialResponse(ZERROR);
     else
-      serial.prints("OK");
-    serial.prints(commandMode.EOLN);
-    delete current;
+      commandMode.sendOfficialResponse(ZOK);
+    delete wifiSock;
   }
-  current = null;
+  wifiSock = null;
   currMode = &commandMode;
 }
 
 void ZPrint::loop()
 {
-  if((current==null) || (!current->isConnected()))
+  if((wifiSock==null) || (!wifiSock->isConnected()))
+  {
     switchBackToCommandMode(true);
+  }
   else
   if(millis()>currentExpiresTimeMs)
   {
     if(pdex > 0)
       writeChunk(pbuf,pdex);
     writeStr("0\r\n\r\n");
-    current->flush();
+    wifiSock->flush();
     switchBackToCommandMode(false);
   }
   checkBaudChange();

@@ -425,8 +425,8 @@ void ZCommand::setOptionsFromSavedConfig(String configArguments[])
     zclock.setNtpServerHost(configArguments[CFG_TIMEURL]);
   if((!zclock.isDisabled()) && (WiFi.status() == WL_CONNECTED))
     zclock.forceUpdate();
-  if(configArguments[CFG_PRINTDELAYMS].length()>0)
-    printMode.setTimeoutDelayMs(atoi(configArguments[CFG_PRINTDELAYMS].c_str()));
+  //if(configArguments[CFG_PRINTDELAYMS].length()>0) // since you can't change it, what's the point?
+  //  printMode.setTimeoutDelayMs(atoi(configArguments[CFG_PRINTDELAYMS].c_str()));
   printMode.setLastPrinterSpec(configArguments[CFG_PRINTSPEC].c_str());
 }
 
@@ -1049,7 +1049,6 @@ ZResult ZCommand::doWebDump(const char *filename, const bool cache)
   f.close();
   return ZIGNORE;
 }
-
 
 ZResult ZCommand::doUpdateFirmware(int vval, uint8_t *vbuf, int vlen, bool isNumber)
 {
@@ -2617,52 +2616,50 @@ ZResult ZCommand::doSerialCommand()
     }
     if(result != ZIGNORE_SPECIAL)
       previousCommand = saveCommand;
-    if(suppressResponses)
-    {
-      if(result == ZERROR)
-      {
-        // on error, cut and run
+    if((suppressResponses)&&(result == ZERROR))
         return ZERROR;
-      }
-    }
-    else
-    {
-      if(crc8 >= 0)
-        result=ZERROR; // setting S42 without a T command is now Bad.
-      switch(result)
-      {
-      case ZOK:
-        if(index >= len)
-        {
-          logPrintln("Response: OK");
-          preEOLN(EOLN);
-          if(numericResponses)
-            serial.prints("0");
-          else
-            serial.prints("OK");
-          serial.prints(EOLN);
-        }
-        break;
-      case ZERROR:
-        logPrintln("Response: ERROR");
-        preEOLN(EOLN);
-        if(numericResponses)
-          serial.prints("4");
-        else
-          serial.prints("ERROR");
-        serial.prints(EOLN);
-        // on error, cut and run
-        return ZERROR;
-      case ZCONNECT:
-        logPrintln("Response: Connected!");
-        sendConnectionNotice((current == null) ? baudRate : current->id);
-        break;
-      default:
-        break;
-      }
-    }
+    if(crc8 >= 0)
+      result=ZERROR; // setting S42 without a T command is now Bad.
+    if((result != ZOK)||(index >= len))
+      sendOfficialResponse(result);
+    if(result == ZERROR) // on error, cut and run
+      return ZERROR;
   }
   return result;
+}
+
+void ZCommand::sendOfficialResponse(ZResult res)
+{
+  if(!suppressResponses)
+  {
+    switch(res)
+    {
+    case ZOK:
+      logPrintln("Response: OK");
+      preEOLN(EOLN);
+      if(numericResponses)
+        serial.prints("0");
+      else
+        serial.prints("OK");
+      serial.prints(EOLN);
+      break;
+    case ZERROR:
+      logPrintln("Response: ERROR");
+      preEOLN(EOLN);
+      if(numericResponses)
+        serial.prints("4");
+      else
+        serial.prints("ERROR");
+      serial.prints(EOLN);
+      break;
+    case ZCONNECT:
+      logPrintln("Response: Connected!");
+      sendConnectionNotice((current == null) ? baudRate : current->id);
+      break;
+    default:
+      break;
+    }
+  }
 }
 
 void ZCommand::showInitMessage()

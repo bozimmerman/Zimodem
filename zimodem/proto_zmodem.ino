@@ -372,7 +372,7 @@ int zmodem_send_hex(zmodem_t* zm, uchar val)
 int zmodem_send_padded_zdle(zmodem_t* zm)
 {
   int result;
-  delay(10); //dammit, this actually fixes a lot of problems!
+  delay(100); //dammit, this might fix something.
   if((result=zmodem_send_raw(zm, ZPAD))!=0)
     return result;
   if((result=zmodem_send_raw(zm, ZPAD))!=0)

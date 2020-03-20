@@ -26,7 +26,7 @@ static unsigned int DEFAULT_DELAY_MS = 5000;
 class ZPrint : public ZMode
 {
   private:
-    WiFiClientNode *current = null;
+    WiFiClientNode *wifiSock = null;
     unsigned int timeoutDelayMs = DEFAULT_DELAY_MS;
     char *lastPrinterSpec = 0;
     unsigned long currentExpiresTimeMs = 0;
@@ -38,6 +38,7 @@ class ZPrint : public ZMode
     ZSerial serial;
     char lastLastC = 0;
     char lastC = 0;
+    short jobNum = 0;
 
     size_t writeStr(char *s);
     size_t writeChunk(char *s, int len);
