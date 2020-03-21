@@ -193,6 +193,8 @@ ZResult ZPrint::switchTo(char *vbuf, int vlen, bool petscii)
     free(workBuf);
     return ZERROR;
   }
+  checkOpenConnections();
+  checkBaudChange();
   pdex=0;
   coldex=0;
   currentExpiresTimeMs = millis()+5000;
