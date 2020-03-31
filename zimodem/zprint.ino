@@ -214,18 +214,18 @@ void ZPrint::serialIncoming()
       uint8_t c=HWSerial.read();
       logSerialIn(c);
       if((c==commandMode.EC)
-      &&(plussedInARow<3)
+      &&(plussesInARow<3)
       &&((plussesInARow>0)||((millis()-lastNonPlusTimeMs)>900)))
       {
         plussesInARow++;
-        continue
+        continue;
       }
       else
       {
         if(plussesInARow > 0)
         {
           for(int i=0;i<plussesInARow;i++)
-            pbuf[pdex++]=(char)c;
+            pbuf[pdex++]=commandMode.EC;
           plussesInARow=0;
         }
         lastNonPlusTimeMs=millis();

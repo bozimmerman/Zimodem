@@ -2187,10 +2187,10 @@ ZResult ZCommand::doSerialCommand()
                }
                else
                  result=ZERROR;
-                 break;
+               break;
              case 61:
-               if(sval > 00)
-                 printMode.setTimeoutDelayMs(sval * 1000)
+               if(sval > 0)
+                 printMode.setTimeoutDelayMs(sval * 1000);
                else
                  result=ZERROR;
                  break;

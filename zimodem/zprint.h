@@ -36,7 +36,7 @@ class ZPrint : public ZMode
     int plussesInARow=0;
     size_t pdex=0;
     size_t coldex=0;
-    char pbuf[256];
+    char pbuf[258];
     ZSerial serial;
     char lastLastC = 0;
     char lastC = 0;
