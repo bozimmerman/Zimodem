@@ -32,6 +32,8 @@ class ZPrint : public ZMode
     unsigned long currentExpiresTimeMs = 0;
     unsigned long nextFlushMs = 0;
     PrintPayloadType payloadType = PETSCII;
+    unsigned long lastNonPlusTimeMs = 0;
+    int plussesInARow=0;
     size_t pdex=0;
     size_t coldex=0;
     char pbuf[256];

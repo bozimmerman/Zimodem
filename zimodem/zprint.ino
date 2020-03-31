@@ -197,6 +197,8 @@ ZResult ZPrint::switchTo(char *vbuf, int vlen, bool petscii)
   checkBaudChange();
   pdex=0;
   coldex=0;
+  lastNonPlusTimeMs = 0;
+  plussesInARow=0;
   currentExpiresTimeMs = millis()+5000;
   currMode=&printMode;
   free(workBuf);
@@ -211,6 +213,24 @@ void ZPrint::serialIncoming()
     {
       uint8_t c=HWSerial.read();
       logSerialIn(c);
+      if((c==commandMode.EC)
+      &&(plussedInARow<3)
+      &&((plussesInARow>0)||((millis()-lastNonPlusTimeMs)>900)))
+      {
+        plussesInARow++;
+        continue
+      }
+      else
+      {
+        if(plussesInARow > 0)
+        {
+          for(int i=0;i<plussesInARow;i++)
+            pbuf[pdex++]=(char)c;
+          plussesInARow=0;
+        }
+        lastNonPlusTimeMs=millis();
+      }
+      
       if(payloadType == PETSCII)
         c=petToAsc(c);
       if(payloadType != RAW)
@@ -255,7 +275,10 @@ void ZPrint::serialIncoming()
         pdex=0;
       }
     }
-    currentExpiresTimeMs = millis()+timeoutDelayMs;
+    if(plussesInARow == 3)
+      currentExpiresTimeMs = millis()+900;
+    else
+      currentExpiresTimeMs = millis()+timeoutDelayMs;
   }
 }
 

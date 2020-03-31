@@ -198,6 +198,7 @@ ATS55=n : Changes DTR pin number, n=12 is default (N/A on ESP01)
 ATS56=n : Changes DSR status. n=0 is default DSR=HIGH=active. n=1 is RTS=LOW=active. n=2 always HIGH. n=3 always LOW. (N/A on ESP01)
 ATS57=n : Changes DSR pin number, n=13 is default (N/A on ESP01)
 ATS60=n : When n > 0, immediately saves existing listeners and automatically restores them later. n=0 to clear.
+ATS61=n : When n > 0, sets the number of seconds to timeout a print job stream (AT+PRINT). Default is 5 seconds
 
 +++ : With a 1 second pause with no other characters afterwards, this will disconnect the current opened connection.
 
