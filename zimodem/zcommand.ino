@@ -1601,7 +1601,8 @@ ZResult ZCommand::doEOLNCommand(int vval, uint8_t *vbuf, int vlen, bool isNumber
 bool ZCommand::readSerialStream()
 {
   bool crReceived=false;
-  while(HWSerial.available()>0)
+  while((HWSerial.available()>0)
+        &&(!crReceived))
   {
     uint8_t c=HWSerial.read();
     logSerialIn(c);
