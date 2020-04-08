@@ -149,7 +149,7 @@ static WiFiServerNode *servs = null;
 static PhoneBookEntry *phonebook = null;
 static bool pinSupport[MAX_PIN_NO];
 static bool browseEnabled = false;
-static String termType = "Zimodem";
+static String termType = DEFAULT_TERMTYPE;
 
 static ZMode *currMode = null;
 static ZStream streamMode;

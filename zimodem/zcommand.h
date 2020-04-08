@@ -16,6 +16,7 @@
 
 const int MAX_COMMAND_SIZE=256;
 #define ZI_STATE_MACHINE_LEN 7
+#define DEFAULT_TERMTYPE "Zimodem"
 
 enum ZResult
 {
@@ -61,7 +62,8 @@ enum ConfigOptions
   CFG_HOSTNAME=29,
   CFG_PRINTDELAYMS=30,
   CFG_PRINTSPEC=31,
-  CFG_LAST=31
+  CFG_TERMTYPE=32,
+  CFG_LAST=32
 };
 
 enum BinType

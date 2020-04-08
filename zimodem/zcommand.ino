@@ -145,6 +145,7 @@ void ZCommand::setConfigDefaults()
   setCharArray(&delimiters,"");
   setCharArray(&stateMachine,"");
   machineState = stateMachine;
+  termType = DEFAULT_TERMTYPE;
 }
 
 char lc(char c)
@@ -284,7 +285,7 @@ void ZCommand::reSaveConfig()
            "%d,%d,%d,%d,%d,%d,"
            "%d,"
            "%s,%s,%s,"
-           "%d,%s", 
+           "%d,%s,%s", 
             wifiSSI.c_str(), wifiPW.c_str(), baudRate, eoln,
             serial.getFlowControlType(), doEcho, suppressResponses, numericResponses,
             longResponses, serial.isPetsciiMode(), dcdMode, serialConfig, ctsMode,
@@ -292,7 +293,7 @@ void ZCommand::reSaveConfig()
             riMode,dtrMode,dsrMode,pinRI,pinDTR,pinDSR,
             zclock.isDisabled()?999:zclock.getTimeZoneCode(),
             zclock.getFormat().c_str(),zclock.getNtpServerHost().c_str(),hostname.c_str(),
-            printMode.getTimeoutDelayMs(),printMode.getLastPrinterSpec()
+            printMode.getTimeoutDelayMs(),printMode.getLastPrinterSpec(),termType.c_str()
             );
   f.close();
   delay(500);
@@ -428,6 +429,8 @@ void ZCommand::setOptionsFromSavedConfig(String configArguments[])
   //if(configArguments[CFG_PRINTDELAYMS].length()>0) // since you can't change it, what's the point?
   //  printMode.setTimeoutDelayMs(atoi(configArguments[CFG_PRINTDELAYMS].c_str()));
   printMode.setLastPrinterSpec(configArguments[CFG_PRINTSPEC].c_str());
+  if(configArguments[CFG_TERMTYPE].length()>0)
+    termType = configArguments[CFG_TERMTYPE];
 }
 
 void ZCommand::parseConfigOptions(String configArguments[])
