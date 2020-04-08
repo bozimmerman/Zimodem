@@ -2536,6 +2536,7 @@ ZResult ZCommand::doSerialCommand()
                     else
                     {
                       termType = eq;
+                      termType.replace(',','.');
                       result=ZOK;
                     }
                     break;
