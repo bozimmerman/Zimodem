@@ -145,9 +145,9 @@ bool doFTPGet(FS *fs, const char *hostIp, int port, const char *filename, const 
   WiFiClient *cc = createWiFiClient(doSSL);
   if(WiFi.status() != WL_CONNECTED)
     return false;
-  cc->setNoDelay(DEFAULT_NO_DELAY);
   if(!cc->connect(hostIp, port))
     return doFTPQuit(&cc);
+  cc->setNoDelay(DEFAULT_NO_DELAY);
   readBytesToSilence(cc);
   if(username == NULL)
     cc->printf("USER anonymous\r\n");
@@ -199,12 +199,12 @@ bool doFTPGet(FS *fs, const char *hostIp, int port, const char *filename, const 
   if(WiFi.status() != WL_CONNECTED)
     return doFTPQuit(&cc);
   WiFiClient *c = createWiFiClient(doSSL);
-  c->setNoDelay(DEFAULT_NO_DELAY);
   if(!c->connect(ipbuf, dataPort))
   {
     doFTPQuit(&c);
     return doFTPQuit(&cc);
   }
+  c->setNoDelay(DEFAULT_NO_DELAY);
   cc->printf("RETR %s\r\n",req);
   respCode = getFTPResponseCode(cc, NULL);
   if((respCode < 0)||(respCode > 400))
@@ -237,9 +237,9 @@ bool doFTPPut(File &f, const char *hostIp, int port, const char *req, const char
   WiFiClient *cc = createWiFiClient(doSSL);
   if(WiFi.status() != WL_CONNECTED)
     return false;
-  cc->setNoDelay(DEFAULT_NO_DELAY);
   if(!cc->connect(hostIp, port))
     return doFTPQuit(&cc);
+  cc->setNoDelay(DEFAULT_NO_DELAY);
   readBytesToSilence(cc);
   if(username == NULL)
     cc->printf("USER anonymous\r\n");
@@ -293,12 +293,12 @@ bool doFTPPut(File &f, const char *hostIp, int port, const char *req, const char
   if(WiFi.status() != WL_CONNECTED)
     return doFTPQuit(&cc);
   WiFiClient *c = createWiFiClient(doSSL);
-  c->setNoDelay(DEFAULT_NO_DELAY);
   if(!c->connect(ipbuf, dataPort))
   {
     doFTPQuit(&c);
     return doFTPQuit(&cc);
   }
+  c->setNoDelay(DEFAULT_NO_DELAY);
   debugPrintf(" STOR %s\r\n",req);
   cc->printf("STOR %s\r\n",req);
   respCode = getFTPResponseCode(cc, NULL);
@@ -332,9 +332,9 @@ bool doFTPLS(ZSerial *serial, const char *hostIp, int port, const char *req, con
   WiFiClient *cc = createWiFiClient(doSSL);
   if(WiFi.status() != WL_CONNECTED)
     return false;
-  cc->setNoDelay(DEFAULT_NO_DELAY);
   if(!cc->connect(hostIp, port))
     return doFTPQuit(&cc);
+  cc->setNoDelay(DEFAULT_NO_DELAY);
   readBytesToSilence(cc);
   if(username == NULL)
     cc->printf("USER anonymous\r\n");
@@ -394,12 +394,12 @@ bool doFTPLS(ZSerial *serial, const char *hostIp, int port, const char *req, con
   if(WiFi.status() != WL_CONNECTED)
     return doFTPQuit(&cc);
   WiFiClient *c = createWiFiClient(doSSL);
-  c->setNoDelay(DEFAULT_NO_DELAY);
   if(!c->connect(ipbuf, dataPort))
   {
     doFTPQuit(&c);
     return doFTPQuit(&cc);
   }
+  c->setNoDelay(DEFAULT_NO_DELAY);
   cc->printf("LIST\r\n",req);
   respCode = getFTPResponseCode(cc, NULL);
   if((respCode < 0)||(respCode > 400))

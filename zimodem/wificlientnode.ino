@@ -38,7 +38,6 @@ WiFiClientNode::WiFiClientNode(char *hostIp, int newport, int flagsBitmap)
   this->flagsBitmap = flagsBitmap;
   clientPtr = createWiFiClient((flagsBitmap&FLAG_SECURE)==FLAG_SECURE);
   client = *clientPtr;
-  client.setNoDelay(DEFAULT_NO_DELAY);
   setCharArray(&delimiters,"");
   setCharArray(&maskOuts,"");
   setCharArray(&stateMachine,"");
@@ -49,6 +48,7 @@ WiFiClientNode::WiFiClientNode(char *hostIp, int newport, int flagsBitmap)
   }
   else
   {
+    client.setNoDelay(DEFAULT_NO_DELAY);
     finishConnectionLink();
   }
 }

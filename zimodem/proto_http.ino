@@ -212,13 +212,13 @@ WiFiClient *doWebGetStream(const char *hostIp, int port, const char *req, bool d
   WiFiClient *c = createWiFiClient(doSSL);
   if(port == 0)
     port = 80;
-  c->setNoDelay(DEFAULT_NO_DELAY);
   if(!c->connect(hostIp, port))
   {
     c->stop();
     delete c;
     return null;
   }
+  c->setNoDelay(DEFAULT_NO_DELAY);
 
   const char *root = "";
   if(req == NULL)
