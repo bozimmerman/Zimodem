@@ -64,6 +64,7 @@ void ZPrint::setTimeoutDelayMs(int ms)
 size_t ZPrint::writeChunk(char *s, int len)
 {
   char buf[25];
+  debugPrintf("Write chunk: %d\n",len);
   sprintf(buf,"%x\r\n",len);
   writeStr(buf);
   for(int i=0;i<len;i++)
@@ -73,6 +74,35 @@ size_t ZPrint::writeChunk(char *s, int len)
   }
   writeStr("\r\n");
   return len+strlen(buf)+4;
+}
+
+ZResult ZPrint::switchToPostScript(char *prefix)
+{
+  if((lastPrinterSpec==0)
+  ||(strlen(lastPrinterSpec)<=5)
+  ||(lastPrinterSpec[1]!=':'))
+    return ZERROR;
+  char *workBuf = (char *)malloc(strlen(lastPrinterSpec) +1);
+  strcpy(workBuf, lastPrinterSpec);
+  
+  char *hostIp;
+  char *req;
+  int port;
+  bool doSSL;
+  if(!parseWebUrl((uint8_t *)workBuf+2,&hostIp,&req,&port,&doSSL))
+  {
+    free(workBuf);
+    return ZERROR;
+  }
+  
+  payloadType = RAW;
+  ZResult result = finishSwitchTo(hostIp, req, port, doSSL);
+  free(workBuf);
+  if((result != ZERROR)
+  &&(prefix != 0)
+  &&(strlen(prefix)>0))
+    writeChunk(prefix,strlen(prefix));
+  return result;
 }
 
 ZResult ZPrint::switchTo(char *vbuf, int vlen, bool petscii)
@@ -130,13 +160,21 @@ ZResult ZPrint::switchTo(char *vbuf, int vlen, bool petscii)
   }
   if(newUrl)
     setLastPrinterSpec(vbuf);
+  ZResult result = finishSwitchTo(hostIp, req, port, doSSL);
+  free(workBuf);
+  return result;
+}
+
+ZResult ZPrint::finishSwitchTo(char *hostIp, char *req, int port, bool doSSL)
+{
   wifiSock = new WiFiClientNode(hostIp,port,doSSL?FLAG_SECURE:0);
   logPrintfln("Print Request to host=%s, port=%d",hostIp,port);
+  debugPrintf("Print Request to host=%s, port=%d\n",hostIp,port);
   logPrintfln("Print Request is /%s",req);
+  debugPrintf("Print Request is /%s\n",req);
   if(!wifiSock->isConnected())
   {
     delete wifiSock;
-    free(workBuf);
     return ZERROR;
   }
   char portStr[10];
@@ -157,7 +195,6 @@ ZResult ZPrint::switchTo(char *vbuf, int vlen, bool petscii)
   if(!wifiSock->isConnected())
   {
     delete wifiSock;
-    free(workBuf);
     return ZERROR;
   }
   
@@ -190,7 +227,6 @@ ZResult ZPrint::switchTo(char *vbuf, int vlen, bool petscii)
   if(!wifiSock->isConnected())
   {
     delete wifiSock;
-    free(workBuf);
     return ZERROR;
   }
   checkOpenConnections();
@@ -201,7 +237,6 @@ ZResult ZPrint::switchTo(char *vbuf, int vlen, bool petscii)
   plussesInARow=0;
   currentExpiresTimeMs = millis()+5000;
   currMode=&printMode;
-  free(workBuf);
   return ZIGNORE;
 }
 
@@ -300,11 +335,13 @@ void ZPrint::loop()
 {
   if((wifiSock==null) || (!wifiSock->isConnected()))
   {
+    debugPrintf("No printer connection\n");
     switchBackToCommandMode(true);
   }
   else
   if(millis()>currentExpiresTimeMs)
   {
+    debugPrintf("Time-out in printing\n");
     if(pdex > 0)
       writeChunk(pbuf,pdex);
     writeStr("0\r\n\r\n");

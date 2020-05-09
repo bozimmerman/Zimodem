@@ -1755,6 +1755,15 @@ ZResult ZCommand::doSerialCommand()
   
   int crc8=-1;  
   ZResult result=ZOK;
+  
+  if((sbuf.length()==4)
+  &&(strcmp(sbuf.c_str(),"%!PS")==0))
+  {
+    result = printMode.switchToPostScript("%!PS\n");
+    sendOfficialResponse(result);
+    return result;
+  }
+  
   int index=0;
   while((index<len-1)
   &&((lc(sbuf[index])!='a')||(lc(sbuf[index+1])!='t')))

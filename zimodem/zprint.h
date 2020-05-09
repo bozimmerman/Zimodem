@@ -45,10 +45,12 @@ class ZPrint : public ZMode
     size_t writeStr(char *s);
     size_t writeChunk(char *s, int len);
     void switchBackToCommandMode(bool error);
+    ZResult finishSwitchTo(char *hostIp, char *req, int port, bool doSSL);
 
   public:
 
     ZResult switchTo(char *vbuf, int vlen, bool petscii);
+    ZResult switchToPostScript(char *prefix);
     void setLastPrinterSpec(const char *spec);
     char *getLastPrinterSpec();
     void setTimeoutDelayMs(int ms);
