@@ -897,6 +897,9 @@ void ZCommand::headerOut(const int channel, const int sz, const int crc8)
   case BTYPE_DEC:
     sprintf(hbuf,"[%s%d%s%d%s%d%s]%s",EOLN.c_str(),channel,EOLN.c_str(),sz,EOLN.c_str(),crc8,EOLN.c_str(),EOLN.c_str());
     break;
+  case BTYPE_NORMAL_NOCHK:
+    sprintf(hbuf,"[ %d %d ]%s",channel,sz,EOLN.c_str());
+    break;
   }
   serial.prints(hbuf);
 }
@@ -919,65 +922,47 @@ ZResult ZCommand::doWebStream(int vval, uint8_t *vbuf, int vlen, bool isNumber, 
     }
   }
   else
+  if((binType == BTYPE_NORMAL_NOCHK)
+  &&(machineQue.length()==0))
+  {
+    uint32_t respLength=0;
+    WiFiClient *c = doWebGetStream(hostIp, port, req, doSSL, &respLength); 
+    if(c==null)
+    {
+      serial.prints(EOLN);
+      return ZERROR;
+    }
+    headerOut(0,respLength,0);
+    serial.flush(); // stupid important because otherwise apps that go xoff miss the header info
+    ZResult res = doWebDump(c,respLength,false);
+    c->stop();
+    delete c;
+    serial.prints(EOLN);
+    return res;
+  }
+  else
   if(!doWebGet(hostIp, port, &SPIFFS, filename, req, doSSL))
     return ZERROR;
   return doWebDump(filename, cache);
 }
 
-ZResult ZCommand::doWebDump(const char *filename, const bool cache)
+ZResult ZCommand::doWebDump(Stream *in, int len, const bool cacheFlag)
 {
-  machineState = stateMachine;
-  int chk8=0;
+  bool flowControl=!cacheFlag;
+  BinType streamType = cacheFlag?BTYPE_NORMAL:binType;
   uint8_t *buf = (uint8_t *)malloc(1);
   int bufLen = 1;
-  int len = 0;
-  //if(!cache)
-  {
-    delay(100);
-    char *oldMachineState = machineState;
-    String oldMachineQue = machineQue;
-    File f = SPIFFS.open(filename, "r");
-    int flen = f.size();
-    for(int i=0;i<flen;i++)
-    {
-      int c=f.read();
-      if(c<0)
-        break;
-      buf[0]=c;
-      bufLen = 1;
-      buf = doMaskOuts(buf,&bufLen,maskOuts);
-      buf = doStateMachine(buf,&bufLen,&machineState,&machineQue,stateMachine);
-      len += bufLen;
-      if(!cache)
-      {
-        for(int i1=0;i1<bufLen;i1++)
-        {
-          chk8+=buf[i1];
-          if(chk8>255)
-            chk8-=256;
-        }
-      }
-    }
-    f.close();
-    machineState = oldMachineState;
-    machineQue = oldMachineQue;
-  }
-  if(!cache)
-  {
-    headerOut(0,len,chk8);
-    serial.flush(); // stupid important because otherwise apps that go xoff miss the header info
-  }
-  File f = SPIFFS.open(filename, "r");
-  len = f.size();
-  bool flowControl=!cache;
-  BinType streamType = cache?BTYPE_NORMAL:binType;
   int bct=0;
-  while(len>0)
+  unsigned long now = millis();
+  while((len>0)
+  && ((millis()-now)<10000))
   {
-    if((!flowControl) || serial.isSerialOut())
+    if(((!flowControl) || serial.isSerialOut())
+    &&(in->available()>0))
     {
+      now=millis();
       len--;
-      int c=f.read();
+      int c=in->read();
       if(c<0)
         break;
       buf[0] = (uint8_t)c;
@@ -987,12 +972,13 @@ ZResult ZCommand::doWebDump(const char *filename, const bool cache)
       for(int i=0;i<bufLen;i++)
       {
         c=buf[i];
-        if(cache && serial.isPetsciiMode())
+        if(cacheFlag && serial.isPetsciiMode())
           c=ascToPetcii(c);
         
         switch(streamType)
         {
           case BTYPE_NORMAL:
+          case BTYPE_NORMAL_NOCHK:
             serial.write((uint8_t)c);
             break;
           case BTYPE_HEX:
@@ -1022,7 +1008,6 @@ ZResult ZCommand::doWebDump(const char *filename, const bool cache)
     {
       serial.setXON(true);
       free(buf);
-      f.close();
       machineState = stateMachine;
       return ZOK;
     }
@@ -1038,7 +1023,6 @@ ZResult ZCommand::doWebDump(const char *filename, const bool cache)
         serial.setXON(true);
         free(buf);
         machineState = stateMachine;
-        f.close();
         return ZOK;
       }
       delay(1);
@@ -1049,8 +1033,63 @@ ZResult ZCommand::doWebDump(const char *filename, const bool cache)
   machineState = stateMachine;
   if(bct > 0)
     serial.prints(EOLN);
+}
+
+ZResult ZCommand::doWebDump(const char *filename, const bool cache)
+{
+  machineState = stateMachine;
+  int chk8=0;
+  int bufLen = 1;
+  int len = 0;
+  
+  {
+    File f = SPIFFS.open(filename, "r");
+    int flen = f.size();
+    if((binType != BTYPE_NORMAL_NOCHK)
+    &&(machineQue.length()==0))
+    {
+      uint8_t *buf = (uint8_t *)malloc(1);
+      delay(100);
+      char *oldMachineState = machineState;
+      String oldMachineQue = machineQue;
+      for(int i=0;i<flen;i++)
+      {
+        int c=f.read();
+        if(c<0)
+          break;
+        buf[0]=c;
+        bufLen = 1;
+        buf = doMaskOuts(buf,&bufLen,maskOuts);
+        buf = doStateMachine(buf,&bufLen,&machineState,&machineQue,stateMachine);
+        len += bufLen;
+        if(!cache)
+        {
+          for(int i1=0;i1<bufLen;i1++)
+          {
+            chk8+=buf[i1];
+            if(chk8>255)
+              chk8-=256;
+          }
+        }
+      }
+      machineState = oldMachineState;
+      machineQue = oldMachineQue;
+      free(buf);
+    }
+    else
+      len=flen;
+    f.close();
+  }
+  File f = SPIFFS.open(filename, "r");
+  if(!cache)
+  {
+    headerOut(0,len,chk8);
+    serial.flush(); // stupid important because otherwise apps that go xoff miss the header info
+  }
+  len = f.size();
+  ZResult res = doWebDump(&f, len, cache);
   f.close();
-  return ZIGNORE;
+  return res;
 }
 
 ZResult ZCommand::doUpdateFirmware(int vval, uint8_t *vbuf, int vlen, bool isNumber)
@@ -2893,6 +2932,7 @@ void ZCommand::reSendLastPacket(WiFiClientNode *conn)
       switch(binType)
       {
         case BTYPE_NORMAL:
+        case BTYPE_NORMAL_NOCHK:
           serial.write(c);
           break;
         case BTYPE_HEX:

@@ -71,7 +71,8 @@ enum BinType
   BTYPE_NORMAL=0,
   BTYPE_HEX=1,
   BTYPE_DEC=2,
-  BTYPE_INVALID=3
+  BTYPE_NORMAL_NOCHK=3,
+  BTYPE_INVALID=4
 };
 
 class ZCommand : public ZMode
@@ -132,6 +133,7 @@ class ZCommand : public ZMode
     void connectionArgs(WiFiClientNode *c);
     uint8_t *doStateMachine(uint8_t *buf, int *bufLen, char **machineState, String *machineQue, char *stateMachine);
     uint8_t *doMaskOuts(uint8_t *buf, int *bufLen, char *maskOuts);
+    ZResult doWebDump(Stream *in, int len, const bool cacheFlag);
     ZResult doWebDump(const char *filename, const bool cache);
 
     ZResult doResetCommand();
