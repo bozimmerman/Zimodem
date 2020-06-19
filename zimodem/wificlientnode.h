@@ -83,6 +83,8 @@ class WiFiClientNode : public Stream
     bool isDisconnectedOnStreamExit();
     void setDisconnectOnStreamExit(bool tf);
 
+    void setNoDelay(bool tf);
+
     size_t write(uint8_t c);
     size_t write(const uint8_t *buf, size_t size);
     int read();

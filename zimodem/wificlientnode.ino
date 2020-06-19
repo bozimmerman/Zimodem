@@ -52,7 +52,14 @@ WiFiClientNode::WiFiClientNode(char *hostIp, int newport, int flagsBitmap)
     finishConnectionLink();
   }
 }
-    
+
+void WiFiClientNode:: setNoDelay(bool tf)
+{
+  if(clientPtr != 0)
+    clientPtr->setNoDelay(tf);
+}
+
+
 WiFiClientNode::WiFiClientNode(WiFiClient newClient, int flagsBitmap, int ringDelay)
 {
   this->flagsBitmap = flagsBitmap;
