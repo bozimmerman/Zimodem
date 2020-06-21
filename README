@@ -50,6 +50,10 @@ size_t uartWritesRemaining(uart_t* uart);
 > Added to HardwareSerial.cpp:
 void HardwareSerial::changeBaudRate(int baudRate) { uartChangeBaudRate(_uart_nr, baudRate); }
 void HardwareSerial::changeConfig(uint32_t config) { uartChangeConfig(_uart_nr, config); }
+> *Changes* to HardwareSerial.cpp
+  In the function: void HardwareSerial::begin(unsigned long baud, uint32_t config, int8_t rxPin, int8_t txPin, bool invert)
+  change: _uart = uartBegin(_uart_nr, baud, config, rxPin, txPin, 256, invert);
+  to    : _uart = uartBegin(_uart_nr, baud, config, rxPin, txPin, 4096, invert);
 > Added to HardwareSerial.h:
 void changeBaudRate(int baudRate);
 void changeConfig(uint32_t config);

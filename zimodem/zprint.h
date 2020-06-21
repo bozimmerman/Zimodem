@@ -27,6 +27,8 @@ class ZPrint : public ZMode
 {
   private:
     WiFiClientNode *wifiSock = null;
+    File tfile;
+    Stream *outStream = null;
     unsigned int timeoutDelayMs = DEFAULT_DELAY_MS;
     char *lastPrinterSpec = 0;
     unsigned long currentExpiresTimeMs = 0;
@@ -46,6 +48,8 @@ class ZPrint : public ZMode
     size_t writeChunk(char *s, int len);
     void switchBackToCommandMode(bool error);
     ZResult finishSwitchTo(char *hostIp, char *req, int port, bool doSSL);
+    bool fileDump();
+    void announcePrintJob(const char *hostIp, const int port, const char *req);
 
   public:
 
