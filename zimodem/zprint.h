@@ -48,7 +48,6 @@ class ZPrint : public ZMode
     size_t writeChunk(char *s, int len);
     void switchBackToCommandMode(bool error);
     ZResult finishSwitchTo(char *hostIp, char *req, int port, bool doSSL);
-    bool fileDump();
     void announcePrintJob(const char *hostIp, const int port, const char *req);
 
   public:

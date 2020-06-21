@@ -77,54 +77,6 @@ size_t ZPrint::writeChunk(char *s, int len)
   return len+strlen(buf)+4;
 }
 
-bool ZPrint::fileDump()
-{
-  bool success = false;
-#ifdef INCLUDE_SD_SHELL
-  int bufLen = 8192; //strlen(lastPrinterSpec) +1;
-  char *workBuf = (char *)malloc(bufLen);
-  strcpy(workBuf, lastPrinterSpec);
-  
-  char *hostIp;
-  char *req;
-  int port;
-  bool doSSL;
-  if(parseWebUrl((uint8_t *)workBuf+2,&hostIp,&req,&port,&doSSL))
-  {
-    wifiSock = new WiFiClientNode(hostIp,port,doSSL?FLAG_SECURE:0);
-    wifiSock->setNoDelay(false); // we want a delay in this case
-    yield();
-    if(wifiSock->isConnected())
-    {
-      File rfile = SD.open("/last_print_job.ps");
-      if(rfile != null)
-      {
-        size_t len=rfile.size();
-        debugPrintf("Dumping %d byte ps file to the printer...\n",len);
-        success = (len > 0);
-        while(len > 0)
-        {
-          int numRead = rfile.read((uint8_t *)workBuf, bufLen);
-          if(numRead > 0)
-          {
-            wifiSock->write((uint8_t *)workBuf,numRead);
-            len -= numRead;
-          }
-          yield();
-        }
-        rfile.close();
-        debugPrintf("Postscript dump complete\n",len);
-      }
-    }
-    yield();
-    delete wifiSock;
-    wifiSock = null;
-  }
-  free(workBuf);
-#endif
-  return success;
-}
-
 void ZPrint::announcePrintJob(const char *hostIp, const int port, const char *req)
 {
   logPrintfln("Print Request to host=%s, port=%d",hostIp,port);
@@ -154,19 +106,6 @@ ZResult ZPrint::switchToPostScript(char *prefix)
   payloadType = RAW;
   announcePrintJob(hostIp,port,req);
   ZResult result;
-/*#ifdef INCLUDE_SD_SHELL
-  if(SD.exists("/last_print_job.ps"))
-    SD.remove("/last_print_job.ps");
-  yield();
-  tfile = SD.open("/last_print_job.ps",FILE_WRITE);
-  outStream = &tfile;
-  result = finishSwitchTo(hostIp, req, port, doSSL);
-  if(result == ZERROR)
-  {
-    tfile.close();
-    outStream = null;
-  }
-#else*/
   if(pinSupport[pinRTS])
     s_pinWrite(pinRTS, rtsInactive);
   yield();
@@ -182,8 +121,7 @@ ZResult ZPrint::switchToPostScript(char *prefix)
   }
   yield();
   if(pinSupport[pinRTS])
-    s_pinWrite(pinRTS, rtsInactive);
-/*#endif*/
+    s_pinWrite(pinRTS, rtsActive);
   if((result != ZERROR)
   &&(prefix != 0)
   &&(strlen(prefix)>0))
@@ -405,12 +343,6 @@ void ZPrint::switchBackToCommandMode(bool error)
 {
   if((wifiSock != null)||(outStream!=null))
   {
-    if((outStream != null)
-    &&(outStream != wifiSock))
-    {
-      ((File *)outStream)->close();
-      error = !fileDump();
-    }
     if(error)
       commandMode.sendOfficialResponse(ZERROR);
     else
