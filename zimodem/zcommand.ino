@@ -838,7 +838,7 @@ ZResult ZCommand::doConnectCommand(int vval, uint8_t *vbuf, int vlen, bool isNum
           serial.prints("NO CARRIER ");
           serial.printf("%d %s:%d",c->id,c->host,c->port);
           serial.prints(EOLN);
-		  serial.flush(); //Wait for String to complete.		  
+          serial.flush(); //Wait for String to complete.
         }
         c=c->next;
       }
