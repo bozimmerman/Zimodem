@@ -378,6 +378,9 @@ void setup()
     debugPrintf("SPIFFS Formatted.");
   }
   HWSerial.begin(DEFAULT_BAUD_RATE, DEFAULT_SERIAL_CONFIG);  //Start Serial
+#ifndef ZIMODEM_ESP8266
+  HWSerial.setRxBufferSize(1024);
+#endif
   commandMode.loadConfig();
   PhoneBookEntry::loadPhonebook();
   dcdStatus = dcdInactive;
