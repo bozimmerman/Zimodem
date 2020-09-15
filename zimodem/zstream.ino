@@ -54,14 +54,38 @@ bool ZStream::isDisconnectedOnStreamExit()
   return (current != null) && (current->isDisconnectedOnStreamExit());
 }
 
+// We want to make sure that if we're seeing an escape sequence, we read it from
+// the serial completely before sending it out on the network in order to avoid
+// sending it out as multiple packets.  This is needed because the TCP/IP stack
+// will wait for each TCP packed to be acknowledge to send the next one.  If the
+// connection lag is long, splitting the escape sequence into multiple packets
+// can cause a time gap between the escape and the rest of the sequence which
+// makes the receiving end think that the escape key was pressed individually.
+// To avoid the problem, if we read the an escape character, we delay for 1ms
+// and then read the rest of the escape sequence from the serial port, if any,
+// to send it to the socket in one go.
+
 void ZStream::serialIncoming()
 {
+  uint8_t buf[escSeqBufSize];
+  bool escRead = false;
+  int bytesRead = 0;
   int bytesAvailable = HWSerial.available();
   if(bytesAvailable == 0)
     return;
   while(--bytesAvailable >= 0)
   {
-    uint8_t c=HWSerial.read();
+    uint8_t c = HWSerial.read();
+    if (c == 27) {
+      if (escRead) {
+        // new escape sequence, flush what we've read so far
+        socketWrite(buf, bytesRead);
+        bytesRead = 0;
+      } else {
+        escRead = true;
+        delay(1);
+      }
+    }
     logSerialIn(c);
     if((c==commandMode.EC)
     &&((plussesInARow>0)||((millis()-lastNonPlusTimeMs)>800)))
@@ -83,10 +107,17 @@ void ZStream::serialIncoming()
         serial.printb(c);
       if(isPETSCII())
         c = petToAsc(c);
-      socketWrite(c);
+      buf[bytesRead++] = c;
+      if (bytesRead == escSeqBufSize) {
+        socketWrite(buf, bytesRead);
+        bytesRead = 0;
+      }
     }
   }
-  
+  if (bytesRead) {
+    socketWrite(buf, bytesRead);
+  }
+
   currentExpiresTimeMs = 0;
   if(plussesInARow==3)
     currentExpiresTimeMs=millis()+800;
@@ -118,14 +149,21 @@ void ZStream::switchBackToCommandMode(bool logout)
   currMode = &commandMode;
 }
 
-void ZStream::socketWrite(uint8_t c)
+void ZStream::socketWrite(uint8_t* buf, size_t count)
 {
   if(current->isConnected())
   {
-    if(c == 0xFF && isTelnet()) 
-      current->write(c); 
-    current->write(c);
-    logSocketOut(c);
+    uint8_t telnetEscapedBuf[count * 2];
+    size_t outputCount = 0;
+    for (size_t i = 0; i < count; i++) {
+      if (buf[i] == 0xFF && isTelnet()) {
+        logSocketOut(buf[i]);
+        telnetEscapedBuf[outputCount++] = buf[i];
+      }
+      logSocketOut(buf[i]);
+      telnetEscapedBuf[outputCount++] = buf[i];
+    }
+    current->write(telnetEscapedBuf, outputCount);
     nextFlushMs=millis()+250;
     //current->flush(); // rendered safe by available check
     //delay(0);
