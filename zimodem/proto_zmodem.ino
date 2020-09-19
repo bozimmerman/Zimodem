@@ -689,7 +689,7 @@ int zmodem_send_zeof(zmodem_t* zm, uint32_t pos)
 /*
  * rx_raw ; receive a single byte from the line.
  * reads as many are available and then processes them one at a time
- * check the data stream for 5 consecutive 0x18/*CAN characters;
+ * check the data stream for 5 consecutive 0x18 CAN characters;
  * and if you see them abort. this saves a lot of clutter in
  * the rest of the code; even though it is a very strange place
  * for an exit. (but that was wat session abort was all about.)
@@ -1660,7 +1660,7 @@ int zmodem_send_from(zmodem_t* zm, File* fp, uint64_t pos, uint64_t* sent)
       if(c == ZPAD) {
         /* ZMODEM.DOC: 
           FULL STREAMING WITH SAMPLING
-          If one of these characters (0x18/*CAN or ZPAD) is seen, an
+          If one of these characters (0x18 CAN or ZPAD) is seen, an
           empty ZCRCE data subpacket is sent.
         */
         zmodem_send_data(zm, ZCRCE, NULL, 0);
@@ -2153,7 +2153,7 @@ int zmodem_recv_init(zmodem_t* zm)
     }
 
     if(type==ZFIN) {
-      zmodem_send_zfin(zm); /* 0x06/*ACK */
+      zmodem_send_zfin(zm); /* 0x06 ACK */
       return(type);
     }
 
