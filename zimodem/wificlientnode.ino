@@ -59,7 +59,6 @@ void WiFiClientNode:: setNoDelay(bool tf)
     clientPtr->setNoDelay(tf);
 }
 
-
 WiFiClientNode::WiFiClientNode(WiFiClient newClient, int flagsBitmap, int ringDelay)
 {
   this->flagsBitmap = flagsBitmap;

@@ -319,6 +319,7 @@ static int checkOpenConnections()
     if((dcdStatus == dcdActive)
     &&(dcdStatus != dcdInactive))
     {
+      logPrintfln("DCD going inactive.\n");
       dcdStatus = dcdInactive;
       s_pinWrite(pinDCD,dcdStatus);
       if(baudState == BS_SWITCHED_TEMP)
@@ -332,6 +333,7 @@ static int checkOpenConnections()
     if((dcdStatus == dcdInactive)
     &&(dcdStatus != dcdActive))
     {
+      logPrintfln("DCD going active.\n");
       dcdStatus = dcdActive;
       s_pinWrite(pinDCD,dcdStatus);
       if((tempBaud > 0) && (baudState == BS_NORMAL))
