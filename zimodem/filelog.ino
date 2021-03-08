@@ -39,7 +39,7 @@ static uint8_t FROMHEX(uint8_t a1, uint8_t a2)
   return (FROMHEXDIGIT(a1) * 16) + FROMHEXDIGIT(a2);
 }
 
-static bool *ISHEX(char *s)
+static bool ISHEX(char *s)
 {
   for(char *si = s; *si != 0; si++)
   {
