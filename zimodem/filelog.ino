@@ -39,6 +39,23 @@ static uint8_t FROMHEX(uint8_t a1, uint8_t a2)
   return (FROMHEXDIGIT(a1) * 16) + FROMHEXDIGIT(a2);
 }
 
+static bool *ISHEX(char *s)
+{
+  for(char *si = s; *si != 0; si++)
+  {
+    char c=lc(*si);
+    if(c<48)
+      return false;
+    if(c>57)
+    {
+      if(c<97)
+        return false;
+      if(c>102)
+        return false;
+    }
+    return true;
+}
+
 static char *TOHEX(uint8_t a)
 {
   HD[0] = "0123456789ABCDEF"[(a >> 4) & 0x0f];
