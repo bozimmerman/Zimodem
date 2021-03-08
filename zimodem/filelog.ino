@@ -43,17 +43,23 @@ static bool *ISHEX(char *s)
 {
   for(char *si = s; *si != 0; si++)
   {
-    char c=lc(*si);
+    char c=*si;
     if(c<48)
       return false;
     if(c>57)
     {
-      if(c<97)
+      if(c<65)
         return false;
-      if(c>102)
-        return false;
+      if(c>70)
+      {
+        if(c<97)
+          return false;
+        if(c>102)
+          return false;
+      }
     }
-    return true;
+  }
+  return true;
 }
 
 static char *TOHEX(uint8_t a)
