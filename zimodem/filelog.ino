@@ -39,27 +39,26 @@ static uint8_t FROMHEX(uint8_t a1, uint8_t a2)
   return (FROMHEXDIGIT(a1) * 16) + FROMHEXDIGIT(a2);
 }
 
-static bool ISHEX(char *s)
+static char *FROMHEX(const char *hex, char *s, const size_t len)
 {
-  for(char *si = s; *si != 0; si++)
+  int i=0;
+  for(const char *h=hex;*h != 0 && (*(h+1)!=0) && (i<len-1);i++,h+=2)
+    s[i]=FROMHEX((uint8_t)*h,(uint8_t)*(h+1));
+  s[i]=0;
+  return s;
+}
+
+static char *TOHEX(const char *s, char *hex, const size_t len)
+{
+  int i=0;
+  for(const char *t=s;*t != 0 && (i<len-2);i+=2,t++)
   {
-    char c=*si;
-    if(c<48)
-      return false;
-    if(c>57)
-    {
-      if(c<65)
-        return false;
-      if(c>70)
-      {
-        if(c<97)
-          return false;
-        if(c>102)
-          return false;
-      }
-    }
+    char *x=TOHEX(*t);
+    hex[i]=x[0];
+    hex[i+1]=x[1];
   }
-  return true;
+  hex[i]=0;
+  return hex;
 }
 
 static char *TOHEX(uint8_t a)

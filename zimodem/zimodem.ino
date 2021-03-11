@@ -406,7 +406,8 @@ void checkFactoryReset()
         else
         if((millis() - resetPushTimer) > 5000)
         {
-          SPIFFS.remove("/zconfig.txt");
+          SPIFFS.remove(CONFIG_FILE);
+          SPIFFS.remove(CONFIG_FILE_OLD);
           SPIFFS.remove("/zphonebook.txt");
           SPIFFS.remove("/zlisteners.txt");
           PhoneBookEntry::clearPhonebook();

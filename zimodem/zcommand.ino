@@ -268,9 +268,11 @@ void pinModeDecoder(String newMode, int *active, int *inactive, int activeDef, i
 
 void ZCommand::reSaveConfig()
 {
-  SPIFFS.remove("/zconfig.txt");
+  char hex[256];
+  SPIFFS.remove(CONFIG_FILE_OLD);
+  SPIFFS.remove(CONFIG_FILE);
   delay(500);
-  File f = SPIFFS.open("/zconfig.txt", "w");
+  File f = SPIFFS.open(CONFIG_FILE, "w");
   const char *eoln = EOLN.c_str();
   int dcdMode = pinModeCoder(dcdActive, dcdInactive, DEFAULT_DCD_HIGH);
   int ctsMode = pinModeCoder(ctsActive, ctsInactive, DEFAULT_CTS_HIGH);
@@ -278,6 +280,13 @@ void ZCommand::reSaveConfig()
   int riMode = pinModeCoder(riActive, riInactive, DEFAULT_RTS_HIGH);
   int dtrMode = pinModeCoder(dtrActive, dtrInactive, DEFAULT_DTR_HIGH);
   int dsrMode = pinModeCoder(dsrActive, dsrInactive, DEFAULT_DSR_HIGH);
+  String wifiSSIhex = TOHEX(wifiSSI.c_str(),hex,256);
+  String wifiPWhex = TOHEX(wifiPW.c_str(),hex,256);
+  String zclockFormathex = TOHEX(zclock.getFormat().c_str(),hex,256);
+  String zclockHosthex = TOHEX(zclock.getNtpServerHost().c_str(),hex,256);
+  String hostnamehex = TOHEX(hostname.c_str(),hex,256);
+  String printSpechex = TOHEX(printMode.getLastPrinterSpec(),hex,256);
+  String termTypehex = TOHEX(termType.c_str(),hex,256);
   f.printf("%s,%s,%d,%s,"
            "%d,%d,%d,%d,"
            "%d,%d,%d,%d,%d,"
@@ -286,20 +295,20 @@ void ZCommand::reSaveConfig()
            "%d,"
            "%s,%s,%s,"
            "%d,%s,%s", 
-            wifiSSI.c_str(), wifiPW.c_str(), baudRate, eoln,
+            wifiSSIhex.c_str(), wifiPWhex.c_str(), baudRate, eoln,
             serial.getFlowControlType(), doEcho, suppressResponses, numericResponses,
             longResponses, serial.isPetsciiMode(), dcdMode, serialConfig, ctsMode,
             rtsMode,pinDCD,pinCTS,pinRTS,autoStreamMode,ringCounter,preserveListeners,
             riMode,dtrMode,dsrMode,pinRI,pinDTR,pinDSR,
             zclock.isDisabled()?999:zclock.getTimeZoneCode(),
-            zclock.getFormat().c_str(),zclock.getNtpServerHost().c_str(),hostname.c_str(),
-            printMode.getTimeoutDelayMs(),printMode.getLastPrinterSpec(),termType.c_str()
+            zclockFormathex.c_str(),zclockHosthex.c_str(),hostnamehex.c_str(),
+            printMode.getTimeoutDelayMs(),printSpechex.c_str(),termTypehex.c_str()
             );
   f.close();
   delay(500);
-  if(SPIFFS.exists("/zconfig.txt"))
+  if(SPIFFS.exists(CONFIG_FILE))
   {
-    File f = SPIFFS.open("/zconfig.txt", "r");
+    File f=SPIFFS.open(CONFIG_FILE, "r");
     String str=f.readString();
     f.close();
     int argn=0;
@@ -436,7 +445,12 @@ void ZCommand::setOptionsFromSavedConfig(String configArguments[])
 void ZCommand::parseConfigOptions(String configArguments[])
 {
   delay(500);
-  File f = SPIFFS.open("/zconfig.txt", "r");
+  bool v2=SPIFFS.exists(CONFIG_FILE);
+  File f;
+  if(v2)
+    f = SPIFFS.open(CONFIG_FILE, "r");
+  else
+    f = SPIFFS.open(CONFIG_FILE_OLD, "r");
   String str=f.readString();
   f.close();
   if((str!=null)&&(str.length()>0))
@@ -447,6 +461,18 @@ void ZCommand::parseConfigOptions(String configArguments[])
     {
       if(str[i]==',')
       {
+        if(v2 &&
+          ((argn==CFG_WIFISSI)
+         ||(argn==CFG_WIFIPW)
+         ||(argn==CFG_TIMEZONE)
+         ||(argn==CFG_TIMEFMT)
+         ||(argn==CFG_TIMEURL)
+         ||(argn==CFG_PRINTSPEC)
+         ||(argn==CFG_TERMTYPE)))
+        {
+          char hex[256];
+          configArguments[argn] = FROMHEX(configArguments[argn].c_str(),hex,256);
+        }
         if(argn<=CFG_LAST)
           argn++;
         else
@@ -2318,12 +2344,14 @@ ZResult ZCommand::doSerialCommand()
           if(vval == 86)
           {
             loadConfig();
+            zclock.reset();
             result = SPIFFS.format() ? ZOK : ZERROR;
             reSaveConfig();
           }
           else
           {
-            SPIFFS.remove("/zconfig.txt");
+            SPIFFS.remove(CONFIG_FILE);
+            SPIFFS.remove(CONFIG_FILE_OLD);
             SPIFFS.remove("/zphonebook.txt");
             SPIFFS.remove("/zlisteners.txt");
             PhoneBookEntry::clearPhonebook();

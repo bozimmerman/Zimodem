@@ -15,6 +15,8 @@
 */
 
 const int MAX_COMMAND_SIZE=256;
+static const char *CONFIG_FILE_OLD = "/zconfig.txt";
+static const char *CONFIG_FILE     = "/zconfig_v2.txt";
 #define ZI_STATE_MACHINE_LEN 7
 #define DEFAULT_TERMTYPE "Zimodem"
 
