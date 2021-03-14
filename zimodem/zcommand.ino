@@ -468,6 +468,7 @@ void ZCommand::parseConfigOptions(String configArguments[])
          ||(argn==CFG_TIMEFMT)
          ||(argn==CFG_TIMEURL)
          ||(argn==CFG_PRINTSPEC)
+         ||(argn==CFG_HOSTNAME)
          ||(argn==CFG_TERMTYPE)))
         {
           char hex[256];
