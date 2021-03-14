@@ -1,10 +1,11 @@
 Bugs Reported (nor reproduced):
-  *. At 38400, upload with linux rz -e is very slow, but download with linux sz -e is plenty fast.
-  *. Consider a watchdog thread.
+  *. Fix the CD on manual answer problem
 
 New Features:
-  *. make a persistent-ish ftp shell
+  *. Support IPAddress ip(192, 168, 0, 177);  WiFi.mode(WIFI_STA); WiFi.config(ip,dns,gateway,subnet) before wifi.begin
+  *. Consider a watchdog thread.
   *. Support ring signal, Server Conns on Hold, and true RING msgs.
+  *. make a persistent-ish ftp shell
   *. Ability to use protocols for at&g, and maybe have alternative at+web
   *. Ability to ftp file streamdown, like at&g.. maybe at+ftp
   *. Support switching between CONNECT 1 and CONNECT 1200 messages
@@ -12,7 +13,6 @@ New Features:
   *. ATW0 should be same as ATW
   *. SLIP support?
   *. PPP support?
-  *. Network printer support?
 
   --- C= Modem tech details:
   1650 Automodem
