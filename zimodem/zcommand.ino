@@ -1927,7 +1927,8 @@ ZResult ZCommand::doSerialCommand()
         while((index<len)
         &&(!((lc(sbuf[index])>='a')&&(lc(sbuf[index])<='z')))
         &&(sbuf[index]!='&')
-        &&(sbuf[index]!='%'))
+        &&(sbuf[index]!='%')
+        &&(sbuf[index]!=' '))
         {
           char c=sbuf[index];
           isNumber = ((c=='-')||((c>='0') && (c<='9'))) && isNumber;
