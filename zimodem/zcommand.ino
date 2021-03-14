@@ -1538,6 +1538,7 @@ ZResult ZCommand::doAnswerCommand(int vval, uint8_t *vbuf, int vlen, bool isNumb
           {
             c->answer();
             sendConnectionNotice(c->id);
+            checkOpenConnections();
             return ZIGNORE;
           }
           break;
