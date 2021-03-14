@@ -105,7 +105,7 @@ void RealTimeClock::tick()
       // this is NTP time (seconds since Jan 1 1900):
       uint32_t secsSince1900 = htonl(*((uint32_t *)(packetBuffer + 40))); 
       // Unix time starts on Jan 1 1970. In seconds, that's 2208988800:
-      const uint32_t seventyYears = 2208988800UL + 3600UL;
+      const uint32_t seventyYears = 2208988800UL;
       // subtract seventy years:
       uint32_t epoch = secsSince1900 - seventyYears;
       lastMillis = millis();
@@ -619,12 +619,18 @@ String RealTimeClock::getCurrentTimeFormatted()
   }
   if(f.indexOf("%hh")>=0)
   {
-    sprintf(str,"%02d",(int)(c.getHour() % 12) + 1);
+    if((c.getHour()%12)==0)
+      strcpy(str,"12");
+    else
+      sprintf(str,"%02d",c.getHour()%12);
     f.replace("%hh",str);
   }
   if(f.indexOf("%h")>=0)
   {
-    sprintf(str,"%d",(int)(c.getHour() % 12) + 1);
+    if((c.getHour()%12)==0)
+      strcpy(str,"12");
+    else
+      sprintf(str,"%d",(int)(c.getHour() % 12));
     f.replace("%h",str);
   }
   if(f.indexOf("%mm")>=0)
