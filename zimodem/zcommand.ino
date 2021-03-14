@@ -827,6 +827,17 @@ ZResult ZCommand::doConnectCommand(int vval, uint8_t *vbuf, int vlen, bool isNum
   else
   if((vval >= 0)&&(isNumber))
   {
+    if((WiFi.status() != WL_CONNECTED)
+    &&(vval== 1)
+    &&(conns==null))
+    {
+      if(wifiSSI.length()==0)
+        return ZERROR;
+      debugPrintf("Connecting to %s\n",wifiSSI.c_str());
+      bool doconn = connectWifi(wifiSSI.c_str(),wifiPW.c_str());
+      debugPrintf("Done connecting to %s\n",wifiSSI.c_str());
+      return doconn ? ZOK : ZERROR;
+    }
     if(vval == 0)
       logPrintln("ConnList0:\r\n");
     else
@@ -1862,7 +1873,7 @@ ZResult ZCommand::doSerialCommand()
       bool isNumber=true;
       if(index<len)
       {
-        if(lastCmd=='+')
+        if((lastCmd=='+')||(lastCmd=='$'))
         {
           vlen += len-index;
           index=len;
@@ -2305,6 +2316,46 @@ ZResult ZCommand::doSerialCommand()
         else
           result=ZERROR; //todo: branch based on vbuf contents
         break;
+      case '$':
+      {
+        int eqMark=0;
+        for(int i=0;vbuf[i]!=0;i++)
+          if(vbuf[i]=='=')
+          {
+            eqMark=i;
+            break;
+          }
+          else
+            vbuf[i]=lc(vbuf[i]);
+        if(eqMark==0)
+          result=ZERROR; // no EQ means no good
+        else
+        {
+          vbuf[eqMark]=0;
+          String var=(char *)vbuf;
+          var.trim();
+          String val=(char *)(vbuf+eqMark+1);
+          val.trim();
+          result = ((val.length()==0)&&((strcmp(var.c_str(),"pass")!=0))) ? ZERROR : ZOK;
+          if(result == ZOK)
+          {
+            if(strcmp(var.c_str(),"ssid")==0)
+              wifiSSI = val;
+            else
+            if(strcmp(var.c_str(),"pass")==0)
+              wifiPW = val;
+            else
+            if(strcmp(var.c_str(),"mdns")==0)
+              hostname = val;
+            else
+            if(strcmp(var.c_str(),"sb")==0)
+              result = doBaudCommand(atoi(val.c_str()),(uint8_t *)val.c_str(),val.length());
+            else
+              result = ZERROR;
+          }
+        }
+        break;
+      }
       case '%':
         result=ZERROR;
         break;
