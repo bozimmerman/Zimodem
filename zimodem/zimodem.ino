@@ -174,6 +174,10 @@ static bool wifiConnected =false;
 static String wifiSSI;
 static String wifiPW;
 static String hostname;
+static IPAddress *staticIP = null;
+static IPAddress *staticDNS = null;
+static IPAddress *staticGW = null;
+static IPAddress *staticSN = null;
 static SerialConfig serialConfig = DEFAULT_SERIAL_CONFIG;
 static int baudRate=DEFAULT_BAUD_RATE;
 static int dequeSize=1+(DEFAULT_BAUD_RATE/INTERNAL_FLOW_CONTROL_DIV);
@@ -233,7 +237,23 @@ static void setHostName(const char *hname)
 #endif
 }
 
-static bool connectWifi(const char* ssid, const char* password)
+static void setNewStaticIPs(IPAddress *ip, IPAddress *dns, IPAddress *gateWay, IPAddress *subNet)
+{
+  if(staticIP != null)
+    free(staticIP);
+  staticIP = ip;
+  if(staticDNS != null)
+    free(staticDNS);
+  staticDNS = dns;
+  if(staticGW != null)
+    free(staticGW);
+  staticGW = gateWay;
+  if(staticSN != null)
+    free(staticSN);
+  staticSN = subNet;
+}
+
+static bool connectWifi(const char* ssid, const char* password, IPAddress *ip, IPAddress *dns, IPAddress *gateWay, IPAddress *subNet)
 {
   while(WiFi.status() == WL_CONNECTED)
   {
@@ -246,6 +266,11 @@ static bool connectWifi(const char* ssid, const char* password)
     setHostName(hostname.c_str());
 #endif
   WiFi.mode(WIFI_STA);
+  if((ip != null)&&(gateWay != null)&&(dns != null)&&(subNet!=null))
+  {
+    if(!WiFi.config(*ip,*gateWay,*subNet,*dns))
+      return false;
+  }
   WiFi.begin(ssid, password);
   if(hostname.length() > 0)
     setHostName(hostname.c_str());

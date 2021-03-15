@@ -1,10 +1,6 @@
 Bugs Reported (nor reproduced):
-  *. Fix the CD on manual answer problem
 
 New Features:
-  *. Support IPAddress ip(192, 168, 0, 177);  WiFi.mode(WIFI_STA); WiFi.config(ip,dns,gateway,subnet) before wifi.begin
-  *. Consider a watchdog thread.
-  *. Support ring signal, Server Conns on Hold, and true RING msgs.
   *. make a persistent-ish ftp shell
   *. Ability to use protocols for at&g, and maybe have alternative at+web
   *. Ability to ftp file streamdown, like at&g.. maybe at+ftp

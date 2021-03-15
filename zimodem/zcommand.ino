@@ -272,7 +272,6 @@ void ZCommand::reSaveConfig()
   SPIFFS.remove(CONFIG_FILE_OLD);
   SPIFFS.remove(CONFIG_FILE);
   delay(500);
-  File f = SPIFFS.open(CONFIG_FILE, "w");
   const char *eoln = EOLN.c_str();
   int dcdMode = pinModeCoder(dcdActive, dcdInactive, DEFAULT_DCD_HIGH);
   int ctsMode = pinModeCoder(ctsActive, ctsInactive, DEFAULT_CTS_HIGH);
@@ -287,6 +286,16 @@ void ZCommand::reSaveConfig()
   String hostnamehex = TOHEX(hostname.c_str(),hex,256);
   String printSpechex = TOHEX(printMode.getLastPrinterSpec(),hex,256);
   String termTypehex = TOHEX(termType.c_str(),hex,256);
+  String staticIPstr;
+  IPtoStr(staticIP,staticIPstr);
+  String staticDNSstr;
+  IPtoStr(staticDNS,staticDNSstr);
+  String staticGWstr;
+  IPtoStr(staticGW,staticGWstr);
+  String staticSNstr;
+  IPtoStr(staticSN,staticSNstr);
+
+  File f = SPIFFS.open(CONFIG_FILE, "w");
   f.printf("%s,%s,%d,%s,"
            "%d,%d,%d,%d,"
            "%d,%d,%d,%d,%d,"
@@ -294,7 +303,8 @@ void ZCommand::reSaveConfig()
            "%d,%d,%d,%d,%d,%d,"
            "%d,"
            "%s,%s,%s,"
-           "%d,%s,%s", 
+           "%d,%s,%s,"
+           "%s,%s,%s,%s", 
             wifiSSIhex.c_str(), wifiPWhex.c_str(), baudRate, eoln,
             serial.getFlowControlType(), doEcho, suppressResponses, numericResponses,
             longResponses, serial.isPetsciiMode(), dcdMode, serialConfig, ctsMode,
@@ -302,7 +312,8 @@ void ZCommand::reSaveConfig()
             riMode,dtrMode,dsrMode,pinRI,pinDTR,pinDSR,
             zclock.isDisabled()?999:zclock.getTimeZoneCode(),
             zclockFormathex.c_str(),zclockHosthex.c_str(),hostnamehex.c_str(),
-            printMode.getTimeoutDelayMs(),printSpechex.c_str(),termTypehex.c_str()
+            printMode.getTimeoutDelayMs(),printSpechex.c_str(),termTypehex.c_str(),
+            staticIPstr.c_str(),staticDNSstr.c_str(),staticGWstr.c_str(),staticSNstr.c_str()
             );
   f.close();
   delay(500);
@@ -506,10 +517,11 @@ void ZCommand::loadConfig()
   wifiSSI=argv[CFG_WIFISSI];
   wifiPW=argv[CFG_WIFIPW];
   hostname = argv[CFG_HOSTNAME];
+  setNewStaticIPs(parseIP(argv[CFG_STATIC_IP].c_str()),parseIP(argv[CFG_STATIC_DNS].c_str()),parseIP(argv[CFG_STATIC_GW].c_str()),parseIP(argv[CFG_STATIC_SN].c_str()));
   if(wifiSSI.length()>0)
   {
     debugPrintf("Connecting to %s\n",wifiSSI.c_str());
-    connectWifi(wifiSSI.c_str(),wifiPW.c_str());
+    connectWifi(wifiSSI.c_str(),wifiPW.c_str(),staticIP,staticDNS,staticGW,staticSN);
     debugPrintf("Done connecting to %s\n",wifiSSI.c_str());
   }
   debugPrintf("Reset start.\n");
@@ -835,7 +847,7 @@ ZResult ZCommand::doConnectCommand(int vval, uint8_t *vbuf, int vlen, bool isNum
       if(wifiSSI.length()==0)
         return ZERROR;
       debugPrintf("Connecting to %s\n",wifiSSI.c_str());
-      bool doconn = connectWifi(wifiSSI.c_str(),wifiPW.c_str());
+      bool doconn = connectWifi(wifiSSI.c_str(),wifiPW.c_str(),staticIP,staticDNS,staticGW,staticSN);
       debugPrintf("Done connecting to %s\n",wifiSSI.c_str());
       return doconn ? ZOK : ZERROR;
     }
@@ -1238,6 +1250,52 @@ ZResult ZCommand::doUpdateFirmware(int vval, uint8_t *vbuf, int vlen, bool isNum
   return ZOK;
 }
 
+void ZCommand::IPtoStr(IPAddress *ip, String &str)
+{
+  if(ip == null)
+  {
+    str="";
+    return;
+  }
+  char temp[20];
+  sprintf(temp,"%d.%d.%d.%d",(*ip)[0],(*ip)[1],(*ip)[2],(*ip)[3]);
+  str = temp;
+}
+
+IPAddress *ZCommand::parseIP(const char *ipStr)
+{
+  uint8_t dots[4];
+  int dotDex=0;
+  char *le = (char *)ipStr;
+  const char *ld = ipStr+strlen(ipStr);
+  if(strlen(ipStr)<7)
+    return null;
+  for(char *e=le;e<=ld;e++)
+  {
+    if((*e=='.')||(e==ld))
+    {
+      if(le==e)
+        break;
+      *e=0;
+      String sdot = le;
+      sdot.trim();
+      if((sdot.length()==0)||(dotDex>3))
+      {
+        dotDex=99;
+        break;
+      }
+      dots[dotDex++]=(uint8_t)atoi(sdot.c_str());
+      if(e==ld)
+        le=e;
+      else
+        le=e+1;
+    }
+  }
+  if((dotDex!=4)||(*le != 0))
+    return null;
+  return new IPAddress(dots[0],dots[1],dots[2],dots[3]);
+}
+
 ZResult ZCommand::doWiFiCommand(int vval, uint8_t *vbuf, int vlen, bool isNumber, const char *dmodifiers)
 {
   bool doPETSCII = (strchr(dmodifiers,'p')!=null) || (strchr(dmodifiers,'P')!=null);
@@ -1271,10 +1329,60 @@ ZResult ZCommand::doWiFiCommand(int vval, uint8_t *vbuf, int vlen, bool isNumber
     char *x=strstr((char *)vbuf,",");
     char *ssi=(char *)vbuf;
     char *pw=ssi + strlen(ssi);
+    IPAddress *ip[4];
+    for(int i=0;i<4;i++)
+      ip[i]=null;
     if(x > 0)
     {
       *x=0;
       pw=x+1;
+      x=strstr(pw,",");
+      if(x > 0)
+      {
+        int numCommasFound=0;
+        int numDotsFound=0;
+        char *comPos[4];
+        for(char *e=pw+strlen(pw)-1;e>pw;e--)
+        {
+          if(*e==',')
+          {
+            if(numDotsFound!=3)
+              break;
+            numDotsFound=0;
+            if(numCommasFound<4)
+            {
+              numCommasFound++;
+              comPos[4-numCommasFound]=e;
+            }
+            if(numCommasFound==4)
+                break;
+          }
+          else
+          if(*e=='.')
+            numDotsFound++;
+          else
+          if(strchr("0123456789 ",*e)==null)
+            break;
+        }
+        if(numCommasFound==4)
+        {
+          for(int i=0;i<4;i++)
+            *(comPos[i])=0;
+          for(int i=0;i<4;i++)
+          {
+            ip[i]=parseIP(comPos[i]+1);
+            if(ip[i]==null)
+            {
+              while(--i>=0)
+              {
+                free(ip[i]);
+                ip[i]=null;
+              }
+              break;
+            }
+          }
+        }
+      }
     }
     bool connSuccess=false;
     if((doPETSCII)&&(!serial.isPetsciiMode()))
@@ -1287,19 +1395,27 @@ ZResult ZCommand::doWiFiCommand(int vval, uint8_t *vbuf, int vlen, bool isNumber
         *c = ascToPetcii(*c);
       for(char *c=pwP;*c!=0;c++)
         *c = ascToPetcii(*c);
-      connSuccess = connectWifi(ssiP,pwP);
+      connSuccess = connectWifi(ssiP,pwP,ip[0],ip[1],ip[2],ip[3]);
       free(ssiP);
       free(pwP);
     }
     else
-      connSuccess = connectWifi(ssi,pw);
+      connSuccess = connectWifi(ssi,pw,ip[0],ip[1],ip[2],ip[3]);
 
     if(!connSuccess)
+    {
+      for(int ii=0;ii<4;ii++)
+      {
+        if(ip[ii]!=null)
+          free(ip[ii]);
+      }
       return ZERROR;
+    }
     else
     {
       wifiSSI=ssi;
       wifiPW=pw;
+      setNewStaticIPs(ip[0],ip[1],ip[2],ip[3]);
     }
   }
   return ZOK;
@@ -2659,7 +2775,7 @@ ZResult ZCommand::doSerialCommand()
                       hostname = eq;
                       hostname.replace(',','.');
                       if(WiFi.status()==WL_CONNECTED)
-                          connectWifi(wifiSSI.c_str(),wifiPW.c_str());
+                          connectWifi(wifiSSI.c_str(),wifiPW.c_str(),staticIP,staticDNS,staticGW,staticSN);
                       result=ZOK;
                     }
                     break;
@@ -2730,7 +2846,6 @@ ZResult ZCommand::doSerialCommand()
         case 'u':
           result=doUpdateFirmware(vval,vbuf,vlen,isNumber);
           break;
-        //TODO: host name cmd here somewhere...
         default:
           result=ZERROR;
           break;

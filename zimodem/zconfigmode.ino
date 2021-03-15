@@ -424,7 +424,8 @@ void ZConfig::doModeCommand()
         else
         if(WiFi.encryptionType(num-1) == ENC_TYPE_NONE)
         {
-          if(!connectWifi(WiFi.SSID(num-1).c_str(),""))
+          setNewStaticIPs(null,null,null,null);  //TODO: BZ: IPSTUFF
+          if(!connectWifi(WiFi.SSID(num-1).c_str(),"",null,null,null,null))//TODO:BZ: IPSTUFF
           {
             serial.printf("%sUnable to connect to %s. :(%s",EOLNC,WiFi.SSID(num-1).c_str(),EOLNC);
           }
@@ -456,7 +457,7 @@ void ZConfig::doModeCommand()
         hostname.replace(',','.');
         if((wifiSSI.length() > 0) && (WiFi.status()==WL_CONNECTED))
         {
-            if(!connectWifi(wifiSSI.c_str(),wifiPW.c_str()))
+            if(!connectWifi(wifiSSI.c_str(),wifiPW.c_str(),staticIP,staticDNS,staticGW,staticSN))
               serial.printf("%sUnable to connect to %s. :(%s",EOLNC,wifiSSI.c_str(),EOLNC);
             settingsChanged=true;
         }
@@ -478,7 +479,8 @@ void ZConfig::doModeCommand()
               serialOutDeque();
             delay(1);
           }
-          if(!connectWifi(WiFi.SSID(lastNumber).c_str(),cmd.c_str()))
+          setNewStaticIPs(null,null,null,null);  //TODO: BZ: IPSTUFF
+          if(!connectWifi(WiFi.SSID(lastNumber).c_str(),cmd.c_str(),null,null,null,null))  //TODO: BZ: IPSTUFF
             serial.printf("%sUnable to connect to %s.%s",EOLNC,WiFi.SSID(lastNumber).c_str(),EOLNC);
           else
           {

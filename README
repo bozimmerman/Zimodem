@@ -138,6 +138,7 @@ ATB"n,xYz" : Sets baud rate n, bits x, parity (E,O,M, or N) for Y, and stop bits
 ATW : List all wireless network access points scanned within range.  The response for each entry is the SSID, following by the RSSI, followed by an * character is the connection is encrypted.
 ATWn : Where n > 0, this lists up to n wireless network access points scanned within range.  The response for each entry is the SSID, following by the RSSI, followed by an * character is the connection is encrypted.
 ATW"[SSI],[PASSWORD]" : Connects to the wireless access point with the given SSI, using the given password.
+ATW"[SSI],[PASSWORD],[IP],[DNS],[GATEWAY],[SUBNET]" : as ATW, but with more options
 ATWP : Adding a P modifier is the same as all forms of ATW, with both arguments and results presented in PETSCII.
 
 ATD : Start a streaming connection between the current opened connection.  Use "+++" to exit back to Command mode.

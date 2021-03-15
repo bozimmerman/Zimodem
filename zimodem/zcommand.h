@@ -65,7 +65,11 @@ enum ConfigOptions
   CFG_PRINTDELAYMS=30,
   CFG_PRINTSPEC=31,
   CFG_TERMTYPE=32,
-  CFG_LAST=32
+  CFG_STATIC_IP=33,
+  CFG_STATIC_DNS=34,
+  CFG_STATIC_GW=35,
+  CFG_STATIC_SN=36,
+  CFG_LAST=36
 };
 
 enum BinType
@@ -133,6 +137,8 @@ class ZCommand : public ZMode
     void sendConnectionNotice(int nodeId);
     void sendNextPacket();
     void connectionArgs(WiFiClientNode *c);
+    void IPtoStr(IPAddress *ip, String &str);
+    IPAddress *parseIP(const char *ipStr);
     uint8_t *doStateMachine(uint8_t *buf, int *bufLen, char **machineState, String *machineQue, char *stateMachine);
     uint8_t *doMaskOuts(uint8_t *buf, int *bufLen, char *maskOuts);
     ZResult doWebDump(Stream *in, int len, const bool cacheFlag);
