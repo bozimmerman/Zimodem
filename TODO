@@ -1,6 +1,7 @@
 Bugs Reported (nor reproduced):
 
 New Features:
+  *. Add notes/name string for phonebook.
   *. make a persistent-ish ftp shell
   *. Ability to use protocols for at&g, and maybe have alternative at+web
   *. Ability to ftp file streamdown, like at&g.. maybe at+ftp
