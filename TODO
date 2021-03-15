@@ -1,6 +1,7 @@
 Bugs Reported (nor reproduced):
 
 New Features:
+  *. for ESP32, AT&o2 will pipe to debugPrintf instead of standard log file
   *. Add notes/name string for phonebook.
   *. make a persistent-ish ftp shell
   *. Ability to use protocols for at&g, and maybe have alternative at+web
