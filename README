@@ -97,6 +97,7 @@ ATI5 : Shows all the current variable settings, all 'S' registers.
 ATI6 : Shows the current mac address.
 ATI7 : Shows the current formatted time (see AT&T).
 ATI8 : Shows the firmware build date/time
+ATI9 : Same as I3, but also includes any static settings, same order as ATW
 
 ATA  : If a server listener has generated a RING, then ATA will switch the last rung connection to Stream mode (see ATD).
 
@@ -165,12 +166,12 @@ ATHn : Hangs up (disconnects and deletes) the open connection with the given id.
 
 ATO : Re-enters a Streaming session (see ATD) under the previous settings, with the current (previous) connection.
 
-ATP : Lists all existing phonebook entries, with the format phone number followed by ATD modifiers, followed by the host and port
-ATP"[NUMBER]=[HOSTNAME]:[PORT]" : Adds or Modifies an entry to the phonebook with the given 7 digit number, host, and port. Use ATDnnnnn.. to connect.
-ATPP"[NUMBER]=[HOSTNAME]:[PORT]" : Adding a P modifier causes connection input to be translated to PETSCII  when connected to that entry.
-ATPT"[NUMBER]=[HOSTNAME]:[PORT]" : Adding a T modifier causes connection input to be translated per TELNET  when connected to that entry.
-ATPE"[NUMBER]=[HOSTNAME]:[PORT]" : Adding a E modifier causes terminal echo to be enabled when connected to that entry.
-ATPX"[NUMBER]=[HOSTNAME]:[PORT]" : Adding a X modifier causes XON/XOFF flow control to be enabled when connected to that entry.
+ATP : Lists all existing phonebook entries, with the format phone number followed by ATD modifiers, followed by the host and port.  Add ? to also get notes.
+ATP"[NUMBER]=[HOSTNAME]:[PORT],[NOTES]" : Adds or Modifies an entry to the phonebook with the given 7 digit number, host, port, and notes. Use ATDnnnnn.. to connect.
+ATPP"[NUMBER]=[HOSTNAME]:[PORT],[NOTES]" : Adding a P modifier causes connection input to be translated to PETSCII  when connected to that entry.
+ATPT"[NUMBER]=[HOSTNAME]:[PORT],[NOTES]" : Adding a T modifier causes connection input to be translated per TELNET  when connected to that entry.
+ATPE"[NUMBER]=[HOSTNAME]:[PORT],[NOTES]" : Adding a E modifier causes terminal echo to be enabled when connected to that entry.
+ATPX"[NUMBER]=[HOSTNAME]:[PORT],[NOTES]" : Adding a X modifier causes XON/XOFF flow control to be enabled when connected to that entry.
 ATP"[NUMBER]=DELETE" : Removes the phonebook entry with the given number.
 
 ATS0=n : Changes the number of RING messages received before a CONNECT response is sent, on incoming Server listeners.
@@ -216,7 +217,7 @@ AT&H  : Shows a help file from the web, or brief help otherwise.  Use &H6502 to 
 AT&L  : Reloads the saved configuration.
 AT&W  : Saves the current configuration: WiFi settings(ATW), baud rate (ATB), end of line (ATR) settings, flow control (ATF), echo mode (ATE), extended responses (ATX), verbose responses (ATV), quiet responses (ATQ), PETSCII mode (AT&P1), pin statuses (ATS46 - S58), Rings (ATS0), Listener Stream-mode (ATS41), and Listener restore (ATS60), printer spec (AT+PRINT)
 AT&F  : Restores the modem to factory default settings.  Use &F86 to reformat the SPIFFS.
-AT&On : n is 1 to turn on internal serial-reception log, n is 0 to turn off or view a previously turned-on log.
+AT&On : n is 1 to turn on internal serial-reception log, n is 0 to turn off or view a previously turned-on log, n is 88 to turn on ESP32 debug port.
 AT&U  : Checks the firmware home page to see if a new version is available.
 AT&U6502 : Will update the firmware from the home page on the web.
 AT&U=x: Will update the firmware from the web to custom version x.

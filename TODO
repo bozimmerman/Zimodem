@@ -1,7 +1,6 @@
 Bugs Reported (nor reproduced):
 
 New Features:
-  *. for ESP32, AT&o2 will pipe to debugPrintf instead of standard log file
   *. Add notes/name string for phonebook.
   *. make a persistent-ish ftp shell
   *. Ability to use protocols for at&g, and maybe have alternative at+web
@@ -11,6 +10,13 @@ New Features:
   *. ATW0 should be same as ATW
   *. SLIP support?
   *. PPP support?
+  *. Jim Dre's WiModem documentation:
+     - 
+  *. CKs's Wifi Modem documentation:
+     - D3 needs prog switch (todo: grounded I guess?)
+     - RTS(D) -> D1 -> GPIO5
+     - CTS(K) -> D2 -> GPIO4
+     - DCD(H) -> D4 -> GPIO2
 
   --- C= Modem tech details:
   1650 Automodem
