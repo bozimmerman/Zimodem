@@ -538,7 +538,10 @@ ZResult ZCommand::doInfoCommand(int vval, uint8_t *vbuf, int vlen, bool isNumber
     showInitMessage();
   }
   else
-  if((vval == 1)||(vval==5))
+  switch(vval)
+  {
+  case 1:
+  case 5:
   {
     bool showAll = (vval==5);
     serial.prints("AT");
@@ -687,53 +690,77 @@ ZResult ZCommand::doInfoCommand(int vval, uint8_t *vbuf, int vlen, bool isNumber
       serial.prints(preserveListeners ? "S60=1" : "S60=0");
     if((serial.isPetsciiMode())||(showAll))
       serial.prints(serial.isPetsciiMode() ? "&P1" : "&P0");
-    if(logFileOpen || showAll)
-      serial.prints(logFileOpen ? "&O1" : "&O0");
+    if((logFileOpen) || showAll)
+      serial.prints((logFileOpen && !logFileDebug) ? "&O1" : ((logFileOpen && logFileDebug) ? "&O88" : "&O0"));
     serial.prints(EOLN);
+    break;
   }
-  else
-  if(vval == 2)
+  case 2:
   {
     serial.prints(WiFi.localIP().toString().c_str());
     serial.prints(EOLN);
+    break;
   }
-  else
-  if(vval == 3)
+  case 3:
   {
     serial.prints(wifiSSI.c_str());
     serial.prints(EOLN);
+    break;
   }
-  else
-  if(vval == 4)
+  case 4:
   {
     serial.prints(ZIMODEM_VERSION);
     serial.prints(EOLN);
+    break;
   }
-  else
-  if(vval == 6)
+  case 6:
   {
     serial.prints(WiFi.macAddress());
     serial.prints(EOLN);
+    break;
   }
-  else
-  if(vval == 7)
+  case 7:
   {
     serial.prints(zclock.getCurrentTimeFormatted());
     serial.prints(EOLN);
+    break;
   }
-  else
-  if(vval == 8)
+  case 8:
   {
     serial.prints(compile_date);
     serial.prints(EOLN);
+    break;
   }
-  else
-  if(vval == 9)
+  case 9:
+  {
+    serial.prints(wifiSSI.c_str());
+    serial.prints(EOLN);
+    if(staticIP != null)
+    {
+      String str;
+      IPtoStr(staticIP,str);
+      serial.prints(str.c_str());
+      serial.prints(EOLN);
+      IPtoStr(staticDNS,str);
+      serial.prints(str.c_str());
+      serial.prints(EOLN);
+      IPtoStr(staticGW,str);
+      serial.prints(str.c_str());
+      serial.prints(EOLN);
+      IPtoStr(staticSN,str);
+      serial.prints(str.c_str());
+      serial.prints(EOLN);
+    }
+    break;
+  }
+  case 10:
   {
     serial.printf("%d%s",ESP.getFreeHeap(),EOLN.c_str());
+    break;
   }
-  else
+  default:
     return ZERROR;
+  }
   return ZOK;
 }
 
@@ -1566,7 +1593,7 @@ ZResult ZCommand::doDialStreamCommand(unsigned long vval, uint8_t *vbuf, int vle
 
 ZResult ZCommand::doPhonebookCommand(unsigned long vval, uint8_t *vbuf, int vlen, bool isNumber, const char *dmodifiers)
 {
-  if((vlen==0)||(isNumber))
+  if((vlen==0)||(isNumber)||((vlen==1)&&(*vbuf='?')))
   {
     PhoneBookEntry *phb=phonebook;
     char nbuf[30];
@@ -1589,6 +1616,12 @@ ZResult ZCommand::doPhonebookCommand(unsigned long vval, uint8_t *vbuf, int vlen
             serial.prints(" ");
           serial.prints(" ");
           serial.prints(phb->address);
+          if(!isNumber)
+          {
+            serial.prints(" (");
+            serial.prints(phb->notes);
+            serial.prints(")");
+          }
           serial.prints(EOLN.c_str());
           serial.flush();
           delay(10);
@@ -1622,17 +1655,21 @@ ZResult ZCommand::doPhonebookCommand(unsigned long vval, uint8_t *vbuf, int vlen
     PhoneBookEntry::savePhonebook();
     return ZOK;
   }
-  char *comma = strchr(rest,',');
-  if(comma != NULL)
-    return ZERROR;
   char *colon = strchr(rest,':');
   if(colon == NULL)
     return ZERROR;
+  char *comma = strchr(colon,',');
+  char *notes = "";
+  if(comma != NULL)
+  {
+    *comma=0;
+    notes = comma+1;
+  }
   if(!PhoneBookEntry::checkPhonebookEntry(colon))
       return ZERROR;
   if(found != null)
     delete found;
-  PhoneBookEntry *newEntry = new PhoneBookEntry(number,rest,dmodifiers);
+  PhoneBookEntry *newEntry = new PhoneBookEntry(number,rest,dmodifiers,notes);
   PhoneBookEntry::savePhonebook();
   return ZOK;
 }
@@ -2646,9 +2683,9 @@ ZResult ZCommand::doSerialCommand()
           {
             if(logFileOpen)
             {
-              logFileOpen = false;
               logFile.flush();
               logFile.close();
+              logFileOpen = false;
             }
             logFile = SPIFFS.open("/logfile.txt", "r");
             int numBytes = logFile.available();

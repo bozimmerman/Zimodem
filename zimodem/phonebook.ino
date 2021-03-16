@@ -14,13 +14,15 @@
    limitations under the License.
 */
 
-PhoneBookEntry::PhoneBookEntry(unsigned long phnum, const char *addr, const char *mod)
+PhoneBookEntry::PhoneBookEntry(unsigned long phnum, const char *addr, const char *mod, const char *note)
 {
   number=phnum;
   address = new char[strlen(addr)+1];
   strcpy((char *)address,addr);
   modifiers = new char[strlen(mod)+1];
   strcpy((char *)modifiers,mod);
+  notes = new char[strlen(note)+1];
+  strcpy((char *)notes,note);
   
   if(phonebook == null)
     phonebook = this;
@@ -47,6 +49,7 @@ PhoneBookEntry::~PhoneBookEntry()
   }
   freeCharArray((char **)&address);
   freeCharArray((char **)&modifiers);
+  freeCharArray((char **)&notes);
   next=null;
 }
 
@@ -66,8 +69,8 @@ void PhoneBookEntry::loadPhonebook()
         c=f.read();
       }
       int argn=0;
-      String configArguments[3];
-      for(int i=0;i<3;i++)
+      String configArguments[4];
+      for(int i=0;i<4;i++)
         configArguments[i]="";
       for(int i=0;i<str.length();i++)
       {
@@ -76,7 +79,7 @@ void PhoneBookEntry::loadPhonebook()
         else
           configArguments[argn] += str[i];
       }
-      PhoneBookEntry *phb = new PhoneBookEntry(atol(configArguments[0].c_str()),configArguments[1].c_str(),configArguments[2].c_str());
+      PhoneBookEntry *phb = new PhoneBookEntry(atol(configArguments[0].c_str()),configArguments[1].c_str(),configArguments[2].c_str(),configArguments[3].c_str());
     }
     f.close();
   }
@@ -133,7 +136,7 @@ void PhoneBookEntry::savePhonebook()
   PhoneBookEntry *phb=phonebook;
   while(phb != null)
   {
-    f.printf("%ul,%s,%s\n",phb->number,phb->address,phb->modifiers);
+    f.printf("%ul,%s,%s,%s\n",phb->number,phb->address,phb->modifiers,phb->notes);
     phb = phb->next;
     ct++;
   }
@@ -160,7 +163,7 @@ void PhoneBookEntry::savePhonebook()
             argn++;
         }
       }
-      if(argn!=2)
+      if(argn!=3)
       {
         delay(100);
         f.close();

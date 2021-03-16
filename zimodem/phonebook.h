@@ -19,9 +19,10 @@ class PhoneBookEntry
     unsigned long number;
     const char *address;
     const char *modifiers;
+    const char *notes;
     PhoneBookEntry *next = null;
 
-    PhoneBookEntry(unsigned long phnum, const char *addr, const char *mod);
+    PhoneBookEntry(unsigned long phnum, const char *addr, const char *mod, const char *note);
     ~PhoneBookEntry();
 
     static void loadPhonebook();

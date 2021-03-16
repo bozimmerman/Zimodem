@@ -29,7 +29,8 @@ class ZConfig : public ZMode
       ZCFGMENU_FLOW=7,
       ZCFGMENU_BBSMENU=8,
       ZCFGMENU_NEWPORT=9,
-      ZCFGMENU_NEWHOST=10
+      ZCFGMENU_NEWHOST=10,
+      ZCFGMENU_NOTES=11
     } currState;
     
     ZSerial serial; // storage for serial settings only
@@ -43,6 +44,7 @@ class ZConfig : public ZMode
     unsigned long lastNumber;
     String lastAddress;
     String lastOptions;
+    String lastNotes;
     WiFiServerSpec serverSpec;
     bool newListen;
     bool settingsChanged=false;

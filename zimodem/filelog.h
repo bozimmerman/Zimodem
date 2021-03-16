@@ -14,18 +14,18 @@
    limitations under the License.
 */
 
-enum LogMode
+enum LogOutputState
 {
-  NADA=0,
-  SocketIn=1,
-  SocketOut=2,
-  SerialIn=3,
-  SerialOut=4
+  LOS_NADA=0,
+  LOS_SocketIn=1,
+  LOS_SocketOut=2,
+  LOS_SerialIn=3,
+  LOS_SerialOut=4
 };
 
 static unsigned long expectedSerialTime = 1000;
 
-static bool logFileOpen = false;
+static boolean logFileOpen = false;
 static bool logFileDebug= false;
 static File logFile; 
 

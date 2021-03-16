@@ -143,6 +143,7 @@ void ZConfig::doModeCommand()
           lastNumber = pb->number;
           lastAddress = pb->address;
           lastOptions = pb->modifiers;
+          lastNotes = pb->notes;
           currState=ZCFGMENU_ADDRESS;
           showMenu=true;
         }
@@ -231,6 +232,7 @@ void ZConfig::doModeCommand()
         lastNumber = atol((char *)cmd.c_str());
         lastAddress = "";
         lastOptions = "";
+        lastNotes = "";
         currState=ZCFGMENU_ADDRESS;
         showMenu=true;
       }
@@ -258,7 +260,7 @@ void ZConfig::doModeCommand()
       }
       else
       if((cmd.length()==0) && (entry != null))
-          currState=ZCFGMENU_OPTIONS; // just keep old values
+          currState=ZCFGMENU_NOTES; // just keep old values
       else
       {
         boolean fail = cmd.indexOf(',') >= 0;
@@ -278,7 +280,7 @@ void ZConfig::doModeCommand()
         else
         {
           lastAddress = cmd;
-          currState=ZCFGMENU_OPTIONS;
+          currState=ZCFGMENU_NOTES;
         }
       }
       showMenu=true; // re-show the menu
@@ -355,6 +357,14 @@ void ZConfig::doModeCommand()
       showMenu=true;
       break;
     }
+    case ZCFGMENU_NOTES:
+    {
+      if(cmd.length()>0)
+        lastNotes=cmd;
+      currState=ZCFGMENU_OPTIONS;
+      showMenu=true; // re-show the menu
+      break;
+    }
     case ZCFGMENU_OPTIONS:
     {
       if(cmd.length()==0)
@@ -367,7 +377,7 @@ void ZConfig::doModeCommand()
         }
         else
           serial.printf("%sPhonebook entry added.%s%s",EOLNC,EOLNC,EOLNC);
-        entry = new PhoneBookEntry(lastNumber,lastAddress.c_str(),lastOptions.c_str());
+        entry = new PhoneBookEntry(lastNumber,lastAddress.c_str(),lastOptions.c_str(),lastNotes.c_str());
         PhoneBookEntry::savePhonebook();
         currState=ZCFGMENU_MAIN;
       }
@@ -569,7 +579,10 @@ void ZConfig::loop()
           serial.printf("Phonebook entries:%s",EOLNC);
           while(p != null)
           {
-            serial.printf("  [%lu] %s%s",p->number, p->address, EOLNC);
+            if(strlen(p->notes)>0)
+              serial.printf("  [%lu] %s (%s)%s",p->number, p->address, p->notes, EOLNC);
+            else
+              serial.printf("  [%lu] %s%s",p->number, p->address, EOLNC);
             p=p->next;
           }
         }
@@ -600,6 +613,11 @@ void ZConfig::loop()
         serial.printf("[ECHO]: %s%s",flags.echo?"ON":"OFF",EOLNC);
         serial.printf("[FLOW] Control: %s%s",flags.xonxoff?"XON/XOFF":flags.rtscts?"RTS/CTS":"DISABLED",EOLNC);
         serial.printf("%sEnter option to toggle or ENTER to exit%s: ",EOLNC,EOLNC);
+        break;
+      }
+      case ZCFGMENU_NOTES:
+      {
+        serial.printf("%sEnter some notes for this entry (%s)%s: ",EOLNC,lastNotes.c_str(),EOLNC);
         break;
       }
       case ZCFGMENU_BBSMENU:

@@ -22,7 +22,7 @@ static char HDL[17];
 static unsigned long logStartTime = millis();
 static unsigned long lastLogTime = millis();
 static unsigned long logCurCount = 0;
-static LogMode logMode = NADA;
+static LogOutputState logOutputState = LOS_NADA;
 
 static uint8_t FROMHEXDIGIT(uint8_t a1)
 {
@@ -115,32 +115,32 @@ static char *TOHEX(long a)
   return TOHEX((unsigned long)a);
 }
 
-static void logInternalOut(const LogMode m, const uint8_t c)
+static void logInternalOut(const LogOutputState m, const uint8_t c)
 {
   if(logFileOpen)
   {
-    if((m != logMode)
+    if((m != logOutputState)
     ||(++logCurCount > DBG_BYT_CTR)
     ||((millis()-lastLogTime)>expectedSerialTime))
     {
       logCurCount=0;
       
-      logMode = m;
+      logOutputState = m;
       rawLogPrintln("");
       switch(m)
       {
-      case NADA:
+      case LOS_NADA:
         break;
-      case SocketIn:
+      case LOS_SocketIn:
         rawLogPrintf("%s SocI: ",TOHEX(millis()-logStartTime));
         break;
-      case SocketOut:
+      case LOS_SocketOut:
         rawLogPrintf("%s SocO: ",TOHEX(millis()-logStartTime));
         break;
-      case SerialIn:
+      case LOS_SerialIn:
         rawLogPrintf("%s SerI: ",TOHEX(millis()-logStartTime));
         break;
-      case SerialOut:
+      case LOS_SerialOut:
         rawLogPrintf("%s SerO: ",TOHEX(millis()-logStartTime));
         break;
       }
@@ -153,22 +153,22 @@ static void logInternalOut(const LogMode m, const uint8_t c)
 
 static void logSerialOut(const uint8_t c)
 {
-  logInternalOut(SerialOut,c);
+  logInternalOut(LOS_SerialOut,c);
 }
 
 static void logSocketOut(const uint8_t c)
 {
-  logInternalOut(SocketOut,c);
+  logInternalOut(LOS_SocketOut,c);
 }
 
 static void logSerialIn(const uint8_t c)
 {
-  logInternalOut(SerialIn,c);
+  logInternalOut(LOS_SerialIn,c);
 }
 
 static void logSocketIn(const uint8_t c)
 {
-  logInternalOut(SocketIn,c);
+  logInternalOut(LOS_SocketIn,c);
 }
 
 static void logSocketIn(const uint8_t *c, int n)
@@ -176,7 +176,7 @@ static void logSocketIn(const uint8_t *c, int n)
   if(logFileOpen)
   {
     for(int i=0;i<n;i++)
-      logInternalOut(SocketIn,c[i]);
+      logInternalOut(LOS_SocketIn,c[i]);
   }
 }
 
@@ -214,10 +214,10 @@ static void logPrintfln(const char* format, ...)
 {
   if(logFileOpen)
   {
-    if(logMode != NADA)
+    if(logOutputState != LOS_NADA)
     {
       rawLogPrintln("");
-      logMode = NADA;
+      logOutputState = LOS_NADA;
     }
     int ret;
     va_list arglist;
@@ -232,10 +232,10 @@ static void logPrintf(const char* format, ...)
 {
   if(logFileOpen)
   {
-    if(logMode != NADA)
+    if(logOutputState != LOS_NADA)
     {
       rawLogPrintln("");
-      logMode = NADA;
+      logOutputState = LOS_NADA;
     }
     int ret;
     va_list arglist;
@@ -250,10 +250,10 @@ static void logPrint(const char* msg)
 {
   if(logFileOpen)
   {
-    if(logMode != NADA)
+    if(logOutputState != LOS_NADA)
     {
       rawLogPrintln("");
-      logMode = NADA;
+      logOutputState = LOS_NADA;
     }
     rawLogPrint(msg);
   }
@@ -263,10 +263,10 @@ static void logPrintln(const char* msg)
 {
   if(logFileOpen)
   {
-    if(logMode != NADA)
+    if(logOutputState != LOS_NADA)
     {
       rawLogPrintln("");
-      logMode = NADA;
+      logOutputState = LOS_NADA;
     }
     rawLogPrintln(msg);
   }
