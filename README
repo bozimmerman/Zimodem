@@ -1,4 +1,4 @@
-C64Net WiFi Firmware 3.5.6 (C)2016-2020 Bo Zimmerman
+C64Net WiFi Firmware 3.5.7 (C)2016-2021 Bo Zimmerman
 Please read the LICENSE file for license information
 Please read the NOTICE file for credits information
 
@@ -98,6 +98,7 @@ ATI6 : Shows the current mac address.
 ATI7 : Shows the current formatted time (see AT&T).
 ATI8 : Shows the firmware build date/time
 ATI9 : Same as I3, but also includes any static settings, same order as ATW
+ATI10: Shows the last printer url used.
 
 ATA  : If a server listener has generated a RING, then ATA will switch the last rung connection to Stream mode (see ATD).
 
