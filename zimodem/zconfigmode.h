@@ -30,7 +30,9 @@ class ZConfig : public ZMode
       ZCFGMENU_BBSMENU=8,
       ZCFGMENU_NEWPORT=9,
       ZCFGMENU_NEWHOST=10,
-      ZCFGMENU_NOTES=11
+      ZCFGMENU_NOTES=11,
+      ZCFGMENU_NETMENU=12,
+      ZCFGMENU_SUBNET=13
     } currState;
     
     ZSerial serial; // storage for serial settings only
@@ -47,8 +49,14 @@ class ZConfig : public ZMode
     String lastNotes;
     WiFiServerSpec serverSpec;
     bool newListen;
+    bool useDHCP;
     bool settingsChanged=false;
+    char netOpt = ' ';
     int lastNumNetworks=0;
+    IPAddress lastIP;
+    IPAddress lastDNS;
+    IPAddress lastGW;
+    IPAddress lastSN;
 
   public:
     void switchTo();

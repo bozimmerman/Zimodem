@@ -287,13 +287,13 @@ void ZCommand::reSaveConfig()
   String printSpechex = TOHEX(printMode.getLastPrinterSpec(),hex,256);
   String termTypehex = TOHEX(termType.c_str(),hex,256);
   String staticIPstr;
-  IPtoStr(staticIP,staticIPstr);
+  ConnSettings::IPtoStr(staticIP,staticIPstr);
   String staticDNSstr;
-  IPtoStr(staticDNS,staticDNSstr);
+  ConnSettings::IPtoStr(staticDNS,staticDNSstr);
   String staticGWstr;
-  IPtoStr(staticGW,staticGWstr);
+  ConnSettings::IPtoStr(staticGW,staticGWstr);
   String staticSNstr;
-  IPtoStr(staticSN,staticSNstr);
+  ConnSettings::IPtoStr(staticSN,staticSNstr);
 
   File f = SPIFFS.open(CONFIG_FILE, "w");
   f.printf("%s,%s,%d,%s,"
@@ -339,6 +339,11 @@ void ZCommand::reSaveConfig()
       reSaveConfig();
     }
   }
+}
+
+int ZCommand::getConfigFlagBitmap()
+{
+  return serial.getConfigFlagBitmap() | (doEcho ? FLAG_ECHO : 0);
 }
 
 void ZCommand::setOptionsFromSavedConfig(String configArguments[])
@@ -517,7 +522,11 @@ void ZCommand::loadConfig()
   wifiSSI=argv[CFG_WIFISSI];
   wifiPW=argv[CFG_WIFIPW];
   hostname = argv[CFG_HOSTNAME];
-  setNewStaticIPs(parseIP(argv[CFG_STATIC_IP].c_str()),parseIP(argv[CFG_STATIC_DNS].c_str()),parseIP(argv[CFG_STATIC_GW].c_str()),parseIP(argv[CFG_STATIC_SN].c_str()));
+  setNewStaticIPs(
+      ConnSettings::parseIP(argv[CFG_STATIC_IP].c_str()),
+      ConnSettings::parseIP(argv[CFG_STATIC_DNS].c_str()),
+      ConnSettings::parseIP(argv[CFG_STATIC_GW].c_str()),
+      ConnSettings::parseIP(argv[CFG_STATIC_SN].c_str()));
   if(wifiSSI.length()>0)
   {
     debugPrintf("Connecting to %s\n",wifiSSI.c_str());
@@ -738,16 +747,16 @@ ZResult ZCommand::doInfoCommand(int vval, uint8_t *vbuf, int vlen, bool isNumber
     if(staticIP != null)
     {
       String str;
-      IPtoStr(staticIP,str);
+      ConnSettings::IPtoStr(staticIP,str);
       serial.prints(str.c_str());
       serial.prints(EOLN);
-      IPtoStr(staticDNS,str);
+      ConnSettings::IPtoStr(staticDNS,str);
       serial.prints(str.c_str());
       serial.prints(EOLN);
-      IPtoStr(staticGW,str);
+      ConnSettings::IPtoStr(staticGW,str);
       serial.prints(str.c_str());
       serial.prints(EOLN);
-      IPtoStr(staticSN,str);
+      ConnSettings::IPtoStr(staticSN,str);
       serial.prints(str.c_str());
       serial.prints(EOLN);
     }
@@ -1277,52 +1286,6 @@ ZResult ZCommand::doUpdateFirmware(int vval, uint8_t *vbuf, int vlen, bool isNum
   return ZOK;
 }
 
-void ZCommand::IPtoStr(IPAddress *ip, String &str)
-{
-  if(ip == null)
-  {
-    str="";
-    return;
-  }
-  char temp[20];
-  sprintf(temp,"%d.%d.%d.%d",(*ip)[0],(*ip)[1],(*ip)[2],(*ip)[3]);
-  str = temp;
-}
-
-IPAddress *ZCommand::parseIP(const char *ipStr)
-{
-  uint8_t dots[4];
-  int dotDex=0;
-  char *le = (char *)ipStr;
-  const char *ld = ipStr+strlen(ipStr);
-  if(strlen(ipStr)<7)
-    return null;
-  for(char *e=le;e<=ld;e++)
-  {
-    if((*e=='.')||(e==ld))
-    {
-      if(le==e)
-        break;
-      *e=0;
-      String sdot = le;
-      sdot.trim();
-      if((sdot.length()==0)||(dotDex>3))
-      {
-        dotDex=99;
-        break;
-      }
-      dots[dotDex++]=(uint8_t)atoi(sdot.c_str());
-      if(e==ld)
-        le=e;
-      else
-        le=e+1;
-    }
-  }
-  if((dotDex!=4)||(*le != 0))
-    return null;
-  return new IPAddress(dots[0],dots[1],dots[2],dots[3]);
-}
-
 ZResult ZCommand::doWiFiCommand(int vval, uint8_t *vbuf, int vlen, bool isNumber, const char *dmodifiers)
 {
   bool doPETSCII = (strchr(dmodifiers,'p')!=null) || (strchr(dmodifiers,'P')!=null);
@@ -1397,7 +1360,7 @@ ZResult ZCommand::doWiFiCommand(int vval, uint8_t *vbuf, int vlen, bool isNumber
             *(comPos[i])=0;
           for(int i=0;i<4;i++)
           {
-            ip[i]=parseIP(comPos[i]+1);
+            ip[i]=ConnSettings::parseIP(comPos[i]+1);
             if(ip[i]==null)
             {
               while(--i>=0)

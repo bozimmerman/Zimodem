@@ -23,6 +23,7 @@ void ZConfig::switchTo()
   newListen=commandMode.preserveListeners;
   commandMode.doEcho=true;
   serverSpec.port=6502;
+  serverSpec.flagsBitmap=commandMode.getConfigFlagBitmap();
   if(servs)
     serverSpec = *servs;
   serial.setXON(true);
@@ -231,7 +232,8 @@ void ZConfig::doModeCommand()
       {
         lastNumber = atol((char *)cmd.c_str());
         lastAddress = "";
-        lastOptions = "";
+        ConnSettings flags(commandMode.getConfigFlagBitmap());
+        lastOptions = flags.getFlagString();
         lastNotes = "";
         currState=ZCFGMENU_ADDRESS;
         showMenu=true;
@@ -357,6 +359,95 @@ void ZConfig::doModeCommand()
       showMenu=true;
       break;
     }
+    case ZCFGMENU_SUBNET:
+    {
+      if(cmd.length()==0)
+        currState=ZCFGMENU_NETMENU;
+      else
+      {
+        IPAddress *newaddr = ConnSettings::parseIP(cmd.c_str());
+        if(newaddr==null)
+          serial.printf("%sBad address (%s).%s",EOLNC,cmd.c_str(),EOLNC);
+        else
+        {
+          currState=ZCFGMENU_NETMENU;
+          switch(netOpt)
+          {
+          case 'i': lastIP = *newaddr; break;
+          case 'd': lastDNS = *newaddr; break;
+          case 'g': lastGW = *newaddr; break;
+          case 's': lastSN = *newaddr; break;
+          }
+          free(newaddr);
+        }
+      }
+      showMenu=true;
+      break;
+    }
+    case ZCFGMENU_NETMENU:
+    {
+      if(cmd.length()==0)
+      {
+        currState=ZCFGMENU_MAIN;
+        if((staticIP==null)&&(useDHCP))
+        {}
+        else
+        if(useDHCP)
+        {
+          setNewStaticIPs(null,null,null,null);
+          if(!connectWifi(wifiSSI.c_str(),wifiPW.c_str(),staticIP,staticDNS,staticGW,staticSN))
+            serial.printf("%sUnable to connect to %s. :(%s",EOLNC,wifiSSI.c_str(),EOLNC);
+          settingsChanged=true;
+        }
+        else
+        if((staticIP==null)
+        ||(*staticIP != lastIP)
+        ||(*staticDNS != lastDNS)
+        ||(*staticGW != lastGW)
+        ||(*staticSN != lastSN))
+        {
+          IPAddress *ip=new IPAddress();
+          *ip = lastIP;
+          IPAddress *dns=new IPAddress();
+          *dns = lastDNS;
+          IPAddress *gw=new IPAddress();
+          *gw = lastGW;
+          IPAddress *sn=new IPAddress();
+          *sn = lastSN;
+          setNewStaticIPs(ip,dns,gw,sn);
+          if(!connectWifi(wifiSSI.c_str(),wifiPW.c_str(),staticIP,staticDNS,staticGW,staticSN))
+            serial.printf("%sUnable to connect to %s. :(%s",EOLNC,wifiSSI.c_str(),EOLNC);
+          settingsChanged=true;
+        }
+      }
+      else
+      if(useDHCP)
+      {
+        if(c=='d')
+          useDHCP=false;
+      }
+      else
+      {
+        switch(c)
+        {
+        case 'e':
+          useDHCP=true;
+          break;
+        case 'i':
+        case 'd': 
+        case 'g':
+        case 's':
+          netOpt=c;
+          currState=ZCFGMENU_SUBNET;
+          break;
+        default:
+          serial.printf("%sInvalid option '%s'.%s%s",EOLNC,cmd.c_str(),EOLNC,EOLNC);
+          break;
+        }
+      }
+      showMenu=true;
+      break;
+    }
     case ZCFGMENU_NOTES:
     {
       if(cmd.length()>0)
@@ -434,8 +525,7 @@ void ZConfig::doModeCommand()
         else
         if(WiFi.encryptionType(num-1) == ENC_TYPE_NONE)
         {
-          setNewStaticIPs(null,null,null,null);  //TODO: BZ: IPSTUFF
-          if(!connectWifi(WiFi.SSID(num-1).c_str(),"",null,null,null,null))//TODO:BZ: IPSTUFF
+          if(!connectWifi(WiFi.SSID(num-1).c_str(),"",null,null,null,null))
           {
             serial.printf("%sUnable to connect to %s. :(%s",EOLNC,WiFi.SSID(num-1).c_str(),EOLNC);
           }
@@ -445,7 +535,7 @@ void ZConfig::doModeCommand()
             wifiPW="";
             settingsChanged=true;
             serial.printf("%sConnected!%s",EOLNC,EOLNC);
-            currState=ZCFGMENU_MAIN;
+            currState=ZCFGMENU_NETMENU;
           }
           showMenu=true;
         }
@@ -489,16 +579,20 @@ void ZConfig::doModeCommand()
               serialOutDeque();
             delay(1);
           }
-          setNewStaticIPs(null,null,null,null);  //TODO: BZ: IPSTUFF
-          if(!connectWifi(WiFi.SSID(lastNumber).c_str(),cmd.c_str(),null,null,null,null))  //TODO: BZ: IPSTUFF
+          if(!connectWifi(WiFi.SSID(lastNumber).c_str(),cmd.c_str(),null,null,null,null))
             serial.printf("%sUnable to connect to %s.%s",EOLNC,WiFi.SSID(lastNumber).c_str(),EOLNC);
           else
           {
+            //setNewStaticIPs(null,null,null,null);
+            useDHCP=(staticIP==null);
+            lastIP=(staticIP != null)?*staticIP:WiFi.localIP();
+            lastDNS=(staticDNS != null)?*staticDNS:IPAddress(192,168,0,1);
+            lastGW=(staticGW != null)?*staticGW:IPAddress(192,168,0,1);
+            lastSN=(staticSN != null)?*staticSN:IPAddress(255,255,255,0);
             wifiSSI=WiFi.SSID(lastNumber);
             wifiPW=cmd;
             settingsChanged=true;
-            serial.printf("%sConnected!%s",EOLNC,EOLNC);
-            currState=ZCFGMENU_MAIN;
+            currState=ZCFGMENU_NETMENU;
           }
           showMenu=true;
       }
@@ -635,6 +729,59 @@ void ZConfig::loop()
         }
         else
           serial.printf("%s[ENABLE] BBS host listener%s",EOLNC,EOLNC);
+        serial.printf("%sEnter option to toggle or ENTER to exit%s: ",EOLNC,EOLNC);
+        break;
+      }
+      case ZCFGMENU_SUBNET:
+      {
+        String str;
+        switch(netOpt)
+        {
+        case 'i':
+        {
+          ConnSettings::IPtoStr(&lastIP,str);
+          serial.printf("%sIP Address (%s)%s: %s",EOLNC,str.c_str(),EOLNC,EOLNC);
+          break;
+        }
+        case 'g':
+        {
+          ConnSettings::IPtoStr(&lastGW,str);
+          serial.printf("%sGateway Address (%s)%s: %s",EOLNC,str.c_str(),EOLNC,EOLNC);
+          break;
+        }
+        case 's':
+        {
+          ConnSettings::IPtoStr(&lastSN,str);
+          serial.printf("%sSubnet Mask Address (%s)%s: %s",EOLNC,str.c_str(),EOLNC,EOLNC);
+          break;
+        }
+        case 'd':
+        {
+          ConnSettings::IPtoStr(&lastDNS,str);
+          serial.printf("%sDNS Address (%s)%s: %s",EOLNC,str.c_str(),EOLNC,EOLNC);
+          break;
+        }
+        }
+        break;
+      }
+      case ZCFGMENU_NETMENU:
+      {
+        serial.printf("%sNetwork settings:%s",EOLNC,EOLNC);
+        if(!useDHCP)
+        {
+          String str;
+          ConnSettings::IPtoStr(&lastIP,str);
+          serial.printf("%s[IP]: %s%s",EOLNC,str.c_str(),EOLNC);
+          ConnSettings::IPtoStr(&lastSN,str);
+          serial.printf("[SUBNET]: %s%s",str.c_str(),EOLNC);
+          ConnSettings::IPtoStr(&lastGW,str);
+          serial.printf("[GATEWAY]: %s%s",str.c_str(),EOLNC);
+          ConnSettings::IPtoStr(&lastDNS,str);
+          serial.printf("[DNS]: %s%s",str.c_str(),EOLNC);
+          serial.printf("[ENABLE] Enable DHCP%s",EOLNC);
+        }
+        else
+          serial.printf("%s[DISABLE] DHCP%s",EOLNC,EOLNC);
         serial.printf("%sEnter option to toggle or ENTER to exit%s: ",EOLNC,EOLNC);
         break;
       }

@@ -162,6 +162,16 @@ void ZSerial::setXON(bool isXON)
   XON_STATE = isXON;
 }
 
+int ZSerial::getConfigFlagBitmap()
+{
+  return 
+       (isPetsciiMode()?FLAG_PETSCII:0)
+      |((getFlowControlType()==FCT_RTSCTS)?FLAG_RTSCTS:0)
+      |((getFlowControlType()==FCT_NORMAL)?FLAG_XONXOFF:0)
+      |((getFlowControlType()==FCT_AUTOOFF)?FLAG_XONXOFF:0)
+      |((getFlowControlType()==FCT_MANUAL)?FLAG_XONXOFF:0);
+}
+
 bool ZSerial::isXON()
 {
   return XON_STATE;

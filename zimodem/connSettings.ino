@@ -76,3 +76,50 @@ String ConnSettings::getFlagString()
   lastOptions += (secure?"s":"");
   return lastOptions;
 }
+
+void ConnSettings::IPtoStr(IPAddress *ip, String &str)
+{
+  if(ip == null)
+  {
+    str="";
+    return;
+  }
+  char temp[20];
+  sprintf(temp,"%d.%d.%d.%d",(*ip)[0],(*ip)[1],(*ip)[2],(*ip)[3]);
+  str = temp;
+}
+
+IPAddress *ConnSettings::parseIP(const char *ipStr)
+{
+  uint8_t dots[4];
+  int dotDex=0;
+  char *le = (char *)ipStr;
+  const char *ld = ipStr+strlen(ipStr);
+  if(strlen(ipStr)<7)
+    return null;
+  for(char *e=le;e<=ld;e++)
+  {
+    if((*e=='.')||(e==ld))
+    {
+      if(le==e)
+        break;
+      *e=0;
+      String sdot = le;
+      sdot.trim();
+      if((sdot.length()==0)||(dotDex>3))
+      {
+        dotDex=99;
+        break;
+      }
+      dots[dotDex++]=(uint8_t)atoi(sdot.c_str());
+      if(e==ld)
+        le=e;
+      else
+        le=e+1;
+    }
+  }
+  if((dotDex!=4)||(*le != 0))
+    return null;
+  return new IPAddress(dots[0],dots[1],dots[2],dots[3]);
+}
+

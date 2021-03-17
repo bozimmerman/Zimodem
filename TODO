@@ -1,8 +1,6 @@
 Bugs Reported (nor reproduced):
 
 New Features:
-  *. In config menu, default phonebook modifiers to current settings
-  *. In config menu, default BBS modifiers to current settings
   *. Ability to use protocols for at&g, and maybe have alternative at+web
   *. make a persistent-ish ftp shell
   *. Ability to ftp file streamdown, like at&g.. maybe at+ftp
@@ -11,7 +9,7 @@ New Features:
   *. ATW0 should be same as ATW
   *. SLIP support?
   *. PPP support?
-  *. Jim Dre's WiModem documentation:
+  *. Jim Drew's WiModem documentation:
      - 
   *. CKs's Wifi Modem documentation:
      - D3 needs prog switch (todo: grounded I guess?)

@@ -41,4 +41,6 @@ class ConnSettings
     int getBitmap(FlowControlType forceCheck);
     String getFlagString();
 
+    static void IPtoStr(IPAddress *ip, String &str);
+    static IPAddress *parseIP(const char *ipStr);
 };

@@ -66,6 +66,7 @@ class ZSerial : public Stream
     bool isSerialHalted();
     bool isSerialCancelled();
     bool isPacketOut();
+    int getConfigFlagBitmap();
     
     void prints(String str);
     void prints(const char *expr);
