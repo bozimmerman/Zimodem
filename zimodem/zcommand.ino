@@ -763,7 +763,7 @@ ZResult ZCommand::doInfoCommand(int vval, uint8_t *vbuf, int vlen, bool isNumber
     break;
   }
   case 10:
-    serial.printf("%s",printMode.getLastPrinterSpec());
+    serial.printf("%s%s",printMode.getLastPrinterSpec(),EOLN.c_str());
     break;
   case 11:
   {
