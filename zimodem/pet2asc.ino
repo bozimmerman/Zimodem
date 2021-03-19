@@ -112,11 +112,22 @@ unsigned char ascToPetTable[256] PROGMEM = {
   /** TELNET CODE: IAC*/
 #define TELNET_IAC 255 
 
+
+uint8_t streamAvailRead(Stream *stream)
+{
+  int ct=0;
+  while((stream->available()==0)
+  &&(ct++)<1000)
+    delay(1);
+  return stream->read();
+}
+
 bool handleAsciiIAC(char *c, Stream *stream)
 {
   if(*c == 255)
   {
-    *c=stream->read();
+    *c=streamAvailRead(stream);
+    logSocketIn(*c);
     if(*c==TELNET_IAC)
     {
       *c = 255;
@@ -124,45 +135,69 @@ bool handleAsciiIAC(char *c, Stream *stream)
     }
     if(*c==TELNET_WILL)
     {
-      char what=stream->read();
+      char what=streamAvailRead(stream);
+      logSocketIn(what);
       uint8_t iacDont[] = {TELNET_IAC, TELNET_DONT, what};
       if(what == TELNET_TERMTYPE)
         iacDont[1] = TELNET_DO;
+      for(int i=0;i<3;i++)
+        logSocketOut(iacDont[i]);
       stream->write(iacDont,3);
       return false;
     }
-    if((*c==TELNET_WONT)||(*c==TELNET_DONT))
+    if(*c==TELNET_DONT)
     {
-      char what=stream->read();
+      char what=streamAvailRead(stream);
+      logSocketIn(what);
+      uint8_t iacWont[] = {TELNET_IAC, TELNET_WONT, what};
+      for(int i=0;i<3;i++)
+        logSocketOut(iacWont[i]);
+      stream->write(iacWont,3);
+      return false;
+    }
+    if(*c==TELNET_WONT)
+    {
+      char what=streamAvailRead(stream);
+      logSocketIn(what);
       return false;
     }
     if(*c==TELNET_DO)
     {
-      char what=stream->read();
+      char what=streamAvailRead(stream);
+      logSocketIn(what);
       uint8_t iacWont[] = {TELNET_IAC, TELNET_WONT, what};
       if(what == TELNET_TERMTYPE)
         iacWont[1] = TELNET_WILL;
+      for(int i=0;i<3;i++)
+        logSocketOut(iacWont[i]);
       stream->write(iacWont,3);
       return false;
     }
     if(*c==TELNET_SB)
     {
-      char what=stream->read();
+      char what=streamAvailRead(stream);
+      logSocketIn(what);
       char lastC=*c;
       while(((lastC!=TELNET_IAC)||(*c!=TELNET_SE))&&(*c>=0))
       {
         lastC=*c;
-        *c=stream->read();
+        *c=streamAvailRead(stream);
+        logSocketIn(*c);
       }
       if(what == TELNET_TERMTYPE)
       {
-        stream->write(TELNET_IAC);
-        stream->write(TELNET_SB);
-        stream->write(TELNET_TERMTYPE);
-        stream->write((uint8_t)0);
-        stream->write(termType.c_str(),termType.length());
-        stream->write(TELNET_IAC);
-        stream->write(TELNET_SE);
+        int respLen = termType.length() + 6;
+        uint8_t buf[respLen];
+        buf[0]=TELNET_IAC;
+        buf[1]=TELNET_SB;
+        buf[2]=TELNET_TERMTYPE;
+        buf[3]=(uint8_t)0;
+        sprintf((char *)buf+4,termType.c_str());
+        buf[respLen-2]=TELNET_IAC;
+        buf[respLen-1]=TELNET_SE;
+        for(int i=0;i<respLen;i++)
+          logSocketOut(buf[i]);
+        stream->write(buf,respLen);
         return false;
       }
     }
@@ -175,26 +210,31 @@ bool ansiColorToPetsciiColor(char *c, Stream *stream)
 {
   if(*c == 27)
   {
-    *c=stream->read();
+    *c=streamAvailRead(stream);
+    logSocketIn(*c);
     if(*c=='[')
     {
       int code1=0;
       int code2=-1;
-      *c=stream->read();
+      *c=streamAvailRead(stream);
+      logSocketIn(*c);
       while((*c>='0')&&(*c<='9'))
       {
         code1=(code1*10) + (*c-'0');
-        *c=stream->read();
+        *c=streamAvailRead(stream);
+        logSocketIn(*c);
       }
       while(*c==';')
       {
-        *c=stream->read();
+        *c=streamAvailRead(stream);
+        logSocketIn(*c);
         if((*c>='0')&&(*c<='9'))
           code2=0;
         while((*c>='0')&&(*c<='9'))
         {
           code2=(code2*10) + (*c-'0');
-          *c=stream->read();
+          *c=streamAvailRead(stream);
+          logSocketIn(*c);
         }
       }
       switch(code1)
