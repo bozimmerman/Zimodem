@@ -43,6 +43,7 @@ class WiFiClientNode : public Stream
     bool answered=true;
     int ringsRemain=0;
     unsigned long nextRingMillis = 0;
+    unsigned long nextDisconnect = 0;
 
   public:
     int id=0;
@@ -79,6 +80,8 @@ class WiFiClientNode : public Stream
     void answer();
     int ringsRemaining(int delta);
     unsigned long nextRingTime(long delta);
+    void markForDisconnect();
+    bool isMarkedForDisconnect();
 
     bool isDisconnectedOnStreamExit();
     void setDisconnectOnStreamExit(bool tf);
@@ -95,6 +98,7 @@ class WiFiClientNode : public Stream
     String readLine(unsigned int timeout);
 
     static int getNumOpenWiFiConnections();
+    static int checkForAutoDisconnections();
 };
 
 

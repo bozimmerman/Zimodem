@@ -232,6 +232,7 @@ AT&D  : Resets the delimiter bytes list. No bytes will be delimited, and packets
 
 AT&S"40=[HOSTNAME]" : Change the modem hostname
 AT&S"41=[TERMTYPE]" : Change the telnet 'termtype' response string
+AT&S"42=[BUSYMSG]" : Change the stream connection 'busy message'
 
 AT&T"[TIMEZONE],[TIME FORMAT],[NTP URL]" : set up the NTP clock. DISABLE to disable. Format is like Java SimpleDateFormat, but with % escapes. Each argument is optional.
 AT&G"[HOSTNAME]:[PORT]/[FILENAME]" : Streams a file from an HTTP source on the internet.  The header contains channel 0, file length, and an 8-bit sum of all the bytes in the forthcoming file, followed by the bytes of the file, all formatted as a normal packet.  An ASCII 3 (CNTRL-C) received during the transfer will abort. The S44 register can be used to create artificial delays in this output.  XON/XOFF Flow control also remains in effect with, on a byte-by-byte basis for the auto and manual flow control systems. Requires flash space for caching, or S45=3 to eliminate the SUM header.

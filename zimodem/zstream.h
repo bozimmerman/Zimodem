@@ -25,7 +25,6 @@ class ZStream : public ZMode
     ZSerial serial;
     int lastDTR=0;
     unsigned long nextAlarm = millis() + 5000;
-    const String busyMsg = "\r\n\r\n\r\n\r\n\r\nBUSY\r\n7\r\n";
     
     void switchBackToCommandMode(bool logout);
     void socketWrite(uint8_t c);

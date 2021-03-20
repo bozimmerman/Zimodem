@@ -19,6 +19,7 @@ static const char *CONFIG_FILE_OLD = "/zconfig.txt";
 static const char *CONFIG_FILE     = "/zconfig_v2.txt";
 #define ZI_STATE_MACHINE_LEN 7
 #define DEFAULT_TERMTYPE "Zimodem"
+#define DEFAULT_BUSYMSG "\r\nBUSY\r\n7\r\n"
 
 enum ZResult
 {
@@ -69,7 +70,8 @@ enum ConfigOptions
   CFG_STATIC_DNS=34,
   CFG_STATIC_GW=35,
   CFG_STATIC_SN=36,
-  CFG_LAST=36
+  CFG_BUSYMSG=37,
+  CFG_LAST=37
 };
 
 enum BinType

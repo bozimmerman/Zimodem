@@ -146,6 +146,7 @@ void ZCommand::setConfigDefaults()
   setCharArray(&stateMachine,"");
   machineState = stateMachine;
   termType = DEFAULT_TERMTYPE;
+  busyMsg = DEFAULT_BUSYMSG;
 }
 
 char lc(char c)
@@ -286,6 +287,7 @@ void ZCommand::reSaveConfig()
   String hostnamehex = TOHEX(hostname.c_str(),hex,256);
   String printSpechex = TOHEX(printMode.getLastPrinterSpec(),hex,256);
   String termTypehex = TOHEX(termType.c_str(),hex,256);
+  String busyMsghex = TOHEX(busyMsg.c_str(),hex,256);
   String staticIPstr;
   ConnSettings::IPtoStr(staticIP,staticIPstr);
   String staticDNSstr;
@@ -304,7 +306,8 @@ void ZCommand::reSaveConfig()
            "%d,"
            "%s,%s,%s,"
            "%d,%s,%s,"
-           "%s,%s,%s,%s", 
+           "%s,%s,%s,%s,"
+           "%s", 
             wifiSSIhex.c_str(), wifiPWhex.c_str(), baudRate, eoln,
             serial.getFlowControlType(), doEcho, suppressResponses, numericResponses,
             longResponses, serial.isPetsciiMode(), dcdMode, serialConfig, ctsMode,
@@ -313,7 +316,8 @@ void ZCommand::reSaveConfig()
             zclock.isDisabled()?999:zclock.getTimeZoneCode(),
             zclockFormathex.c_str(),zclockHosthex.c_str(),hostnamehex.c_str(),
             printMode.getTimeoutDelayMs(),printSpechex.c_str(),termTypehex.c_str(),
-            staticIPstr.c_str(),staticDNSstr.c_str(),staticGWstr.c_str(),staticSNstr.c_str()
+            staticIPstr.c_str(),staticDNSstr.c_str(),staticGWstr.c_str(),staticSNstr.c_str(),
+            busyMsghex.c_str()
             );
   f.close();
   delay(500);
@@ -456,6 +460,8 @@ void ZCommand::setOptionsFromSavedConfig(String configArguments[])
   printMode.setLastPrinterSpec(configArguments[CFG_PRINTSPEC].c_str());
   if(configArguments[CFG_TERMTYPE].length()>0)
     termType = configArguments[CFG_TERMTYPE];
+  if(configArguments[CFG_BUSYMSG].length()>0)
+    busyMsg = configArguments[CFG_BUSYMSG];
 }
 
 void ZCommand::parseConfigOptions(String configArguments[])
@@ -1665,7 +1671,6 @@ ZResult ZCommand::doAnswerCommand(int vval, uint8_t *vbuf, int vlen, bool isNumb
         }
         c=c->next;
       }
-      //TODO: possibly go to streaming mode, turn on DCD, and do nothing?
       return ZOK; // not really doing anything important...
   }
   else
@@ -2776,7 +2781,6 @@ ZResult ZCommand::doSerialCommand()
                     else
                     {
                       hostname = eq;
-                      hostname.replace(',','.');
                       if(WiFi.status()==WL_CONNECTED)
                           connectWifi(wifiSSI.c_str(),wifiPW.c_str(),staticIP,staticDNS,staticGW,staticSN);
                       result=ZOK;
@@ -2788,7 +2792,17 @@ ZResult ZCommand::doSerialCommand()
                     else
                     {
                       termType = eq;
-                      termType.replace(',','.');
+                      result=ZOK;
+                    }
+                    break;
+                  case 42:
+                    if((*eq == 0)||(strlen(eq)>250))
+                      result=ZERROR;
+                    else
+                    {
+                      busyMsg = eq;
+                      busyMsg.replace("\\n","\n");
+                      busyMsg.replace("\\r","\r");
                       result=ZOK;
                     }
                     break;

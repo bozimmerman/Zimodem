@@ -157,12 +157,7 @@ void ZStream::loop()
           c=c->next;
         }
         if(!found)
-        {
-          newClient.write(busyMsg.c_str());
-          newClient.flush();
-          //can't confirm this even works...
-          newClient.stop();
-        }
+          new WiFiClientNode(newClient, serv->flagsBitmap, 5); // constructing is enough
       }
     }
     serv=serv->next;
@@ -173,15 +168,19 @@ void ZStream::loop()
   while(conn != null)
   {
     WiFiClientNode *nextConn = conn->next;
-    if((!conn->isAnswered())&&(conn->isConnected())&&(conn!=current))
+    if((!conn->isAnswered())
+    &&(conn->isConnected())
+    &&(conn!=current)
+    &&(!conn->isMarkedForDisconnect()))
     {
       conn->write((uint8_t *)busyMsg.c_str(), busyMsg.length());
       conn->flush();
-      //can't confirm this even works...
-      delete conn;
+      conn->markForDisconnect();
     }
     conn = nextConn;
   }
+  
+  WiFiClientNode::checkForAutoDisconnections();
   
   if(pinSupport[pinDTR])
   {

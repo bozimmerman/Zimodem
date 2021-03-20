@@ -379,15 +379,43 @@ int WiFiClientNode::getNumOpenWiFiConnections()
   WiFiClientNode *conn = conns;
   while(conn != null)
   {
-    if((conn->isConnected()
-     ||(conn->available()>0)
-     ||((conn == conns)
+    WiFiClientNode *chkConn = conn;
+    conn = conn->next;
+    if((chkConn->nextDisconnect != 0)
+    &&(millis() > chkConn->nextDisconnect))
+      delete(chkConn);
+    else
+    if((chkConn->isConnected()
+     ||(chkConn->available()>0)
+     ||((chkConn == conns)
        &&((serialOutBufferBytesRemaining() <SER_WRITE_BUFSIZE-1)
          ||(HWSerial.availableForWrite()<SER_BUFSIZE))))
-    && conn->isAnswered())
+    && chkConn->isAnswered())
       num++;
-    conn = conn->next;
   }
   return num;
 }
 
+void WiFiClientNode::markForDisconnect()
+{
+  if(nextDisconnect == 0)
+    nextDisconnect = millis() + 5000; // 5 sec
+}
+
+bool WiFiClientNode::isMarkedForDisconnect()
+{
+  return nextDisconnect != 0;
+}
+
+int WiFiClientNode::checkForAutoDisconnections()
+{
+  WiFiClientNode *conn = conns;
+  while(conn != null)
+  {
+    WiFiClientNode *chkConn = conn;
+    conn = conn->next;
+    if((chkConn->nextDisconnect != 0)
+    &&(millis() > chkConn->nextDisconnect))
+      delete(chkConn);
+  }
+}
