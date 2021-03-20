@@ -9,13 +9,6 @@ New Features:
   *. ATW0 should be same as ATW
   *. SLIP support?
   *. PPP support?
-  *. Jim Drew's WiModem documentation:
-     - 
-  *. CKs's Wifi Modem documentation:
-     - D3 needs prog switch (todo: grounded I guess?)
-     - RTS(D) -> D1 -> GPIO5
-     - CTS(K) -> D2 -> GPIO4
-     - DCD(H) -> D4 -> GPIO2
 
   --- C= Modem tech details:
   1650 Automodem
