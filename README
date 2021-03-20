@@ -216,7 +216,7 @@ ATLn  : Re-sends the most recently sent data packet for connection id n.
 
 AT&H  : Shows a help file from the web, or brief help otherwise.  Use &H6502 to reiforce web download.
 AT&L  : Reloads the saved configuration.
-AT&W  : Saves the current configuration: WiFi settings(ATW), baud rate (ATB), end of line (ATR) settings, flow control (ATF), echo mode (ATE), extended responses (ATX), verbose responses (ATV), quiet responses (ATQ), PETSCII mode (AT&P1), pin statuses (ATS46 - S58), Rings (ATS0), Listener Stream-mode (ATS41), and Listener restore (ATS60), printer spec (AT+PRINT)
+AT&W  : Saves the current configuration: WiFi settings(ATW), baud rate (ATB), end of line (ATR) settings, flow control (ATF), echo mode (ATE), extended responses (ATX), verbose responses (ATV), quiet responses (ATQ), PETSCII mode (AT&P1), pin statuses (ATS46 - S58), Rings (ATS0), Listener Stream-mode (ATS41), and Listener restore (ATS60), printer spec (AT+PRINT), and busy message.
 AT&F  : Restores the modem to factory default settings.  Use &F86 to reformat the SPIFFS.
 AT&On : n is 1 to turn on internal serial-reception log, n is 0 to turn off or view a previously turned-on log, n is 88 to turn on ESP32 debug port.
 AT&U  : Checks the firmware home page to see if a new version is available.
