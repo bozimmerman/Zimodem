@@ -968,7 +968,7 @@ ZResult ZCommand::doConnectCommand(int vval, uint8_t *vbuf, int vlen, bool isNum
     {
       logPrintln("Connnect: FAIL");
       delete c;
-      return ZERROR;
+      return ZNOANSWER;
     }
     else
     {
@@ -1550,7 +1550,7 @@ ZResult ZCommand::doDialStreamCommand(unsigned long vval, uint8_t *vbuf, int vle
     if(!c->isConnected())
     {
       delete c;
-      return ZERROR;
+      return ZNOANSWER;
     }
     else
     {
@@ -2926,6 +2926,15 @@ void ZCommand::sendOfficialResponse(ZResult res)
         serial.prints("4");
       else
         serial.prints("ERROR");
+      serial.prints(EOLN);
+      break;
+    case ZNOANSWER:
+      logPrintln("Response: NOANSWER");
+      preEOLN(EOLN);
+      if(numericResponses)
+        serial.prints("8");
+      else
+        serial.prints("NO ANSWER");
       serial.prints(EOLN);
       break;
     case ZCONNECT:
