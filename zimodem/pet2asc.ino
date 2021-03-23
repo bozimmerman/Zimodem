@@ -117,7 +117,7 @@ uint8_t streamAvailRead(Stream *stream)
 {
   int ct=0;
   while((stream->available()==0)
-  &&(ct++)<1000)
+  &&(ct++)<250)
     delay(1);
   return stream->read();
 }
