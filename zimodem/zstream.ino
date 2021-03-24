@@ -54,14 +54,45 @@ bool ZStream::isDisconnectedOnStreamExit()
   return (current != null) && (current->isDisconnectedOnStreamExit());
 }
 
+void ZStream::baudDelay()
+{
+  if(baudRate<1200)
+    delay(5);
+  else
+  if(baudRate==1200)
+    delay(3);
+  else
+    delay(1);
+  yield();
+}
+
 void ZStream::serialIncoming()
 {
   int bytesAvailable = HWSerial.available();
   if(bytesAvailable == 0)
     return;
+  uint8_t escBufDex = 0;
   while(--bytesAvailable >= 0)
   {
     uint8_t c=HWSerial.read();
+    if(((c==27)||(escBufDex>0))
+    &&(!isPETSCII()))
+    {
+      escBuf[escBufDex++] = c;
+      if(((c>='a')&&(c<='z'))
+      ||((c>='A')&&(c<='Z'))
+      ||(escBufDex>=ZSTREAM_ESC_BUF_MAX)
+      ||((escBufDex==2)&&(c!='[')))
+      {
+        logSerialIn(c);
+        break;
+      }
+      if(bytesAvailable==0)
+      {
+        baudDelay();
+        bytesAvailable=HWSerial.available();
+      }
+    }
     logSerialIn(c);
     if((c==commandMode.EC)
     &&((plussesInARow>0)||((millis()-lastNonPlusTimeMs)>800)))
@@ -83,10 +114,13 @@ void ZStream::serialIncoming()
         serial.printb(c);
       if(isPETSCII())
         c = petToAsc(c);
-      socketWrite(c);
+      if(escBufDex==0)
+        socketWrite(c);
     }
   }
-  
+
+  if(escBufDex>0)
+    socketWrite(escBuf,escBufDex);
   currentExpiresTimeMs = 0;
   if(plussesInARow==3)
     currentExpiresTimeMs=millis()+800;
@@ -118,12 +152,36 @@ void ZStream::switchBackToCommandMode(bool logout)
   currMode = &commandMode;
 }
 
+void ZStream::socketWrite(uint8_t *buf, uint8_t len)
+{
+  if(current->isConnected())
+  {
+    uint8_t escapedBuf[len*2];
+    if(isTelnet())
+    {
+      int eDex=0;
+      for(int i=0;i<len;i++)
+      {
+          escapedBuf[eDex++] = buf[i];
+          if(buf[i]==0xff)
+            escapedBuf[eDex++] = buf[i];
+      }
+      buf=escapedBuf;
+      len=eDex;
+    }
+    for(int i=0;i<len;i++)
+      logSocketOut(buf[i]);
+    current->write(buf,len);
+    nextFlushMs=millis()+250;
+  }
+}
+
 void ZStream::socketWrite(uint8_t c)
 {
   if(current->isConnected())
   {
     if(c == 0xFF && isTelnet()) 
-      current->write(c); 
+      current->write(c);
     current->write(c);
     logSocketOut(c);
     nextFlushMs=millis()+250;
