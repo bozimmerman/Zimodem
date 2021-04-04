@@ -37,6 +37,18 @@ const char compile_date[] = __DATE__ " " __TIME__;
 # define ZIMODEM_ESP8266
 #endif
 
+#ifdef SUPPORT_LED_PINS
+# ifdef GPIO_NUM_0
+#   define DEFAULT_PIN_AA GPIO_NUM_16
+#   define DEFAULT_PIN_HS GPIO_NUM_15
+#   define DEFAULT_PIN_WIFI GPIO_NUM_0
+# else
+#   define DEFAULT_PIN_AA 16
+#   define DEFAULT_PIN_HS 15
+#   define DEFAULT_PIN_WIFI 0
+# endif
+# define DEFAULT_HS_BAUD 38400
+#endif
 
 #ifdef ZIMODEM_ESP32
 # define PIN_FACTORY_RESET GPIO_NUM_0
@@ -287,6 +299,9 @@ static bool connectWifi(const char* ssid, const char* password, IPAddress *ip, I
   wifiConnected = amConnected;
   if(!amConnected)
     WiFi.disconnect();
+#ifdef SUPPORT_LED_PINS
+  s_pinWrite(DEFAULT_PIN_WIFI,wifiConnected?HIGH:LOW);
+#endif
   return wifiConnected;
 }
 
@@ -319,6 +334,9 @@ static void changeBaudRate(int baudRate)
   HWSerial.changeBaudRate(baudRate);
 #else
   HWSerial.begin(baudRate, serialConfig);  //Change baud rate
+#endif
+#ifdef SUPPORT_LED_PINS
+  s_pinWrite(DEFAULT_PIN_HS,(baudRate>=DEFAULT_HS_BAUD)?HIGH:LOW);
 #endif  
 }
 
@@ -392,7 +410,7 @@ void setup()
   {
     pinSupport[4]=true;
     pinSupport[5]=true;
-    for(int i=9;i<=15;i++)
+    for(int i=9;i<=16;i++)
       pinSupport[i]=true;
     pinSupport[11]=false;
   }
@@ -414,6 +432,10 @@ void setup()
   dcdStatus = dcdInactive;
   s_pinWrite(pinDCD,dcdStatus);
   flushSerial();
+#ifdef SUPPORT_LED_PINS
+  s_pinWrite(DEFAULT_PIN_WIFI,(WiFi.status() == WL_CONNECTED)?HIGH:LOW);
+  s_pinWrite(DEFAULT_PIN_HS,(baudRate>=DEFAULT_HS_BAUD)?HIGH:LOW);
+#endif
 }
 
 void checkFactoryReset()

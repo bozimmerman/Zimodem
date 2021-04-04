@@ -178,6 +178,9 @@ void ZConfig::doModeCommand()
           {
             commandMode.ringCounter=1;
             commandMode.autoStreamMode=true;
+#ifdef SUPPORT_LED_PINS
+            s_pinWrite(DEFAULT_PIN_AA,commandMode.autoStreamMode?HIGH:LOW);
+#endif
             WiFiServerNode *s=WiFiServerNode::FindServer(serverSpec.port);
             if(s != null)
               delete s;

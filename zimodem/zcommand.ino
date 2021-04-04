@@ -147,6 +147,14 @@ void ZCommand::setConfigDefaults()
   machineState = stateMachine;
   termType = DEFAULT_TERMTYPE;
   busyMsg = DEFAULT_BUSYMSG;
+#ifdef SUPPORT_LED_PINS
+  if(pinSupport[DEFAULT_PIN_AA])
+    pinMode(DEFAULT_PIN_AA,OUTPUT);
+  if(pinSupport[DEFAULT_PIN_WIFI])
+    pinMode(DEFAULT_PIN_WIFI,OUTPUT);
+  if(pinSupport[DEFAULT_PIN_HS])
+    pinMode(DEFAULT_PIN_HS,OUTPUT);
+#endif
 }
 
 char lc(char c)
@@ -432,6 +440,9 @@ void ZCommand::setOptionsFromSavedConfig(String configArguments[])
     ringCounter = atoi(configArguments[CFG_S0_RINGS].c_str());
   if(configArguments[CFG_S41_STREAM].length()>0)
     autoStreamMode = atoi(configArguments[CFG_S41_STREAM].c_str());
+#ifdef SUPPORT_LED_PINS
+  s_pinWrite(DEFAULT_PIN_AA,autoStreamMode?HIGH:LOW);
+#endif
   if(configArguments[CFG_S60_LISTEN].length()>0)
   {
     preserveListeners = atoi(configArguments[CFG_S60_LISTEN].c_str());
@@ -2269,8 +2280,13 @@ ZResult ZCommand::doSerialCommand()
                   packetSize=sval;
                 break;
              case 41:
+             {
                 autoStreamMode = (sval > 0);
+#ifdef SUPPORT_LED_PINS
+                s_pinWrite(DEFAULT_PIN_AA,autoStreamMode?HIGH:LOW);
+#endif
                 break;
+             }
              case 42:
                crc8=sval;
                break;
