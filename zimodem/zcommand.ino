@@ -1468,7 +1468,7 @@ ZResult ZCommand::doTransmitCommand(int vval, uint8_t *vbuf, int vlen, bool isNu
   }
   else
   {
-    uint8_t buf[vlen];
+    uint8_t buf[vlen+2];
     memcpy(buf,vbuf,vlen);
     rcvdCrc8=CRC8(buf,vlen);
     if((crcChk != -1)&&(rcvdCrc8!=crcChk))
@@ -1478,9 +1478,9 @@ ZResult ZCommand::doTransmitCommand(int vval, uint8_t *vbuf, int vlen, bool isNu
       for(int i=0;i<vlen;i++)
         buf[i] = petToAsc(buf[i]);
     }
-    current->write(buf,vlen);
-    current->write(13); // special case
-    current->write(10); // special case
+    buf[vlen]=13; // special case
+    buf[vlen+1]=10; // special case
+    current->write(buf,vlen+2);
     if(logFileOpen)
     {
       for(int i=0;i<vlen;i++)
