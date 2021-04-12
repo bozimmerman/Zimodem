@@ -766,6 +766,70 @@ void ZBrowser::doModeCommand()
         }
       }
       else
+      if(cmd.equalsIgnoreCase("kget")||cmd.equalsIgnoreCase("rk"))
+      {
+        String p = makePath(cleanOneArg(line));
+        debugPrintf("kget:%s\n",p.c_str());
+        File root = SD.open(p);
+        if(!root)
+          serial.printf("Unknown path: %s%s",p.c_str(),EOLNC);
+        else
+        if(root.isDirectory())
+        {
+          serial.printf("Is a directory: %s%s",p.c_str(),EOLNC);
+          root.close();
+        }
+        else
+        {
+          root.close();
+          String errors="";
+          initKSerial(commandMode.getFlowControlType());
+          if(kDownload(SD,p,errors))
+          {
+            delay(2000);
+            serial.printf("Download completed successfully.%s",EOLNC);
+          }
+          else
+          {
+            delay(2000);
+            serial.printf("Download failed (%s).%s",errors.c_str(),EOLNC);
+          }
+        }
+      }
+      else
+      if(cmd.equalsIgnoreCase("kput")||cmd.equalsIgnoreCase("sk"))
+      {
+        String p = makePath(cleanOneArg(line));
+        debugPrintf("kput:%s\n",p.c_str());
+        String dirNm=p;
+        File rootDir=SD.open(dirNm);
+        if((!rootDir)||(!rootDir.isDirectory()))
+        {
+          serial.printf("Path doesn't exist: %s%s",dirNm.c_str(),EOLNC);
+          if(rootDir)
+            rootDir.close();
+        }
+        else
+        {
+          String rootDirNm = rootDir.name();
+          rootDir.close();
+          String errors="";
+          serial.printf("Go to Kermit upload.%s",EOLNC);
+          serial.flushAlways();
+          initKSerial(commandMode.getFlowControlType());
+          if(kUpload(SD,rootDirNm,errors))
+          {
+            delay(2000);
+            serial.printf("Upload completed successfully.%s",EOLNC);
+          }
+          else
+          {
+            delay(2000);
+            serial.printf("Upload failed (%s).%s",errors.c_str(),EOLNC);
+          }
+        }
+      }
+      else
       if(cmd.equalsIgnoreCase("rm")||cmd.equalsIgnoreCase("del")||cmd.equalsIgnoreCase("delete"))
       {
         String argLetters = "";
@@ -1035,8 +1099,8 @@ void ZBrowser::doModeCommand()
         serial.printf("mv/move [-f] [/][path]file [/][path]file       - Move file(s)%s",EOLNC);
         serial.printf("cat/type [/][path]filename                     - View a file(s)%s",EOLNC);
         serial.printf("df/free/info                                   - Show space remaining%s",EOLNC);
-        serial.printf("xget/zget [/][path]filename                    - Download a file%s",EOLNC);
-        serial.printf("xput/zput [/][path]filename                    - Upload a file%s",EOLNC);
+        serial.printf("xget/zget/kget [/][path]filename               - Download a file%s",EOLNC);
+        serial.printf("xput/zput/kput [/][path]filename               - Upload a file%s",EOLNC);
         serial.printf("wget [http://url] [/][path]filename            - Download url to file%s",EOLNC);
         serial.printf("fget [ftp://user:pass@url/file] [/][path]file  - FTP get file%s",EOLNC);
         serial.printf("fput [/][path]file [ftp://user:pass@url/file]  - FTP put file%s",EOLNC);

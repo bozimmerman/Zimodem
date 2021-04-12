@@ -178,9 +178,6 @@ void ZConfig::doModeCommand()
           {
             commandMode.ringCounter=1;
             commandMode.autoStreamMode=true;
-#ifdef SUPPORT_LED_PINS
-            s_pinWrite(DEFAULT_PIN_AA,commandMode.autoStreamMode?HIGH:LOW);
-#endif
             WiFiServerNode *s=WiFiServerNode::FindServer(serverSpec.port);
             if(s != null)
               delete s;
@@ -197,7 +194,6 @@ void ZConfig::doModeCommand()
             if(s->flagsBitmap != serverSpec.flagsBitmap)
             {
               s->flagsBitmap = serverSpec.flagsBitmap;
-              WiFiServerNode::SaveWiFiServers();
             }
           }
           else
@@ -205,11 +201,13 @@ void ZConfig::doModeCommand()
             WiFiServerNode::DestroyAllServers();
             s = new WiFiServerNode(serverSpec.port,serverSpec.flagsBitmap);
             WiFiServerNode::SaveWiFiServers();
+            commandMode.updateAutoAnswer();
           }
         }
         commandMode.reSaveConfig();
         serial.printf("%sSettings saved.%s",EOLNC,EOLNC);
         commandMode.showInitMessage();
+        WiFiServerNode::SaveWiFiServers();
         switchBackToCommandMode();
         return;
       }

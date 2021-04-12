@@ -39,8 +39,6 @@
 #define BYTE uint8_t
 #define uchar uint8_t
 #define MAX_PATH 253
-#define FALSE 0
-#define TRUE 1
 #define NOINP   -1      /* input buffer empty (incom only) */
 #define LOG_EMERG       0       /* system is unusable */
 #define LOG_ALERT       1       /* action must be taken immediately */
@@ -57,8 +55,11 @@
 #define  ZMO_CAN      0x18
 
 #ifndef INT_TO_BOOL
-#define INT_TO_BOOL(x)  ((x)?TRUE:FALSE)
+#define INT_TO_BOOL(x)  ((x)?ZTRUE:ZFALSE)
 #endif
+
+#define ZFALSE 0
+#define ZTRUE 1
 
 #define TERMINATE(str)                      str[sizeof(str)-1]=0
 
@@ -360,13 +361,13 @@ int zmodem_recv_header_and_check(zmodem_t* zm);
 #endif
 
 static ZSerial zserial;
-static FS *fileSystem = &SD;
+static FS *zfileSystem = &SD;
 static zmodem_t zm;
 
 static int lputs(void* unused, int level, const char* str)
 {
   // debugPrintf("%s\n",str); // debug off -- seems like can't print to both serials too near each other.
-  return TRUE;
+  return ZTRUE;
 }
 
 static int lprintf(int level, const char *fmt, ...)
@@ -430,51 +431,51 @@ BOOL data_waiting(void* unused, unsigned timeout /* seconds */)
     unsigned long currentTime = millis();
     unsigned long elapsedTime = currentTime - startTime;
     if(elapsedTime >= timeout)
-      return FALSE;
+      return ZFALSE;
     delay(1);
   }
-  return TRUE;
+  return ZTRUE;
 }
 
 BOOL is_connected(void* unused)
 {
-  return TRUE; // modem connection, so...
+  return ZTRUE; // modem connection, so...
 }
 
 static boolean zDownload(FS &fs, String filePath, String &errors)
 {
-  fileSystem = &fs;
+  zfileSystem = &fs;
   time_t starttime = 0;
   uint64_t bytes_sent=0;
-  BOOL success=FALSE;
+  BOOL success=ZFALSE;
   char filePathC[MAX_PATH];
 
   //static int send_files(char** fname, uint fnames)
-  File F=fileSystem->open(filePath);
+  File F=zfileSystem->open(filePath);
   zm.files_remaining = 1;
   zm.bytes_remaining = F.size();
   strcpy(filePathC,filePath.c_str());
-  success=zmodem_send_file(&zm, filePathC, &F, TRUE, &starttime, &bytes_sent);
+  success=zmodem_send_file(&zm, filePathC, &F, ZTRUE, &starttime, &bytes_sent);
   if(success)
     zmodem_get_zfin(&zm);
   F.close();
 
   zserial.flushAlways();
-  return (success==TRUE) && (zm.cancelled==FALSE);
+  return (success==ZTRUE) && (zm.cancelled==ZFALSE);
 }
 
 static boolean zUpload(FS &fs, String dirPath, String &errors)
 {
-  BOOL success=FALSE;
+  BOOL success=ZFALSE;
   int   i;
-  fileSystem = &fs;
+  zfileSystem = &fs;
   char str[MAX_PATH];
 
   //static int receive_files(char** fname_list, int fnames)
   //TODO: loop might be necc around here, for multiple files?
   i=zmodem_recv_init(&zm);
   if(zm.cancelled || (i<0))
-    return FALSE;
+    return ZFALSE;
   switch(i) {
     case ZFILE:
       //SAFECOPY(fname,zm.current_file_name);
@@ -485,9 +486,9 @@ static boolean zUpload(FS &fs, String dirPath, String &errors)
       break;
     case ZFIN:
     case ZCOMPL:
-      return TRUE; // was (!success)
+      return ZTRUE; // was (!success)
     default:
-      return FALSE;
+      return ZFALSE;
   }
 
   strcpy(str,dirPath.c_str());
@@ -498,19 +499,19 @@ static boolean zUpload(FS &fs, String dirPath, String &errors)
   }
   strcpy(str+strlen(str),zm.current_file_name);
 
-  File fp = fileSystem->open(str,FILE_WRITE);
+  File fp = zfileSystem->open(str,FILE_WRITE);
   if(!fp)
   {
     lprintf(LOG_ERR,"Error %d creating %s",errno,str);
     zmodem_send_zabort(&zm);
     //zmodem_send_zskip(&zm); //TODO: for when we move to multiple files
     //continue;
-    return FALSE;
+    return ZFALSE;
   }
   int errors=zmodem_recv_file_data(&zm,&fp,0);
 
   if(errors<=zm.max_errors && !zm.cancelled)
-    success=TRUE;
+    success=ZTRUE;
 
   if(success)
     zmodem_send_zfin(&zm);
@@ -520,11 +521,11 @@ static boolean zUpload(FS &fs, String dirPath, String &errors)
   {
     lprintf(LOG_ERR,"Locally aborted, sending cancel to remote");
     zmodem_send_zabort(&zm);
-    return FALSE;
+    return ZFALSE;
   }
 
   zserial.flushAlways();
-  return (success == TRUE);
+  return (success == ZTRUE);
 }
 
 static void initZSerial(FlowControlType commandFlow)
@@ -541,11 +542,11 @@ static void initZSerial(FlowControlType commandFlow)
   int log_level=LOG_DEBUG;
   zm.log_level=&log_level;
   zm.recv_bufsize     = (ulong)1024;
-  zm.no_streaming     = FALSE;
-  zm.want_fcs_16      =FALSE;
-  zm.escape_telnet_iac  = TRUE;
-  zm.escape_8th_bit   = FALSE;
-  zm.escape_ctrl_chars  = FALSE;
+  zm.no_streaming     = ZFALSE;
+  zm.want_fcs_16      =ZFALSE;
+  zm.escape_telnet_iac  = ZTRUE;
+  zm.escape_8th_bit   = ZFALSE;
+  zm.escape_ctrl_chars  = ZFALSE;
 
 }
 

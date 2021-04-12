@@ -14,7 +14,7 @@
    limitations under the License. 
 */
 //#define TCP_SND_BUF                     4 * TCP_MSS
-#define ZIMODEM_VERSION "3.6.2"
+#define ZIMODEM_VERSION "3.6.3"
 const char compile_date[] = __DATE__ " " __TIME__;
 #define DEFAULT_NO_DELAY true
 #define null 0
@@ -48,6 +48,12 @@ const char compile_date[] = __DATE__ " " __TIME__;
 #   define DEFAULT_PIN_WIFI 0
 # endif
 # define DEFAULT_HS_BAUD 38400
+# define DEFAULT_AA_ACTIVE LOW
+# define DEFAULT_AA_INACTIVE HIGH
+# define DEFAULT_HS_ACTIVE LOW
+# define DEFAULT_HS_INACTIVE HIGH
+# define DEFAULT_WIFI_ACTIVE LOW
+# define DEFAULT_WIFI_INACTIVE HIGH
 #endif
 
 #ifdef ZIMODEM_ESP32
@@ -153,6 +159,7 @@ class ZMode
 #ifdef INCLUDE_SD_SHELL
 #include "proto_xmodem.h"
 #include "proto_zmodem.h"
+#include "proto_kermit.h"
 #include "zbrowser.h"
 #endif
 
@@ -300,7 +307,7 @@ static bool connectWifi(const char* ssid, const char* password, IPAddress *ip, I
   if(!amConnected)
     WiFi.disconnect();
 #ifdef SUPPORT_LED_PINS
-  s_pinWrite(DEFAULT_PIN_WIFI,wifiConnected?HIGH:LOW);
+  s_pinWrite(DEFAULT_PIN_WIFI,wifiConnected?DEFAULT_WIFI_ACTIVE:DEFAULT_WIFI_INACTIVE);
 #endif
   return wifiConnected;
 }
@@ -336,7 +343,7 @@ static void changeBaudRate(int baudRate)
   HWSerial.begin(baudRate, serialConfig);  //Change baud rate
 #endif
 #ifdef SUPPORT_LED_PINS
-  s_pinWrite(DEFAULT_PIN_HS,(baudRate>=DEFAULT_HS_BAUD)?HIGH:LOW);
+  s_pinWrite(DEFAULT_PIN_HS,(baudRate>=DEFAULT_HS_BAUD)?DEFAULT_HS_ACTIVE:DEFAULT_HS_INACTIVE);
 #endif  
 }
 
@@ -433,8 +440,8 @@ void setup()
   s_pinWrite(pinDCD,dcdStatus);
   flushSerial();
 #ifdef SUPPORT_LED_PINS
-  s_pinWrite(DEFAULT_PIN_WIFI,(WiFi.status() == WL_CONNECTED)?HIGH:LOW);
-  s_pinWrite(DEFAULT_PIN_HS,(baudRate>=DEFAULT_HS_BAUD)?HIGH:LOW);
+  s_pinWrite(DEFAULT_PIN_WIFI,(WiFi.status() == WL_CONNECTED)?DEFAULT_WIFI_ACTIVE:DEFAULT_WIFI_INACTIVE);
+  s_pinWrite(DEFAULT_PIN_HS,(baudRate>=DEFAULT_HS_BAUD)?DEFAULT_HS_ACTIVE:DEFAULT_HS_INACTIVE);
 #endif
 }
 

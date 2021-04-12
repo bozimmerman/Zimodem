@@ -440,9 +440,6 @@ void ZCommand::setOptionsFromSavedConfig(String configArguments[])
     ringCounter = atoi(configArguments[CFG_S0_RINGS].c_str());
   if(configArguments[CFG_S41_STREAM].length()>0)
     autoStreamMode = atoi(configArguments[CFG_S41_STREAM].c_str());
-#ifdef SUPPORT_LED_PINS
-  s_pinWrite(DEFAULT_PIN_AA,autoStreamMode?HIGH:LOW);
-#endif
   if(configArguments[CFG_S60_LISTEN].length()>0)
   {
     preserveListeners = atoi(configArguments[CFG_S60_LISTEN].c_str());
@@ -473,6 +470,7 @@ void ZCommand::setOptionsFromSavedConfig(String configArguments[])
     termType = configArguments[CFG_TERMTYPE];
   if(configArguments[CFG_BUSYMSG].length()>0)
     busyMsg = configArguments[CFG_BUSYMSG];
+  updateAutoAnswer();
 }
 
 void ZCommand::parseConfigOptions(String configArguments[])
@@ -1702,6 +1700,7 @@ ZResult ZCommand::doAnswerCommand(int vval, uint8_t *vbuf, int vlen, bool isNumb
     freeCharArray(&tempDelimiters);
     freeCharArray(&tempMaskOuts);
     freeCharArray(&tempStateMachine);
+    updateAutoAnswer();
     return ZOK;
   }
 }
@@ -1754,12 +1753,22 @@ ZResult ZCommand::doHangupCommand(int vval, uint8_t *vbuf, int vlen, bool isNumb
       if(vval == s->id)
       {
         delete s;
+        updateAutoAnswer();
         return ZOK;
       }
       s=s->next;
     }
     return ZERROR;
   }
+}
+
+void ZCommand::updateAutoAnswer()
+{
+#ifdef SUPPORT_LED_PINS
+    bool setPin = (ringCounter>0) && (autoStreamMode) && (servs != NULL);
+    s_pinWrite(DEFAULT_PIN_AA,setPin?DEFAULT_AA_ACTIVE:DEFAULT_AA_INACTIVE);
+#endif
+  
 }
 
 ZResult ZCommand::doLastPacket(int vval, uint8_t *vbuf, int vlen, bool isNumber)
@@ -2232,7 +2241,10 @@ ZResult ZCommand::doSerialCommand()
                 if((sval < 0)||(sval>255))
                   result=ZERROR;
                 else
+                {
                   ringCounter = sval;
+                  updateAutoAnswer();
+                }
                 break;
               case 2:
                 if((sval < 0)||(sval>255))
@@ -2282,9 +2294,7 @@ ZResult ZCommand::doSerialCommand()
              case 41:
              {
                 autoStreamMode = (sval > 0);
-#ifdef SUPPORT_LED_PINS
-                s_pinWrite(DEFAULT_PIN_AA,autoStreamMode?HIGH:LOW);
-#endif
+                updateAutoAnswer();
                 break;
              }
              case 42:
