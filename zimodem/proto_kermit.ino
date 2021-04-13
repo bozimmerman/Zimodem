@@ -337,7 +337,10 @@ char KModem::rinit()
   if (numtry++ > MAXTRY) 
     return('A'); /* If too many tries, "abort" */
 
-  switch(rpack(&len,&num,packet)) /* Get a packet */
+  char rs=rpack(&len,&num,packet);
+  if (debug) 
+    debugPrintf(" recsw-rinit state: %c\n",rs);
+  switch(rs) /* Get a packet */
   {
   case 'S':     /* Send-Init */
     rpar(packet);   /* Get the other side's init data */
@@ -371,7 +374,10 @@ char KModem::rfile()
   if (numtry++ > MAXTRY) 
     return('A'); /* "abort" if too many tries */
 
-  switch(rpack(&len,&num,packet)) /* Get a packet */
+  char rs = rpack(&len,&num,packet); 
+  if (debug) 
+    debugPrintf(" recsw-rfile state: %c\n",rs);
+  switch(rs) /* Get a packet */
   {
   case 'S':     /* Send-Init, maybe our ACK lost */
     if (oldtry++ > MAXTRY) 
@@ -468,7 +474,10 @@ char KModem::rdata()
   if (tflg)
      delay(1);      /* Delay for Tymnet */
 
-  switch(rpack(&len,&num,packet)) /* Get packet */
+  char rs=rpack(&len,&num,packet);
+  if (debug) 
+    debugPrintf(" recsw-rdata state: %c\n",rs);
+  switch(rs) /* Get packet */
   {
   case 'D':     /* Got Data packet */
     if (num != n)   /* Right packet? */
@@ -537,7 +546,7 @@ int KModem::spack(char type, int num, int len, char *data)
   {
     if (data != NULL)
       data[len] = '\0';   /* Null-terminate data to print it */
-    debugPrintf("  spack type: %c\n",type);
+    debugPrintf("\n  spack type: %c\n",type);
     debugPrintf("   num:  %d\n",num);
     debugPrintf("   len:  %d\n",len);
     if (data != NULL)
@@ -653,7 +662,7 @@ int KModem::rpack(int *len, int *num, char *data)
   {
     if (data != NULL)
       data[*len] = '\0';    /* Null-terminate data to print it */
-    debugPrintf("  rpack type: %c\n",type);
+    debugPrintf("\n  rpack type: %c\n",type);
     debugPrintf("   num:  %d\n",*num);
     debugPrintf("   len:  %d\n",*len);
     if (data != NULL)

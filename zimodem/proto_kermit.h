@@ -29,9 +29,7 @@ private:
       n=0,                 /* Packet number */
       numtry=0,            /* Times this packet retried */
       oldtry=0,            /* Times previous packet retried */
-      ttyfd=0,             /* File descriptor of tty for I/O, 0 if remote */
-      remote=0,            /* -1 means we're a remote kermit */
-      image=0,             /* -1 means 8-bit mode */
+      image=1,             /* -1 means 8-bit mode */
       debug=0,             /* indicates level of debugging output (0=none) */
       filnamcnv=0,         /* -1 means do file name case conversions */
       filecount=0,         /* Number of files left to send */
@@ -48,7 +46,6 @@ private:
        *filnam,            /* Current file name */
        *filnamo,           /* File name sent */
        *ttyline,           /* Pointer to tty line */
-       ttynbuff[128],      /* Name buffer for tty line */
        recpkt[MAXPACKSIZ], /* Receive packet buffer */
        packet[MAXPACKSIZ], /* Packet buffer */
        ldata[1024];        /* First line of data to send over connection */
@@ -92,8 +89,8 @@ static ZSerial kserial;
 
 static int kReceiveSerial(int del)
 {
-  unsigned long end=micros() + (del * 1000L);
-  while(micros() < end)
+  unsigned long end=millis() + (del * 1000L);
+  while(millis() < end)
   {
     serialOutDeque();
     if(kserial.available() > 0)
