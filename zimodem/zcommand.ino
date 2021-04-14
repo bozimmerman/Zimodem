@@ -2456,10 +2456,19 @@ ZResult ZCommand::doSerialCommand()
         }
 #ifdef INCLUDE_SD_SHELL
         else
-        if((strcmp((const char *)vbuf,"shell")==0)&&(browseEnabled))
+        if((strstr((const char *)vbuf,"shell")==(char *)vbuf)&&(browseEnabled))
         {
-            browseMode.switchTo();
+            char *colon=strchr((const char*)vbuf,':');
             result = ZOK;
+            if(colon == 0)
+              browseMode.switchTo();
+            else
+            {
+              String line = colon+1;
+              line.trim();
+              browseMode.init();
+              browseMode.doModeCommand(line);
+            }
         }
 #endif
         else

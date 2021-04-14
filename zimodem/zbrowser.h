@@ -26,7 +26,6 @@ class ZBrowser : public ZMode
     ZSerial serial;
 
     void switchBackToCommandMode();
-    void doModeCommand();
     String makePath(String addendum);
     String fixPathNoSlash(String path);
     String stripDir(String path);
@@ -54,5 +53,7 @@ class ZBrowser : public ZMode
     void switchTo();
     void serialIncoming();
     void loop();
+    void init();
+    void doModeCommand(String &line);
 };
 #endif

@@ -28,6 +28,11 @@ static void initSDShell()
 void ZBrowser::switchTo()
 {
   currMode=&browseMode;
+  init();
+}
+
+void ZBrowser::init()
+{
   serial.setFlowControlType(commandMode.serial.getFlowControlType());
   serial.setPetsciiMode(commandMode.serial.isPetsciiMode());
   savedEcho=commandMode.doEcho;
@@ -49,7 +54,8 @@ void ZBrowser::serialIncoming()
   {
     if(commandMode.doEcho)
       serial.prints(EOLN);
-    doModeCommand();
+    String line =commandMode.getNextSerialCommand();
+    doModeCommand(line);
   }
 }
 
@@ -538,9 +544,8 @@ void ZBrowser::showDirectory(String p, String mask, String prefix, bool recurse)
     serial.printf("  %s %lu%s",root.name(),root.size(),EOLNC);
 }
 
-void ZBrowser::doModeCommand()
+void ZBrowser::doModeCommand(String &line)
 {
-  String line = commandMode.getNextSerialCommand();
   char c='?';
   for(int i=0;i<line.length();i++)
   {
