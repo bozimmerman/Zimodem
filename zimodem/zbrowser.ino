@@ -380,6 +380,51 @@ void ZBrowser::copyFiles(String source, String mask, String target, bool recurse
   }
 }
 
+void ZBrowser::makeFileList(String ***l, int *n, String p, String mask, bool recurse)
+{
+  int maskFilterLen = p.length();
+  if(!p.endsWith("/"))
+    maskFilterLen++;
+
+  File root = SD.open(p);
+  if(!root)
+    serial.printf("Unknown path: %s%s",p.c_str(),EOLNC);
+  else
+  if(root.isDirectory())
+  {
+    File file = root.openNextFile();
+    while(file)
+    {
+      if(matches(file.name()+maskFilterLen, mask))
+      {
+        String fileName = file.name();
+        if(file.isDirectory())
+        {
+          if(recurse)
+          {
+            file = root.openNextFile();
+            makeFileList(l,n,fileName.c_str(),"*",recurse);
+          } 
+        }
+        else
+        {
+          file = root.openNextFile();
+          String **newList = (String **)malloc(sizeof(String *)*(*n+1));
+          for(int i=0;i<*n;i++)
+            newList[i]=(*l)[i];
+          free(*l);
+          newList[*n]=new String(fileName.c_str());
+          (*n)++;
+          *l=newList;
+        }
+      }
+      else
+        file = root.openNextFile();
+    }
+  }
+
+}
+
 void ZBrowser::deleteFile(String p, String mask, bool recurse)
 {
   int maskFilterLen = p.length();
@@ -768,33 +813,31 @@ void ZBrowser::doModeCommand()
       else
       if(cmd.equalsIgnoreCase("kget")||cmd.equalsIgnoreCase("rk"))
       {
-        String p = makePath(cleanOneArg(line));
-        debugPrintf("kget:%s\n",p.c_str());
-        File root = SD.open(p);
-        if(!root)
-          serial.printf("Unknown path: %s%s",p.c_str(),EOLNC);
-        else
-        if(root.isDirectory())
+        String rawPath = makePath(cleanOneArg(line));
+        String p=stripDir(rawPath);
+        String mask=stripFilename(rawPath);
+        String errors="";
+        String **fileList=(String**)malloc(sizeof(String *));
+        int numFiles=0;
+        makeFileList(&fileList,&numFiles,p,mask,true);
+        initKSerial(commandMode.getFlowControlType());
+        serial.printf("Go to Kermit download.%s",EOLNC);
+        serial.flushAlways();
+        if(kDownload(SD,fileList,numFiles,errors))
         {
-          serial.printf("Is a directory: %s%s",p.c_str(),EOLNC);
-          root.close();
+          delay(2000);
+          serial.printf("Download completed successfully.%s",EOLNC);
+          serial.flushAlways();
         }
         else
         {
-          root.close();
-          String errors="";
-          initKSerial(commandMode.getFlowControlType());
-          if(kDownload(SD,p,errors))
-          {
-            delay(2000);
-            serial.printf("Download completed successfully.%s",EOLNC);
-          }
-          else
-          {
-            delay(2000);
-            serial.printf("Download failed (%s).%s",errors.c_str(),EOLNC);
-          }
+          delay(2000);
+          serial.printf("Download failed (%s).%s",errors.c_str(),EOLNC);
+          serial.flushAlways();
         }
+        for(int i=0;i<numFiles;i++)
+          delete(fileList[i]);
+        delete(fileList);
       }
       else
       if(cmd.equalsIgnoreCase("kput")||cmd.equalsIgnoreCase("sk"))
@@ -821,11 +864,13 @@ void ZBrowser::doModeCommand()
           {
             delay(2000);
             serial.printf("Upload completed successfully.%s",EOLNC);
+            serial.flushAlways();
           }
           else
           {
             delay(2000);
             serial.printf("Upload failed (%s).%s",errors.c_str(),EOLNC);
+            serial.flushAlways();
           }
         }
       }

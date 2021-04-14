@@ -30,25 +30,23 @@ private:
       numtry=0,            /* Times this packet retried */
       oldtry=0,            /* Times previous packet retried */
       image=1,             /* -1 means 8-bit mode */
-      debug=0,             /* indicates level of debugging output (0=none) */
-      filnamcnv=0,         /* -1 means do file name case conversions */
+      debug=99,            /* indicates level of debugging output (0=none) */
       filecount=0,         /* Number of files left to send */
+      filenum=0,
       mflg=0,              /* Flag for MacKermit mode */
-      xflg=0,              /* flag for xmit directory structure */
-      aflg=0,              /* flag for -a switch filenames in pairs */
-      tflg=0;              /* Flag for Tymnet mode */
+      xflg=0;              /* flag for xmit directory structure */
   char state,              /* Present state of the automaton */
        padchar,            /* Padding character to send */
        eol,                /* End-Of-Line character to send */
        escchr,             /* Connect command escape character */
        quote,              /* Quote character in incoming data */
-       **filelist,         /* List of files to be sent */
        *filnam,            /* Current file name */
        *filnamo,           /* File name sent */
        *ttyline,           /* Pointer to tty line */
        recpkt[MAXPACKSIZ], /* Receive packet buffer */
        packet[MAXPACKSIZ], /* Packet buffer */
        ldata[1024];        /* First line of data to send over connection */
+  String **filelist = 0;
   int  (*recvChar)(int);
   void (*sendChar)(char);
   bool (*dataHandler)(unsigned long number, char *buffer, int len);
@@ -76,7 +74,7 @@ public:
   KModem(int (*recvChar)(int), void (*sendChar)(char));
   KModem(int (*recvChar)(int), void (*sendChar)(char),
          bool (*dataHandler)(unsigned long, char*, int));
-  void setTransmitList(char *fileList[], int numFiles);
+  void setTransmitList(String **fileList, int numFiles);
   bool receive();
   bool transmit();
 };
@@ -134,14 +132,12 @@ static bool kDDataHandler(unsigned long number, char *buf, int sz)
   return true;
 }
 
-static boolean kDownload(FS &fs, String filePath, String &errors)
+static boolean kDownload(FS &fs, String **fileList, int fileCount, String &errors)
 {
   kfileSystem = &fs;
   errStr = &errors;
-  char *list[1];
-  list[0] = (char *)filePath.c_str();
   KModem kmo(kReceiveSerial, kSendSerial, kDDataHandler);
-  kmo.setTransmitList((char **)list,1);
+  kmo.setTransmitList(fileList,fileCount);
   bool result = kmo.transmit();
   kserial.flushAlways();
   return result;

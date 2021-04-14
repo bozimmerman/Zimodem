@@ -29,7 +29,7 @@ bool KModem::receive()
 
   while(TRUE)
   {
-    if (debug) 
+    if (debug)
       debugPrintf(" recsw state: %c\n",state);
     switch(state)     /* Do until done */
     {
@@ -53,6 +53,8 @@ bool KModem::receive()
 
 bool KModem::transmit()
 {
+  if (gnxtfl() == FALSE)  /* No more files go? */
+    return false;    /* if not, break, EOT, all done */
   state = 'S';      /* Send initiate is the start state */
   n = 0;        /* Initialize message number */
   numtry = 0;       /* Say no tries yet */
@@ -150,7 +152,7 @@ char KModem::sfile()
        *cp;        /* char pointer */
   if (numtry++ > MAXTRY) 
     return('A'); /* If too many tries, give up */
-    
+
   if (kfpClosed)     /* If not already open, */
   { 
     if (debug) 
@@ -166,15 +168,10 @@ char KModem::sfile()
 
   strcpy(filnam1, filnamo);   /* Copy file name */
   newfilnam = cp = filnam1;
-  if (!xflg && !aflg)
+  if (!xflg)
     while (*cp != '\0')   /* Strip off all leading directory */
       if (*cp++ == '/')   /* names (ie. up to the last /). */
         newfilnam = cp;
-
-  if (filnamcnv && !aflg)   /* Convert lower case to upper  */
-    for (cp = newfilnam; *cp != '\0'; cp++)
-      if (*cp >= 'a' && *cp <= 'z')
-        *cp ^= 040;
 
   len = strlen(newfilnam);    /* Compute length of new filename */
 
@@ -420,10 +417,6 @@ char KModem::rfile()
         }
       }
       strcpy(subNam, packet);  /* Copy the file name */
-      if (filnamcnv)    /* Convert upper case to lower */
-        for (filnam=subNam; *filnam != '\0'; filnam++)
-          if (*filnam >= 'A' && *filnam <= 'Z')
-            *filnam |= 040;
       kfp = kfileSystem->open(filnam1,FILE_WRITE);
       if (!kfp) /* Try to open a new file */
       {
@@ -470,9 +463,6 @@ char KModem::rdata()
   int num, len;     /* Packet number, length */
   if (numtry++ > MAXTRY) 
     return('A'); /* "abort" if too many tries */
-
-  if (tflg)
-     delay(1);      /* Delay for Tymnet */
 
   char rs=rpack(&len,&num,packet);
   if (debug) 
@@ -743,15 +733,12 @@ void KModem::bufemp(char buffer[], int len)
 
 int KModem::gnxtfl()
 {
-  if (debug) 
-    debugPrintf("   gnxtfl: filelist = \"%s\"\n",*filelist);
-  filnam = *(filelist++);
   if (filecount-- == 0) 
     return FALSE; /* If no more, fail */
-  if (aflg && filecount--)
-    filnamo = *(filelist++);
-  else
-    filnamo = filnam;
+  filnam = (char *)filelist[filenum++]->c_str();
+  filnamo = filnam;
+  if (debug) 
+    debugPrintf("   gnxtfl: filelist = \"%s\"\n",filnam);
   return TRUE;      /* else succeed */
 }
 
@@ -766,10 +753,11 @@ void KModem::spar(char data[])
 }
 
 
-void KModem::setTransmitList(char **fileList, int numFiles)
+void KModem::setTransmitList(String **fileList, int numFiles)
 {
   filelist = fileList;
   filecount = numFiles;
+  filenum = 0;
 }
 
 

@@ -268,6 +268,7 @@ void ZStream::loop()
       plussesInARow=0;
       if(current != 0)
       {
+        commandMode.sendOfficialResponse(ZOK);
         switchBackToCommandMode(false);
       }
     }
