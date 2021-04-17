@@ -1,4 +1,15 @@
 #ifdef INCLUDE_SD_SHELL
+/*
+ *  K e r m i t  File Transfer Utility
+ *
+ *  UNIX Kermit, Columbia University, 1981, 1982, 1983
+ *  Bill Catchings, Bob Cattani, Chris Maio, Frank da Cruz, Alan Crosswell
+ *
+ *  Also:   Jim Guyton, Rand Corporation
+ *      Walter Underwood, Ford Aerospace
+ *      Lauren Weinstein
+ */
+
 
 KModem::KModem(int (*recvChar)(int msDelay), void (*sendChar)(char sym))
 {
