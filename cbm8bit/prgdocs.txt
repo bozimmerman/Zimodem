@@ -485,6 +485,6 @@ The baud rate codes used in the OPEN command are compatible with the C64 KERNAL,
 10000 (bit value of 16)  = 19200 Bd (SwiftLink/Turbo232 only)
 10001 (bit value of 17)  = 38400 Bd (SwiftLink/Turbo232 only)
 10010 (bit value of 18)  = 57600 Bd (Turbo232 only)
-10011 (bit value of 17)  = 14400 Bd (SwiftLink/Turbo232 only)
+10011 (bit value of 19)  = 14400 Bd (SwiftLink/Turbo232 only)
 10100 (bit value of 20)  = 230400 Bd (Turbo232 only)
 10101 (bit value of 21)  = 115200 Bd (Turbo232 only)
