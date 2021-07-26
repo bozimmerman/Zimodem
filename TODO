@@ -10,93 +10,12 @@ New Features:
   *. SLIP support?
   *. PPP support?
 
-  --- C= Modem tech details:
-  1650 Automodem
-VIC-20: B1=37136, B2=37138
-C64: B1=56577, B2=56579
+New hardware hopes:
+C+B 0 FLAG2+PB0	RxD	Receive Data (Must be applied to both pins!)
+D!  1 RTS	Ready To Send
+F!  3 RI	Ring Indicator (1650 ring indicator - output of modem -> input of computer )
+H!	4 DCD	Data Carrier Detect
+J!   5 1650 Pulse Dial Pin (output of computer -> input to modem)
++K	6 CTS	Clear To Send
+M!	8 TxD	Transmit Data
 
-To receive a connection/call:
-Poke B2,32.  Poke B1,0
-if peek(b1)and8 = 0then "RING!"
-
-To dial out:
-Poke B2,32.  Poke B1,0
-
-poke b1,32 (pick up the phone)
-poke b1,0 - pause - poke b1,32 - pause pulse the line once per digit
-
-
-1660 Modem:
-Pin J: /On Hook - output from computer
-Pin F: /Ring Indicator - signal from modem
-Pin H,K: DCD, CTS - inputs from modem, tied together?
-Pin L: DSR grounded
-Pin E: DTR NC
-
-if(peek(56577) and 8) then print "c64 ringing"
-if(peek(37136)and8) then print "vic-20 ringing"
-
-To initiate a dialtone C64:
-oh 56577:hi 32:lo 255-32
-poke(oh 2),(peek(oh 2)or hi)
-poke oh,(peek(oh) and lo)
-
-To initiate a dialtone VIC:
-oh 37136:hi 32:lo 255-32
-poke (oh 2),(peek(oh 2)or hi)
-poke oh,(peek(oh)and lo)
-
-To hang up the phone C64:
-oh 56577:hi 32:lo 255-32
-poke oh,(peek(oh) or hi)
-
-To hang up the phone VIC-20:
-oh 37136:hi 32:lo 255-32
-poke oh,(peek(oh) and hi)
-
-Carrier Detect 64:
-OH 56577:
-IF((PEEK(OH)AND16) 16) THEN PRINT "NO CARRIER":
-IF((PEEK(OH)AND16) =0)THEN PRINT "CARRIER DETECTED"
-
-Carrier Detect VIC-20:
-OH 37136:
-IF((PEEK(OH) AND 16) 16)THEN PRINT'NO CARRIER":
-IF((PEEK(OH) AND 16) 0) THEN PRINT'CARRIER DETECTED"
-
-To make a call: initiate a dialtone, then hang up for 60 milliseconds, and then pick up for 40 milliseconds per pulse
-
-
-1670 Modem:
-Pin J: Speed Indicate - output from modem -- high=300,low=1200
-Pin F: /Rl from modem
-Pins H,K: DCD,CTS from modem - DCD is low on carrier detect
-Pin L: DSR grounded
-Pin E: DTR from the computer - to force a hang-up
-
-1670 allows the DCD line to float via a dip-switch, FOR PLUS/4 COMPATIBILITY!!!!!
-
--------------------------------------------------------------------------
-m0=0=1670
-m0=1=1650
-m0=2=1660
-
-Zelch Hang Up:
-1670 - Pin H high == already hung up, otherwise +++
-1650 - poke56579,32:poke56577,0 == set bit 5 for output, all others input, then pull pin J (the pin you just made output) low.
-1660 - poke56577,32:poke56579,0 == pull pin J high, but then make it an input?! makes no sense.
-
-Zelch Pick Up I assume
-1670 - Do Nothing
-1650 - poke 56579,38:poke56577,2 == set pin J,D,E (?,DTS,RTS) to outputs, then pull RTS high and set the others low. Really just pulling pin J low.
-1660 - poke 56579,32:poke56577,255-32 == set pin J to output, then pull pin J low.
-
-Zelch detect incoming:
-1670 - get#5,a$;ifa$="1" then 300, if "5" then 1200. Simple!
-1650 - if(peek(56577)and8)=0then wait until if(peek(56577)and16)=0 to pick up the phone!
-1660 - if(peek(56577)and8)=0then wait until if(peek(56577)and16)=0 to pick up the phone!
-
-Carrier Detect
-if(peek(56577)and16)=0 the online
-if(peek(56577)and16)=16 the offline
-That means pin H is reversed?!
