@@ -492,19 +492,6 @@ void ZCommand::parseConfigOptions(String configArguments[])
     {
       if(str[i]==',')
       {
-        if(v2 &&
-          ((argn==CFG_WIFISSI)
-         ||(argn==CFG_WIFIPW)
-         ||(argn==CFG_TIMEZONE)
-         ||(argn==CFG_TIMEFMT)
-         ||(argn==CFG_TIMEURL)
-         ||(argn==CFG_PRINTSPEC)
-         ||(argn==CFG_HOSTNAME)
-         ||(argn==CFG_TERMTYPE)))
-        {
-          char hex[256];
-          configArguments[argn] = FROMHEX(configArguments[argn].c_str(),hex,256);
-        }
         if(argn<=CFG_LAST)
           argn++;
         else
@@ -512,6 +499,25 @@ void ZCommand::parseConfigOptions(String configArguments[])
       }
       else
         configArguments[argn] += str[i];
+    }
+    if(v2)
+    {
+      for(int i=0;i<=argn;i++)
+      {
+        if((i==CFG_WIFISSI)
+         ||(i==CFG_WIFIPW)
+         ||(i==CFG_TIMEZONE)
+         ||(i==CFG_TIMEFMT)
+         ||(i==CFG_TIMEURL)
+         ||(i==CFG_PRINTSPEC)
+         ||(i==CFG_BUSYMSG)
+         ||(i==CFG_HOSTNAME)
+         ||(i==CFG_TERMTYPE))
+        {
+          char hex[256];
+          configArguments[i] = FROMHEX(configArguments[i].c_str(),hex,256);
+        }
+      }
     }
   }
 }

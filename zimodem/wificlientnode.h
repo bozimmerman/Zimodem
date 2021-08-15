@@ -93,6 +93,7 @@ class WiFiClientNode : public Stream
     int read();
     int peek();
     void flush();
+    void flushAlways();
     int available();
     int read(uint8_t *buf, size_t size);
     String readLine(unsigned int timeout);

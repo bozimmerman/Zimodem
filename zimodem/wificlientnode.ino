@@ -204,6 +204,12 @@ int WiFiClientNode::peek()
 void WiFiClientNode::flush()
 {
   if((host != null)&&(client.available()==0))
+    flushAlways();
+}
+
+void WiFiClientNode::flushAlways()
+{
+  if(host != null)
   {
     flushOverflowBuffer();
     client.flush();

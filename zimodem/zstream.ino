@@ -216,6 +216,7 @@ void ZStream::loop()
         }
         if(!found)
           new WiFiClientNode(newClient, serv->flagsBitmap, 5); // constructing is enough
+        // else // auto disconnect when from same 
       }
     }
     serv=serv->next;
@@ -232,7 +233,7 @@ void ZStream::loop()
     &&(!conn->isMarkedForDisconnect()))
     {
       conn->write((uint8_t *)busyMsg.c_str(), busyMsg.length());
-      conn->flush();
+      conn->flushAlways();
       conn->markForDisconnect();
     }
     conn = nextConn;
