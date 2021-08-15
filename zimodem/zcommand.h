@@ -75,6 +75,9 @@ enum ConfigOptions
   CFG_LAST=37
 };
 
+const ConfigOptions v2HexCfgs[] = { CFG_WIFISSI, CFG_WIFIPW, CFG_TIMEZONE, CFG_TIMEFMT, CFG_TIMEURL,
+    CFG_PRINTSPEC, CFG_BUSYMSG, CFG_HOSTNAME, CFG_TERMTYPE, (ConfigOptions)255 };
+
 enum BinType
 {
   BTYPE_NORMAL=0,

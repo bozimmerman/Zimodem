@@ -502,21 +502,10 @@ void ZCommand::parseConfigOptions(String configArguments[])
     }
     if(v2)
     {
-      for(int i=0;i<=argn;i++)
+      for(const ConfigOptions *opt = v2HexCfgs ; *opt != 255; opt++)
       {
-        if((i==CFG_WIFISSI)
-         ||(i==CFG_WIFIPW)
-         ||(i==CFG_TIMEZONE)
-         ||(i==CFG_TIMEFMT)
-         ||(i==CFG_TIMEURL)
-         ||(i==CFG_PRINTSPEC)
-         ||(i==CFG_BUSYMSG)
-         ||(i==CFG_HOSTNAME)
-         ||(i==CFG_TERMTYPE))
-        {
-          char hex[256];
-          configArguments[i] = FROMHEX(configArguments[i].c_str(),hex,256);
-        }
+        char hex[256];
+        configArguments[*opt] = FROMHEX(configArguments[*opt].c_str(),hex,256);
       }
     }
   }
