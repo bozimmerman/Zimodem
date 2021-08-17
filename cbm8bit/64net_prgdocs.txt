@@ -481,10 +481,8 @@ The baud rate codes used in the OPEN command are compatible with the C64 KERNAL,
 01100 (bit value of 12)  = 4800 Baud
 01101 (bit value of 13)  = 7200 Baud
 01110 (bit value of 14)  = 9600 Baud
-01111 (bit value of 15)  = 14400 Baud
-10000 (bit value of 16)  = 19200 Baud
-10001 (bit value of 17)  = 38400 Baud
-10010 (bit value of 18)  = 57600 Baud (Turbo232 only)
-10011 (bit value of 19)  = 14400 Baud
-10100 (bit value of 20)  = 230400 Baud (Turbo232 only)
-10101 (bit value of 21)  = 115200 Baud (Turbo232 only)
+01111 (bit value of 15)  = 19200 Baud
+10000 (bit value of 16)  = 38400 Baud
+10001 (bit value of 17)  = 57600 Baud (Turbo232 only)
+10010 (bit value of 18)  = 115200 Baud (Turbo232 only)
+10011 (bit value of 19)  = 230400 Baud (Turbo232 only)
