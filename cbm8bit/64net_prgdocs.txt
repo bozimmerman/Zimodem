@@ -1,8 +1,8 @@
-/********************************
-/* C64Net WiFi Firmware Software *
-/* for the Commodore 64 and 128 *
-/********************************
-/////////////////////////////////
+/*****************************************
+/*     C64Net WiFi Firmware Software     *
+/* for the Commodore 64, 128, and VIC-20 *
+/*****************************************
+//////////////////////////////////////////
 
 This disk includes applications written to work with the C64Net WiFi modem running firmware version 2.0 or better. If this is your first time using the modem, you should start with the configure program to get your modem connected to the internet.  You can then use the FTP, TELNET, IRC, WGET, and other programs whenever you wish to communicate with the internet.  The disk includes numerous machine language binaries (pml64.bin, pml128.bin, pmlvic.bin, x-xfer64.bin, x-xfer128.bin, rds64.bin, and up9600.bin) which are required for some the several programs provided.
 
