@@ -242,7 +242,7 @@ Reads from the open channel whose number is contained in ML+32 until no more byt
 SWIFTDRVR.BIN
 *************************************
 
-This file is the SwiftLink/Turbo232 BASIC wedge driver for the C64.  Use SYS49152 to activate.  After this point, all device 2 access will go to the SwiftLink/Turbo232 cartridge instead of the user port.
+This file is the SwiftLink/Turbo232 BASIC wedge driver for the C64.  Use SYS51200 to activate.  After this point, all device 2 access will go to the SwiftLink/Turbo232 cartridge instead of the user port.
 The baud rate codes used in the OPEN command are compatible with the C64 KERNAL, with additions:
 00000 (bit value of 0)   = Nonstandard (User-Defined) Rate (Not Implemented)
 00001 (bit value of 1)   = 50 Baud  (Not supported)
