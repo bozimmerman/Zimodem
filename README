@@ -1,10 +1,10 @@
-C64Net WiFi Firmware  / Zimodem 3.6.3 (C)2016-2021 Bo Zimmerman
+Zimodem 3.6.3 (C)2016-2021 Bo Zimmerman
 Please read the LICENSE file for license information
 Please read the NOTICE file for credits information
 
 Intro:
 ------
-This firmware code, "C64Net WiFi Firmware", provides an api for communication between a serial terminal and the ESP8266 or ESP32.  It simulates the old-style Hayes "AT" commands, so that the ESP8266 appears to the terminal as if it were a Hayes modem.  These "AT" commands may then be issued to the ESP8266 in order to force it to connect to a wireless access point, and from there to make one or more manageable connections to the internet.  It also includes a streaming serial "telnet" mode, and server/port listener capabilities.
+This firmware code provides an api for communication between a serial terminal and the ESP8266 or ESP32.  It simulates the old-style Hayes "AT" commands, so that the ESP8266 appears to the terminal as if it were a Hayes modem.  These "AT" commands may then be issued to the ESP8266 in order to force it to connect to a wireless access point, and from there to make one or more manageable connections to the internet.  It also includes a streaming serial "telnet" mode, and server/port listener capabilities.
 
 The default baud rate that the firmware establishes is 1200.  Be sure to use the commands below to set this to the proper baud rate for your terminal/host computer.  If you plan on using the Commodore 8-bit utilities, keep the firmware baud rate saved at 1200.
 
