@@ -1983,6 +1983,14 @@ ZResult ZCommand::doSerialCommand()
     sendOfficialResponse(result);
     return result;
   }
+  else
+  if((sbuf.length()==12)
+  &&(strcmp(sbuf.c_str(),"\x04grestoreall")==0))
+  {
+    result = printMode.switchToPostScript("%!PS\ngrestoreall\n");
+    sendOfficialResponse(result);
+    return result;
+  }
   
   int index=0;
   while((index<len-1)
