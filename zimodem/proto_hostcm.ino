@@ -79,6 +79,19 @@ void HostCM::receiveLoop()
   if((pkti==0)
   ||(inbuf[pkti-1]!=opt.lineend))
     return;
-  //TODO: don't forget to reset pkti before you go!
+  pkti--;
+  if((pkti>1)&&(inbuf[pkti-1]!=checksum(inbuf,pkti-1)))
+  {
+    //TODO: compose a NAK
+  }
+
   //TODO: process our command!
+  switch(inbuf[0])
+  {
+    default:
+      //TODO: compose another NAK!
+      break;
+  }
+  pkti=0; // we are ready for the next packet!
+  serialOutDeque();
 }
