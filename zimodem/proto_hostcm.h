@@ -15,12 +15,22 @@ private:
     unsigned char ext=0;
   } opt;
 
+  const unsigned int BUFSIZ = 256;
+  const char sumchar[] = "ABCDEFGHIJKLMNOP";
+
+  char outbuf[BUFSIZ];
+  char inbuf[BUFSIZ];
+  int pkti = 0;
+
   bool aborted = false;
   unsigned long lastNonPlusTm = 0;
   unsigned int plussesInARow = 0;
   unsigned long plusTimeExpire = 0;
 
-  void checkDoPlusPlusPlus(int c, const unsigned long tm);
+  char checksum(char *b, int n);
+  void checkDoPlusPlusPlus(const int c, const unsigned long tm);
   bool checkPlusPlusPlusExpire(const unsigned long tm);
-  int receive(char *buf, int sz);
+public:
+  void receiveLoop();
+  bool isAborted();
 };

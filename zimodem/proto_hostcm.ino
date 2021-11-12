@@ -1,7 +1,7 @@
 #include "proto_hostcm.h"
 
 
-void HostCM::checkDoPlusPlusPlus(int c, const unsigned long tm)
+void HostCM::checkDoPlusPlusPlus(const int c, const unsigned long tm)
 {
   if(c == '+')
   {
@@ -22,6 +22,8 @@ void HostCM::checkDoPlusPlusPlus(int c, const unsigned long tm)
 
 bool HostCM::checkPlusPlusPlusExpire(const unsigned long tm)
 {
+  if(aborted)
+    return true;
   if((plusTimeExpire>0)&&(tm>plusTimeExpire)&&(plussesInARow>2))
   {
     aborted = true;
@@ -33,32 +35,50 @@ bool HostCM::checkPlusPlusPlusExpire(const unsigned long tm)
   return false;
 }
 
-
-int HostCM::receive(char *buf, int sz)
+void HostCM::receiveLoop()
 {
-  int c, t = 0;
-  unsigned long lastC = 0;
+
+}
+bool HostCM::isAborted()
+{
+  return aborted;
+}
+
+char HostCM::checksum(char *b, int n)
+{
+  int i, s = 0;
+
+  for (i = 0; i < n; i++) {
+    s += b[i] & 0xf;
+  }
+  return (sumchar[s&0xf]);
+}
+
+void HostCM::receiveLoop()
+{
+  serialOutDeque();
   unsigned long tm = millis();
-  if(aborted)
-    return -2;
-
-  do
+  if(checkPlusPlusPlusExpire(tm))
+    return;
+  while(hserial.available() > 0)
   {
-    tm = millis();
-    if((tm - lastC) > 1000) // the timeout
-      return -1;
-    serialOutDeque();
-    if(hserial.available() > 0)
-    {
-      c=hserial.read();
-      logSerialIn(c);
-      buf[t++]=c;
-      checkDoPlusPlusPlus(c,tm);
-      lastC = tm;
-    }
+    c=hserial.read();
+    logSerialIn(c);
+    if(pkti<BUFSIZ)
+      inbuf[pkti++]=c;
+    checkDoPlusPlusPlus(c, tm);
     if(checkPlusPlusPlusExpire(tm))
-      return -2;
-  } while ((t < sz) && (buf[t-1] != opt.lineend));
-
-  return(t-1);
+      return;
+    yield();
+    if(c==opt.lineend)
+    {
+      inbuf[pkti-1]=c;
+      break;
+    }
+  }
+  if((pkti==0)
+  ||(inbuf[pkti-1]!=opt.lineend))
+    return;
+  //TODO: don't forget to reset pkti before you go!
+  //TODO: process our command!
 }
