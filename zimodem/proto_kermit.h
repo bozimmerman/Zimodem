@@ -47,9 +47,9 @@ private:
        packet[MAXPACKSIZ], /* Packet buffer */
        ldata[1024];        /* First line of data to send over connection */
   String **filelist = 0;
-  int  (*recvChar)(int);
-  void (*sendChar)(char);
-  bool (*dataHandler)(unsigned long number, char *buffer, int len);
+  int  (*recvChar)(KModem *me, int);
+  void (*sendChar)(KModem *me, char);
+  bool (*dataHandler)(KModem *me, unsigned long number, char *buffer, int len);
 
   void flushinput();
   void rpar(char data[]);
@@ -68,32 +68,34 @@ private:
   char sdata();
   char sbreak();
   char seof();
+
+  bool kfpClosed = true;
+  String *errStr = 0;
 public:
   String rootpath = "";
+  FS *kfileSystem = &SD;
+  File kfp;
+  ZSerial kserial;
 
-  KModem(int (*recvChar)(int), void (*sendChar)(char));
-  KModem(int (*recvChar)(int), void (*sendChar)(char),
-         bool (*dataHandler)(unsigned long, char*, int));
+  KModem(FlowControlType commandFlow,
+         int (*recvChar)(KModem *me, int),
+         void (*sendChar)(KModem *me, char),
+         bool (*dataHandler)(KModem *me, unsigned long, char*, int),
+         String &errors);
   void setTransmitList(String **fileList, int numFiles);
   bool receive();
   bool transmit();
 };
 
-static File kfp;
-static bool kfpClosed = true;
-static String *errStr = 0;
-static FS *kfileSystem = &SD;
-static ZSerial kserial;
-
-static int kReceiveSerial(int del)
+static int kReceiveSerial(KModem *me, int del)
 {
   unsigned long end=millis() + (del * 1000L);
   while(millis() < end)
   {
     serialOutDeque();
-    if(kserial.available() > 0)
+    if(me->kserial.available() > 0)
     {
-      int c=kserial.read();
+      int c=me->kserial.read();
       logSerialIn(c);
       return c;
     }
@@ -102,24 +104,24 @@ static int kReceiveSerial(int del)
   return -1;
 }
 
-static void kSendSerial(char c)
+static void kSendSerial(KModem *me, char c)
 {
-  kserial.write((uint8_t)c);
-  kserial.flush();
+  me->kserial.write((uint8_t)c);
+  me->kserial.flush();
 }
 
-static bool kUDataHandler(unsigned long number, char *buf, int sz)
+static bool kUDataHandler(KModem *me, unsigned long number, char *buf, int sz)
 {
   for(int i=0;i<sz;i++)
-    kfp.write((uint8_t)buf[i]);
+    me->kfp.write((uint8_t)buf[i]);
   return true;
 }
 
-static bool kDDataHandler(unsigned long number, char *buf, int sz)
+static bool kDDataHandler(KModem *me, unsigned long number, char *buf, int sz)
 {
   for(int i=0;i<sz;i++)
   {
-    int c=kfp.read();
+    int c=me->kfp.read();
     if(c<0)
     {
       if(i==0)
@@ -132,34 +134,24 @@ static bool kDDataHandler(unsigned long number, char *buf, int sz)
   return true;
 }
 
-static boolean kDownload(FS &fs, String **fileList, int fileCount, String &errors)
+static boolean kDownload(FlowControlType commandFlow, FS &fs, String **fileList, int fileCount, String &errors)
 {
-  kfileSystem = &fs;
-  errStr = &errors;
-  KModem kmo(kReceiveSerial, kSendSerial, kDDataHandler);
+  KModem kmo(commandFlow, kReceiveSerial, kSendSerial, kDDataHandler, errors);
+  kmo.kfileSystem = &fs;
   kmo.setTransmitList(fileList,fileCount);
   bool result = kmo.transmit();
-  kserial.flushAlways();
+  kmo.kserial.flushAlways();
   return result;
 }
 
-static boolean kUpload(FS &fs, String rootPath, String &errors)
+static boolean kUpload(FlowControlType commandFlow, FS &fs, String rootPath, String &errors)
 {
-  kfileSystem = &fs;
-  errStr = &errors;
-  KModem kmo(kReceiveSerial, kSendSerial, kUDataHandler);
+  KModem kmo(commandFlow, kReceiveSerial, kSendSerial, kUDataHandler, errors);
+  kmo.kfileSystem = &fs;
   kmo.rootpath = rootPath;
   bool result = kmo.receive();
-  kserial.flushAlways();
+  kmo.kserial.flushAlways();
   return result;
 }
 
-static void initKSerial(FlowControlType commandFlow)
-{
-  kserial.setFlowControlType(FCT_DISABLED);
-  if(commandFlow==FCT_RTSCTS)
-    kserial.setFlowControlType(FCT_RTSCTS);
-  kserial.setPetsciiMode(false);
-  kserial.setXON(true);
-}
 

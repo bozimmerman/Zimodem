@@ -825,10 +825,9 @@ void ZBrowser::doModeCommand(String &line)
         String **fileList=(String**)malloc(sizeof(String *));
         int numFiles=0;
         makeFileList(&fileList,&numFiles,p,mask,true);
-        initKSerial(commandMode.getFlowControlType());
         serial.printf("Go to Kermit download.%s",EOLNC);
         serial.flushAlways();
-        if(kDownload(SD,fileList,numFiles,errors))
+        if(kDownload(commandMode.getFlowControlType(),SD,fileList,numFiles,errors))
         {
           delay(2000);
           serial.printf("Download completed successfully.%s",EOLNC);
@@ -864,8 +863,7 @@ void ZBrowser::doModeCommand(String &line)
           String errors="";
           serial.printf("Go to Kermit upload.%s",EOLNC);
           serial.flushAlways();
-          initKSerial(commandMode.getFlowControlType());
-          if(kUpload(SD,rootDirNm,errors))
+          if(kUpload(commandMode.getFlowControlType(),SD,rootDirNm,errors))
           {
             delay(2000);
             serial.printf("Upload completed successfully.%s",EOLNC);
