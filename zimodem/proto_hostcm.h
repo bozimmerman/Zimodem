@@ -1,10 +1,11 @@
+/* Converted from source reverse engineered from SP9000 roms by Rob Ferguson */
 #include <FS.h>
 
 class HostCM
 {
 private:
   ZSerial hserial;
-  struct _HCOpts
+  const struct _HCOpts
   {
     unsigned int  speed = 15; //B9600
     unsigned int  parity;
@@ -13,13 +14,15 @@ private:
     unsigned char prompt=0x11;
     unsigned char response=0x13;
     unsigned char ext=0;
-  } opt;
+  } opt PROGMEM;
 
-  const unsigned int BUFSIZ = 256;
-  const char sumchar[] = "ABCDEFGHIJKLMNOP";
+# define HCM_BUFSIZ  128
+  const char *sumchar PROGMEM = "ABCDEFGHIJKLMNOP";
 
-  char outbuf[BUFSIZ];
-  char inbuf[BUFSIZ];
+  uint8_t lastOutBuf[HCM_BUFSIZ];
+  int lastOutSize = 0;
+
+  uint8_t inbuf[HCM_BUFSIZ];
   int pkti = 0;
 
   bool aborted = false;
@@ -27,9 +30,11 @@ private:
   unsigned int plussesInARow = 0;
   unsigned long plusTimeExpire = 0;
 
-  char checksum(char *b, int n);
+  char checksum(uint8_t *b, int n);
   void checkDoPlusPlusPlus(const int c, const unsigned long tm);
   bool checkPlusPlusPlusExpire(const unsigned long tm);
+  void sendNAK();
+  void sendACK();
 public:
   void receiveLoop();
   bool isAborted();

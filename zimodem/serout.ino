@@ -330,6 +330,13 @@ size_t ZSerial::write(uint8_t c)
   return 1;
 }
 
+size_t ZSerial::write(uint8_t *buf, int bufSz)
+{
+  for(int i=0;i<bufSz;i++)
+    enqueByte(buf[i]);
+  return bufSz;
+}
+
 void ZSerial::prints(String str)
 {
   prints(str.c_str());

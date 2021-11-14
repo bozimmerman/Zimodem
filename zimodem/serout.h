@@ -73,6 +73,7 @@ class ZSerial : public Stream
     void printc(const char c);
     void printc(uint8_t c);
     virtual size_t write(uint8_t c);
+    size_t write(uint8_t *buf, int bufSz);
     void printb(uint8_t c);
     void printd(double f);
     void printi(int i);
