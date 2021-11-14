@@ -17,6 +17,7 @@ private:
   } opt PROGMEM;
 
 # define HCM_BUFSIZ  128
+# define HCM_SENDBUF (208/2 - 6)
   const char *sumchar PROGMEM = "ABCDEFGHIJKLMNOP";
 
   uint8_t lastOutBuf[HCM_BUFSIZ];
