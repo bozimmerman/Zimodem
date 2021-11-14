@@ -13,9 +13,9 @@
  */
 
 KModem::KModem(FlowControlType commandFlow,
-               int (*recvChar)(KModem *me, int msDelay),
-               void (*sendChar)(KModem *me, char sym),
-               bool (*dataHandler)(KModem *me, unsigned long number, char *buffer, int len),
+               int (*recvChar)(ZSerial *ser, int msDelay),
+               void (*sendChar)(ZSerial *ser, char sym),
+               bool (*dataHandler)(File *kfp, unsigned long number, char *buffer, int len),
                String &errors)
 {
   this->errStr = &errors;
@@ -57,8 +57,10 @@ bool KModem::receive()
       state = rdata(); 
       break; /* Receive-Data */
     case 'C': 
+      kserial.flushAlways();
       return true;   /* Complete state */
     case 'A': 
+      kserial.flushAlways();
       return false;    /* "Abort" state */
     }
   }
@@ -68,7 +70,10 @@ bool KModem::receive()
 bool KModem::transmit()
 {
   if (gnxtfl() == FALSE)  /* No more files go? */
+  {
+    kserial.flushAlways();
     return false;    /* if not, break, EOT, all done */
+  }
   state = 'S';      /* Send initiate is the start state */
   n = 0;        /* Initialize message number */
   numtry = 0;       /* Say no tries yet */
@@ -94,10 +99,13 @@ bool KModem::transmit()
       state = sbreak(); 
       break; /* Send-Break */
     case 'C': 
+      kserial.flushAlways();
       return true;     /* Complete */
     case 'A': 
+      kserial.flushAlways();
       return false;    /* "Abort" */
     default:  
+      kserial.flushAlways();
       return false;    /* Unknown, fail */
     }
   }
@@ -559,7 +567,7 @@ int KModem::spack(char type, int num, int len, char *data)
   
   bufp = buffer;      /* Set up buffer pointer */
   for (i=1; i<=pad; i++) 
-    sendChar(this,padchar); /* Issue any padding */
+    sendChar(&kserial,padchar); /* Issue any padding */
 
   *bufp++ = SOH;      /* Packet marker, ASCII 1 (SOH) */
   *bufp++ = (len+3+' ');    /* Send the character count */
@@ -580,7 +588,7 @@ int KModem::spack(char type, int num, int len, char *data)
     *bufp++ = eol;    /* MacKermit needs this */
   *bufp = eol;      /* Extra-packet line terminator */
   for(i=0;i<bufp-buffer+1;i++) /* Send the packet */
-    sendChar(this,buffer[i]);
+    sendChar(&kserial,buffer[i]);
 }
 
 /*
@@ -602,7 +610,7 @@ int KModem::rpack(int *len, int *num, char *data)
   
   while (t != SOH)      /* Wait for packet header */
   {
-    if((t=recvChar(this,timint))<0)
+    if((t=recvChar(&kserial,timint))<0)
       return('A');
     t &= 0177;      /* Handle parity */
   }
@@ -610,7 +618,7 @@ int KModem::rpack(int *len, int *num, char *data)
   done = FALSE;     /* Got SOH, init loop */
   while (!done)     /* Loop to get a packet */
   {
-    if((t=recvChar(this,timint))<0)
+    if((t=recvChar(&kserial,timint))<0)
       return('A');
     if (!image) 
       t &= 0177;    /* Handle parity */
@@ -619,7 +627,7 @@ int KModem::rpack(int *len, int *num, char *data)
     cchksum = t;      /* Start the checksum */
     *len = (t-' ')-3;   /* Character count */
 
-    if((t=recvChar(this,timint))<0)
+    if((t=recvChar(&kserial,timint))<0)
       return('A');
     if (!image) 
       t &= 0177;    /* Handle parity */
@@ -628,7 +636,7 @@ int KModem::rpack(int *len, int *num, char *data)
     cchksum = cchksum + t;    /* Update checksum */
     *num = (t-' ');   /* Packet number */
 
-    if((t=recvChar(this,timint))<0)
+    if((t=recvChar(&kserial,timint))<0)
       return('A');
     if (!image) 
       t &= 0177;    /* Handle parity */
@@ -639,7 +647,7 @@ int KModem::rpack(int *len, int *num, char *data)
 
     for (i=0; i<*len; i++)    /* The data itself, if any */
     {       /* Loop for character count */
-      if((t=recvChar(this,timint))<0)
+      if((t=recvChar(&kserial,timint))<0)
         return('A');
       if (!image) 
         t &= 0177;  /* Handle parity */
@@ -650,10 +658,10 @@ int KModem::rpack(int *len, int *num, char *data)
     }
     data[*len] = 0;     /* Mark the end of the data */
 
-    if((t=recvChar(this,timint))<0)
+    if((t=recvChar(&kserial,timint))<0)
       return('A');
     rchksum = (t-' ');    /* Convert to numeric */
-    if((t=recvChar(this,timint))<0)
+    if((t=recvChar(&kserial,timint))<0)
       return('A');
     if (!image) 
       t &= 0177;    /* Handle parity */
@@ -696,7 +704,7 @@ int KModem::bufill(char buffer[])
   char t7;      /* 7-bit version of above */
 
   i = 0;        /* Init data buffer pointer */
-  while(dataHandler(this,0,&t,1))  /* Get the next character */
+  while(dataHandler(&kfp,0,&t,1))  /* Get the next character */
   {
     t7 = t & 0177;      /* Get low order 7 bits */
     if (t7 < SP || t7==DEL || t7==quote) /* Does this char require */
@@ -741,7 +749,7 @@ void KModem::bufemp(char buffer[], int len)
     }
     if (t==CR && !image)    /* Don't pass CR if in image mode */
       continue;
-    dataHandler(this,0,&t,1);
+    dataHandler(&kfp,0,&t,1);
   }
 }
 

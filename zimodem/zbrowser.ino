@@ -693,8 +693,7 @@ void ZBrowser::doModeCommand(String &line)
           String errors="";
           serial.printf("Go to XModem download.%s",EOLNC);
           serial.flushAlways();
-          initXSerial(commandMode.getFlowControlType());
-          if(xDownload(rfile,errors))
+          if(xDownload(commandMode.getFlowControlType(), rfile,errors))
           {
             rfile.close();
             delay(2000);
@@ -735,8 +734,7 @@ void ZBrowser::doModeCommand(String &line)
             String errors="";
             serial.printf("Go to XModem upload.%s",EOLNC);
             serial.flushAlways();
-            initXSerial(commandMode.getFlowControlType());
-            if(xUpload(rfile,errors))
+            if(xUpload(commandMode.getFlowControlType(), rfile,errors))
             {
               rfile.close();
               delay(2000);
@@ -769,8 +767,7 @@ void ZBrowser::doModeCommand(String &line)
         {
           root.close();
           String errors="";
-          initZSerial(commandMode.getFlowControlType());
-          if(zDownload(SD,p,errors))
+          if(zDownload(commandMode.getFlowControlType(),SD,p,errors))
           {
             delay(2000);
             serial.printf("Download completed successfully.%s",EOLNC);
@@ -802,8 +799,7 @@ void ZBrowser::doModeCommand(String &line)
           String errors="";
           serial.printf("Go to ZModem upload.%s",EOLNC);
           serial.flushAlways();
-          initZSerial(commandMode.getFlowControlType());
-          if(zUpload(SD,rootDirNm,errors))
+          if(zUpload(commandMode.getFlowControlType(),SD,rootDirNm,errors))
           {
             delay(2000);
             serial.printf("Upload completed successfully.%s",EOLNC);

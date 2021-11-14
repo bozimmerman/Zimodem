@@ -15,26 +15,28 @@
 */
 #ifdef INCLUDE_SD_SHELL
 
-XModem::XModem(int (*recvChar)(int msDelay), void (*sendChar)(char sym))
+XModem::XModem(File &f,
+               FlowControlType commandFlow, 
+               int (*recvChar)(ZSerial *ser, int msDelay), 
+               void (*sendChar)(ZSerial *ser, char sym), 
+               bool (*dataHandler)(File *xfile, unsigned long number, char *buffer, int len))
 {
-  this->sendChar = sendChar;
-  this->recvChar = recvChar;
-  this->dataHandler = NULL;  
-}
-
-XModem::XModem(int (*recvChar)(int msDelay), void (*sendChar)(char sym), 
-    bool (*dataHandler)(unsigned long number, char *buffer, int len))
-{
+  this->xfile = &f;
   this->sendChar = sendChar;
   this->recvChar = recvChar;
   this->dataHandler = dataHandler;  
+  this->xserial.setFlowControlType(FCT_DISABLED);
+  if(commandFlow==FCT_RTSCTS)
+    this->xserial.setFlowControlType(FCT_RTSCTS);
+  this->xserial.setPetsciiMode(false);
+  this->xserial.setXON(true);
 }
 
 bool XModem::dataAvail(int delay)
 {
   if (this->byte != -1)
     return true;
-  if ((this->byte = this->recvChar(delay)) != -1)
+  if ((this->byte = this->recvChar(&xserial,delay)) != -1)
     return true;
   else
     return false;    
@@ -49,12 +51,12 @@ int XModem::dataRead(int delay)
     this->byte = -1;
     return b;
   }
-  return this->recvChar(delay);
+  return this->recvChar(&xserial,delay);
 }
 
 void XModem::dataWrite(char symbol)
 {
-  this->sendChar(symbol);
+  this->sendChar(&xserial,symbol);
 }
 
 bool XModem::receiveFrameNo()
@@ -162,7 +164,7 @@ bool XModem::receiveFrames(transfer_t transfer)
         }
         //callback
         if(this->dataHandler != NULL && this->repeatedBlock == false)
-          if(!this->dataHandler(this->blockNoExt, this->buffer, 128)) {
+          if(!this->dataHandler(xfile,this->blockNoExt, this->buffer, 128)) {
             return false;
           }
         //ack
@@ -215,7 +217,9 @@ bool XModem::receive()
     this->dataWrite('C'); 
     if (this->dataAvail(1500)) 
     {
-      return receiveFrames(Crc);
+      bool ok = receiveFrames(Crc);
+      xserial.flushAlways();
+      return ok;
     }
   
   }
@@ -223,7 +227,11 @@ bool XModem::receive()
   {
     this->dataWrite(XModem::XMO_NACK);  
     if (this->dataAvail(1500)) 
-      return receiveFrames(ChkSum);
+    {
+      bool ok = receiveFrames(ChkSum);
+      xserial.flushAlways();
+      return ok;
+    }
   }
 }
 
@@ -263,10 +271,10 @@ bool XModem::transmitFrames(transfer_t transfer)
     //get data
     if (this->dataHandler != NULL)
     {
-      if( false == this->dataHandler(this->blockNoExt, this->buffer, 128))
+      if( false == this->dataHandler(xfile,this->blockNoExt, this->buffer, 128))
       {
         //end of transfer
-        this->sendChar(XModem::XMO_EOT);
+        this->sendChar(&xserial,XModem::XMO_EOT);
         //wait ACK
         if (this->dataRead(XModem::receiveDelay) == XModem::XMO_ACK)
           return true;
@@ -277,8 +285,8 @@ bool XModem::transmitFrames(transfer_t transfer)
     else
     {
       //cancel transfer - send CAN twice
-      this->sendChar(XModem::XMO_CAN);
-      this->sendChar(XModem::XMO_CAN);
+      this->sendChar(&xserial,XModem::XMO_CAN);
+      this->sendChar(&xserial,XModem::XMO_CAN);
       //wait ACK
       if (this->dataRead(XModem::receiveDelay) == XModem::XMO_ACK)
         return true;
@@ -286,23 +294,23 @@ bool XModem::transmitFrames(transfer_t transfer)
         return false;
     }
     //send SOH
-    this->sendChar(XModem::XMO_SOH);
+    this->sendChar(&xserial,XModem::XMO_SOH);
     //send frame number 
-    this->sendChar(this->blockNo);
+    this->sendChar(&xserial,this->blockNo);
     //send inv frame number
-    this->sendChar((unsigned char)(255-(this->blockNo)));
+    this->sendChar(&xserial,(unsigned char)(255-(this->blockNo)));
     //send data
     for(int i = 0; i <128; i++)
-      this->sendChar(this->buffer[i]);
+      this->sendChar(&xserial,this->buffer[i]);
     //send checksum or crc
     if (transfer == ChkSum) {
-      this->sendChar(this->generateChkSum());
+      this->sendChar(&xserial,this->generateChkSum());
     } else {
       unsigned short crc;
       crc = this->crc16_ccitt(this->buffer, 128);
       
-      this->sendChar((unsigned char)(crc >> 8));
-      this->sendChar((unsigned char)(crc));
+      this->sendChar(&xserial,(unsigned char)(crc >> 8));
+      this->sendChar(&xserial,(unsigned char)(crc));
        
     }
    //TO DO - wait NACK or CAN or ACK
@@ -334,10 +342,18 @@ bool XModem::transmit()
     if(this->dataAvail(1000))
     {
       sym = this->dataRead(1); //data is here - no delay
-      if(sym == 'C')  
-        return this->transmitFrames(Crc);
+      if(sym == 'C')
+      {
+        bool ok = this->transmitFrames(Crc);
+        xserial.flushAlways();
+        return ok;
+      }
       if(sym == XModem::XMO_NACK)
-        return this->transmitFrames(ChkSum);
+      {
+        bool ok = this->transmitFrames(ChkSum);
+        xserial.flushAlways();
+        return ok;
+      }
     }
     retry++;
   } 

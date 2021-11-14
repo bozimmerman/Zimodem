@@ -81,7 +81,7 @@ static BOOL is_cancelled(zmodem_t* zm)
 int zmodem_data_waiting(zmodem_t* zm, unsigned timeout)
 {
   if(zm->data_waiting)
-    return(zm->data_waiting(zm->cbdata, timeout));
+    return(zm->data_waiting(&(zm->zserial), timeout));
   return(ZFALSE);
 }
 
@@ -213,7 +213,7 @@ ulong frame_pos(zmodem_t* zm, int type)
 
 void zmodem_recv_purge(zmodem_t* zm)
 {
-  while(zm->recv_byte(zm->cbdata,0)>=0);
+  while(zm->recv_byte(&(zm->zserial), 0)>=0);
 }
 
 /* 
@@ -222,7 +222,7 @@ void zmodem_recv_purge(zmodem_t* zm)
 void zmodem_flush(zmodem_t* zm)
 {
   if(zm->flush!=NULL)
-    zm->flush(zm);
+    zm->flush(&(zm->zserial));
 }
 
 uint32_t ucrc32(unsigned char p, uint32_t crc)
@@ -288,7 +288,7 @@ int zmodem_send_raw(zmodem_t* zm, unsigned char ch)
 {
   int result;
 
-  if((result=zm->send_byte(zm->cbdata,ch,zm->send_timeout))!=0)
+  if((result=zm->send_byte(&(zm->zserial),ch,zm->send_timeout))!=0)
   {
     //lprintf(zm,LOG_ERR,"send_raw SEND ERROR: %d",result);
   }
@@ -701,7 +701,7 @@ int zmodem_recv_raw(zmodem_t* zm)
   unsigned attempt;
 
   for(attempt=0;attempt<=zm->recv_timeout;attempt++) {
-    if((c=zm->recv_byte(zm->cbdata,1 /* second timeout */)) >= 0)
+    if((c=zm->recv_byte(&(zm->zserial), 1 /* second timeout */)) >= 0)
         break;
     if(is_cancelled(zm))
       return(ZCAN);
@@ -1395,7 +1395,7 @@ BOOL zmodem_recv_crc(zmodem_t* zm, uint32_t* crc)
 {
   int type;
 
-  if(!zmodem_data_waiting(zm,zm->crc_timeout)) {
+  if(!zmodem_data_waiting(zm, zm->crc_timeout)) {
     //lprintf(zm,LOG_ERR,"Timeout waiting for response (%u seconds)", zm->crc_timeout);
     return(ZFALSE);
   }
@@ -1452,7 +1452,7 @@ int zmodem_get_zrinit(zmodem_t* zm)
   zmodem_send_raw(zm,'\r');
   zmodem_send_hex_header(zm,zrqinit_header);
   
-  if(!zmodem_data_waiting(zm,zm->init_timeout))
+  if(!zmodem_data_waiting(zm, zm->init_timeout))
     return(TIMEOUT);
   return zmodem_recv_header(zm);
 }
@@ -1994,7 +1994,7 @@ int zmodem_recv_files(zmodem_t* zm, const char* download_dir, uint64_t* bytes_re
 
       sprintf(fpath,"%s/%s",download_dir,zm->current_file_name);
       //lprintf(zm,LOG_DEBUG,"fpath=%s",fpath);
-      File fileF=zfileSystem->open(fpath);
+      File fileF=zm->zfileSystem->open(fpath);
       if(fileF) {
         l=fileF.size();
         //lprintf(zm,LOG_WARNING,"%s already exists (%lld"" bytes)",fpath,l);
@@ -2053,7 +2053,7 @@ int zmodem_recv_files(zmodem_t* zm, const char* download_dir, uint64_t* bytes_re
 
       if(fileF)
         fileF.close();
-      fileF=zfileSystem->open(fpath, FILE_APPEND);
+      fileF=zm->zfileSystem->open(fpath, FILE_APPEND);
       fp = &fileF;
       start_bytes=fp->size();
 
@@ -2063,7 +2063,7 @@ int zmodem_recv_files(zmodem_t* zm, const char* download_dir, uint64_t* bytes_re
       l=fp->size();
       fp->close();
       if(errors && l==0)  { /* aborted/failed download */
-        if(zfileSystem->remove(fpath)) /* don't save 0-byte file */
+        if(zm->zfileSystem->remove(fpath)) /* don't save 0-byte file */
         {
           //lprintf(zm,LOG_ERR,"Error %d removing %s",errno,fpath);
         }
@@ -2120,7 +2120,7 @@ int zmodem_recv_init(zmodem_t* zm)
   //lprintf(zm,LOG_DEBUG,"recv_init");
 
 #if 0
-  while(is_connected(zm) && !is_cancelled(zm) && (ch=zm->recv_byte(zm,0))!=NOINP)
+  while(is_connected(zm) && !is_cancelled(zm) && (ch=zm->recv_byte(&(zm->zserial),0))!=NOINP)
   {
     //lprintf(zm,LOG_DEBUG,"Throwing out received: %s",chr((uchar)ch));
   }
@@ -2357,12 +2357,12 @@ char* zmodem_ver(char *buf)
 void zmodem_init(zmodem_t* zm, void* cbdata
         ,int  (*lputs)(void*, int level, const char* str)
         ,void (*progress)(void* unused, int64_t)
-        ,int  (*send_byte)(void*, uchar ch, unsigned timeout /* seconds */)
-        ,int  (*recv_byte)(void*, unsigned timeout /* seconds */)
+        ,int  (*send_byte)(ZSerial *ser, uchar ch, unsigned timeout /* seconds */)
+        ,int  (*recv_byte)(ZSerial *ser, unsigned timeout /* seconds */)
         ,BOOL (*is_connected)(void*)
         ,BOOL (*is_cancelled)(void*)
-        ,BOOL (*data_waiting)(void*, unsigned timeout /* seconds */)
-        ,void   (*flush)(void*))
+        ,BOOL (*data_waiting)(ZSerial *ser, unsigned timeout /* seconds */)
+        ,void   (*flush)(ZSerial *ser))
 {
   memset(zm,0,sizeof(zmodem_t));
 

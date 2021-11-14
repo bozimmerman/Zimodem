@@ -36,10 +36,12 @@ class XModem
     char buffer[128];
     //repeated block flag
     bool repeatedBlock;
+    File *xfile = null;
+    ZSerial xserial;
 
-    int  (*recvChar)(int);
-    void (*sendChar)(char);
-    bool (*dataHandler)(unsigned long number, char *buffer, int len);
+    int  (*recvChar)(ZSerial *ser, int);
+    void (*sendChar)(ZSerial *ser, char);
+    bool (*dataHandler)(File *xfile, unsigned long number, char *buffer, int len);
     unsigned short crc16_ccitt(char *buf, int size);
     bool dataAvail(int delay);
     int dataRead(int delay);
@@ -67,25 +69,24 @@ class XModem
     static const int rcvRetryLimit = 10;
 
   
-    XModem(int (*recvChar)(int), void (*sendChar)(char));
-    XModem(int (*recvChar)(int), void (*sendChar)(char), 
-                bool (*dataHandler)(unsigned long, char*, int));
+    XModem(File &f,
+           FlowControlType commandFlow,
+           int (*recvChar)(ZSerial *ser, int),
+           void (*sendChar)(ZSerial *ser, char),
+           bool (*dataHandler)(File *xfile, unsigned long, char*, int));
     bool receive();
     bool transmit();
 };
 
-static File *xfile = null;
-static ZSerial xserial;
-
-static int xReceiveSerial(int del)
+static int xReceiveSerial(ZSerial *ser, int del)
 {
   unsigned long end=micros() + (del * 1000L);
   while(micros() < end)
   {
     serialOutDeque();
-    if(xserial.available() > 0)
+    if(ser->available() > 0)
     {
-      int c=xserial.read();
+      int c=ser->read();
       logSerialIn(c);
       return c;
     }
@@ -94,20 +95,20 @@ static int xReceiveSerial(int del)
   return -1;
 }
 
-static void xSendSerial(char c)
+static void xSendSerial(ZSerial *ser, char c)
 {
-  xserial.write((uint8_t)c);
-  xserial.flush();
+  ser->write((uint8_t)c);
+  ser->flush();
 }
 
-static bool xUDataHandler(unsigned long number, char *buf, int sz)
+static bool xUDataHandler(File *xfile, unsigned long number, char *buf, int sz)
 {
   for(int i=0;i<sz;i++)
     xfile->write((uint8_t)buf[i]);
   return true;
 }
 
-static bool xDDataHandler(unsigned long number, char *buf, int sz)
+static bool xDDataHandler(File *xfile, unsigned long number, char *buf, int sz)
 {
   for(int i=0;i<sz;i++)
   {
@@ -124,32 +125,16 @@ static bool xDDataHandler(unsigned long number, char *buf, int sz)
   return true;  
 }
 
-static boolean xDownload(File &f, String &errors)
+static boolean xDownload(FlowControlType commandFlow, File &f, String &errors)
 {
-  xfile = &f;
-  XModem xmo(xReceiveSerial, xSendSerial, xDDataHandler);
+  XModem xmo(f,commandFlow, xReceiveSerial, xSendSerial, xDDataHandler);
   bool result = xmo.transmit();
-  xfile = null;
-  xserial.flushAlways();
   return result;
 }
 
-static boolean xUpload(File &f, String &errors)
+static boolean xUpload(FlowControlType commandFlow, File &f, String &errors)
 {
-  xfile = &f;
-  XModem xmo(xReceiveSerial, xSendSerial, xUDataHandler);
+  XModem xmo(f,commandFlow, xReceiveSerial, xSendSerial, xUDataHandler);
   bool result = xmo.receive();
-  xfile = null;
-  xserial.flushAlways();
   return result;
 }
-
-static void initXSerial(FlowControlType commandFlow)
-{
-  xserial.setFlowControlType(FCT_DISABLED);
-  if(commandFlow==FCT_RTSCTS)
-    xserial.setFlowControlType(FCT_RTSCTS);
-  xserial.setPetsciiMode(false);
-  xserial.setXON(true);
-}
-
