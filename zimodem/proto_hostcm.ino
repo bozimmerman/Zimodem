@@ -136,11 +136,11 @@ void HostCM::protoPutToFile()
     sendError("error: file not open %c", inbuf[1]);
     return;
   }
-  if(strchr("RLrl",(char)h->mode)!=0)
+  /*if((h->mode)=='r')||(h->mode=='l'))
   {
     sendError("error: read-only file %c", inbuf[1]);
     return;
-  }
+  }*/
   if(h->format == 'b') 
   {
     FROMHEX(&inbuf[3], pkti - 4);
