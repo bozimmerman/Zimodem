@@ -48,6 +48,15 @@ static char *FROMHEX(const char *hex, char *s, const size_t len)
   return s;
 }
 
+static uint8_t *FROMHEX(uint8_t *s, const size_t len)
+{
+  int i=0;
+  for(int i=0;i<len;i+=2)
+    s[i/2]=FROMHEX(s[i],s[i+1]);
+  s[i]=0;
+  return s;
+}
+
 static char *TOHEX(const char *s, char *hex, const size_t len)
 {
   int i=0;

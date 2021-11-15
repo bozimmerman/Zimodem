@@ -108,19 +108,57 @@ bool HostCM::isAborted()
 
 void HostCM::protoCloseFile()
 {
-  int findex = inbuf[1] - 'A';
-  if ((findex >= HCM_MAXFN) || (findex < 0)) {
-    sendError("error: invalid descriptor %c", inbuf[1]));
+  HCMFile *h = getFileByDescriptor((char)inbuf[1]);
+  if (h==0) {
+    sendError("error: invalid descriptor %c", inbuf[1]);
     return;
   }
   
-  if (files[findex].f == 0)
+  if (h->f == 0)
   {
-    sendError("error: file not open %c", inbuf[1])); // should this be an error though?
+    sendError("error: file not open %c", inbuf[1]); // should this be an error though?
     return;
   }
-  delFileEntry(&files[findex]);
-  sendAck();
+  delFileEntry(h);
+  sendACK();
+}
+
+void HostCM::protoPutToFile()
+{
+  HCMFile *h = getFileByDescriptor((char)inbuf[1]);
+  if (h==0) {
+    sendError("error: invalid descriptor %c", inbuf[1]);
+    return;
+  }
+  uint8_t eor = (uint8_t)lc((char)inbuf[2]);
+  if (h->f == 0)
+  {
+    sendError("error: file not open %c", inbuf[1]);
+    return;
+  }
+  if(strchr("RLrl",(char)h->mode)!=0)
+  {
+    sendError("error: read-only file %c", inbuf[1]);
+    return;
+  }
+  if(h->format == 'b') 
+  {
+    FROMHEX(&inbuf[3], pkti - 4);
+    pkti = ((pkti - 4) / 2) + 4;
+  }
+  if((eor=='z')
+  &&((h->format == 't')
+     ||(h->type != 'f')))
+  {
+    inbuf[pkti-1] = opt.lineend;
+    pkti++;
+  } 
+  if(h->f.write(&inbuf[3],pkti-4) != pkti-4)
+  {
+    sendError("error: write failed to file %c", inbuf[1]);
+    return;
+  }
+  sendACK();
 }
 
 void HostCM::protoOpenFile()
@@ -137,21 +175,21 @@ void HostCM::protoOpenFile()
     sendError("error: command too short");
     return;
   }
-  uint8_t mode = inbuf[1];
-  if(strchr("rlwsuaRLWSUA",(char)mode)==0)
+  uint8_t mode = (uint8_t)lc((char)inbuf[1]);
+  if(strchr("rlwsua",(char)mode)==0)
   {
     sendError("error: illegal mode %c",(char)mode);
     return;
   }
-  bool isRead = strchr("RLrl",(char)mode)!=0;
-  uint8_t format = inbuf[2];
+  bool isRead = strchr("rl",(char)mode)!=0;
+  uint8_t format = (uint8_t)lc((char)inbuf[2]);
   uint8_t *ptr = (uint8_t *)memchr(inbuf+3, '(', pkti-3);
   if(ptr == 0)
   {
     sendError("error: missing (");
     return;
   }
-  uint8_t type = ptr[1];
+  uint8_t type = (uint8_t)lc((char)ptr[1]);
   uint8_t reclen = 0;
   if(ptr[2]==':')
     reclen=atoi((char *)(ptr+3));
@@ -164,7 +202,7 @@ void HostCM::protoOpenFile()
   inbuf[pkti - 1] = 0; 
   uint8_t *fnptr = ptr + 1;
   HCMFile *newF = addNewFileEntry();
-  if (strchr("fF",(char)type) != 0)
+  if (type == 'f')
   {
     char *bn = basename((char *)ptr+1);
     char *dn = dirname((char *)ptr+1);
@@ -179,15 +217,15 @@ void HostCM::protoOpenFile()
     newF->f = SD.open(newF->filename);
     if(newF->f == 0)
     {
-      if (strchr(basename(newF->filename), ',') == 0) 
+      if(strchr(basename(newF->filename), ',') == 0) 
       {
-        if (strlen(newF->filename) + 5 < HCM_FNSIZ) 
+        if(strlen(newF->filename) + 5 < HCM_FNSIZ) 
         {
-          if (strchr("lsLS",(char)mode)!=0) 
+          if((mode == 'l') || (mode == 's')) 
             strcat(newF->filename, ",prg");
           else
           {
-            if (strchr("fF",(char)type) != 0)
+            if(type == 'f')
               strcat(newF->filename, ",rel");
             else
               strcat(newF->filename, ",seq");  
@@ -210,7 +248,7 @@ void HostCM::protoOpenFile()
   else
   {
     newF->f = SD.open(newF->filename,FILE_WRITE);
-    if(newF->f && (strchr("aA",(char)mode)!=0))
+    if(newF->f && (mode == 'a'))
       newF->f.seek(EOF);
   }
   newF->mode = mode;
@@ -335,7 +373,7 @@ void HostCM::receiveLoop()
         protoCloseFile();
         break;
       case 'p':
-        //TODO: count = hostput(inbuf, n, outbuf);
+        protoPutToFile();
         break;
       case 'g':
         //TODO: count = hostget(inbuf, n, outbuf);

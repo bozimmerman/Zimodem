@@ -61,6 +61,7 @@ private:
 
   void protoOpenFile();
   void protoCloseFile();
+  void protoPutToFile();
 public:
   void receiveLoop();
   bool isAborted();
