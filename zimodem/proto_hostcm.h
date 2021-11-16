@@ -1,4 +1,5 @@
 #ifdef INCLUDE_SD_SHELL
+#ifdef INCLUDE_HOSTCM
 /* Converted from source reverse engineered from SP9000 roms by Rob Ferguson */
 #include <FS.h>
 
@@ -46,6 +47,8 @@ private:
   unsigned long plusTimeExpire = 0;
   HCMFile files[HCM_MAXFN];
   FS *hFS = &SD;
+  File openDirF = (File)0;
+  File renameF = (File)0;
 
   char checksum(uint8_t *b, int n);
   void checkDoPlusPlusPlus(const int c, const unsigned long tm);
@@ -53,7 +56,7 @@ private:
   void sendNAK();
   void sendACK();
   void sendError(const char* format, ...);
-  void closeAllFiles();
+  bool closeAllFiles();
   HCMFile *addNewFileEntry();
   void delFileEntry(HCMFile *e);
   HCMFile *getFileByDescriptor(char c);
@@ -62,10 +65,20 @@ private:
   void protoOpenFile();
   void protoCloseFile();
   void protoPutToFile();
+  void protoGetFileBytes();
+  void protoOpenDir();
+  void protoNextDirFile();
+  void protoCloseDir();
+  void protoSetRenameFile();
+  void protoFinRenameFile();
+  void protoEraseFile();
+  void protoSeekFile();
+
 public:
   void receiveLoop();
   bool isAborted();
   HostCM(FS *fs);
   ~HostCM();
 };
+#endif
 #endif

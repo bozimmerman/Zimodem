@@ -2473,6 +2473,14 @@ ZResult ZCommand::doSerialCommand()
               browseMode.doModeCommand(line);
             }
         }
+#  ifdef INCLUDE_HOSTCM
+        else
+        if((strstr((const char *)vbuf,"hostcm")==(char *)vbuf))
+        {
+            result = ZOK;
+            hostcmMode.switchTo();
+        }
+#  endif
 #endif
         else
         if((strstr((const char *)vbuf,"print")==(char *)vbuf)||(strstr((const char *)vbuf,"PRINT")==(char *)vbuf))

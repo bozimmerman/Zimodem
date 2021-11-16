@@ -85,6 +85,7 @@ const char compile_date[] = __DATE__ " " __TIME__;
 # define echoEOLN serial.write
 //# define HARD_DCD_HIGH 1
 //# define HARD_DCD_LOW 1
+//# define INCLUDE_HOSTCM true // do this for special SP9000 modems only
 #else  // ESP-8266, e.g. ESP-01, ESP-12E, inverted for C64Net WiFi Modem
 # define DEFAULT_PIN_DSR 13
 # define DEFAULT_PIN_DTR 12
@@ -157,10 +158,13 @@ class ZMode
 #include "zprint.h"
 
 #ifdef INCLUDE_SD_SHELL
-#include "proto_xmodem.h"
-#include "proto_zmodem.h"
-#include "proto_kermit.h"
-#include "zbrowser.h"
+#  ifdef INCLUDE_HOSTCM
+#    include "zhostcmmode.h"
+#  endif
+#  include "proto_xmodem.h"
+#  include "proto_zmodem.h"
+#  include "proto_kermit.h"
+#  include "zbrowser.h"
 #endif
 
 static WiFiClientNode *conns = null;
@@ -177,10 +181,13 @@ static ZStream streamMode;
 static ZCommand commandMode;
 static ZPrint printMode;
 static ZConfig configMode;
-#ifdef INCLUDE_SD_SHELL
-static ZBrowser browseMode;
-#endif
 static RealTimeClock zclock(0);
+#ifdef INCLUDE_SD_SHELL
+#  ifdef INCLUDE_HOSTCM
+     static ZHostCMMode hostcmMode;
+#  endif
+   static ZBrowser browseMode;
+#endif
 
 enum BaudState
 {

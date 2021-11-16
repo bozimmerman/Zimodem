@@ -1,7 +1,23 @@
 #ifdef INCLUDE_SD_SHELL
+#ifdef INCLUDE_HOSTCM
 /* Converted from source reverse engineered from SP9000 roms by Rob Ferguson */
-#include "proto_hostcm.h"
-#include <libgen.h>
+
+char *basename(char *path)
+{
+  char *base = strrchr(path, '/');
+  return base ? base+1 : path;
+}
+
+char *dirname(char *path)
+{
+  char *base = strrchr(path, '/');
+  if(base)
+  {
+    *base = 0;
+    return path;
+  }
+  return "";
+}
 
 HostCM::HostCM(FS *fs)
 {
@@ -20,10 +36,17 @@ HostCM::~HostCM()
 }
 
 
-void HostCM::closeAllFiles()
+bool HostCM::closeAllFiles()
 {
   for(int i=0;i<HCM_MAXFN;i++)
     delFileEntry(&files[i]);
+  if(renameF != 0)
+    renameF.close();
+  renameF = (File)0;
+  if(openDirF != 0)
+    openDirF.close();
+  openDirF = (File)0;
+  return true;
 }
 
 HCMFile *HostCM::addNewFileEntry()
@@ -161,6 +184,96 @@ void HostCM::protoPutToFile()
   sendACK();
 }
 
+void HostCM::protoGetFileBytes()
+{
+  int c;
+  HCMFile *h = getFileByDescriptor((char)inbuf[1]);
+  if (h==0) 
+  {
+    sendError("error: invalid descriptor %c", inbuf[1]);
+    return;
+  }
+  if((h->f == 0)
+  ||((h->mode != 'r') && (h->mode != 'u') && (h->mode != 'l')))
+  {
+    sendError("error: file not open/readable %c", inbuf[1]);
+    return;
+  }
+
+  lastOutSize = 0;
+  lastOutBuf[lastOutSize++] = opt.response;
+  if(h->format == 't')
+  {
+    lastOutBuf[lastOutSize++] = 'b';
+    lastOutBuf[lastOutSize] = 'z';
+    do
+    {
+      lastOutSize++;
+      c = h->f.read();
+      lastOutBuf[lastOutSize] = (uint8_t)(c & 0xff);
+    }
+    while((c >= 0) && (lastOutSize < (HCM_SENDBUF - 2)) && (c != 0xd));
+    if((lastOutSize==3)&&(c<0))
+    {
+      lastOutBuf[1] = 'e';
+      lastOutBuf[2] = checksum(&lastOutBuf[1], 1);
+    }
+    else 
+    {
+      if (lastOutSize >= (HCM_SENDBUF - 2))
+        lastOutBuf[2] = 'n';
+      lastOutBuf[lastOutSize] = checksum(&lastOutBuf[1], lastOutSize - 1);
+      lastOutSize++;
+    }
+  } 
+  else 
+  if (h->format == 'b') 
+  {
+    int rdcount = HCM_SENDBUF;
+    char eor = 'n';
+    if(h->reclen)
+    {
+      if (h->reclen < HCM_SENDBUF) 
+      {
+        rdcount = h->reclen;
+        eor = 'z';
+      } 
+      else 
+      {
+        int pos = h->f.position();
+        if((pos & h->reclen) > ((pos + rdcount) & h->reclen))
+        {
+          rdcount = ((pos + rdcount) / h->reclen) * h->reclen - pos;
+          eor = 'z';
+        }
+      }
+    }
+    uint8_t rdbuf[rdcount];
+    int n = h->f.read(rdbuf, rdcount);
+    if (n <= 0) 
+    {
+      lastOutBuf[lastOutSize++] = 'e';
+      lastOutBuf[lastOutSize] = checksum(&lastOutBuf[1], lastOutSize - 1);
+      lastOutSize++;
+    } 
+    else 
+    {
+      lastOutBuf[lastOutSize++] = 'b';
+      lastOutBuf[lastOutSize++] = eor;
+      for(int i=0;i<n;i++)
+        memcpy(TOHEX(rdbuf[i]), &lastOutBuf[lastOutSize+(i*2)], 2);
+      lastOutSize += n * 2;
+      lastOutBuf[lastOutSize] = checksum(&lastOutBuf[1], lastOutSize - 1);
+      lastOutSize++;
+    }
+  }
+
+  lastOutBuf[lastOutSize++] = opt.lineend;
+  lastOutBuf[lastOutSize++] = opt.prompt;
+  hserial.write(lastOutBuf, lastOutSize);
+  hserial.flush();
+}
+
 void HostCM::protoOpenFile()
 {
   uint8_t *eobuf = inbuf + pkti;
@@ -267,6 +380,182 @@ void HostCM::protoOpenFile()
   hserial.flush();
 }
 
+void HostCM::protoOpenDir()
+{
+  if(openDirF != 0) 
+  {
+    sendError("error: directory open");
+    return;
+  }
+  if(pkti > 2) 
+    inbuf[pkti - 1] = 0;
+  else 
+  {
+    strcpy((char *)&inbuf[1], "/");
+    pkti++;
+  }
+
+  openDirF = SD.open((char *)&inbuf[1]);
+  if((openDirF == 0)||(!openDirF.isDirectory())) 
+  {
+    sendError("error: directory not found %s",(char *)&inbuf[1]);
+    return;
+  }
+  sendACK();
+}
+
+void HostCM::protoCloseDir()
+{
+  if(openDirF == 0) 
+  {
+    sendError("error: directory not open"); // should this really be an error?
+    return;
+  }
+  openDirF.close();
+  openDirF = (File)0;
+  sendACK();
+}
+
+void HostCM::protoNextDirFile()
+{
+  if(openDirF == 0) 
+  {
+    sendError("error: directory not open"); // should this really be an error?
+    return;
+  }
+
+  lastOutSize = 0;
+  lastOutBuf[lastOutSize++] = opt.response;
+  
+  File nf = openDirF.openNextFile();
+  if(nf == 0)
+    lastOutBuf[lastOutSize++] = 'e';
+  else 
+  {
+    char *fname = (char *)nf.name();
+    char *paren = strchr(fname,')');
+    int reclen = 0;
+    if((strncmp("(f:", fname, 3) == 0) && (paren != 0)) 
+    {
+      fname = paren + 1;
+      reclen = atoi((char *)&fname[3]);
+    }
+    lastOutBuf[lastOutSize++] = 'b';
+
+    if(reclen) 
+      lastOutSize += snprintf((char *)&lastOutBuf[lastOutSize], HCM_BUFSIZ - lastOutSize, "%-20s  %8llu (%d)", 
+          fname, (unsigned long long)nf.size(), reclen);
+    else 
+    {
+      if(nf.isDirectory()) 
+        lastOutSize += snprintf((char *)&lastOutBuf[lastOutSize], HCM_BUFSIZ - lastOutSize, "%s/", fname);
+      else 
+      {
+        lastOutSize += snprintf((char *)&lastOutBuf[lastOutSize], HCM_BUFSIZ - lastOutSize, "%-20s  %8llu", 
+            fname, (unsigned long long)nf.size());
+      }
+    }
+  }
+  nf.close();
+  lastOutBuf[lastOutSize] = checksum(&(lastOutBuf[1]), lastOutSize - 1);
+  lastOutSize++;
+  lastOutBuf[lastOutSize++] = opt.lineend;
+  lastOutBuf[lastOutSize++] = opt.prompt;
+  hserial.write(lastOutBuf, lastOutSize);
+  hserial.flush();
+}
+
+void HostCM::protoSetRenameFile()
+{
+  if (renameF != 0) 
+  {
+    sendError("error: rename in progress");
+    return;
+  }
+
+  if (pkti > 2) 
+  {
+    inbuf[pkti - 1] = 0;
+    renameF = SD.open((char *)&inbuf[1]);
+  } 
+  else 
+  {
+    sendError("error: missing filename");
+    return;
+  }
+  sendACK();
+}
+
+void HostCM::protoFinRenameFile()
+{
+  if (renameF == 0) 
+  {
+    sendError("error: rename not started");
+    return;
+  }
+
+  if (pkti > 2) 
+    inbuf[pkti - 1] = 0;
+  else 
+  {
+    sendError("error: missing filename");
+    return;
+  }
+
+  String on = renameF.name();
+  renameF.close();
+  if(!SD.rename(on,(char *)&inbuf[1]))
+  {
+    renameF = (File)0;
+    sendError("error: rename %s failed",on);
+    return;
+  }
+  renameF = (File)0;
+  sendACK();
+}
+
+void HostCM::protoEraseFile()
+{
+  if (pkti > 2) 
+    inbuf[pkti - 1] = 0;
+  else 
+  {
+    sendError("error: missing filename");
+    return;
+  }
+  if(!SD.remove((char *)&inbuf[1]))
+  {
+    sendError("error: erase %s failed",(char *)&inbuf[1] );
+    return;
+  }
+  sendACK();
+}
+
+void HostCM::protoSeekFile()
+{
+  HCMFile *h = getFileByDescriptor((char)inbuf[1]);
+  if (h==0) 
+  {
+    sendError("error: invalid descriptor %c", inbuf[1]);
+    return;
+  }
+  if(h->f == 0)
+  {
+    sendError("error: file not open/readable %c", inbuf[1]);
+    return;
+  }
+  
+  inbuf[pkti - 1] = 0;
+
+  unsigned long offset = atoi((char *)&inbuf[2]) * ((h->reclen == 0)? 1 : h->reclen);
+  if(!h->f.seek(offset))
+  {
+    sendError("error: seek failed on %s @ %ul", h->f.name(),offset);
+    return;
+  }
+  sendACK();
+}
+
 char HostCM::checksum(uint8_t *b, int n)
 {
   int i, s = 0;
@@ -359,46 +648,19 @@ void HostCM::receiveLoop()
         hserial.write(lastOutBuf, lastOutSize);
         hserial.flush();
         break;
-      case 'v':
-        sendACK();
-        break;
-      case 'q':
-        closeAllFiles();
-        aborted=true;
-        break;
-      case 'o':
-        protoOpenFile();
-        break;
-      case 'c':
-        protoCloseFile();
-        break;
-      case 'p':
-        protoPutToFile();
-        break;
-      case 'g':
-        //TODO: count = hostget(inbuf, n, outbuf);
-        break;
-      case 'd':
-        //TODO: count = hostdiropen(inbuf, n, outbuf);
-        break;
-      case 'f':
-        //TODO: count = hostdirread(inbuf, n, outbuf);
-        break;
-      case 'k':
-        //TODO: count = hostdirclose(inbuf, n, outbuf);
-        break;
-      case 'w':
-        //TODO: count = hostrenamefm(inbuf, n, outbuf);
-        break;
-      case 'b':
-        //TODO: count = hostrenameto(inbuf, n, outbuf);
-        break;
-      case 'y':
-        //TODO: count = hostscratch(inbuf, n, outbuf);
-        break;
-      case 'r':
-        //TODO: count = hostseek(inbuf, n, outbuf);
-        break;
+      case 'v': sendACK(); break;
+      case 'q': aborted = closeAllFiles(); break;
+      case 'o': protoOpenFile(); break;
+      case 'c': protoCloseFile(); break;
+      case 'p': protoPutToFile(); break;
+      case 'g': protoGetFileBytes(); break;
+      case 'd': protoOpenDir(); break;
+      case 'f': protoNextDirFile(); break;
+      case 'k': protoCloseDir(); break;
+      case 'w': protoSetRenameFile(); break;
+      case 'b': protoFinRenameFile(); break;
+      case 'y': protoEraseFile(); break;
+      case 'r': protoSeekFile(); break;
       default:
         sendNAK();
         break;
@@ -407,4 +669,5 @@ void HostCM::receiveLoop()
   pkti=0; // we are ready for the next packet!
   serialOutDeque();
 }
+#endif
 #endif
