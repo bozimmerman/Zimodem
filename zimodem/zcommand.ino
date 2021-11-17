@@ -1202,18 +1202,22 @@ ZResult ZCommand::doUpdateFirmware(int vval, uint8_t *vbuf, int vlen, bool isNum
 
   uint8_t buf[255];
   int bufSize = 254;
+  char firmwareName[100];
 #ifdef USE_DEVUPDATER
-  if((!doWebGetBytes("192.168.1.10", 8080, "/tmp/guru-latest-version.txt", false, buf, &bufSize))||(bufSize<=0))
-    return ZERROR;
+  char *updaterHost = "192.168.1.10";
+  int updaterPort = 8080;
 #else
-#  ifdef ZIMODEM_ESP32
-    if((!doWebGetBytes("www.zimmers.net", 80, "/otherprojs/guru-latest-version.txt", false, buf, &bufSize))||(bufSize<=0))
-      return ZERROR;
-#  else
-    if((!doWebGetBytes("www.zimmers.net", 80, "/otherprojs/c64net-latest-version.txt", false, buf, &bufSize))||(bufSize<=0))
-      return ZERROR;
-#  endif
+  char *updaterHost = "www.zimmers.net";
+  int updaterPort = 80;
 #endif
+#ifdef ZIMODEM_ESP32
+  char *updaterPrefix = "/otherprojs/guru";
+#else
+  char *updaterPrefix = "/otherprojs/c64net";
+#endif
+  sprintf(firmwareName,"%s-latest-version.txt",updaterPrefix);
+  if((!doWebGetBytes(updaterHost, updaterPort, firmwareName, false, buf, &bufSize))||(bufSize<=0))
+    return ZERROR;
 
   if((!isNumber)&&(vlen>2))
   {
@@ -1255,14 +1259,9 @@ ZResult ZCommand::doUpdateFirmware(int vval, uint8_t *vbuf, int vlen, bool isNum
   
   serial.printf("Updating to %s, wait for modem restart...",buf);
   serial.flush();
-  char firmwareName[100];
-#ifdef ZIMODEM_ESP32
-  sprintf(firmwareName,"/otherprojs/guru-firmware-%s.bin",buf);
-#else
-  sprintf(firmwareName,"/otherprojs/c64net-firmware-%s.bin",buf);
-#endif
+  sprintf(firmwareName,"%s-firmware-%s.bin", updaterPrefix, buf);
   uint32_t respLength=0;
-  WiFiClient *c = doWebGetStream("www.zimmers.net", 80, firmwareName, false, &respLength); 
+  WiFiClient *c = doWebGetStream(updaterHost, updaterPort, firmwareName, false, &respLength);
   if(c==null)
   {
     serial.prints(EOLN);

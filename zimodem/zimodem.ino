@@ -18,6 +18,7 @@
 const char compile_date[] = __DATE__ " " __TIME__;
 #define DEFAULT_NO_DELAY true
 #define null 0
+//# define USE_DEVUPDATER true // only enable this if your name is Bo
 
 #ifdef ARDUINO_ESP32_DEV
 # define ZIMODEM_ESP32
