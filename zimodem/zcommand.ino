@@ -1298,7 +1298,7 @@ ZResult ZCommand::doUpdateFirmware(int vval, uint8_t *vbuf, int vlen, bool isNum
   delete c;
   serial.prints("Done");
   serial.prints(EOLN);
-  serial.prints("Modem will now restart. If restart fails, you might need to power-cycle or reset your modem.");
+  serial.prints("Modem will now restart, but you should power-cycle or reset your modem.");
   ESP.restart();
   return ZOK;
 }
