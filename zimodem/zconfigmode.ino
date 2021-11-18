@@ -825,7 +825,7 @@ void ZConfig::loop()
       }
       case ZCFGMENU_WICONFIRM:
       {
-        serial.printf("%sYour setting changed.  Save them (y/N)?",EOLNC);
+        serial.printf("%sYour setting changed. Save (y/N)?",EOLNC);
         break;
       }
     }
