@@ -361,6 +361,11 @@ void HostCM::protoOpenFile()
   else
   {
     newF->f = SD.open(newF->filename,FILE_WRITE);
+    if(newF->f == 0)
+    {
+      sendError("error: failed to open '%s'", newF->filename);
+      return;
+    }
     if(newF->f && (mode == 'a'))
       newF->f.seek(EOF);
   }
