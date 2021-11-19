@@ -35,11 +35,11 @@ private:
     unsigned char ext=0;
   } opt PROGMEM;
 
-  uint8_t lastOutBuf[HCM_BUFSIZ];
-  int lastOutSize = 0;
+  uint8_t outbuf[HCM_BUFSIZ];
+  int odex = 0;
 
   uint8_t inbuf[HCM_BUFSIZ+1];
-  int pkti = 0;
+  int idex = 0;
 
   bool aborted = false;
   unsigned long lastNonPlusTm = 0;

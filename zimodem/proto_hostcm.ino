@@ -166,17 +166,17 @@ void HostCM::protoPutToFile()
   }*/
   if(h->format == 'b') 
   {
-    FROMHEX(&inbuf[3], pkti - 4);
-    pkti = ((pkti - 4) / 2) + 4;
+    FROMHEX(&inbuf[3], idex - 4);
+    idex = ((idex - 4) / 2) + 4;
   }
   if((eor=='z')
   &&((h->format == 't')
      ||(h->type != 'f')))
   {
-    inbuf[pkti-1] = opt.lineend;
-    pkti++;
+    inbuf[idex-1] = opt.lineend;
+    idex++;
   } 
-  if(h->f.write(&inbuf[3],pkti-4) != pkti-4)
+  if(h->f.write(&inbuf[3],idex-4) != idex-4)
   {
     sendError("error: write failed to file %c", inbuf[1]);
     return;
@@ -200,30 +200,32 @@ void HostCM::protoGetFileBytes()
     return;
   }
 
-  lastOutSize = 0;
-  lastOutBuf[lastOutSize++] = opt.response;
+  odex = 0;
+  outbuf[odex++] = opt.response;
   if(h->format == 't')
   {
-    lastOutBuf[lastOutSize++] = 'b';
-    lastOutBuf[lastOutSize] = 'z';
+    outbuf[odex++] = 'b';
+    outbuf[odex] = 'z';
     do
     {
-      lastOutSize++;
+      odex++;
       c = h->f.read();
-      lastOutBuf[lastOutSize] = (uint8_t)(c & 0xff);
+      outbuf[odex] = (uint8_t)(c & 0xff);
     }
-    while((c >= 0) && (lastOutSize < (HCM_SENDBUF - 2)) && (c != 0xd));
-    if((lastOutSize==3)&&(c<0))
+    while((c >= 0) && (odex < (HCM_SENDBUF - 2)) && (outbuf[odex] != 0xd));
+    
+    if(c<0)
     {
-      lastOutBuf[1] = 'e';
-      lastOutBuf[2] = checksum(&lastOutBuf[1], 1);
+      outbuf[1] = 'e';
+      outbuf[2] = checksum(&outbuf[1], 1);
+      odex=3; // abandon anything between EOL and EOF
     }
     else 
     {
-      if (lastOutSize >= (HCM_SENDBUF - 2))
-        lastOutBuf[2] = 'n';
-      lastOutBuf[lastOutSize] = checksum(&lastOutBuf[1], lastOutSize - 1);
-      lastOutSize++;
+      if (odex >= (HCM_SENDBUF - 2))
+        outbuf[2] = 'n';
+      outbuf[odex] = checksum(&outbuf[1], odex - 1);
+      odex++;
     }
   } 
   else 
@@ -252,38 +254,38 @@ void HostCM::protoGetFileBytes()
     int n = h->f.read(rdbuf, rdcount);
     if (n <= 0) 
     {
-      lastOutBuf[lastOutSize++] = 'e';
-      lastOutBuf[lastOutSize] = checksum(&lastOutBuf[1], lastOutSize - 1);
-      lastOutSize++;
+      outbuf[odex++] = 'e';
+      outbuf[odex] = checksum(&outbuf[1], odex - 1);
+      odex++;
     } 
     else 
     {
-      lastOutBuf[lastOutSize++] = 'b';
-      lastOutBuf[lastOutSize++] = eor;
+      outbuf[odex++] = 'b';
+      outbuf[odex++] = eor;
       for(int i=0;i<n;i++)
-        memcpy(TOHEX(rdbuf[i]), &lastOutBuf[lastOutSize+(i*2)], 2);
-      lastOutSize += n * 2;
-      lastOutBuf[lastOutSize] = checksum(&lastOutBuf[1], lastOutSize - 1);
-      lastOutSize++;
+        memcpy(TOHEX(rdbuf[i]), &outbuf[odex+(i*2)], 2);
+      odex += n * 2;
+      outbuf[odex] = checksum(&outbuf[1], odex - 1);
+      odex++;
     }
   }
 
-  lastOutBuf[lastOutSize++] = opt.lineend;
-  lastOutBuf[lastOutSize++] = opt.prompt;
-  hserial.write(lastOutBuf, lastOutSize);
+  outbuf[odex++] = opt.lineend;
+  outbuf[odex++] = opt.prompt;
+  hserial.write(outbuf, odex);
   hserial.flush();
 }
 
 void HostCM::protoOpenFile()
 {
-  uint8_t *eobuf = inbuf + pkti;
+  uint8_t *eobuf = inbuf + idex;
   int n=numOpenFiles();
   if(n >= HCM_MAXFN)
   {
     sendError("error: too many open files");
     return;
   }
-  if(pkti<8)
+  if(idex<8)
   {
     sendError("error: command too short");
     return;
@@ -296,7 +298,7 @@ void HostCM::protoOpenFile()
   }
   bool isRead = strchr("rl",(char)mode)!=0;
   uint8_t format = (uint8_t)lc((char)inbuf[2]);
-  uint8_t *ptr = (uint8_t *)memchr(inbuf+3, '(', pkti-3);
+  uint8_t *ptr = (uint8_t *)memchr(inbuf+3, '(', idex-3);
   if(ptr == 0)
   {
     sendError("error: missing (");
@@ -312,7 +314,7 @@ void HostCM::protoOpenFile()
     sendError("error: missing )");
     return;
   }
-  inbuf[pkti - 1] = 0; 
+  inbuf[idex - 1] = 0; 
   uint8_t *fnptr = ptr + 1;
   HCMFile *newF = addNewFileEntry();
   if (type == 'f')
@@ -374,14 +376,14 @@ void HostCM::protoOpenFile()
   newF->type = type;
   newF->reclen = reclen;
   
-  lastOutSize = 0;
-  lastOutBuf[lastOutSize++] = opt.response;
-  lastOutBuf[lastOutSize++] = 'b';
-  lastOutBuf[lastOutSize++] = newF->descriptor;
-  lastOutBuf[lastOutSize++] = checksum(&(lastOutBuf[1]), 2);
-  lastOutBuf[lastOutSize++] = opt.lineend;
-  lastOutBuf[lastOutSize++] = opt.prompt;
-  hserial.write(lastOutBuf, lastOutSize);
+  odex = 0;
+  outbuf[odex++] = opt.response;
+  outbuf[odex++] = 'b';
+  outbuf[odex++] = newF->descriptor;
+  outbuf[odex++] = checksum(&(outbuf[1]), 2);
+  outbuf[odex++] = opt.lineend;
+  outbuf[odex++] = opt.prompt;
+  hserial.write(outbuf, odex);
   hserial.flush();
 }
 
@@ -392,12 +394,12 @@ void HostCM::protoOpenDir()
     sendError("error: directory open");
     return;
   }
-  if(pkti > 2) 
-    inbuf[pkti - 1] = 0;
+  if(idex > 2) 
+    inbuf[idex - 1] = 0;
   else 
   {
     strcpy((char *)&inbuf[1], "/");
-    pkti++;
+    idex++;
   }
 
   openDirF = SD.open((char *)&inbuf[1]);
@@ -429,12 +431,12 @@ void HostCM::protoNextDirFile()
     return;
   }
 
-  lastOutSize = 0;
-  lastOutBuf[lastOutSize++] = opt.response;
+  odex = 0;
+  outbuf[odex++] = opt.response;
   
   File nf = openDirF.openNextFile();
   if(nf == 0)
-    lastOutBuf[lastOutSize++] = 'e';
+    outbuf[odex++] = 'e';
   else 
   {
     char *fname = (char *)nf.name();
@@ -445,28 +447,28 @@ void HostCM::protoNextDirFile()
       fname = paren + 1;
       reclen = atoi((char *)&fname[3]);
     }
-    lastOutBuf[lastOutSize++] = 'b';
+    outbuf[odex++] = 'b';
 
     if(reclen) 
-      lastOutSize += snprintf((char *)&lastOutBuf[lastOutSize], HCM_BUFSIZ - lastOutSize, "%-20s  %8llu (%d)", 
+      odex += snprintf((char *)&outbuf[odex], HCM_BUFSIZ - odex, "%-20s  %8llu (%d)", 
           fname, (unsigned long long)nf.size(), reclen);
     else 
     {
       if(nf.isDirectory()) 
-        lastOutSize += snprintf((char *)&lastOutBuf[lastOutSize], HCM_BUFSIZ - lastOutSize, "%s/", fname);
+        odex += snprintf((char *)&outbuf[odex], HCM_BUFSIZ - odex, "%s/", fname);
       else 
       {
-        lastOutSize += snprintf((char *)&lastOutBuf[lastOutSize], HCM_BUFSIZ - lastOutSize, "%-20s  %8llu", 
+        odex += snprintf((char *)&outbuf[odex], HCM_BUFSIZ - odex, "%-20s  %8llu", 
             fname, (unsigned long long)nf.size());
       }
     }
   }
   nf.close();
-  lastOutBuf[lastOutSize] = checksum(&(lastOutBuf[1]), lastOutSize - 1);
-  lastOutSize++;
-  lastOutBuf[lastOutSize++] = opt.lineend;
-  lastOutBuf[lastOutSize++] = opt.prompt;
-  hserial.write(lastOutBuf, lastOutSize);
+  outbuf[odex] = checksum(&(outbuf[1]), odex - 1);
+  odex++;
+  outbuf[odex++] = opt.lineend;
+  outbuf[odex++] = opt.prompt;
+  hserial.write(outbuf, odex);
   hserial.flush();
 }
 
@@ -478,9 +480,9 @@ void HostCM::protoSetRenameFile()
     return;
   }
 
-  if (pkti > 2) 
+  if (idex > 2) 
   {
-    inbuf[pkti - 1] = 0;
+    inbuf[idex - 1] = 0;
     renameF = SD.open((char *)&inbuf[1]);
   } 
   else 
@@ -499,8 +501,8 @@ void HostCM::protoFinRenameFile()
     return;
   }
 
-  if (pkti > 2) 
-    inbuf[pkti - 1] = 0;
+  if (idex > 2) 
+    inbuf[idex - 1] = 0;
   else 
   {
     sendError("error: missing filename");
@@ -521,8 +523,8 @@ void HostCM::protoFinRenameFile()
 
 void HostCM::protoEraseFile()
 {
-  if (pkti > 2) 
-    inbuf[pkti - 1] = 0;
+  if (idex > 2) 
+    inbuf[idex - 1] = 0;
   else 
   {
     sendError("error: missing filename");
@@ -550,7 +552,7 @@ void HostCM::protoSeekFile()
     return;
   }
   
-  inbuf[pkti - 1] = 0;
+  inbuf[idex - 1] = 0;
 
   unsigned long offset = atoi((char *)&inbuf[2]) * ((h->reclen == 0)? 1 : h->reclen);
   if(!h->f.seek(offset))
@@ -572,41 +574,41 @@ char HostCM::checksum(uint8_t *b, int n)
 
 void HostCM::sendError(const char* format, ...)
 {
-  lastOutSize = 0;
-  lastOutBuf[lastOutSize++] = opt.response;
-  lastOutBuf[lastOutSize++] = 'x';
+  odex = 0;
+  outbuf[odex++] = opt.response;
+  outbuf[odex++] = 'x';
   va_list arglist;
   va_start(arglist, format);
-  lastOutSize += vsnprintf((char *)&lastOutBuf[2], 80,  format, arglist); 
+  odex += vsnprintf((char *)&outbuf[2], 80,  format, arglist); 
   va_end(arglist);
-  lastOutBuf[lastOutSize] = checksum(&lastOutBuf[1], lastOutSize - 1);
-  lastOutSize++;
-  lastOutBuf[lastOutSize++] = opt.lineend;
-  lastOutBuf[lastOutSize++] = opt.prompt;
-  hserial.write(lastOutBuf, lastOutSize);
+  outbuf[odex] = checksum(&outbuf[1], odex - 1);
+  odex++;
+  outbuf[odex++] = opt.lineend;
+  outbuf[odex++] = opt.prompt;
+  hserial.write(outbuf, odex);
   hserial.flush();
 }
 
 void HostCM::sendNAK()
 {
-  lastOutSize = 0;
-  lastOutBuf[lastOutSize++] = opt.response;
-  lastOutBuf[lastOutSize++] = 'N';
-  lastOutBuf[lastOutSize++] = opt.lineend;
-  lastOutBuf[lastOutSize++] = opt.prompt;
-  hserial.write(lastOutBuf, lastOutSize);
+  odex = 0;
+  outbuf[odex++] = opt.response;
+  outbuf[odex++] = 'N';
+  outbuf[odex++] = opt.lineend;
+  outbuf[odex++] = opt.prompt;
+  hserial.write(outbuf, odex);
   hserial.flush();
 }
 
 void HostCM::sendACK()
 {
-  lastOutSize = 0;
-  lastOutBuf[lastOutSize++] = opt.response;
-  lastOutBuf[lastOutSize++] = 'b';
-  lastOutBuf[lastOutSize++] = checksum(&(lastOutBuf[1]), 1);
-  lastOutBuf[lastOutSize++] = opt.lineend;
-  lastOutBuf[lastOutSize++] = opt.prompt;
-  hserial.write(lastOutBuf, lastOutSize);
+  odex = 0;
+  outbuf[odex++] = opt.response;
+  outbuf[odex++] = 'b';
+  outbuf[odex++] = checksum(&(outbuf[1]), 1);
+  outbuf[odex++] = opt.lineend;
+  outbuf[odex++] = opt.prompt;
+  hserial.write(outbuf, odex);
   hserial.flush();
 }
 
@@ -620,29 +622,28 @@ void HostCM::receiveLoop()
   while(hserial.available() > 0)
   {
     c=hserial.read();
-    logSerialIn(c);
-    if(pkti<HCM_BUFSIZ)
-      inbuf[pkti++]=c;
+    if(idex<HCM_BUFSIZ)
+      inbuf[idex++]=c;
     checkDoPlusPlusPlus(c, tm);
     if(checkPlusPlusPlusExpire(tm))
       return;
     yield();
     if(c==opt.lineend)
     {
-      inbuf[pkti-1]=c;
+      inbuf[idex-1]=c;
       break;
     }
   }
   
-  if((pkti==0)
-  ||(inbuf[pkti-1]!=opt.lineend))
+  if((idex==0)
+  ||(inbuf[idex-1]!=opt.lineend))
   {
     serialOutDeque();
     return;
   }
   
-  pkti--;
-  if((pkti>1)&&(inbuf[pkti-1]!=checksum(inbuf,pkti-1)))
+  idex--;
+  if((idex>1)&&(inbuf[idex-1]!=checksum(inbuf,idex-1)))
     sendNAK();
   else
   {
@@ -650,7 +651,7 @@ void HostCM::receiveLoop()
     switch(inbuf[0])
     {
       case 'N':
-        hserial.write(lastOutBuf, lastOutSize);
+        hserial.write(outbuf, odex);
         hserial.flush();
         break;
       case 'v': sendACK(); break;
@@ -671,7 +672,7 @@ void HostCM::receiveLoop()
         break;
     }
   }
-  pkti=0; // we are ready for the next packet!
+  idex=0; // we are ready for the next packet!
   serialOutDeque();
 }
 #endif
