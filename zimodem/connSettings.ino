@@ -77,6 +77,20 @@ String ConnSettings::getFlagString()
   return lastOptions;
 }
 
+void ConnSettings::setFlag(ConnFlag flagMask, boolean newVal)
+{
+  switch(flagMask)
+  {
+    case FLAG_DISCONNECT_ON_EXIT: break;
+    case FLAG_PETSCII: petscii = newVal; break;
+    case FLAG_TELNET: telnet = newVal; break;
+    case FLAG_ECHO: echo = newVal; break;
+    case FLAG_XONXOFF: xonxoff = newVal; break;
+    case FLAG_SECURE: secure = newVal; break;
+    case FLAG_RTSCTS: rtscts = newVal; break;
+  }
+}
+
 void ConnSettings::IPtoStr(IPAddress *ip, String &str)
 {
   if(ip == null)

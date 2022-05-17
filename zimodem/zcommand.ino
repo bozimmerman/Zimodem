@@ -78,6 +78,7 @@ void ZCommand::setConfigDefaults()
 {
   doEcho=true;
   autoStreamMode=false;
+  telnetSupport=true;
   preserveListeners=false;
   ringCounter=1;
   serial.setFlowControlType(DEFAULT_FCT);
@@ -315,7 +316,7 @@ void ZCommand::reSaveConfig()
            "%s,%s,%s,"
            "%d,%s,%s,"
            "%s,%s,%s,%s,"
-           "%s", 
+           "%s,%d",
             wifiSSIhex.c_str(), wifiPWhex.c_str(), baudRate, eoln,
             serial.getFlowControlType(), doEcho, suppressResponses, numericResponses,
             longResponses, serial.isPetsciiMode(), dcdMode, serialConfig, ctsMode,
@@ -325,7 +326,7 @@ void ZCommand::reSaveConfig()
             zclockFormathex.c_str(),zclockHosthex.c_str(),hostnamehex.c_str(),
             printMode.getTimeoutDelayMs(),printSpechex.c_str(),termTypehex.c_str(),
             staticIPstr.c_str(),staticDNSstr.c_str(),staticGWstr.c_str(),staticSNstr.c_str(),
-            busyMsghex.c_str()
+            busyMsghex.c_str(),telnetSupport
             );
   f.close();
   delay(500);
@@ -440,6 +441,8 @@ void ZCommand::setOptionsFromSavedConfig(String configArguments[])
     ringCounter = atoi(configArguments[CFG_S0_RINGS].c_str());
   if(configArguments[CFG_S41_STREAM].length()>0)
     autoStreamMode = atoi(configArguments[CFG_S41_STREAM].c_str());
+  if(configArguments[CFG_S62_TELNET].length()>0)
+    telnetSupport = atoi(configArguments[CFG_S62_TELNET].c_str());
   if(configArguments[CFG_S60_LISTEN].length()>0)
   {
     preserveListeners = atoi(configArguments[CFG_S60_LISTEN].c_str());
@@ -707,6 +710,8 @@ ZResult ZCommand::doInfoCommand(int vval, uint8_t *vbuf, int vlen, bool isNumber
       serial.printf("S57=%d",pinDSR);
     if(preserveListeners ||(showAll))
       serial.prints(preserveListeners ? "S60=1" : "S60=0");
+    if(!telnetSupport ||(showAll))
+      serial.prints(telnetSupport ? "S62=1" : "S62=0");
     if((serial.isPetsciiMode())||(showAll))
       serial.prints(serial.isPetsciiMode() ? "&P1" : "&P0");
     if((logFileOpen) || showAll)
@@ -1546,6 +1551,8 @@ ZResult ZCommand::doDialStreamCommand(unsigned long vval, uint8_t *vbuf, int vle
   else
   {
     ConnSettings flags(dmodifiers);
+    if(!telnetSupport)
+      flags.setFlag(FLAG_TELNET, false);
     int flagsBitmap = flags.getBitmap(serial.getFlowControlType());
     char *colon=strstr((char *)vbuf,":");
     int port=23;
@@ -2446,6 +2453,8 @@ ZResult ZCommand::doSerialCommand()
                else
                  result=ZERROR;
                  break;
+             case 62:
+               telnetSupport = (sval > 0);
              default:
                 break;
               }

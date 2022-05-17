@@ -72,7 +72,8 @@ enum ConfigOptions
   CFG_STATIC_GW=35,
   CFG_STATIC_SN=36,
   CFG_BUSYMSG=37,
-  CFG_LAST=37
+  CFG_S62_TELNET=38,
+  CFG_LAST=38
 };
 
 const ConfigOptions v2HexCfgs[] = { CFG_WIFISSI, CFG_WIFIPW, CFG_TIMEZONE, CFG_TIMEFMT, CFG_TIMEURL,
@@ -110,6 +111,7 @@ class ZCommand : public ZMode
     int lastServerClientId = 0;
     WiFiClientNode *current = null;
     bool autoStreamMode=false;
+    bool telnetSupport=true;
     bool preserveListeners=false;
     unsigned long lastNonPlusTimeMs = 0;
     unsigned long currentExpiresTimeMs = 0;

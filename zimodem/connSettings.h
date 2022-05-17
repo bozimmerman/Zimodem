@@ -39,6 +39,7 @@ class ConnSettings
     ConnSettings(String modifiers);
     int getBitmap();
     int getBitmap(FlowControlType forceCheck);
+    void setFlag(ConnFlag flagMask, boolean newVal);
     String getFlagString();
 
     static void IPtoStr(IPAddress *ip, String &str);
