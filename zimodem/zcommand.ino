@@ -513,7 +513,6 @@ void ZCommand::parseConfigOptions(String configArguments[])
 
 void ZCommand::loadConfig()
 {
-  wifiConnected=false;
   if(WiFi.status() == WL_CONNECTED)
     WiFi.disconnect();
   setConfigDefaults();
@@ -541,7 +540,8 @@ void ZCommand::loadConfig()
   {
     debugPrintf("Connecting to %s\n",wifiSSI.c_str());
     connectWifi(wifiSSI.c_str(),wifiPW.c_str(),staticIP,staticDNS,staticGW,staticSN);
-    debugPrintf("Done connecting to %s\n",wifiSSI.c_str());
+    nextReconnectDelay = DEFAULT_RECONNECT_DELAY;
+    debugPrintf("Done attempting to connect to %s\n",wifiSSI.c_str());
   }
   debugPrintf("Reset start.\n");
   doResetCommand();
@@ -897,7 +897,7 @@ ZResult ZCommand::doConnectCommand(int vval, uint8_t *vbuf, int vlen, bool isNum
         return ZERROR;
       debugPrintf("Connecting to %s\n",wifiSSI.c_str());
       bool doconn = connectWifi(wifiSSI.c_str(),wifiPW.c_str(),staticIP,staticDNS,staticGW,staticSN);
-      debugPrintf("Done connecting to %s\n",wifiSSI.c_str());
+      debugPrintf("Done attempting connect to %s\n",wifiSSI.c_str());
       return doconn ? ZOK : ZERROR;
     }
     if(vval == 0)
@@ -2586,7 +2586,6 @@ ZResult ZCommand::doSerialCommand()
             if(WiFi.status() == WL_CONNECTED)
               WiFi.disconnect();
             wifiSSI="";
-            wifiConnected=false;
             delay(500);
             zclock.reset();
             result=doResetCommand();
@@ -3042,7 +3041,7 @@ void ZCommand::showInitMessage()
   serial.prints(commandMode.EOLN);
   if(wifiSSI.length()>0)
   {
-    if(wifiConnected)
+    if(WiFi.status() == WL_CONNECTED)
       serial.prints(("CONNECTED TO " + wifiSSI + " (" + WiFi.localIP().toString().c_str() + ")").c_str());
     else
       serial.prints(("ERROR ON " + wifiSSI).c_str());
