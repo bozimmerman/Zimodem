@@ -168,6 +168,9 @@ class ZMode
 #  include "proto_kermit.h"
 #  include "zbrowser.h"
 #endif
+#  ifdef INCLUDE_SLIP
+#    include "zslipmode.h"
+#  endif
 
 static WiFiClientNode *conns = null;
 static WiFiServerNode *servs = null;
@@ -189,6 +192,9 @@ static RealTimeClock zclock(0);
      static ZHostCMMode hostcmMode;
 #  endif
    static ZBrowser browseMode;
+#endif
+#ifdef INCLUDE_SLIP
+   static ZSLIPMode slipMode;
 #endif
 
 enum BaudState
