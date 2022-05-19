@@ -326,6 +326,12 @@ size_t WiFiClientNode::write(const uint8_t *buf, size_t size)
   return written;
 }
 
+void WiFiClientNode::print(String s)
+{
+  int size=s.length();
+  write((const uint8_t *)s.c_str(),size);
+}
+
 String WiFiClientNode::readLine(unsigned int timeout)
 {
   unsigned long now=millis();
