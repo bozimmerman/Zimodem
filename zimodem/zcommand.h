@@ -93,6 +93,9 @@ class ZCommand : public ZMode
   friend class WiFiClientNode;
   friend class ZConfig;
   friend class ZBrowser;
+#ifdef INCLUDE_ZIRCC
+  friend class ZIRCMode;
+#endif
 
   private:
     char CRLF[4];

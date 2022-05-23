@@ -18,6 +18,8 @@
 const char compile_date[] = __DATE__ " " __TIME__;
 #define DEFAULT_NO_DELAY true
 #define null 0
+//#define INCLUDE_IRCC true
+//#define INCLUDE_SLIP true
 //# define USE_DEVUPDATER true // only enable this if your name is Bo
 
 #ifdef ARDUINO_ESP32_DEV
@@ -155,8 +157,8 @@ class ZMode
 #include "zstream.h"
 #include "proto_http.h"
 #include "proto_ftp.h"
-#include "zcommand.h"
 #include "zconfigmode.h"
+#include "zcommand.h"
 #include "zprint.h"
 
 #ifdef INCLUDE_SD_SHELL
@@ -168,9 +170,12 @@ class ZMode
 #  include "proto_kermit.h"
 #  include "zbrowser.h"
 #endif
-#  ifdef INCLUDE_SLIP
-#    include "zslipmode.h"
-#  endif
+#ifdef INCLUDE_SLIP
+#  include "zslipmode.h"
+#endif
+#ifdef INCLUDE_IRCC
+#  include "zircmode.h"
+#endif
 
 static WiFiClientNode *conns = null;
 static WiFiServerNode *servs = null;
@@ -195,6 +200,9 @@ static RealTimeClock zclock(0);
 #endif
 #ifdef INCLUDE_SLIP
    static ZSLIPMode slipMode;
+#endif
+#ifdef INCLUDE_IRCC
+   static ZIRCMode ircMode;
 #endif
 
 enum BaudState

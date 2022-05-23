@@ -6,9 +6,6 @@
  */
 
 #ifdef INCLUDE_IRCC
-#ifndef ZIMODEM_ZIRCMODE_H_
-#define ZIMODEM_ZIRCMODE_H_
-
 class ZIRCMode: public ZMode
 {
 private:
@@ -24,6 +21,8 @@ private:
   String lastAddress;
   String lastOptions;
   String lastNotes;
+  String channelName;
+  bool joinReceived;
   enum ZIRCMenu
   {
     ZIRCMENU_MAIN=0,
@@ -51,5 +50,4 @@ public:
   void loop();
 };
 
-#endif /* ZIMODEM_ZIRCMODE_H_ */
 #endif /* INCLUDE_IRCC */

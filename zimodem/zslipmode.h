@@ -6,8 +6,6 @@
  */
 
 #ifdef INCLUDE_SLIP
-#ifndef ZIMODEM_ZSLIPMODE_H_
-#define ZIMODEM_ZSLIPMODE_H_
 
 class ZSLIPMode: public ZMode
 {
@@ -20,5 +18,4 @@ public:
   void loop();
 };
 
-#endif /* ZIMODEM_ZSLIPMODE_H_ */
 #endif /* INCLUDE_SLIP_ */

@@ -5,8 +5,6 @@
  *      Author: Bo Zimmerman
  */
 #ifdef INCLUDE_IRCC
-
-#include "zircmode.h"
 //https://github.com/bl4de/irc-client/blob/master/irc_client.py
 void ZIRCMode::switchBackToCommandMode()
 {
@@ -28,10 +26,12 @@ void ZIRCMode::switchTo()
   showMenu=true;
   EOLN=commandMode.EOLN;
   EOLNC=EOLN.c_str();
-  currState=ZCFGIRC_MAIN;
+  currState=ZIRCMENU_MAIN;
   lastNumber=0;
   lastAddress="";
   lastOptions="";
+  channelName="";
+  joinReceived=false;
   if(nick.length()==0)
   {
     randomSeed(millis());
@@ -45,14 +45,11 @@ void ZIRCMode::doIRCCommand()
 {
   String cmd = commandMode.getNextSerialCommand();
   char c='?';
-  for(int i=0;i<cmd.length();i++)
-  {
-    if(cmd[i]>32)
-    {
-      c=lc(cmd[i]);
-      break;
-    }
-  }
+  while((cmd.length()>0)
+  &&(cmd[0]==32)||(cmd[0]==7))
+    cmd = cmd.substring(1);
+  if(cmd.length()>0)
+    c=lc(cmd[0]);
   switch(currState)
   {
     case ZIRCMENU_MAIN:
@@ -82,7 +79,8 @@ void ZIRCMode::doIRCCommand()
         else
         {
           serial.printf("%s%sConnecting to %s...%s%s",EOLNC,EOLNC,pb->address,EOLNC,EOLNC);
-          char vbuf[pb->address.length()+1];
+          String address = pb->address;
+          char vbuf[address.length()+1];
           strcpy(vbuf,pb->address);
           char *colon=strstr((char *)vbuf,":");
           int port=6666;
@@ -93,7 +91,7 @@ void ZIRCMode::doIRCCommand()
           }
           int flagsBitmap=0;
           {
-            ConnSettings flags(dmodifiers);
+            ConnSettings flags("");
             flagsBitmap = flags.getBitmap(serial.getFlowControlType());
           }
           logPrintfln("Connnecting: %s %d %d",(char *)vbuf,port,flagsBitmap);
@@ -247,6 +245,62 @@ void ZIRCMode::doIRCCommand()
       showMenu=true; // re-show the menu
       break;
     }
+    case ZIRCMENU_COMMAND:
+    {
+      if(c=='/')
+      {
+        String lccmd = cmd;
+        lccmd.toLowerCase();
+        if(lccmd.startsWith("/join "))
+        {
+          int cs=5;
+          while((cmd.length()<cs)&&((cmd[cs]==' ')||(cmd[cs]==7)))
+            cs++;
+          if(cs < cmd.length())
+          {
+            if(channelName.length()>0 && joinReceived)
+            {
+              serial.println("* Already in "+channelName+": Not Yet Implemented");
+              // we are already joined somewhere
+            }
+            else
+            {
+              channelName = cmd.substring(cs);
+              if(current != null)
+                current->print("JOIN "+channelName+"\r\n");
+            }
+          }
+          else
+            serial.println("* A channel name is required *");
+        }
+        else
+        if(lccmd.startsWith("/quit"))
+        {
+          if(current != null)
+          {
+            current->print("QUIT Good bye!\r\n");
+            current->flush();
+            delay(1000);
+            current->markForDisconnect();
+            delete current;
+            current = null;
+          }
+          switchBackToCommandMode();
+        }
+        else
+        {
+          serial.println("* Unknown command: "+lccmd);
+          serial.println("* Try /?");
+        }
+      }
+      else
+      if((current != null)
+      &&(joinReceived))
+      {
+        channel->print("PRIVMSG "+channelName+": "+cmd);
+      }
+      break;
+    }
   }
 }
 
@@ -309,9 +363,10 @@ void ZIRCMode::loopMenuMode()
       }
       case ZIRCMENU_COMMAND:
       {
+        showMenu=true; // keep coming back here, over and over and over
         if((current==null)||(!current->isConnected()))
         {
-          switchBackToCommandMode(true);
+          switchBackToCommandMode();
         }
         else
         {
@@ -321,7 +376,7 @@ void ZIRCMode::loopMenuMode()
               uint8_t c = current->read();
               if((c == '\r')||(c == '\n')||(buf.length()>510))
               {
-                  serial.prints(buf);
+                  //serial.prints(buf);
                   if((c=='\r')||(c=='\n'))
                   {
                     cmd=buf;
@@ -341,7 +396,10 @@ void ZIRCMode::loopMenuMode()
                 case ZIRCSTATE_WAIT:
                 {
                   if(cmd.indexOf("376")>=0)
+                  {
                       ircState = ZIRCSTATE_COMMAND;
+                      //TODO: say something?
+                  }
                   else
                   if(cmd.indexOf("No Ident response")>=0)
                   {
@@ -370,12 +428,31 @@ void ZIRCMode::loopMenuMode()
                   {
                       int x = cmd.indexOf(':');
                       if(x>0)
-                        current->print("PING "+cmd.substring(x+1)+"\r\n");
+                        current->print("PONG "+cmd.substring(x+1)+"\r\n");
                   }
                   break;
                 }
                 case ZIRCSTATE_COMMAND:
+                {
+                  if((!joinReceived) && (channelName.length()>0) && (cmd.indexOf("366")>=0))
+                  {
+                    joinReceived=true;
+                    //TODO: say something?
+                  }
+                  int x0 = cmd.indexOf(":");
+                  int x1 = (x0>=0)?cmd.indexOf(":", x0+1):-1;
+                  if(x1>0)
+                  {
+                    String msg2=cmd.substring(x1+1);
+                    msg2.trim();
+                    String msg1=cmd.substring(x0+1,x1);
+                    msg1.trim();
+                    int x2=msg1.indexOf("!");
+                    if(x2>=0)
+                      serial.print("< "+msg1.substring(0,x2)+"> "+msg2);
+                  }
                   break;
+                }
                 default:
                   break;
               }
