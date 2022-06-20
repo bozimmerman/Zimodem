@@ -67,6 +67,12 @@ void ZIRCMode::doIRCCommand()
         showMenu=true;
       }
       else
+      if(c=='n') // change nick
+      {
+        currState=ZIRCMENU_NICK;
+        showMenu=true;
+      }
+      else
       if(c>47 && c<58) // its a phonebook entry!
       {
         PhoneBookEntry *pb=PhoneBookEntry::findPhonebookEntry(cmd);
@@ -99,16 +105,20 @@ void ZIRCMode::doIRCCommand()
           if(!c->isConnected())
           {
             logPrintln("Connnect: FAIL");
+            serial.prints("Connection failed.\n\r"); //TODO: maybe get rid of?
             currState=ZIRCMENU_MAIN;
             showMenu=true;
           }
           else
           {
             logPrintfln("Connnect: SUCCESS: %d",c->id);
+            serial.prints("Connected.\n\r"); //TODO: maybe get rid of?
             current=c;
             buf = "";
             currState=ZIRCMENU_COMMAND;
             ircState=ZIRCSTATE_WAIT;
+            timeout=millis()+6000;
+            showMenu=true; // only wait to get it to act
           }
         }
       }
@@ -297,7 +307,7 @@ void ZIRCMode::doIRCCommand()
       if((current != null)
       &&(joinReceived))
       {
-        channel->print("PRIVMSG "+channelName+": "+cmd);
+        current->print("PRIVMSG "+channelName+": "+cmd);
       }
       break;
     }
@@ -313,8 +323,10 @@ void ZIRCMode::loopMenuMode()
     {
       case ZIRCMENU_MAIN:
       {
+        if(nick.length()==0)
+          nick = hostname;
         serial.printf("%sInternet Relay Chat (IRC) Main Menu%s",EOLNC,EOLNC);
-        serial.printf("[NICK] name: %s%s",hostname.c_str(),EOLNC);
+        serial.printf("[NICK] name: %s%s",nick.c_str(),EOLNC);
         serial.printf("[ADD] new phonebook entry%s",EOLNC);
         PhoneBookEntry *p = phonebook;
         if(p != null)
@@ -381,16 +393,23 @@ void ZIRCMode::loopMenuMode()
                   {
                     cmd=buf;
                     buf="";
-                    serial.prints(EOLNC);
+                    //serial.prints(EOLNC);
                     break;
                   }
                   buf="";
               }
               else
-                  buf += c;
+                  buf += (char)c;
             }
             if(cmd.length()>0)
             {
+              if(cmd.indexOf("PING :")==0)
+              {
+                  int x = cmd.indexOf(':');
+                  if(x>0)
+                    current->print("PONG "+cmd.substring(x+1)+"\r\n");
+              }
+              else
               switch(ircState)
               {
                 case ZIRCSTATE_WAIT:
@@ -404,7 +423,7 @@ void ZIRCMode::loopMenuMode()
                   if(cmd.indexOf("No Ident response")>=0)
                   {
                       current->print("NICK "+nick+"\r\n");
-                      current->print("USER "+nick+" * * :"+nick+"\r\n");
+                      current->print("USER guest 0 * :"+nick+"\r\n");
                   }
                   else
                   if(cmd.indexOf("433")>=0)
@@ -420,24 +439,31 @@ void ZIRCMode::loopMenuMode()
                       {
                         nick = "_" + nick;
                         current->print("NICK "+nick+"\r\n");
-                        current->print("USER "+nick+" * * :"+nick+"\r\n");
+                        current->print("USER guest 0 * :"+nick+"\r\n");
+                        // above was user nick * * : nick
                       }
                   }
                   else
-                  if(cmd.indexOf("PING")>=0)
+                  if(cmd.indexOf(":")==0)
                   {
-                      int x = cmd.indexOf(':');
-                      if(x>0)
-                        current->print("PONG "+cmd.substring(x+1)+"\r\n");
+                    int x = cmd.indexOf(":",1);
+                    if(x>1)
+                    {
+                      serial.prints(cmd.substring(x+1));
+                      serial.prints(EOLNC);
+                    }
                   }
                   break;
                 }
                 case ZIRCSTATE_COMMAND:
                 {
-                  if((!joinReceived) && (channelName.length()>0) && (cmd.indexOf("366")>=0))
+                  if((!joinReceived) 
+                  && (channelName.length()>0) 
+                  && (cmd.indexOf("366")>=0))
                   {
                     joinReceived=true;
-                    //TODO: say something?
+                    serial.prints("Channel joined.  Enter a message to send, or /quit.");
+                    serial.prints(EOLNC);
                   }
                   int x0 = cmd.indexOf(":");
                   int x1 = (x0>=0)?cmd.indexOf(":", x0+1):-1;
@@ -450,11 +476,26 @@ void ZIRCMode::loopMenuMode()
                     int x2=msg1.indexOf("!");
                     if(x2>=0)
                       serial.print("< "+msg1.substring(0,x2)+"> "+msg2);
+                    else
+                      serial.prints(msg2);
+                    serial.prints(EOLNC);
                   }
                   break;
                 }
                 default:
+                  serial.prints("unknown state\n\r");
+                  switchBackToCommandMode();
                   break;
+              }
+            }
+            else
+            if(ircState == ZIRCSTATE_WAIT)
+            {
+              if(millis()>timeout)
+              {
+                timeout = millis()+60000;
+                current->print("NICK "+nick+"\r\n");
+                current->print("USER guest 0 * :"+nick+"\r\n");
               }
             }
         }

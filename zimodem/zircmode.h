@@ -16,6 +16,7 @@ private:
   const char *EOLNC;
   WiFiClientNode *current = null;
   unsigned long lastNumber;
+  unsigned long timeout=0;
   String buf;
   String nick;
   String lastAddress;

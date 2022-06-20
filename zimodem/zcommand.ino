@@ -2495,6 +2495,14 @@ ZResult ZCommand::doSerialCommand()
         }
 #  endif
 #endif
+#  ifdef INCLUDE_IRCC
+        else
+        if((strstr((const char *)vbuf,"irc")==(char *)vbuf))
+        {
+            result = ZOK;
+            ircMode.switchTo();
+        }
+#  endif
         else
         if((strstr((const char *)vbuf,"print")==(char *)vbuf)||(strstr((const char *)vbuf,"PRINT")==(char *)vbuf))
             result = printMode.switchTo((char *)vbuf+5,vlen-5,serial.isPetsciiMode());
