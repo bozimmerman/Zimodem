@@ -14,6 +14,69 @@
    limitations under the License.
 */
 #ifdef INCLUDE_SD_SHELL
+
+FTPHost::~FTPHost()
+{
+  freeCharArray(&hostIp);
+  freeCharArray(&username);
+  freeCharArray(&pw);
+  freeCharArray(&path);
+}
+
+bool FTPHost::doGet(FS *fs, const char *remotepath, const char *localpath)
+{
+  return doFTPGet(fs,hostIp,port,localpath,remotepath,username,pw,doSSL);
+}
+
+bool FTPHost::doPut(File &f, const char *remotepath)
+{
+  return doFTPPut(f,hostIp,port,remotepath,username,pw,doSSL);
+}
+
+bool FTPHost::doLS(ZSerial *serial, const char *remotepath)
+{
+  return doFTPLS(serial,hostIp,port,remotepath,username,pw,doSSL);
+}
+
+bool FTPHost::parseUrl(uint8_t *vbuf, char **req)
+{
+  char *newHostIp;
+  int newPort;
+  bool newDoSSL;
+  char *newUsername;
+  char *newPassword;
+  if(parseFTPUrl(vbuf,&newHostIp,req,&newPort,&newDoSSL,&newUsername,&newPassword))
+  {
+    setCharArray(&hostIp,newHostIp);
+    port = newPort;
+    doSSL = newDoSSL;
+    setCharArray(&username,newUsername);
+    setCharArray(&pw,newPassword);
+    freeCharArray(&path);
+    return true;
+  }
+  return false;
+}
+
+FTPHost *makeHost(bool isUrl, FTPHost *host, uint8_t *buf, char **req)
+{
+  if(isUrl)
+  {
+    if(host != 0)
+      delete host;
+    host = new FTPHost();
+    if(!(host->parseUrl(buf,req)))
+    {
+      delete host;
+      host=0;
+      *req=0;
+    }
+  }
+  else
+    *req=(char *)buf;
+  return host;
+}
+
 bool parseFTPUrl(uint8_t *vbuf, char **hostIp, char **req, int *port, bool *doSSL, char **username, char **pw)
 {
   *doSSL = false;
@@ -140,7 +203,7 @@ void readBytesToSilence(WiFiClient *cc)
   }
 }
 
-bool doFTPGet(FS *fs, const char *hostIp, int port, const char *filename, const char *req, const char *username, const char *pw, const bool doSSL)
+bool doFTPGet(FS *fs, const char *hostIp, int port, const char *localpath, const char *remotepath, const char *username, const char *pw, const bool doSSL)
 {
   WiFiClient *cc = createWiFiClient(doSSL);
   if(WiFi.status() != WL_CONNECTED)
@@ -205,11 +268,11 @@ bool doFTPGet(FS *fs, const char *hostIp, int port, const char *filename, const 
     return doFTPQuit(&cc);
   }
   c->setNoDelay(DEFAULT_NO_DELAY);
-  cc->printf("RETR %s\r\n",req);
+  cc->printf("RETR %s\r\n",remotepath);
   respCode = getFTPResponseCode(cc, NULL);
   if((respCode < 0)||(respCode > 400))
     return doFTPQuit(&cc);
-  File f = fs->open(filename, "w");
+  File f = fs->open(localpath, "w");
   unsigned long now=millis();
   while((c->connected()||(c->available()>0)) 
   && ((millis()-now) < 30000)) // loop for data, with nice long timeout
@@ -232,7 +295,7 @@ bool doFTPGet(FS *fs, const char *hostIp, int port, const char *filename, const 
   return true;
 }
 
-bool doFTPPut(File &f, const char *hostIp, int port, const char *req, const char *username, const char *pw, const bool doSSL)
+bool doFTPPut(File &f, const char *hostIp, int port, const char *remotepath, const char *username, const char *pw, const bool doSSL)
 {
   WiFiClient *cc = createWiFiClient(doSSL);
   if(WiFi.status() != WL_CONNECTED)
@@ -299,8 +362,8 @@ bool doFTPPut(File &f, const char *hostIp, int port, const char *req, const char
     return doFTPQuit(&cc);
   }
   c->setNoDelay(DEFAULT_NO_DELAY);
-  debugPrintf(" STOR %s\r\n",req);
-  cc->printf("STOR %s\r\n",req);
+  debugPrintf(" STOR %s\r\n",remotepath);
+  cc->printf("STOR %s\r\n",remotepath);
   respCode = getFTPResponseCode(cc, NULL);
   if((respCode < 0)||(respCode > 400))
     return doFTPQuit(&cc);
@@ -327,7 +390,7 @@ bool doFTPPut(File &f, const char *hostIp, int port, const char *req, const char
   return true;
 }
 
-bool doFTPLS(ZSerial *serial, const char *hostIp, int port, const char *req, const char *username, const char *pw, const bool doSSL)
+bool doFTPLS(ZSerial *serial, const char *hostIp, int port, const char *remotepath, const char *username, const char *pw, const bool doSSL)
 {
   WiFiClient *cc = createWiFiClient(doSSL);
   if(WiFi.status() != WL_CONNECTED)
@@ -355,9 +418,9 @@ bool doFTPLS(ZSerial *serial, const char *hostIp, int port, const char *req, con
   respCode = getFTPResponseCode(cc, NULL);
   if(respCode < 0)
     return doFTPQuit(&cc);
-  if((req != NULL)&& (*req != NULL))
+  if((remotepath != NULL)&& (*remotepath != NULL))
   {
-    cc->printf("CWD %s\r\n",req);
+    cc->printf("CWD %s\r\n",remotepath);
     respCode = getFTPResponseCode(cc, NULL);
     if((respCode < 0)||(respCode > 400))
       return doFTPQuit(&cc);
@@ -400,7 +463,7 @@ bool doFTPLS(ZSerial *serial, const char *hostIp, int port, const char *req, con
     return doFTPQuit(&cc);
   }
   c->setNoDelay(DEFAULT_NO_DELAY);
-  cc->printf("LIST\r\n",req);
+  cc->printf("LIST\r\n",remotepath);
   respCode = getFTPResponseCode(cc, NULL);
   if((respCode < 0)||(respCode > 400))
     return doFTPQuit(&cc);

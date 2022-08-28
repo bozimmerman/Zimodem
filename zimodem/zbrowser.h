@@ -41,6 +41,7 @@ class ZBrowser : public ZMode
     void showDirectory(String path, String mask, String prefix, bool recurse);
     void copyFiles(String source, String mask, String target, bool recurse, bool overwrite);
     
+    FTPHost *ftpHost = 0;
     bool showMenu;
     bool savedEcho;
     String path="/";
@@ -50,6 +51,7 @@ class ZBrowser : public ZMode
     String lastString;
 
   public:
+    ~ZBrowser();
     void switchTo();
     void serialIncoming();
     void loop();

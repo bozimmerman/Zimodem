@@ -25,6 +25,15 @@ static void initSDShell()
   }
 }
 
+ZBrowser::~ZBrowser()
+{
+  if(ftpHost != 0)
+  {
+    delete ftpHost;
+    ftpHost = 0;
+  }
+}
+
 void ZBrowser::switchTo()
 {
   currMode=&browseMode;
@@ -968,17 +977,11 @@ void ZBrowser::doModeCommand(String &line)
         String p2=makePath(cleanRemainArg(line));
         debugPrintf("fget:%s -> %s\n",p1.c_str(), p2.c_str());
         char *tmp=0;
-        if((p1.length()<11)
-        || ((strcmp(p1.substring(0,6).c_str(),"ftp://") != 0)
-           && (strcmp(p1.substring(0,7).c_str(),"ftps://") != 0)))
-          serial.printf("Not a url: %s%s",p1.c_str(),EOLNC);
-        /*
-        else
-        if(((tmp=strchr(p1.c_str(),'@'))==0)
-        ||(strchr(p1.c_str()+6,':')>tmp)
-        ||(strchr(p1.c_str()+6,':')==0))
-            serial.printf("Missing username:password@ syntax: %s%s",p1.c_str(),EOLNC);
-        */
+        bool isUrl = ((p1.length()>=11)
+                      && ((strcmp(p1.substring(0,6).c_str(),"ftp://") == 0)
+                         || (strcmp(p1.substring(0,7).c_str(),"ftps://") == 0)));
+        if((ftpHost==0)&&(!isUrl))
+          serial.printf("Url required: %s%s",p1.c_str(),EOLNC);
         else
         if(SD.exists(p2))
           serial.printf("File exists: %s%s",p2.c_str(),EOLNC);
@@ -986,16 +989,12 @@ void ZBrowser::doModeCommand(String &line)
         {
           uint8_t buf[p1.length()+1];
           strcpy((char *)buf,p1.c_str());
-          char *hostIp;
           char *req;
-          int port;
-          bool doSSL;
-          char *username;
-          char *password;
-          if(!parseFTPUrl(buf,&hostIp,&req,&port,&doSSL,&username,&password))
+          ftpHost = makeHost(isUrl,ftpHost,buf,&req);
+          if(req == 0)
             serial.printf("Invalid url: %s",p1.c_str());
           else
-          if(!doFTPGet(&SD, hostIp, port, p2.c_str(), req, username, password, doSSL))
+          if(!ftpHost->doGet(&SD, p2.c_str(), req))
             serial.printf("Fget failed: %s to file %s",p1.c_str(),p2.c_str());
         }
       }
@@ -1006,17 +1005,11 @@ void ZBrowser::doModeCommand(String &line)
         String p2=cleanRemainArg(line);
         debugPrintf("fput:%s -> %s\n",p1.c_str(), p2.c_str());
         char *tmp=0;
-        if((p2.length()<11)
-        || ((strcmp(p2.substring(0,6).c_str(),"ftp://") != 0)
-           && (strcmp(p2.substring(0,7).c_str(),"ftps://") != 0)))
-          serial.printf("Not a url: %s%s",p2.c_str(),EOLNC);
-        /*
-        else
-        if(((tmp=strchr(p2.c_str(),'@'))==0)
-        ||(strchr(p2.c_str()+6,':')>tmp)
-        ||(strchr(p2.c_str()+6,':')==0))
-            serial.printf("Missing username:password@ syntax: %s%s",p2.c_str(),EOLNC);
-        */
+        bool isUrl = ((p2.length()>=11)
+                      && ((strcmp(p2.substring(0,6).c_str(),"ftp://") == 0)
+                         || (strcmp(p2.substring(0,7).c_str(),"ftps://") == 0)));
+        if((ftpHost==0)&&(!isUrl))
+          serial.printf("Url required: %s%s",p2.c_str(),EOLNC);
         else
         if(!SD.exists(p1))
           serial.printf("File not found: %s%s",p1.c_str(),EOLNC);
@@ -1024,21 +1017,17 @@ void ZBrowser::doModeCommand(String &line)
         {
           uint8_t buf[p2.length()+1];
           strcpy((char *)buf,p2.c_str());
-          char *hostIp;
-          char *req;
-          int port;
-          bool doSSL;
-          char *username;
-          char *password;
           File file = SD.open(p1);
-          if(!parseFTPUrl(buf,&hostIp,&req,&port,&doSSL,&username,&password))
+          char *req;
+          ftpHost = makeHost(isUrl,ftpHost,buf,&req);
+          if(req == 0)
             serial.printf("Invalid url: %s",p2.c_str());
           else
           if(!file)
             serial.printf("File not found: %s%s",p1.c_str(),EOLNC);
           else
           {
-            if(!doFTPPut(file, hostIp, port, req, username, password, doSSL))
+            if(!ftpHost->doPut(file, req))
               serial.printf("Fput failed: %s from file %s",p2.c_str(),p1.c_str());
             file.close();
           }
@@ -1050,31 +1039,21 @@ void ZBrowser::doModeCommand(String &line)
         String p1=cleanOneArg(line);
         debugPrintf("fls:%s\n",p1.c_str());
         char *tmp=0;
-        if((p1.length()<11)
-        || ((strcmp(p1.substring(0,6).c_str(),"ftp://") != 0)
-           && (strcmp(p1.substring(0,7).c_str(),"ftps://") != 0)))
-          serial.printf("Not a url: %s%s",p1.c_str(),EOLNC);
-        /*
-        else
-        if(((tmp=strchr(p1.c_str(),'@'))==0)
-        ||(strchr(p1.c_str()+6,':')>tmp)
-        ||(strchr(p1.c_str()+6,':')==0))
-            serial.printf("Missing username:password@ syntax: %s%s",p1.c_str(),EOLNC);
-        */
+        bool isUrl = ((p1.length()>=11)
+                      && ((strcmp(p1.substring(0,6).c_str(),"ftp://") == 0)
+                         || (strcmp(p1.substring(0,7).c_str(),"ftps://") == 0)));
+        if((ftpHost==0)&&(!isUrl))
+          serial.printf("Url required: %s%s",p1.c_str(),EOLNC);
         else
         {
           uint8_t buf[p1.length()+1];
           strcpy((char *)buf,p1.c_str());
-          char *hostIp;
           char *req;
-          int port;
-          bool doSSL;
-          char *username;
-          char *password;
-          if(!parseFTPUrl(buf,&hostIp,&req,&port,&doSSL,&username,&password))
+          ftpHost = makeHost(isUrl,ftpHost,buf,&req);
+          if(req == 0)
             serial.printf("Invalid url: %s",p1.c_str());
           else
-          if(!doFTPLS(&serial, hostIp, port, req, username, password, doSSL))
+          if(!ftpHost->doLS(&serial, req))
             serial.printf("Fls failed: %s",p1.c_str());
         }
       }
