@@ -187,7 +187,7 @@ ATS41=n : When n > 0, all incoming Server listener connections are immediately s
 ATS42=n : Set the CRC8 for an attached Transmit command.  e.g. ATS42=123T"[MESSAGE]" returns error unless 123 is CRC8 of "[MESSAGE]".
 ATS43=n : Sets a standby baud rate n for the next incoming or outgoing connection only.  ATZ clears.
 ATS44=n : Sets an automatic delay of n milliseconds after most bytes written to the Serial port.  This is for computers that support a baud rate, but can't really keep up, and you don't want to use flow control.
-ATS45=n : Changes how packet and at&g data is delivered.  0 is normal binary with normal headers, 1 is 78 char HEX digit streams followed by EOLN with hex digit headers, 2 is decimal digits followed by EOLN, with decimal digit headers, 3 is normal without SUM header.
+ATS45=n : Changes how packet and at&g data is delivered.  0 is normal binary with normal headers, 1 is 78 char HEX digit streams followed by EOLN with hex digit headers, 2 is decimal digits followed by EOLN, with decimal digit headers, 3 is normal without SUM header. Add 4 to add packet numbers.
 ATS46=n : Changes DCD status. n=0 is default DCD=HIGH=online. n=1 is DCD=LOW=online. n=2 always HIGH. n=3 always LOW.
 ATS47=n : Changes DCD pin number, n=2 is default
 ATS48=n : Changes CTS status. n=0 is default CTS=HIGH=active. n=1 is CTS=LOW=active. n=2 always HIGH. n=3 always LOW.
@@ -213,7 +213,7 @@ ATTPn : Where n > 0, this starts a transmit of exactly n bytes to the current co
 ATT+"[MESSAGE] : A + argument may be used to force the 'T' command to return the CRC8 of the message instead of OK, when successful.
 
 ATL0  : Re-sends the most recently sent data packet again
-ATLn  : Re-sends the most recently sent data packet for connection id n.
+ATLn  : Re-sends the most recently sent data packet for connection id n. Prefix n with 0 for earlier packet.
 
 AT&H  : Shows a help file from the web, or brief help otherwise.  Use &H6502 to reiforce web download.
 AT&L  : Reloads the saved configuration.

@@ -85,7 +85,10 @@ enum BinType
   BTYPE_HEX=1,
   BTYPE_DEC=2,
   BTYPE_NORMAL_NOCHK=3,
-  BTYPE_INVALID=4
+  BTYPE_NORMAL_PLUS=4,
+  BTYPE_HEX_PLUS=5,
+  BTYPE_DEC_PLUS=6,
+  BTYPE_INVALID=7
 };
 
 class ZCommand : public ZMode
@@ -142,15 +145,15 @@ class ZCommand : public ZMode
     void parseConfigOptions(String configArguments[]);
     void setOptionsFromSavedConfig(String configArguments[]);
     void reSaveConfig();
-    void reSendLastPacket(WiFiClientNode *conn);
+    void reSendLastPacket(WiFiClientNode *conn, uint8_t which);
     void acceptNewConnection();
-    void headerOut(const int channel, const int sz, const int crc8);
+    void headerOut(const int channel, const int num, const int sz, const int crc8);
     void sendConnectionNotice(int nodeId);
     void sendNextPacket();
     void connectionArgs(WiFiClientNode *c);
     void updateAutoAnswer();
-    uint8_t *doStateMachine(uint8_t *buf, int *bufLen, char **machineState, String *machineQue, char *stateMachine);
-    uint8_t *doMaskOuts(uint8_t *buf, int *bufLen, char *maskOuts);
+    uint8_t *doStateMachine(uint8_t *buf, uint16_t *bufLen, char **machineState, String *machineQue, char *stateMachine);
+    uint8_t *doMaskOuts(uint8_t *buf, uint16_t *bufLen, char *maskOuts);
     ZResult doWebDump(Stream *in, int len, const bool cacheFlag);
     ZResult doWebDump(const char *filename, const bool cache);
 

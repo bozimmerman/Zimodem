@@ -990,18 +990,39 @@ ZResult ZCommand::doConnectCommand(int vval, uint8_t *vbuf, int vlen, bool isNum
   return ZOK;
 }
 
-void ZCommand::headerOut(const int channel, const int sz, const int crc8)
+void ZCommand::headerOut(const int channel, const int num, const int sz, const int crc8)
 {
   switch(binType)
   {
   case BTYPE_NORMAL:
     sprintf(hbuf,"[ %d %d %d ]%s",channel,sz,crc8,EOLN.c_str());
     break;
+  case BTYPE_NORMAL_PLUS:
+    sprintf(hbuf,"[ %d %d %d %d ]%s",channel,num,sz,crc8,EOLN.c_str());
+    break;
   case BTYPE_HEX:
-    sprintf(hbuf,"[ %s %s %s ]%s",String(TOHEX(channel)).c_str(),String(TOHEX(sz)).c_str(),String(TOHEX(crc8)).c_str(),EOLN.c_str());
+    sprintf(hbuf,"[ %s %s %s ]%s",
+        String(TOHEX(channel)).c_str(),
+        String(TOHEX(sz)).c_str(),
+        String(TOHEX(crc8)).c_str(),EOLN.c_str());
+    break;
+  case BTYPE_HEX_PLUS:
+    sprintf(hbuf,"[ %s %s %s %s ]%s",
+        String(TOHEX(channel)).c_str(),
+        String(TOHEX(num)).c_str(),
+        String(TOHEX(sz)).c_str(),
+        String(TOHEX(crc8)).c_str(),EOLN.c_str());
     break;
   case BTYPE_DEC:
     sprintf(hbuf,"[%s%d%s%d%s%d%s]%s",EOLN.c_str(),channel,EOLN.c_str(),sz,EOLN.c_str(),crc8,EOLN.c_str(),EOLN.c_str());
+    break;
+  case BTYPE_DEC_PLUS:
+    sprintf(hbuf,"[%s%d%s%d%s%d%s%d%s]%s",EOLN.c_str(),
+        channel,EOLN.c_str(),
+        num,EOLN.c_str(),
+        sz,EOLN.c_str(),
+        crc8,EOLN.c_str(),
+        EOLN.c_str());
     break;
   case BTYPE_NORMAL_NOCHK:
     sprintf(hbuf,"[ %d %d ]%s",channel,sz,EOLN.c_str());
@@ -1038,7 +1059,7 @@ ZResult ZCommand::doWebStream(int vval, uint8_t *vbuf, int vlen, bool isNumber, 
       serial.prints(EOLN);
       return ZERROR;
     }
-    headerOut(0,respLength,0);
+    headerOut(0,1,respLength,0);
     serial.flush(); // stupid important because otherwise apps that go xoff miss the header info
     ZResult res = doWebDump(c,respLength,false);
     c->stop();
@@ -1057,7 +1078,7 @@ ZResult ZCommand::doWebDump(Stream *in, int len, const bool cacheFlag)
   bool flowControl=!cacheFlag;
   BinType streamType = cacheFlag?BTYPE_NORMAL:binType;
   uint8_t *buf = (uint8_t *)malloc(1);
-  int bufLen = 1;
+  uint16_t bufLen = 1;
   int bct=0;
   unsigned long now = millis();
   while((len>0)
@@ -1085,9 +1106,11 @@ ZResult ZCommand::doWebDump(Stream *in, int len, const bool cacheFlag)
         {
           case BTYPE_NORMAL:
           case BTYPE_NORMAL_NOCHK:
+          case BTYPE_NORMAL_PLUS:
             serial.write((uint8_t)c);
             break;
           case BTYPE_HEX:
+          case BTYPE_HEX_PLUS:
           {
             const char *hbuf = TOHEX((uint8_t)c);
             serial.printb(hbuf[0]); // prevents petscii
@@ -1100,6 +1123,7 @@ ZResult ZCommand::doWebDump(Stream *in, int len, const bool cacheFlag)
             break;
           }
           case BTYPE_DEC:
+          case BTYPE_DEC_PLUS:
             serial.printf("%d%s",c,EOLN.c_str());
             break;
         }
@@ -1145,7 +1169,7 @@ ZResult ZCommand::doWebDump(const char *filename, const bool cache)
 {
   machineState = stateMachine;
   int chk8=0;
-  int bufLen = 1;
+  uint16_t bufLen = 1;
   int len = 0;
   
   {
@@ -1189,7 +1213,7 @@ ZResult ZCommand::doWebDump(const char *filename, const bool cache)
   File f = SPIFFS.open(filename, "r");
   if(!cache)
   {
-    headerOut(0,len,chk8);
+    headerOut(0,1,len,chk8);
     serial.flush(); // stupid important because otherwise apps that go xoff miss the header info
   }
   len = f.size();
@@ -1782,8 +1806,15 @@ ZResult ZCommand::doLastPacket(int vval, uint8_t *vbuf, int vlen, bool isNumber)
   if(!isNumber)
     return ZERROR;
   WiFiClientNode *cnode=null;
+  uint8_t which = 1;
   if(vval == 0)
     vval = lastPacketId;
+  else
+  {
+    uint8_t *c = vbuf;
+    while(*c++ == '0')
+      which++;
+  }
   if(vval <= 0)
     cnode = current;
   else
@@ -1801,7 +1832,7 @@ ZResult ZCommand::doLastPacket(int vval, uint8_t *vbuf, int vlen, bool isNumber)
   }
   if(cnode == null)
     return ZERROR;
-  reSendLastPacket(cnode);
+  reSendLastPacket(cnode,which);
   return ZIGNORE;
 }
 
@@ -3071,7 +3102,7 @@ void ZCommand::showInitMessage()
   serial.flush();
 }
 
-uint8_t *ZCommand::doStateMachine(uint8_t *buf, int *bufLen, char **machineState, String *machineQue, char *stateMachine)
+uint8_t *ZCommand::doStateMachine(uint8_t *buf, uint16_t *bufLen, char **machineState, String *machineQue, char *stateMachine)
 {
   if((stateMachine != NULL) && ((stateMachine)[0] != 0) && (*machineState != NULL) && ((*machineState)[0] != 0))
   {
@@ -3159,11 +3190,11 @@ uint8_t *ZCommand::doStateMachine(uint8_t *buf, int *bufLen, char **machineState
   return buf;
 }
 
-uint8_t *ZCommand::doMaskOuts(uint8_t *buf, int *bufLen, char *maskOuts)
+uint8_t *ZCommand::doMaskOuts(uint8_t *buf, uint16_t *bufLen, char *maskOuts)
 {
   if(maskOuts[0] != 0)
   {
-    int oldLen=*bufLen;
+    uint16_t oldLen=*bufLen;
     for(int i=0,o=0;i<oldLen;i++,o++)
     {
       if(strchr(maskOuts,buf[i])!=null)
@@ -3179,22 +3210,29 @@ uint8_t *ZCommand::doMaskOuts(uint8_t *buf, int *bufLen, char *maskOuts)
 }
 
 
-void ZCommand::reSendLastPacket(WiFiClientNode *conn)
+void ZCommand::reSendLastPacket(WiFiClientNode *conn, uint8_t which)
 {
-  if(conn == NULL)
+  if((conn == NULL)
+  ||(which>2))
   {
-    headerOut(0,0,0);
+    headerOut(conn->id,0,0,0);
   }
   else
-  if(conn->lastPacketLen == 0) // never used, or empty
+  if(conn->blankPackets>=which)
   {
-    headerOut(conn->id,conn->lastPacketLen,0);
+    headerOut(conn->id,conn->nextPacketNum-which,0,0);
+  }
+  else
+  if(conn->lastPacket[which].len == 0) // never used, or empty
+  {
+    headerOut(conn->id,conn->lastPacket[which].num,0,0);
   }
   else
   {
-    int bufLen = conn->lastPacketLen;
+    uint16_t bufLen = conn->lastPacket[which].len;
     uint8_t *buf = (uint8_t *)malloc(bufLen);
-    memcpy(buf,conn->lastPacketBuf,bufLen);
+    uint8_t num = conn->lastPacket[which].num;
+    memcpy(buf,conn->lastPacket[which].buf,bufLen);
 
     buf = doMaskOuts(buf,&bufLen,maskOuts);
     buf = doMaskOuts(buf,&bufLen,conn->maskOuts);
@@ -3215,7 +3253,7 @@ void ZCommand::reSendLastPacket(WiFiClientNode *conn)
     }
     
     uint8_t crc=CRC8(buf,bufLen);
-    headerOut(conn->id,bufLen,(int)crc);
+    headerOut(conn->id,num,bufLen,(int)crc);
     int bct=0;
     int i=0;
     while(i < bufLen)
@@ -3225,9 +3263,11 @@ void ZCommand::reSendLastPacket(WiFiClientNode *conn)
       {
         case BTYPE_NORMAL:
         case BTYPE_NORMAL_NOCHK:
+        case BTYPE_NORMAL_PLUS:
           serial.write(c);
           break;
         case BTYPE_HEX:
+        case BTYPE_HEX_PLUS:
         {
           const char *hbuf = TOHEX(c);
           serial.printb(hbuf[0]); // prevents petscii
@@ -3240,6 +3280,7 @@ void ZCommand::reSendLastPacket(WiFiClientNode *conn)
           break;
         }
         case BTYPE_DEC:
+        case BTYPE_DEC_PLUS:
           serial.printf("%d%s",c,EOLN.c_str());
           break;
       }
@@ -3330,14 +3371,14 @@ void ZCommand::sendNextPacket()
       int maxBytes=packetSize;
       if(availableBytes<maxBytes)
         maxBytes=availableBytes;
-      //if(maxBytes > SerialX.availableForWrite()-15) // how much we read should depend on how much we can IMMEDIATELY write
-      //maxBytes = SerialX.availableForWrite()-15;    // .. this is because resendLastPacket ensures everything goes out
+      // how much we read should depend on how much we can IMMEDIATELY write
+      // .. this is because resendLastPacket ensures everything goes out
       if(maxBytes > 0)
       {
         if((nextConn->delimiters[0] != 0) || (delimiters[0] != 0))
         {
-          int lastLen = nextConn->lastPacketLen;
-          uint8_t *lastBuf = nextConn->lastPacketBuf;
+          uint16_t lastLen = nextConn->lastPacket[0].len;
+          uint8_t *lastBuf = nextConn->lastPacket[0].buf;
           
           if((lastLen >= packetSize)
           ||((lastLen>0)
@@ -3356,7 +3397,7 @@ void ZCommand::sendNextPacket()
             lastBuf[lastLen++] = c;
             bytesRemain--;
           }
-          nextConn->lastPacketLen = lastLen;
+          nextConn->lastPacket[0].len = lastLen;
           if((lastLen >= packetSize)
           ||((lastLen>0)
             &&((strchr(nextConn->delimiters,lastBuf[lastLen-1]) != null)
@@ -3366,7 +3407,10 @@ void ZCommand::sendNextPacket()
           {
             if(serial.getFlowControlType() == FCT_MANUAL)
             {
-              headerOut(0,0,0);
+              if(nextConn->blankPackets == 0)
+                memcpy(&nextConn->lastPacket[2],&nextConn->lastPacket[1],sizeof(struct Packet));
+              nextConn->blankPackets++;
+              headerOut(nextConn->id,nextConn->nextPacketNum++,0,0);
               packetXOn = false;
             }
             else
@@ -3377,12 +3421,22 @@ void ZCommand::sendNextPacket()
         }
         else
         {
-          maxBytes = nextConn->read(nextConn->lastPacketBuf,maxBytes);
-          logSocketIn(nextConn->lastPacketBuf,maxBytes);
+          maxBytes = nextConn->read(nextConn->lastPacket[0].buf,maxBytes);
+          logSocketIn(nextConn->lastPacket[0].buf,maxBytes);
         }
-        nextConn->lastPacketLen=maxBytes;
+        nextConn->lastPacket[0].num=nextConn->nextPacketNum++;
+        nextConn->lastPacket[0].len=maxBytes;
         lastPacketId=nextConn->id;
-        reSendLastPacket(nextConn);
+        if(nextConn->blankPackets>0)
+        {
+          nextConn->lastPacket[2].num=nextConn->nextPacketNum-1;
+          nextConn->lastPacket[2].len=0;
+        }
+        else
+          memcpy(&nextConn->lastPacket[2],&nextConn->lastPacket[1],sizeof(struct Packet));
+        memcpy(&nextConn->lastPacket[1],&nextConn->lastPacket[0],sizeof(struct Packet));
+        nextConn->blankPackets=0;
+        reSendLastPacket(nextConn,1);
         if(serial.getFlowControlType() == FCT_AUTOOFF)
         {
           packetXOn = false;
@@ -3447,10 +3501,13 @@ void ZCommand::sendNextPacket()
     firstConn = conns;
     while(firstConn != NULL)
     {
-      firstConn->lastPacketLen = 0;
+      firstConn->lastPacket[0].len = 0;
+      if(firstConn->blankPackets == 0)
+        memcpy(&firstConn->lastPacket[2],&firstConn->lastPacket[1],sizeof(struct Packet));
+      firstConn->blankPackets++;
+      headerOut(firstConn->id,firstConn->nextPacketNum++,0,0);
       firstConn = firstConn->next;
     }
-    headerOut(0,0,0);
   }
 }
 

@@ -14,9 +14,7 @@
    limitations under the License.
 */
 
-#define LAST_PACKET_BUF_SIZE 256
-#define OVERFLOW_BUF_SIZE 256
-#define UNDERFLOW_BUF_MAX_SIZE 256
+#define PACKET_BUF_SIZE 256
 
 #ifdef ZIMODEM_ESP32
 #include <WiFiClientSecure.h>
@@ -31,6 +29,13 @@ static WiFiClient *createWiFiClient(bool SSL)
 #endif
   return new WiFiClient();
 }
+
+typedef struct Packet
+{
+  uint8_t num = 0;
+  uint16_t len = 0;
+  uint8_t buf[PACKET_BUF_SIZE] = {0};
+};
 
 class WiFiClientNode : public Stream
 {
@@ -58,12 +63,10 @@ class WiFiClientNode : public Stream
     char *machineState = NULL;
     String machineQue = "";
 
-    uint8_t lastPacketBuf[LAST_PACKET_BUF_SIZE];
-    int lastPacketLen=0;
-    //uint8_t overflowBuf[OVERFLOW_BUF_SIZE];
-    //int overflowBufLen = 0;
-    uint8_t underflowBuf[UNDERFLOW_BUF_MAX_SIZE];
-    size_t underflowBufLen = 0;
+    uint8_t nextPacketNum=1;
+    uint8_t blankPackets=0;
+    struct Packet lastPacket[3];
+    struct Packet underflowBuf;
     WiFiClientNode *next = null;
 
     WiFiClientNode(char *hostIp, int newport, int flagsBitmap);

@@ -87,7 +87,8 @@ WiFiClientNode::WiFiClientNode(WiFiClient newClient, int flagsBitmap, int ringDe
     
 WiFiClientNode::~WiFiClientNode()
 {
-  lastPacketLen=0;
+  lastPacket[0].len=0;
+  lastPacket[1].len=0;
   if(host!=null)
   {
     client.stop();
@@ -113,7 +114,7 @@ WiFiClientNode::~WiFiClientNode()
     commandMode.current = conns;
   if(commandMode.nextConn == this)
     commandMode.nextConn = conns;
-  underflowBufLen = 0;
+  underflowBuf.len = 0;
   freeCharArray(&delimiters);
   freeCharArray(&maskOuts);
   freeCharArray(&stateMachine);
@@ -169,11 +170,11 @@ void WiFiClientNode::fillUnderflowBuf()
   int newAvail = client.available();
   if(newAvail > 0)
   {
-    int maxBufAvail = UNDERFLOW_BUF_MAX_SIZE-underflowBufLen;
+    int maxBufAvail = PACKET_BUF_SIZE-underflowBuf.len;
     if(newAvail>maxBufAvail)
       newAvail=maxBufAvail;
     if(newAvail > 0)
-      underflowBufLen += client.read(underflowBuf+underflowBufLen, newAvail);
+      underflowBuf.len += client.read(underflowBuf.buf+underflowBuf.len, newAvail);
   }
 }
 
@@ -181,10 +182,10 @@ int WiFiClientNode::read()
 {
   if((host == null)||(!answered))
     return 0;
-  if(underflowBufLen > 0)
+  if(underflowBuf.len > 0)
   {
-    int b = underflowBuf[0];
-    memcpy(underflowBuf,underflowBuf+1,--underflowBufLen);
+    int b = underflowBuf.buf[0];
+    memcpy(underflowBuf.buf,underflowBuf.buf+1,--underflowBuf.len);
     return b;
   }
   int c = client.read();
@@ -196,8 +197,8 @@ int WiFiClientNode::peek()
 {
   if((host == null)||(!answered))
     return 0;
-  if(underflowBufLen > 0)
-    return underflowBuf[0];
+  if(underflowBuf.len > 0)
+    return underflowBuf.buf[0];
   return client.peek();
 }
 
@@ -220,7 +221,7 @@ int WiFiClientNode::available()
 {
   if((host == null)||(!answered))
     return 0;
-  return underflowBufLen + client.available();
+  return underflowBuf.len + client.available();
 }
 
 int WiFiClientNode::read(uint8_t *buf, size_t size)
@@ -231,20 +232,20 @@ int WiFiClientNode::read(uint8_t *buf, size_t size)
   // problem in the underlying library where a socket disconnection
   // eats away any stray available bytes in their buffers.
   int previouslyRead = 0;
-  if(underflowBufLen > 0)
+  if(underflowBuf.len > 0)
   {
-    if(underflowBufLen <= size)
+    if(underflowBuf.len <= size)
     {
-      previouslyRead += underflowBufLen;
-      memcpy(buf,underflowBuf,underflowBufLen);
-      size -= underflowBufLen;
-      underflowBufLen = 0;
+      previouslyRead += underflowBuf.len;
+      memcpy(buf,underflowBuf.buf,underflowBuf.len);
+      size -= underflowBuf.len;
+      underflowBuf.len = 0;
     }
     else
     {
-      memcpy(buf,underflowBuf,size);
-      underflowBufLen -= size;
-      memcpy(underflowBuf,underflowBuf+size,underflowBufLen);
+      memcpy(buf,underflowBuf.buf,size);
+      underflowBuf.len -= size;
+      memcpy(underflowBuf.buf,underflowBuf.buf+size,underflowBuf.len);
       return size;
     }
   }
