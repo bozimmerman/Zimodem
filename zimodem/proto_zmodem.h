@@ -314,28 +314,26 @@ typedef struct {
   /* error C2520: conversion from unsigned __int64 to double not implemented, use signed __int64 */
   void*    cbdata;
   int      (*lputs)(void*, int level, const char* str);
-  int      (*send_byte)(ZSerial *ser, BYTE ch, unsigned timeout /* seconds */);
-  int      (*recv_byte)(ZSerial *ser, unsigned timeout /* seconds */);
+  int      (*send_byte)(void*, BYTE ch, unsigned timeout /* seconds */);
+  int      (*recv_byte)(void*, unsigned timeout /* seconds */);
   void     (*progress)(void*, int64_t current_pos);
   BOOL     (*is_connected)(void*);
   BOOL     (*is_cancelled)(void*);
-  BOOL     (*data_waiting)(ZSerial *ser, unsigned timeout /* seconds */);
+  BOOL     (*data_waiting)(void*, unsigned timeout /* seconds */);
   BOOL     (*duplicate_filename)(void*, void *zm);
-  void     (*flush)(ZSerial *ser);
+  void     (*flush)(void*);
 
-  ZSerial zserial;
-  FS *zfileSystem = &SD;
 } zmodem_t;
 
 void zmodem_init(zmodem_t*, void* cbdata
                  ,int  (*lputs)(void*, int level, const char* str)
                  ,void  (*progress)(void*, int64_t current_pos)
-                 ,int  (*send_byte)(ZSerial *ser, BYTE ch, unsigned timeout)
-                 ,int  (*recv_byte)(ZSerial *ser, unsigned timeout)
+                 ,int  (*send_byte)(void*, BYTE ch, unsigned timeout)
+                 ,int  (*recv_byte)(void*, unsigned timeout)
                  ,BOOL  (*is_connected)(void*)
                  ,BOOL  (*is_cancelled)(void*)
-                 ,BOOL  (*data_waiting)(ZSerial *ser, unsigned timeout)
-                 ,void  (*flush)(ZSerial *ser)
+                 ,BOOL  (*data_waiting)(void*, unsigned timeout)
+                 ,void  (*flush)(void*)
                  );
 char*zmodem_ver(char *buf);
 const char* zmodem_source(void);
@@ -361,6 +359,10 @@ unsigned zmodem_recv_file_data(zmodem_t*, File*, int64_t offset);
 int zmodem_recv_file_frame(zmodem_t* zm, File* fp);
 int zmodem_recv_header_and_check(zmodem_t* zm);
 #endif
+
+static ZSerial zserial;
+static FS *zfileSystem = &SD;
+static zmodem_t zm;
 
 static int lputs(void* unused, int level, const char* str)
 {
@@ -390,19 +392,19 @@ void zmodem_progress(void* cbdata, int64_t current_pos)
   // do nothing?
 }
 
-int send_byte(ZSerial *ser, uchar ch, unsigned timeout)
+int zmodem_send_byte(void* unused, uchar ch, unsigned timeout)
 {
   //lprintf(LOG_DEBUG, "Send: %d", ch);
-  ser->printb(ch);
+  zserial.printb(ch);
   //zserial.flush(); // safe flush
   return(0);
 }
 
-int recv_byte(ZSerial *ser, unsigned timeout /* seconds */)
+int zmodem_recv_byte(void* unused, unsigned timeout /* seconds */)
 {
   unsigned long startTime = millis();
   timeout *= 1000;
-  while(ser->available()==0)
+  while(zserial.available()==0)
   {
     unsigned long currentTime = millis();
     unsigned long elapsedTime = currentTime - startTime;
@@ -411,21 +413,20 @@ int recv_byte(ZSerial *ser, unsigned timeout /* seconds */)
     delay(1);
     yield();
   }
-  int ch = ser->read();
+  int ch = zserial.read();
   //lprintf(LOG_DEBUG, "Recvd: %d", ch);
   return ch;
 }
-
-void flush(ZSerial *ser)
+void zmodem_flush(void* unused)
 {
-  ser->flush();
+  zserial.flush();
 }
 
-BOOL data_waiting(ZSerial *ser, unsigned timeout /* seconds */)
+BOOL zmodem_data_waiting(void* unused, unsigned timeout /* seconds */)
 {
   timeout *= 1000;
   unsigned long startTime = millis();
-  while(ser->available()==0)
+  while(zserial.available()==0)
   {
     unsigned long currentTime = millis();
     unsigned long elapsedTime = currentTime - startTime;
@@ -436,45 +437,46 @@ BOOL data_waiting(ZSerial *ser, unsigned timeout /* seconds */)
   return ZTRUE;
 }
 
-BOOL is_connected(void* unused)
+BOOL zmodem_is_connected(void* unused)
 {
   return ZTRUE; // modem connection, so...
 }
 
-static void initZSerial(FlowControlType commandFlow, zmodem_t *zm)
+static void initZSerial(FlowControlType commandFlow)
 {
-  zm->zserial.setFlowControlType(FCT_DISABLED);
+  zserial.setFlowControlType(FCT_DISABLED);
   if(commandFlow==FCT_RTSCTS)
-    zm->zserial.setFlowControlType(FCT_RTSCTS);
+    zserial.setFlowControlType(FCT_RTSCTS);
   else
-    zm->zserial.setFlowControlType(FCT_NORMAL);
-  zm->zserial.setPetsciiMode(false);
-  zm->zserial.setXON(true);
+    zserial.setFlowControlType(FCT_NORMAL);
+  zserial.setPetsciiMode(false);
+  zserial.setXON(true);
 
-  zmodem_init(zm,NULL,lputs,zmodem_progress,send_byte,recv_byte,is_connected,NULL,data_waiting,flush);
+  zmodem_init(&zm,NULL,lputs,zmodem_progress,
+              zmodem_send_byte,zmodem_recv_byte,zmodem_is_connected,
+              NULL,zmodem_data_waiting,zmodem_flush);
   int log_level=LOG_DEBUG;
-  zm->log_level=&log_level;
-  zm->recv_bufsize     = (ulong)1024;
-  zm->no_streaming     = ZFALSE;
-  zm->want_fcs_16      =ZFALSE;
-  zm->escape_telnet_iac  = ZTRUE;
-  zm->escape_8th_bit   = ZFALSE;
-  zm->escape_ctrl_chars  = ZFALSE;
+  zm.log_level=&log_level;
+  zm.recv_bufsize     = (ulong)1024;
+  zm.no_streaming     = ZFALSE;
+  zm.want_fcs_16      =ZFALSE;
+  zm.escape_telnet_iac  = ZTRUE;
+  zm.escape_8th_bit   = ZFALSE;
+  zm.escape_ctrl_chars  = ZFALSE;
+
 }
 
-static boolean zDownload(FlowControlType commandFlow, FS &fs, String filePath, String &errors)
+static boolean zDownload(FlowControlType flow, FS &fs, String filePath, String &errors)
 {
+  initZSerial(flow);
+  zfileSystem = &fs;
   time_t starttime = 0;
   uint64_t bytes_sent=0;
   BOOL success=ZFALSE;
   char filePathC[MAX_PATH];
 
-  zmodem_t zm;
-  initZSerial(commandFlow, &zm);
-
-  zm.zfileSystem = &fs;
   //static int send_files(char** fname, uint fnames)
-  File F=zm.zfileSystem->open(filePath);
+  File F=zfileSystem->open(filePath);
   zm.files_remaining = 1;
   zm.bytes_remaining = F.size();
   strcpy(filePathC,filePath.c_str());
@@ -483,19 +485,17 @@ static boolean zDownload(FlowControlType commandFlow, FS &fs, String filePath, S
     zmodem_get_zfin(&zm);
   F.close();
 
-  zm.zserial.flushAlways();
+  zserial.flushAlways();
   return (success==ZTRUE) && (zm.cancelled==ZFALSE);
 }
 
-static boolean zUpload(FlowControlType commandFlow, FS &fs, String dirPath, String &errors)
+static boolean zUpload(FlowControlType flow, FS &fs, String dirPath, String &errors)
 {
+  initZSerial(flow);
   BOOL success=ZFALSE;
   int   i;
+  zfileSystem = &fs;
   char str[MAX_PATH];
-  zmodem_t zm;
-
-  zm.zfileSystem = &fs;
-  initZSerial(commandFlow, &zm);
 
   //static int receive_files(char** fname_list, int fnames)
   //TODO: loop might be necc around here, for multiple files?
@@ -525,7 +525,7 @@ static boolean zUpload(FlowControlType commandFlow, FS &fs, String dirPath, Stri
   }
   strcpy(str+strlen(str),zm.current_file_name);
 
-  File fp = zm.zfileSystem->open(str,FILE_WRITE);
+  File fp = zfileSystem->open(str,FILE_WRITE);
   if(!fp)
   {
     lprintf(LOG_ERR,"Error %d creating %s",errno,str);
@@ -550,7 +550,7 @@ static boolean zUpload(FlowControlType commandFlow, FS &fs, String dirPath, Stri
     return ZFALSE;
   }
 
-  zm.zserial.flushAlways();
+  zserial.flushAlways();
   return (success == ZTRUE);
 }
 
