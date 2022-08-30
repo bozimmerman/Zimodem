@@ -358,7 +358,6 @@ int zmodem_recv_init(zmodem_t* zm);
 unsigned zmodem_recv_file_data(zmodem_t*, File*, int64_t offset);
 int zmodem_recv_file_frame(zmodem_t* zm, File* fp);
 int zmodem_recv_header_and_check(zmodem_t* zm);
-#endif
 
 static ZSerial zserial;
 static FS *zfileSystem = &SD;
@@ -553,4 +552,4 @@ static boolean zUpload(FlowControlType flow, FS &fs, String dirPath, String &err
   zserial.flushAlways();
   return (success == ZTRUE);
 }
-
+#endif
