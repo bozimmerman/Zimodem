@@ -467,15 +467,17 @@ static void initZSerial(FlowControlType commandFlow)
 
 static boolean zDownload(FlowControlType flow, FS &fs, String filePath, String &errors)
 {
-  initZSerial(flow);
-  zfileSystem = &fs;
   time_t starttime = 0;
   uint64_t bytes_sent=0;
   BOOL success=ZFALSE;
   char filePathC[MAX_PATH];
+  File F;
+
+  initZSerial(flow);
+  zfileSystem = &fs;
 
   //static int send_files(char** fname, uint fnames)
-  File F=zfileSystem->open(filePath);
+  F=zfileSystem->open(filePath);
   zm.files_remaining = 1;
   zm.bytes_remaining = F.size();
   strcpy(filePathC,filePath.c_str());
@@ -490,11 +492,14 @@ static boolean zDownload(FlowControlType flow, FS &fs, String filePath, String &
 
 static boolean zUpload(FlowControlType flow, FS &fs, String dirPath, String &errors)
 {
-  initZSerial(flow);
   BOOL success=ZFALSE;
   int   i;
-  zfileSystem = &fs;
   char str[MAX_PATH];
+  File fp;
+  int err;
+
+  initZSerial(flow);
+  zfileSystem = &fs;
 
   //static int receive_files(char** fname_list, int fnames)
   //TODO: loop might be necc around here, for multiple files?
@@ -524,7 +529,7 @@ static boolean zUpload(FlowControlType flow, FS &fs, String dirPath, String &err
   }
   strcpy(str+strlen(str),zm.current_file_name);
 
-  File fp = zfileSystem->open(str,FILE_WRITE);
+  fp = zfileSystem->open(str,FILE_WRITE);
   if(!fp)
   {
     lprintf(LOG_ERR,"Error %d creating %s",errno,str);
@@ -533,9 +538,9 @@ static boolean zUpload(FlowControlType flow, FS &fs, String dirPath, String &err
     //continue;
     return ZFALSE;
   }
-  int errors=zmodem_recv_file_data(&zm,&fp,0);
+  err=zmodem_recv_file_data(&zm,&fp,0);
 
-  if(errors<=zm.max_errors && !zm.cancelled)
+  if(err<=zm.max_errors && !zm.cancelled)
     success=ZTRUE;
 
   if(success)
