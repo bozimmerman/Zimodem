@@ -309,160 +309,97 @@ typedef struct {
   unsigned  max_block_size;
   int64_t   max_file_size;    /* 0 = unlimited */
   int       *log_level;
-
-  /* Callbacks */
   /* error C2520: conversion from unsigned __int64 to double not implemented, use signed __int64 */
   void*    cbdata;
-  int      (*lputs)(void*, int level, const char* str);
-  int      (*send_byte)(void*, BYTE ch, unsigned timeout /* seconds */);
-  int      (*recv_byte)(void*, unsigned timeout /* seconds */);
-  void     (*progress)(void*, int64_t current_pos);
-  BOOL     (*is_connected)(void*);
-  BOOL     (*is_cancelled)(void*);
-  BOOL     (*data_waiting)(void*, unsigned timeout /* seconds */);
-  BOOL     (*duplicate_filename)(void*, void *zm);
-  void     (*flush)(void*);
-
 } zmodem_t;
 
-void zmodem_init(zmodem_t*, void* cbdata
-                 ,int  (*lputs)(void*, int level, const char* str)
-                 ,void  (*progress)(void*, int64_t current_pos)
-                 ,int  (*send_byte)(void*, BYTE ch, unsigned timeout)
-                 ,int  (*recv_byte)(void*, unsigned timeout)
-                 ,BOOL  (*is_connected)(void*)
-                 ,BOOL  (*is_cancelled)(void*)
-                 ,BOOL  (*data_waiting)(void*, unsigned timeout)
-                 ,void  (*flush)(void*)
-                 );
-char*zmodem_ver(char *buf);
-const char* zmodem_source(void);
-int zmodem_rx(zmodem_t* zm);
-int zmodem_tx(zmodem_t* zm, BYTE ch);
-int zmodem_send_zabort(zmodem_t*);
-int zmodem_send_ack(zmodem_t*, int32_t pos);
-int zmodem_send_nak(zmodem_t*);
-int zmodem_send_zskip(zmodem_t* zm);
-int zmodem_send_zrinit(zmodem_t*);
-int zmodem_get_zfin(zmodem_t* zm);
-int zmodem_send_pos_header(zmodem_t* zm, int type, int32_t pos, BOOL hex);
-int zmodem_get_zrinit(zmodem_t*);
-int zmodem_get_zfin(zmodem_t* zm);
-BOOL zmodem_get_crc(zmodem_t*, int32_t length, uint32_t* crc);
-void zmodem_parse_zrinit(zmodem_t*);
-void zmodem_parse_zfile_subpacket(zmodem_t* zm);
-int zmodem_send_zfin(zmodem_t*);
-BOOL zmodem_send_file(zmodem_t*, char* name, File* fp, BOOL request_init, time_t* start, uint64_t* bytes_sent);
-int zmodem_recv_files(zmodem_t* zm, const char* download_dir, uint64_t* bytes_received);
-int zmodem_recv_init(zmodem_t* zm);
-unsigned zmodem_recv_file_data(zmodem_t*, File*, int64_t offset);
-int zmodem_recv_file_frame(zmodem_t* zm, File* fp);
-int zmodem_recv_header_and_check(zmodem_t* zm);
-
-static ZSerial zserial;
-static FS *zfileSystem = &SD;
-static zmodem_t zm;
-
-static int lputs(void* unused, int level, const char* str)
+class ZModem
 {
-  // debugPrintf("%s\n",str); // debug off -- seems like can't print to both serials too near each other.
-  return ZTRUE;
-}
+public:
+  ZModem(FS *zfs, void* cbdata);
+  ~ZModem();
+  BOOL send_file( char* name, File* fp, BOOL request_init, time_t* start, uint64_t* bytes_sent);
+  int get_zfin();
+  int recv_init();
+  int lputs(void* unused, int level, const char* str);
+  int lprintf(int level, const char *fmt, ...);
+  int send_zabort();
+  int send_zfin();
+  int recv_files(const char* download_dir, uint64_t* bytes_received);
+  unsigned recv_file_data( File*, int64_t offset);
+  zmodem_t *zm=0;
+  ZSerial zserial;
+  FS *zfileSystem=0;
+private:
+  char* ver(char *buf);
+  const char* source(void);
+  int rx();
+  int tx(BYTE ch);
+  int send_ack( int32_t pos);
+  int send_nak();
+  int send_zskip();
+  int send_zrinit();
+  int send_pos_header(int type, int32_t pos, BOOL hex);
+  int get_zrinit();
+  BOOL get_crc( int32_t length, uint32_t* crc);
+  void parse_zrinit();
+  void parse_zfile_subpacket();
+  int recv_file_frame(File* fp);
+  int recv_header_and_check();
+  int send_hex(uchar val);
+  int send_padded_zdle();
+  int send_hex_header(unsigned char * p);
+  int send_bin32_header(unsigned char * p);
+  int send_bin16_header(unsigned char * p);
+  int send_bin_header(unsigned char * p);
+  int send_data32(uchar subpkt_type, unsigned char * p, size_t l);
+  int send_data16(uchar subpkt_type,unsigned char * p, size_t l);
+  int send_data(uchar subpkt_type, unsigned char * p, size_t l);
+  int send_data_subpkt(uchar subpkt_type, unsigned char * p, size_t l);
+  int data_waiting(unsigned timeout);
+  void recv_purge();
+  void flush();
+  int send_raw(unsigned char ch);
+  int send_esc(unsigned char c);
+  int recv_data32(unsigned char * p, unsigned maxlen, unsigned* l);
+  int recv_data16(register unsigned char* p, unsigned maxlen, unsigned* l);
+  int recv_data(unsigned char* p, size_t maxlen, unsigned* l, BOOL ack);
+  BOOL recv_subpacket(BOOL ack);
+  int recv_nibble();
+  int recv_hex();
+  int recv_raw();
+  BOOL recv_bin16_header();
+  BOOL recv_hex_header();
+  BOOL recv_bin32_header();
+  int recv_header_raw(int errors);
+  int recv_header();
+  BOOL request_crc(int32_t length);
+  BOOL recv_crc(uint32_t* crc);
+  BOOL handle_zrpos(uint64_t* pos);
+  BOOL handle_zack();
+  BOOL is_connected();
+  BOOL is_cancelled();
+  int send_from(File* fp, uint64_t pos, uint64_t* sent);
+  int send_znak();
+  int send_zeof(uint32_t pos);
+  void progress(void* cbdata, int64_t current_pos);
+  int send_byte(void* unused, uchar ch, unsigned timeout);
+  int recv_byte(void* unused, unsigned timeout); /* seconds */
+  ulong frame_pos(int type);
+  char* getfname(const char* path);
+};
 
-static int lprintf(int level, const char *fmt, ...)
+static ZModem *initZSerial(FS &fs, FlowControlType commandFlow)
 {
-  char sbuf[1024];
-  va_list argptr;
-
-  va_start(argptr,fmt);
-  vsnprintf(sbuf,sizeof(sbuf),fmt,argptr);
-  sbuf[sizeof(sbuf)-1]=0;
-  va_end(argptr);
-  return(lputs(NULL,level,sbuf));
-}
-
-/*
- * show the progress of the transfer like this:
- * zmtx: sending file "garbage" 4096 bytes ( 20%)
- */
-void zmodem_progress(void* cbdata, int64_t current_pos)
-{
-  //debugPrintf("POGRESS %lld\n",current_pos);
-  // do nothing?
-}
-
-int zmodem_send_byte(void* unused, uchar ch, unsigned timeout)
-{
-  //lprintf(LOG_DEBUG, "Send: %d", ch);
-  zserial.printb(ch);
-  //zserial.flush(); // safe flush
-  return(0);
-}
-
-int zmodem_recv_byte(void* unused, unsigned timeout /* seconds */)
-{
-  unsigned long startTime = millis();
-  timeout *= 1000;
-  while(zserial.available()==0)
-  {
-    unsigned long currentTime = millis();
-    unsigned long elapsedTime = currentTime - startTime;
-    if(elapsedTime >= timeout)
-      return(NOINP);
-    delay(1);
-    yield();
-  }
-  int ch = zserial.read();
-  //lprintf(LOG_DEBUG, "Recvd: %d", ch);
-  return ch;
-}
-void zmodem_flush(void* unused)
-{
-  zserial.flush();
-}
-
-BOOL zmodem_data_waiting(void* unused, unsigned timeout /* seconds */)
-{
-  timeout *= 1000;
-  unsigned long startTime = millis();
-  while(zserial.available()==0)
-  {
-    unsigned long currentTime = millis();
-    unsigned long elapsedTime = currentTime - startTime;
-    if(elapsedTime >= timeout)
-      return ZFALSE;
-    delay(1);
-  }
-  return ZTRUE;
-}
-
-BOOL zmodem_is_connected(void* unused)
-{
-  return ZTRUE; // modem connection, so...
-}
-
-static void initZSerial(FlowControlType commandFlow)
-{
-  zserial.setFlowControlType(FCT_DISABLED);
+  ZModem *modem = new ZModem(&SD, NULL);
+  modem->zserial.setFlowControlType(FCT_DISABLED);
   if(commandFlow==FCT_RTSCTS)
-    zserial.setFlowControlType(FCT_RTSCTS);
+    modem->zserial.setFlowControlType(FCT_RTSCTS);
   else
-    zserial.setFlowControlType(FCT_NORMAL);
-  zserial.setPetsciiMode(false);
-  zserial.setXON(true);
-
-  zmodem_init(&zm,NULL,lputs,zmodem_progress,
-              zmodem_send_byte,zmodem_recv_byte,zmodem_is_connected,
-              NULL,zmodem_data_waiting,zmodem_flush);
-  int log_level=LOG_DEBUG;
-  zm.log_level=&log_level;
-  zm.recv_bufsize     = (ulong)1024;
-  zm.no_streaming     = ZFALSE;
-  zm.want_fcs_16      =ZFALSE;
-  zm.escape_telnet_iac  = ZTRUE;
-  zm.escape_8th_bit   = ZFALSE;
-  zm.escape_ctrl_chars  = ZFALSE;
-
+    modem->zserial.setFlowControlType(FCT_NORMAL);
+  modem->zserial.setPetsciiMode(false);
+  modem->zserial.setXON(true);
+  return modem;
 }
 
 static boolean zDownload(FlowControlType flow, FS &fs, String filePath, String &errors)
@@ -473,21 +410,21 @@ static boolean zDownload(FlowControlType flow, FS &fs, String filePath, String &
   char filePathC[MAX_PATH];
   File F;
 
-  initZSerial(flow);
-  zfileSystem = &fs;
+  ZModem *modem = initZSerial(fs, flow);
 
   //static int send_files(char** fname, uint fnames)
-  F=zfileSystem->open(filePath);
-  zm.files_remaining = 1;
-  zm.bytes_remaining = F.size();
+  F=modem->zfileSystem->open(filePath);
+  modem->zm->files_remaining = 1;
+  modem->zm->bytes_remaining = F.size();
   strcpy(filePathC,filePath.c_str());
-  success=zmodem_send_file(&zm, filePathC, &F, ZTRUE, &starttime, &bytes_sent);
+  success=modem->send_file(filePathC, &F, ZTRUE, &starttime, &bytes_sent);
   if(success)
-    zmodem_get_zfin(&zm);
+    modem->get_zfin();
   F.close();
 
-  zserial.flushAlways();
-  return (success==ZTRUE) && (zm.cancelled==ZFALSE);
+  modem->zserial.flushAlways();
+  delete modem;
+  return (success==ZTRUE) && (modem->zm->cancelled==ZFALSE);
 }
 
 static boolean zUpload(FlowControlType flow, FS &fs, String dirPath, String &errors)
@@ -498,14 +435,16 @@ static boolean zUpload(FlowControlType flow, FS &fs, String dirPath, String &err
   File fp;
   int err;
 
-  initZSerial(flow);
-  zfileSystem = &fs;
+  ZModem *modem = initZSerial(fs,flow);
 
   //static int receive_files(char** fname_list, int fnames)
   //TODO: loop might be necc around here, for multiple files?
-  i=zmodem_recv_init(&zm);
-  if(zm.cancelled || (i<0))
+  i=modem->recv_init();
+  if(modem->zm->cancelled || (i<0))
+  {
+    delete modem;
     return ZFALSE;
+  }
   switch(i) {
     case ZFILE:
       //SAFECOPY(fname,zm.current_file_name);
@@ -516,8 +455,10 @@ static boolean zUpload(FlowControlType flow, FS &fs, String dirPath, String &err
       break;
     case ZFIN:
     case ZCOMPL:
+      delete modem;
       return ZTRUE; // was (!success)
     default:
+      delete modem;
       return ZFALSE;
   }
 
@@ -527,34 +468,37 @@ static boolean zUpload(FlowControlType flow, FS &fs, String dirPath, String &err
     str[strlen(str)]='/';
     str[strlen(str)+1]=0;
   }
-  strcpy(str+strlen(str),zm.current_file_name);
+  strcpy(str+strlen(str),modem->zm->current_file_name);
 
-  fp = zfileSystem->open(str,FILE_WRITE);
+  fp = modem->zfileSystem->open(str,FILE_WRITE);
   if(!fp)
   {
-    lprintf(LOG_ERR,"Error %d creating %s",errno,str);
-    zmodem_send_zabort(&zm);
-    //zmodem_send_zskip(&zm); //TODO: for when we move to multiple files
+    modem->lprintf(LOG_ERR,"Error %d creating %s",errno,str);
+    modem->send_zabort();
+    //zmodem_send_zskip(); //TODO: for when we move to multiple files
     //continue;
+    delete modem;
     return ZFALSE;
   }
-  err=zmodem_recv_file_data(&zm,&fp,0);
+  err=modem->recv_file_data(&fp,0);
 
-  if(err<=zm.max_errors && !zm.cancelled)
+  if(err<=modem->zm->max_errors && !modem->zm->cancelled)
     success=ZTRUE;
 
   if(success)
-    zmodem_send_zfin(&zm);
+    modem->send_zfin();
 
   fp.close();
-  if(zm.local_abort)
+  if(modem->zm->local_abort)
   {
-    lprintf(LOG_ERR,"Locally aborted, sending cancel to remote");
-    zmodem_send_zabort(&zm);
+    modem->lprintf(LOG_ERR,"Locally aborted, sending cancel to remote");
+    modem->send_zabort();
+    delete modem;
     return ZFALSE;
   }
 
-  zserial.flushAlways();
+  modem->zserial.flushAlways();
+  delete modem;
   return (success == ZTRUE);
 }
 #endif
