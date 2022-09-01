@@ -58,11 +58,15 @@ void ZConfig::doModeCommand()
 {
   String cmd = commandMode.getNextSerialCommand();
   char c='?';
+  char sc='?';
   for(int i=0;i<cmd.length();i++)
   {
     if(cmd[i]>32)
     {
       c=lc(cmd[i]);
+      if((i<cmd.length()-1)
+      &&(cmd[i+1]>32))
+        sc=lc(cmd[i+1]);
       break;
     }
   }
@@ -109,11 +113,17 @@ void ZConfig::doModeCommand()
         showMenu=true;
       }
       else
-      if(c=='p') // petscii translation toggle
+      if((c=='p')&&(sc=='e')) // petscii translation toggle
       {
         commandMode.serial.setPetsciiMode(!commandMode.serial.isPetsciiMode());
         serial.setPetsciiMode(commandMode.serial.isPetsciiMode());
         settingsChanged=true;
+        showMenu=true;
+      }
+      else
+      if((c=='p')&&(sc=='r')) // print spec
+      {
+        currState=ZCFGMENU_NEWPRINT;
         showMenu=true;
       }
       else
@@ -566,6 +576,26 @@ void ZConfig::doModeCommand()
         showMenu=true;
       }
       break;
+    case ZCFGMENU_NEWPRINT:
+      if(cmd.length()==0)
+        currState=ZCFGMENU_MAIN;
+      else
+      {
+        if(!printMode.testPrinterSpec(cmd.c_str(),cmd.length(),commandMode.serial.isPetsciiMode()))
+        {
+          serial.printf("%sBad format. Try ?:<host>:<port>/<path>.%s",EOLNC,EOLNC);
+          serial.printf("? = A)scii P)etscii or R)aw.%s",EOLNC);
+          serial.printf("Example: R:192.168.1.71:631/ipp/printer%s",EOLNC);
+        }
+        else
+        {
+          printMode.setLastPrinterSpec(cmd.c_str());
+          settingsChanged=true;
+        }
+        currState=ZCFGMENU_MAIN;
+        showMenu=true;
+      }
+      break;
     case ZCFGMENU_WIFIPW:
       if(cmd.length()==0)
       {
@@ -666,6 +696,7 @@ void ZConfig::loop()
         serial.printf("[FLOW] control: %s%s",flowName.c_str(),EOLNC);
         serial.printf("[ECHO] keystrokes: %s%s",savedEcho?"ON":"OFF",EOLNC);
         serial.printf("[BBS] host: %s%s",bbsMode.c_str(),EOLNC);
+        serial.printf("[PRINT] spec: %s%s",printMode.getLastPrinterSpec(),EOLNC);
         serial.printf("[PETSCII] translation: %s%s",commandMode.serial.isPetsciiMode()?"ON":"OFF",EOLNC);
         serial.printf("[ADD] new phonebook entry%s",EOLNC);
         PhoneBookEntry *p = phonebook;
@@ -811,6 +842,11 @@ void ZConfig::loop()
       case ZCFGMENU_NEWHOST:
       {
         serial.printf("%sEnter a new hostname: ",EOLNC);
+        break;
+      }
+      case ZCFGMENU_NEWPRINT:
+      {
+        serial.printf("%sEnter ipp printer spec (?:<host>:<port>/path)%s: ",EOLNC,EOLNC);
         break;
       }
       case ZCFGMENU_WIFIPW:

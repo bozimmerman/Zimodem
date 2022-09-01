@@ -21,21 +21,73 @@ FTPHost::~FTPHost()
   freeCharArray(&username);
   freeCharArray(&pw);
   freeCharArray(&path);
+  freeCharArray(&file);
 }
 
-bool FTPHost::doGet(FS *fs, const char *remotepath, const char *localpath)
+bool FTPHost::doGet(FS *fs, const char *localpath, const char *remotepath)
 {
-  return doFTPGet(fs,hostIp,port,localpath,remotepath,username,pw,doSSL);
+  fixPath(remotepath);
+  return doFTPGet(fs,hostIp,port,localpath,file,username,pw,doSSL);
 }
 
 bool FTPHost::doPut(File &f, const char *remotepath)
 {
-  return doFTPPut(f,hostIp,port,remotepath,username,pw,doSSL);
+  fixPath(remotepath);
+  return doFTPPut(f,hostIp,port,file,username,pw,doSSL);
 }
 
 bool FTPHost::doLS(ZSerial *serial, const char *remotepath)
 {
-  return doFTPLS(serial,hostIp,port,remotepath,username,pw,doSSL);
+  fixPath(remotepath);
+  bool kaplah = doFTPLS(serial,hostIp,port,file,username,pw,doSSL);
+  if((kaplah) 
+  && (strcmp(file,path) != 0)
+  && (strlen(file)>0))
+  {
+    if(file[strlen(file)-1]=='/')
+      setCharArray(&path, file);
+    else
+    {
+      char buf[strlen(file)+2];
+      sprintf(buf,"%s/",file);
+      setCharArray(&path, buf);
+    }
+  }
+  return kaplah;
+}
+
+void FTPHost::fixPath(const char *remotepath)
+{
+  if(remotepath == 0)
+    return;
+  char *end = strrchr(remotepath, '/');
+  int buflen = ((path == 0) ? 0 : strlen(path)) + strlen(remotepath) + 3;
+  char fbuf[buflen];
+  char pbuf[buflen];
+  if(remotepath[0] == '/')
+  {
+    strcpy(fbuf, remotepath);
+    if(end > 0)
+    {
+      *end = 0;
+      sprintf(pbuf,"%s/",remotepath);
+    }
+    else
+      strcpy(pbuf, "/");
+  }
+  else
+  {
+    sprintf(fbuf,"%s%s",path,remotepath);
+    if(end > 0)
+    {
+      *end = 0;
+      sprintf(pbuf,"%s%s/",path,remotepath);
+    }
+    else
+      strcpy(pbuf, path);
+  }
+  setCharArray(&path, pbuf);
+  setCharArray(&file, fbuf);
 }
 
 bool FTPHost::parseUrl(uint8_t *vbuf, char **req)
@@ -52,13 +104,14 @@ bool FTPHost::parseUrl(uint8_t *vbuf, char **req)
     doSSL = newDoSSL;
     setCharArray(&username,newUsername);
     setCharArray(&pw,newPassword);
-    freeCharArray(&path);
+    setCharArray(&path,"/");
+    setCharArray(&file,"");
     return true;
   }
   return false;
 }
 
-FTPHost *makeHost(bool isUrl, FTPHost *host, uint8_t *buf, char **req)
+FTPHost *makeFTPHost(bool isUrl, FTPHost *host, uint8_t *buf, char **req)
 {
   if(isUrl)
   {
@@ -110,17 +163,16 @@ bool parseFTPUrl(uint8_t *vbuf, char **hostIp, char **req, int *port, bool *doSS
     }
   }
   char *portB=strchr((char *)vbuf,':');
+  int len=strlen((char *)vbuf);
   *req = strchr((char *)vbuf,'/');
   if(*req != NULL)
   {
     *(*req)=0;
-    (*req)++;
+    if((*req) != (char *)(vbuf+len-1))
+      (*req)++;
   }
   else
-  {
-    int len=strlen((char *)vbuf);
     *req = (char *)(vbuf + len);
-  }
   if(portB != NULL)
   {
      *portB = 0;

@@ -26,14 +26,16 @@ public:
   char *username = 0;
   char *pw = 0;
   char *path = 0;
+  char *file = 0;
   ~FTPHost();
-  bool doGet(FS *fs, const char *remotepath, const char *localpath);
+  bool doGet(FS *fs, const char *localpath, const char *remotepath);
   bool doPut(File &f, const char *remotepath);
   bool doLS(ZSerial *serial, const char *remotepath);
   bool parseUrl(uint8_t *vbuf, char **req);
+  void fixPath(const char *remotepath);
 };
 
-FTPHost *makeHost(bool isUrl, FTPHost **host, uint8_t *buf, char **req);
+FTPHost *makeFTPHost(bool isUrl, FTPHost **host, uint8_t *buf, char **req);
 bool parseFTPUrl(uint8_t *vbuf, char **hostIp, char **req, int *port, bool *doSSL, char **username, char **pw);
 bool doFTPGet(FS *fs, const char *hostIp, int port, const char *localpath, const char *remotepath, const char *username, const char *pw, const bool doSSL);
 bool doFTPPut(File &f, const char *hostIp, int port, const char *remotepath, const char *username, const char *pw, const bool doSSL);

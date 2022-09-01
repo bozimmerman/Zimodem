@@ -974,7 +974,17 @@ void ZBrowser::doModeCommand(String &line)
       if(cmd.equalsIgnoreCase("fget"))
       {
         String p1=cleanFirstArg(line);
-        String p2=makePath(cleanRemainArg(line));
+        String p2=cleanRemainArg(line);
+        if(p2.length() == 0)
+        {
+          int slash = p1.lastIndexOf('/');
+          if(slash < p1.length()-1)
+            p2 = makePath(p1.substring(slash+1));
+          else
+            p2 = makePath(p1);
+        }
+        else
+          p2=makePath(p2);
         debugPrintf("fget:%s -> %s\n",p1.c_str(), p2.c_str());
         char *tmp=0;
         bool isUrl = ((p1.length()>=11)
@@ -990,7 +1000,7 @@ void ZBrowser::doModeCommand(String &line)
           uint8_t buf[p1.length()+1];
           strcpy((char *)buf,p1.c_str());
           char *req;
-          ftpHost = makeHost(isUrl,ftpHost,buf,&req);
+          ftpHost = makeFTPHost(isUrl,ftpHost,buf,&req);
           if(req == 0)
             serial.printf("Invalid url: %s",p1.c_str());
           else
@@ -1019,7 +1029,7 @@ void ZBrowser::doModeCommand(String &line)
           strcpy((char *)buf,p2.c_str());
           File file = SD.open(p1);
           char *req;
-          ftpHost = makeHost(isUrl,ftpHost,buf,&req);
+          ftpHost = makeFTPHost(isUrl,ftpHost,buf,&req);
           if(req == 0)
             serial.printf("Invalid url: %s",p2.c_str());
           else
@@ -1049,7 +1059,7 @@ void ZBrowser::doModeCommand(String &line)
           uint8_t buf[p1.length()+1];
           strcpy((char *)buf,p1.c_str());
           char *req;
-          ftpHost = makeHost(isUrl,ftpHost,buf,&req);
+          ftpHost = makeFTPHost(isUrl,ftpHost,buf,&req);
           if(req == 0)
             serial.printf("Invalid url: %s",p1.c_str());
           else

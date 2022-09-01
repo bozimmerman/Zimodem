@@ -55,6 +55,7 @@ class ZPrint : public ZMode
     ZResult switchTo(char *vbuf, int vlen, bool petscii);
     ZResult switchToPostScript(char *prefix);
     void setLastPrinterSpec(const char *spec);
+    bool testPrinterSpec(const char *vbuf, int vlen, bool petscii);
     char *getLastPrinterSpec();
     void setTimeoutDelayMs(int ms);
     int getTimeoutDelayMs();

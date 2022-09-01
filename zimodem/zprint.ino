@@ -133,6 +133,43 @@ ZResult ZPrint::switchToPostScript(char *prefix)
   return result;
 }
 
+bool ZPrint::testPrinterSpec(const char *vbuf, int vlen, bool petscii)
+{
+  char *workBuf = (char *)malloc(vlen+1);
+  strcpy(workBuf, vbuf);
+  if(petscii)
+  {
+    for(int i=0;i<vlen;i++)
+      workBuf[i] = petToAsc(workBuf[i]);
+  }
+  if((vlen <= 2)||(workBuf[1]!=':'))
+  {
+    free(workBuf);
+    return false;
+  }
+  
+  switch(workBuf[0])
+  {
+  case 'P': case 'p': 
+  case 'A': case 'a': 
+  case 'R': case 'r': 
+  default:
+    free(workBuf);
+    return false;
+  }
+  char *hostIp;
+  char *req;
+  int port;
+  bool doSSL;
+  if(!parseWebUrl((uint8_t *)workBuf+2,&hostIp,&req,&port,&doSSL))
+  {
+    free(workBuf);
+    return false;
+  }
+  free(workBuf);
+  return true;
+}
+
 ZResult ZPrint::switchTo(char *vbuf, int vlen, bool petscii)
 {
   char *workBuf = (char *)malloc(vlen+1);
@@ -188,7 +225,7 @@ ZResult ZPrint::switchTo(char *vbuf, int vlen, bool petscii)
   }
   if(newUrl)
     setLastPrinterSpec(vbuf);
-  
+
   wifiSock = new WiFiClientNode(hostIp,port,doSSL?FLAG_SECURE:0);
   wifiSock->setNoDelay(false); // we want a delay in this case
   outStream = wifiSock;
