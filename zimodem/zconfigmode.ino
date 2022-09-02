@@ -577,9 +577,7 @@ void ZConfig::doModeCommand()
       }
       break;
     case ZCFGMENU_NEWPRINT:
-      if(cmd.length()==0)
-        currState=ZCFGMENU_MAIN;
-      else
+      if(cmd.length()>0)
       {
         if(!printMode.testPrinterSpec(cmd.c_str(),cmd.length(),commandMode.serial.isPetsciiMode()))
         {
@@ -592,9 +590,9 @@ void ZConfig::doModeCommand()
           printMode.setLastPrinterSpec(cmd.c_str());
           settingsChanged=true;
         }
-        currState=ZCFGMENU_MAIN;
-        showMenu=true;
       }
+      currState=ZCFGMENU_MAIN;
+      showMenu=true;
       break;
     case ZCFGMENU_WIFIPW:
       if(cmd.length()==0)
