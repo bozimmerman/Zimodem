@@ -44,7 +44,6 @@
 310 PRINT:PRINT"{down}Some servers:"
 320 PRINT"irc.nlnog.net port 6667, #c-64"
 325 PRINT"irc.freenode.net port 6667, #c64friends"
-330 PRINT"irc.us.ircnet.net port 6667, #c-64"
 350 SE$="":PRINT:PRINT"What is your IRC server host":GOSUB5000:SE$=P$
 360 IFSE$=""THENPRINT"I guess you're done then":CLOSE5:STOP
 370 PRINT"What is the port":GOSUB5000:PO$=P$:IFVAL(PO$)<=0THENSE$="":GOTO360
