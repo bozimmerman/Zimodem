@@ -65,8 +65,8 @@ class WiFiClientNode : public Stream
 
     uint8_t nextPacketNum=1;
     uint8_t blankPackets=0;
-    struct Packet lastPacket[3];
-    struct Packet underflowBuf;
+    struct Packet lastPacket[3]; // 0 = current buf, 1&2 are back-cache bufs
+    //struct Packet underflowBuf; // underflows no longer handled this way
     WiFiClientNode *next = null;
 
     WiFiClientNode(char *hostIp, int newport, int flagsBitmap);

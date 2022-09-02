@@ -3499,13 +3499,16 @@ void ZCommand::sendNextPacket()
   {
     packetXOn = false;
     firstConn = conns;
+    if(firstConn != NULL)
+      headerOut(firstConn->id,firstConn->nextPacketNum++,0,0);
+    else
+      headerOut(0,0,0,0);
     while(firstConn != NULL)
     {
       firstConn->lastPacket[0].len = 0;
       if(firstConn->blankPackets == 0)
         memcpy(&firstConn->lastPacket[2],&firstConn->lastPacket[1],sizeof(struct Packet));
       firstConn->blankPackets++;
-      headerOut(firstConn->id,firstConn->nextPacketNum++,0,0);
       firstConn = firstConn->next;
     }
   }
