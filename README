@@ -76,6 +76,8 @@ If you want to run a Commodore BBS program using the modem, you'll want to confi
 
 If you want to try printing to a CUPS/IPP-printer, enter AT+PRINT?:<host>:<port>/<path>, followed by your data.  Where ? is A)scii, P)etscii, or R)aw.  A 5 second pause in incoming data completes the document and returns to command mode.  Example: AT+PRINTR:192.168.1.10:631/ipp/printer  -- followed by ENTER and then the data to print, without any pause longer than 5 seconds.  Subsequent to doing this, using AT+PRINT will repeat the previous URL.
 
+If you want to chat on IRC, enter AT+IRC, enter a nickname and a irc host as a phone number entry, then /join channels, chat, or /quit.
+
 ESP32 Guru Modem users with SD-cards can enter AT+SHELL to get a shell command prompt.  Enter ? to get a list of shell commands.
 
 Command Set:
