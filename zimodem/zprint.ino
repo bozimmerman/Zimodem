@@ -153,6 +153,8 @@ bool ZPrint::testPrinterSpec(const char *vbuf, int vlen, bool petscii)
   case 'P': case 'p': 
   case 'A': case 'a': 
   case 'R': case 'r': 
+    //yay
+    break;
   default:
     free(workBuf);
     return false;

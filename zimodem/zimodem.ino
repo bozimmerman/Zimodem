@@ -18,7 +18,7 @@
 const char compile_date[] = __DATE__ " " __TIME__;
 #define DEFAULT_NO_DELAY true
 #define null 0
-//#define INCLUDE_IRCC true
+#define INCLUDE_IRCC true
 //#define INCLUDE_SLIP true
 //# define USE_DEVUPDATER true // only enable this if your name is Bo
 

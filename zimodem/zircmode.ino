@@ -291,6 +291,7 @@ void ZIRCMode::doIRCCommand()
             current->print("QUIT Good bye!\r\n");
             current->flush();
             delay(1000);
+            serial.println("Returning to command mode.");
             current->markForDisconnect();
             delete current;
             current = null;
