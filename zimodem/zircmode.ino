@@ -8,6 +8,7 @@
 //https://github.com/bl4de/irc-client/blob/master/irc_client.py
 void ZIRCMode::switchBackToCommandMode()
 {
+  serial.println("Back in command mode.");
   if(current != null)
   {
     delete current;
@@ -264,7 +265,8 @@ void ZIRCMode::doIRCCommand()
         if(lccmd.startsWith("/join "))
         {
           int cs=5;
-          while((cmd.length()<cs)&&((cmd[cs]==' ')||(cmd[cs]==7)))
+          while((cmd.length()>cs)
+          &&((cmd[cs]==' ')||(cmd[cs]==7)))
             cs++;
           if(cs < cmd.length())
           {
@@ -277,7 +279,7 @@ void ZIRCMode::doIRCCommand()
             {
               channelName = cmd.substring(cs);
               if(current != null)
-                current->print("JOIN "+channelName+"\r\n");
+                current->print("JOIN :"+channelName+"\r\n");
             }
           }
           else
@@ -291,7 +293,6 @@ void ZIRCMode::doIRCCommand()
             current->print("QUIT Good bye!\r\n");
             current->flush();
             delay(1000);
-            serial.println("Returning to command mode.");
             current->markForDisconnect();
             delete current;
             current = null;
@@ -307,9 +308,7 @@ void ZIRCMode::doIRCCommand()
       else
       if((current != null)
       &&(joinReceived))
-      {
-        current->print("PRIVMSG "+channelName+": "+cmd);
-      }
+        current->printf("PRIVMSG %s :%s\r\n",channelName.c_str(),cmd.c_str());
       break;
     }
   }
@@ -378,9 +377,7 @@ void ZIRCMode::loopMenuMode()
       {
         showMenu=true; // keep coming back here, over and over and over
         if((current==null)||(!current->isConnected()))
-        {
           switchBackToCommandMode();
-        }
         else
         {
             String cmd;
@@ -389,12 +386,10 @@ void ZIRCMode::loopMenuMode()
               uint8_t c = current->read();
               if((c == '\r')||(c == '\n')||(buf.length()>510))
               {
-                  //serial.prints(buf);
                   if((c=='\r')||(c=='\n'))
                   {
                     cmd=buf;
                     buf="";
-                    //serial.prints(EOLNC);
                     break;
                   }
                   buf="";
@@ -467,7 +462,8 @@ void ZIRCMode::loopMenuMode()
                     serial.prints(EOLNC);
                   }
                   int x0 = cmd.indexOf(":");
-                  int x1 = (x0>=0)?cmd.indexOf(":", x0+1):-1;
+                  int x1 = (x0>=0)?cmd.indexOf(" PRIVMSG ", x0+1):-1;
+                  x1 = (x1>0)?cmd.indexOf(":", x1+1):(x0>=0)?cmd.indexOf(":", x0+1):-1;
                   if(x1>0)
                   {
                     String msg2=cmd.substring(x1+1);
