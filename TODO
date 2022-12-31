@@ -34,3 +34,19 @@ Existing pin counts:
  DEFAULT_PIN_DTR
  DEFAULT_PIN_RX
  DEFAULT_PIN_TX
+ 
+                TXD
+           R     U  U  U
+   G       S     P  P  P                G
+   N    5  E     9  9  9        9    9  N
+   D    V  T     6  6  RXD      V    V  D
+           
+   1    2  3  4  5  6  7  8  9 10   11 12
+  --  ---------------------------  ------
+   A    B  C  D  E  F  H  J  K  L    M  N
+    
+   G    R--R  R  D  R  D  P  C  U    T  G
+   N    X--X  T  T  I  C  D  T  P    X  N
+   D          S  R     D  P  S  9       D
+                            5V  6
+                               DSR
