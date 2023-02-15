@@ -26,6 +26,9 @@ static WiFiClient *createWiFiClient(bool SSL)
   if(SSL)
     return new WiFiClientSecure();
   else
+#else
+  //WiFiClientSecure *c = new WiFiClientSecure();
+  //c->setInsecure();
 #endif
   return new WiFiClient();
 }
