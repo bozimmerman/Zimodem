@@ -2239,8 +2239,8 @@ ZResult ZCommand::doSerialCommand()
             result = ZERROR;
           else
           {
-            streamMode.switchTo(current);
-            result = ZOK;
+            lastServerClientId = current->id;
+            result = doAnswerCommand(vval,vbuf,vlen,isNumber,dmodifiers.c_str());
           }
         }
         else
