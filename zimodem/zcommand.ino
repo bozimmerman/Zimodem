@@ -1693,18 +1693,27 @@ ZResult ZCommand::doAnswerCommand(int vval, uint8_t *vbuf, int vlen, bool isNumb
       while(c!=null)
       {
         if((c->isConnected())
-        &&(c->id = lastServerClientId))
+        &&(c->id == lastServerClientId))
         {
           current=c;
           checkOpenConnections();
-          streamMode.switchTo(c);
-          lastServerClientId=0;
-          if(ringCounter == 0)
+          if((!c->isAnswered()) || (ringCounter==0))
           {
+            if(autoStreamMode)
+              sendConnectionNotice(baudRate);
+            else
+              sendConnectionNotice(c->id);
             c->answer();
-            sendConnectionNotice(c->id);
+            ringCounter = 0;
+            streamMode.switchTo(c);
             checkOpenConnections();
             return ZIGNORE;
+          }
+          else
+          {
+              streamMode.switchTo(c);
+              checkOpenConnections();
+              return ZOK;
           }
           break;
         }
@@ -1744,6 +1753,7 @@ ZResult ZCommand::doHangupCommand(int vval, uint8_t *vbuf, int vlen, bool isNumb
       WiFiClientNode *c=conns;
       delete c;
     }
+    lastServerClientId=0;
     current = null;
     nextConn = null;
     return ZOK;
@@ -1753,6 +1763,8 @@ ZResult ZCommand::doHangupCommand(int vval, uint8_t *vbuf, int vlen, bool isNumb
   {
       if(current != 0)
       {
+          if(lastServerClientId==current->id)
+            lastServerClientId=0;
         delete current;
         current = conns;
         nextConn = conns;
@@ -1772,6 +1784,8 @@ ZResult ZCommand::doHangupCommand(int vval, uint8_t *vbuf, int vlen, bool isNumb
           current = conns;
         if(nextConn == c)
           nextConn = conns;
+        if(lastServerClientId==c->id)
+          lastServerClientId=0;
         delete c;
         return ZOK;
       }
