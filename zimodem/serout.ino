@@ -122,7 +122,11 @@ void ZSerial::setFlowControlType(FlowControlType type)
       uart_set_pin(UART_NUM_2, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE, /*cts_io_num*/pinCTS);
       // cts is input to me, output to true RS232
       if(ctsActive == HIGH)
-        invertMask = invertMask | UART_INVERSE_CTS;
+#       ifdef UART_INVERSE_CTS
+          invertMask = invertMask | UART_INVERSE_CTS;
+#       else
+          invertMask = invertMask | UART_SIGNAL_CTS_INV;
+#       #endif
     }
     if(pinSupport[pinRTS])
     {
@@ -130,7 +134,11 @@ void ZSerial::setFlowControlType(FlowControlType type)
       s_pinWrite(pinRTS, rtsActive);
       // rts is output to me, input to true RS232
       if(rtsActive == HIGH)
-        invertMask = invertMask | UART_INVERSE_RTS;
+#       ifdef UART_INVERSE_RTS
+          invertMask = invertMask | UART_INVERSE_RTS;
+#       else
+          invertMask = invertMask | UART_SIGNAL_RTS_INV;
+#       endif
     }
     //debugPrintf("invert = %d magic values = %d %d, RTS_HIGH=%d, RTS_LOW=%d HIGHHIGH=%d LOWLOW=%d\n",invertMask,ctsActive,rtsActive, DEFAULT_RTS_HIGH, DEFAULT_RTS_LOW, HIGH, LOW);
     if(invertMask != 0)
