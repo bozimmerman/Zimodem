@@ -137,7 +137,7 @@ class ZCommand : public ZMode
 
     void showInitMessage();
     bool readSerialStream();
-    bool clearPlusProgress();
+    void clearPlusProgress();
     bool checkPlusEscape();
     String getNextSerialCommand();
     ZResult doSerialCommand();

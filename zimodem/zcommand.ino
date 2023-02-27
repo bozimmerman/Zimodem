@@ -3317,7 +3317,7 @@ void ZCommand::reSendLastPacket(WiFiClientNode *conn, uint8_t which)
   }
 }
 
-bool ZCommand::clearPlusProgress()
+void ZCommand::clearPlusProgress()
 {
   if(currentExpiresTimeMs > 0)
     currentExpiresTimeMs = 0;
