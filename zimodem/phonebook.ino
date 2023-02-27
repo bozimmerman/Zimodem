@@ -25,14 +25,28 @@ PhoneBookEntry::PhoneBookEntry(unsigned long phnum, const char *addr, const char
   strcpy((char *)notes,note);
   
   if(phonebook == null)
-    phonebook = this;
-  else
   {
-    PhoneBookEntry *last = phonebook;
-    while(last->next != null)
-      last = last->next;
-    last->next = this;
+    phonebook = this;
+    return;
   }
+  PhoneBookEntry *last = phonebook;
+  if(last->number > number)
+  {
+    phonebook = this;
+    next = last;
+    return;
+  }
+  while(last->next != null)
+  {
+    if(last->next->number > number)
+    {
+      next = last->next;
+      last->next = this;
+      return;
+    }
+    last = last->next;
+  }
+  last->next = this;
 }
 
 PhoneBookEntry::~PhoneBookEntry()
