@@ -3,11 +3,10 @@ Bugs Reported (nor reproduced):
  
 New Features:
   *. Add gopher client, or at least at&g type gopher command (gopher://?)
-  *. Some sort of RI timer?  See github. https://github.com/bozimmerman/Zimodem/issues/86
   *. Ability to use protocols for at&g, and maybe have alternative at+web
   *. Ability to ftp file streamdown, like at&g.. maybe at+ftp
   *. Support switching between CONNECT 1 and CONNECT 1200 messages
-  *. Baud rate test commend
+  *. Baud rate test command (what good is this? how do you send cmd if baud is wrong?!)
   *. ATW0 should be same as ATW
   *. SLIP support?
   *. PPP support?

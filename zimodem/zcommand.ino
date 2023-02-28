@@ -1171,6 +1171,7 @@ ZResult ZCommand::doWebDump(Stream *in, int len, const bool cacheFlag)
   machineState = stateMachine;
   if(bct > 0)
     serial.prints(EOLN);
+  return ZOK;
 }
 
 ZResult ZCommand::doWebDump(const char *filename, const bool cache)
