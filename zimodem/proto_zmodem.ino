@@ -2419,14 +2419,14 @@ int ZModem::recv_file_frame(File* fp)
 
 const char* ZModem::source(void)
 {
-  return(__FILE__);
+  return (__FILE__);
 }
 
 char* ZModem::ver(char *buf)
 {
   sscanf("$Revision: 1.120 $", "%*s %s", buf);
 
-  return(buf);
+  return (buf);
 }
 
 #endif
