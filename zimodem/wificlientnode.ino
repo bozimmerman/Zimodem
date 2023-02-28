@@ -433,7 +433,7 @@ bool WiFiClientNode::isMarkedForDisconnect()
   return nextDisconnect != 0;
 }
 
-int WiFiClientNode::checkForAutoDisconnections()
+void WiFiClientNode::checkForAutoDisconnections()
 {
   WiFiClientNode *conn = conns;
   while(conn != null)
