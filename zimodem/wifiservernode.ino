@@ -274,11 +274,6 @@ void WiFiServerNode::RestoreWiFiServers()
       }
       if(s==null)
       {
-        if(WiFi.status() != WL_CONNECTED)
-        {
-          debugPrintf("Server Restore: FAIL\n");
-          return;
-        }
         WiFiServerNode *node = new WiFiServerNode(snode.port, snode.flagsBitmap);
         setCharArray(&node->delimiters,snode.delimiters);
         setCharArray(&node->maskOuts,snode.maskOuts);
