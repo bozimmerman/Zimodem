@@ -793,6 +793,8 @@ ZResult ZCommand::doInfoCommand(int vval, uint8_t *vbuf, int vlen, bool isNumber
 
 ZResult ZCommand::doBaudCommand(int vval, uint8_t *vbuf, int vlen)
 {
+  int baudChk = baudRate;
+  uint32_t configChk = serialConfig;
   if(vval<=0)
   {
     char *commaLoc=strchr((char *)vbuf,',');
@@ -802,18 +804,8 @@ ZResult ZCommand::doBaudCommand(int vval, uint8_t *vbuf, int vlen)
     if(strlen(conStr)!=3)
       return ZERROR;
     *commaLoc=0;
-    int baudChk=atoi((char *)vbuf);
-    if((baudChk<128)||(baudChk>115200))
-      return ZERROR;
-    if((conStr[0]<'5')||(conStr[0]>'8'))
-      return ZERROR;
-    if((conStr[2]!='1')&&(conStr[2]!='2'))
-      return ZERROR;
-    char *parPtr=strchr("oemn",lc(conStr[1]));
-    if(parPtr==NULL)
-      return ZERROR;
-    char parity=*parPtr;
-    uint32_t configChk=0;
+    configChk = 0;
+    baudChk=atoi((char *)vbuf);
     switch(conStr[0])
     {
     case '5':
@@ -828,37 +820,53 @@ ZResult ZCommand::doBaudCommand(int vval, uint8_t *vbuf, int vlen)
     case '8':
       configChk = UART_NB_BIT_8;
       break;
+    default:
+      return ZERROR;
     }
-    if(conStr[2]=='1')
-      configChk = configChk | UART_NB_STOP_BIT_1;
-    else
-    if(conStr[2]=='2')
-      configChk = configChk | UART_NB_STOP_BIT_2;
-    switch(parity)
+    switch(conStr[1])
     {
-      case 'o':
+      case 'o': case 'O':
         configChk = configChk | UART_PARITY_ODD;
         break;
-      case 'e':
+      case 'e': case 'E':
         configChk = configChk | UART_PARITY_EVEN;
         break;
-      case 'm':
+      case 'm': case 'M':
         configChk = configChk | UART_PARITY_MASK;
         break;
-      case 'n':
+      case 'n': case 'N':
         configChk = configChk | UART_PARITY_NONE;
         break;
+      default:
+        return ZERROR;
     }
-    serialConfig=(SerialConfig)configChk;
-    baudRate=baudChk;
+    switch(conStr[2])
+    {
+      case '1':
+        configChk = configChk | UART_NB_STOP_BIT_1;
+        break;
+      case '2':
+        configChk = configChk | UART_NB_STOP_BIT_2;
+        break;
+      default:
+        return ZERROR;
+    }
   }
   else
-  {
-    baudRate=vval;
-  }
+    baudChk=vval;
   hwSerialFlush();
-  changeBaudRate(baudRate);
-  changeSerialConfig(serialConfig);
+  if(baudChk != baudRate)
+  {
+    if((baudChk<128)||(baudChk>115200))
+      return ZERROR;
+    baudRate = baudChk;
+    changeBaudRate(baudRate);
+  }
+  if(serialConfig != configChk)
+  {
+    serialConfig = (SerialConfig)configChk;
+    changeSerialConfig(serialConfig);
+  }
   return ZOK;
 }
 
@@ -1723,6 +1731,8 @@ ZResult ZCommand::doAnswerCommand(int vval, uint8_t *vbuf, int vlen, bool isNumb
   }
   else
   {
+    while(WiFi.status() != WL_CONNECTED)
+      return ZERROR;
     ConnSettings flags(dmodifiers);
     int flagsBitmap = flags.getBitmap(serial.getFlowControlType());
     WiFiServerNode *s=servs;
@@ -2169,10 +2179,15 @@ ZResult ZCommand::doSerialCommand()
       }
       
       if(vlen > 0)
+      {
         logPrintfln("Proc: %c %lu '%s'",lastCmd,vval,vbuf);
+        debugPrintf("Proc: %c %lu '%s'\n",lastCmd,vval,vbuf);
+      }
       else
+      {
         logPrintfln("Proc: %c %lu ''",lastCmd,vval);
-
+        debugPrintf("Proc: %c %lu ''\n",lastCmd,vval);
+      }
       /*
        * We have cmd and args, time to DO!
        */

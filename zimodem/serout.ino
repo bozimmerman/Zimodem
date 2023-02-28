@@ -126,7 +126,7 @@ void ZSerial::setFlowControlType(FlowControlType type)
           invertMask = invertMask | UART_INVERSE_CTS;
 #       else
           invertMask = invertMask | UART_SIGNAL_CTS_INV;
-#       #endif
+#       endif
     }
     if(pinSupport[pinRTS])
     {

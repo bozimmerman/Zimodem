@@ -24,7 +24,11 @@ static WiFiClient *createWiFiClient(bool SSL)
 {
 #ifdef ZIMODEM_ESP32
   if(SSL)
-    return new WiFiClientSecure();
+  {
+    WiFiClientSecure *c = new WiFiClientSecure();
+    c->setInsecure();
+    return c;
+  }
   else
 #else
   //WiFiClientSecure *c = new WiFiClientSecure();

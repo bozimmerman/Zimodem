@@ -371,7 +371,7 @@ static void changeBaudRate(int baudRate)
   dequeSize=1+(baudRate/INTERNAL_FLOW_CONTROL_DIV);
   debugPrintf("Deque constant now: %d\n",dequeSize);
 #ifdef ZIMODEM_ESP32
-  HWSerial.changeBaudRate(baudRate);
+  HWSerial.updateBaudRate(baudRate);
 #else
   HWSerial.begin(baudRate, serialConfig);  //Change baud rate
 #endif
@@ -384,14 +384,10 @@ static void changeSerialConfig(SerialConfig conf)
 {
   flushSerial(); // blocking, but very very necessary
   delay(500); // give the client half a sec to catch up
-  debugPrintf("Config changing %d.\n",(int)conf);
+  debugPrintf("Config changing to %d.\n",(int)conf);
   dequeSize=1+(baudRate/INTERNAL_FLOW_CONTROL_DIV);
   debugPrintf("Deque constant now: %d\n",dequeSize);
-#ifdef ZIMODEM_ESP32
-  HWSerial.changeConfig(conf);
-#else
   HWSerial.begin(baudRate, conf);  //Change baud rate
-#endif  
   debugPrintf("Config changed.\n");
 }
 
