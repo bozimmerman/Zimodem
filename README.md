@@ -1,3 +1,5 @@
+<img src="logo.jpg" width="150" height="150" alt="Zimodem Logo">
+
 # Zimodem 
 
 Zimodem 3.7.1 (C)2016-2022 Bo Zimmerman
