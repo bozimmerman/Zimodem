@@ -12,31 +12,35 @@ Building:
 ---------
 To build this firmware for the ESP-01 or ESP-12, I used the Arduino IDE rev1.8.10 with the 2.7.4 Arduino ESP8266 libraries using the Generic ESP8266 Module.  Versions newer than 2.7.4 may not work.  Install the libraries from the Boards Manager using http://arduino.esp8266.com/stable/package_esp8266com_index.json. Both versions of the firmware are built with SPIFFS enabled.  On the ESP8266, I used settings of 1M/160k, but you may want to alter that depending on your hardware and needs. 
 
-To build this firmware for the ESP-32, I also used the Arduino IDE rev 1.8.10 with the Arduino ESP32 Dev Module installed from the board manager * , with the following settings: QIO, 4MB, 80MHZ, 921600, NONE, Avrisp Mk II **.* On the ESP32, if you want to build firmware that is Update compatible with the official production zimodem, you'll need to install the exact libraries I use from http://www.zimmers.net/otherprojs/esp32_v0.zip .  If you don't care about that, using the latest libs work just fine.
+To build this firmware for the ESP-32, I also used the Arduino IDE rev 1.8.10 with the Arduino ESP32 Dev Module installed from the board manager * , with the following settings: QIO, 8MB, 80MHZ, 921600, NONE, Avrisp Mk II **.*, and 3MB App space.  Currently on library version 2.07.
+*REQUIRED* Additional libraries:
+Download ESP32Ping from https://github.com/marian-craciunescu/ESP32Ping and install to .../packages/esp32/hardware/esp32/2.0.7/libraries/ESP32Ping
 
 Using:
 ------
 Upon initialization, or any time the ESP module is reset, the modem will display its version, and some information about the host hardware, and then read a configuration file from the internal SPIFFS to re-establish the previously set baud rate, and to attempt to re-connect to the previously connected wireless router.  The first time it is run, the firmware will set a baud rate of 1200 and display INITALIZED to let you know that no previous wifi configuration was found.  Once the serial terminal displays READY, it is ready to receive commands.  
 
-The first command you'll probably want to enter is AT+CONFIG to connect to a wireless router, and set your flow control and other command mode settings.
+AT+CONFIG: The first command you'll probably want to enter is used to connect to a wireless router, and set your flow control and other command mode settings.  
 
-Afterwards, if you plan to use this primarily from a computer that doesn't need linefeeds, such as the C64, you'll want to enter ATR0 to go into carriage-return only mode, and then at&w to save this setting as well.
+Linefeeds: If you plan to use this primarily from a computer that doesn't need linefeeds, such as the C64, you'll want to enter ATR0 to go into carriage-return only mode, and then at&w to save this setting as well.
 
-If you want to operate at a higher baud, you'll want to enter ATB9600 (or whatever baud rate you want to try), and then reconnect your terminal program to the modem at that new baud rate.  If everything looks good, and you want to keep the new baud rate across restarts, save the new baud rate with AT&W.  Warning though: Most of the example C64 programs assume the modem defaults to 1200 baud.
+Baud Rate: If you want to operate at a higher baud, you'll want to enter ATB9600 (or whatever baud rate you want to try), and then reconnect your terminal program to the modem at that new baud rate.  If everything looks good, and you want to keep the new baud rate across restarts, save the new baud rate with AT&W.  Warning though: Most of the example C64 programs assume the modem defaults to 1200 baud.
 
-If you want to connect to a remote telnet server, eg coffeemud.net, port 23, you'll want to enter ATDT"coffeemud.net:23".  Don't forget to set your terminal program to the proper translation mode (ANSI, ASCII, or whatever).
+AT+PRINT: If you want to try printing to a CUPS/IPP-printer, enter AT+PRINT?:<host>:<port>/<path>, followed by your data.  Where ? is A)scii, P)etscii, or R)aw.  A 5 second pause in incoming data completes the document and returns to command mode.  Example: AT+PRINTR:192.168.1.10:631/ipp/printer  -- followed by ENTER and then the data to print, without any pause longer than 5 seconds.  Subsequent to doing this, using AT+PRINT will repeat the previous URL.
 
-If you are using a Commodore Graphics terminal program and want to connect to a Commodore BBS, eg cottonwoodbbs.dyndns.org port 6502, you'll want to enter ATD"cottonwoodbbs.dyndns.org:6502".
+AT+IRC: If you want to chat on IRC, enter AT+IRC, enter a nickname and a irc host as a phone number entry, then /join channels, chat, or /quit.
 
-If you want to use Q-Link, you need to add a phone number alias first.  To do this, enter ATP"5551212=q-link.net:5190" or enter it from the config menu AT+CONFIG. From the C64 Q-Link client, select "Hayes compatible" 1200 baud modem when prompted.
+AT+SHELL: ESP32 Modem users with SD-cards can enter AT+SHELL to get a shell command prompt.  Enter ? to get a list of shell commands.  If also you have a computer that supports the HOSTCM protocol over serial (such as the Commodore SupetPET SP9000), then use AT+HOSTCM.
 
-If you want to run a Commodore BBS program using the modem, you'll want to configure the BBS program to the same idle baud rate that your modem is using (1200 baud by default), configure it for a Hayes style modem (or the C=1670), and either create a persistant listener using AT+CONFIG, or use an initialization string of "ATR0E0S0=1S41=1A6400" plus any other recommended settings from the BBS program. This creates a listener at port 6400 that switches directly to stream mode on the first ring, with no linefeed carriage returns, and no keystroke echo.  Your BBS program may require you add certain other settings, such as V0 or X1.. which you should also do.
+AT+PING: To check if your wifi is connected and DNS resolution is working, try AT+PING"google.com".  An OK means a response was received.
 
-If you want to try printing to a CUPS/IPP-printer, enter AT+PRINT?:<host>:<port>/<path>, followed by your data.  Where ? is A)scii, P)etscii, or R)aw.  A 5 second pause in incoming data completes the document and returns to command mode.  Example: AT+PRINTR:192.168.1.10:631/ipp/printer  -- followed by ENTER and then the data to print, without any pause longer than 5 seconds.  Subsequent to doing this, using AT+PRINT will repeat the previous URL.
+Telnet Dialing: If you want to connect to a remote telnet server, eg coffeemud.net, port 23, you'll want to enter ATDT"coffeemud.net:23".  Don't forget to set your terminal program to the proper translation mode (ANSI, ASCII, or whatever). 
 
-If you want to chat on IRC, enter AT+IRC, enter a nickname and a irc host as a phone number entry, then /join channels, chat, or /quit.
+Non-Telnet Dialing: If you are using a Commodore Graphics terminal program and want to connect to a Commodore BBS, or a standard ASCII terminal program for a non-Commodore BBS, you'll want to enter e.g. ATD"cottonwoodbbs.dyndns.org:6502".
 
-ESP32 Guru Modem users with SD-cards can enter AT+SHELL to get a shell command prompt.  Enter ? to get a list of shell commands.
+Q-Link Setup: If you want to use Q-Link, you need to add a phone number alias first.  To do this, enter ATP"5551212=q-link.net:5190" or enter it from the config menu AT+CONFIG. From the C64 Q-Link client, select "Hayes compatible" 1200 baud modem when prompted.
+
+BBS/Port Listeners: If you want to run a Commodore BBS program using the modem, you'll want to configure the BBS program to the same idle baud rate that your modem is using (1200 baud by default), configure it for a Hayes style modem (or the C=1670), and either create a persistant listener using AT+CONFIG, or use an initialization string of "ATR0E0S0=1S41=1A6400" plus any other recommended settings from the BBS program. This creates a listener at port 6400 that switches directly to stream mode on the first ring, with no linefeed carriage returns, and no keystroke echo.  Your BBS program may require you add certain other settings, such as V0 or X1.. which you should also do.
 
 Command Set:
 -----------

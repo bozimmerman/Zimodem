@@ -16,6 +16,10 @@
 extern "C" void esp_schedule();
 extern "C" void esp_yield();
 
+#ifdef ZIMODEM_ESP32
+#  include "ESP32Ping.h"
+#endif
+
 ZCommand::ZCommand()
 {
   strcpy(CRLF,"\r\n");
@@ -37,7 +41,6 @@ void ZCommand::reset()
   doResetCommand();
   showInitMessage();
 }
-
 
 byte ZCommand::CRC8(const byte *data, byte len) 
 {
@@ -1249,7 +1252,7 @@ ZResult ZCommand::doUpdateFirmware(int vval, uint8_t *vbuf, int vlen, bool isNum
   int updaterPort = 80;
 #endif
 #ifdef ZIMODEM_ESP32
-  char *updaterPrefix = "/otherprojs/guru";
+  char *updaterPrefix = "/otherprojs/guru2";
 #else
   char *updaterPrefix = "/otherprojs/c64net";
 #endif
@@ -2562,6 +2565,27 @@ ZResult ZCommand::doSerialCommand()
         {
             result = ZOK;
             ircMode.switchTo();
+        }
+#  endif
+#  ifdef ZIMODEM_ESP32
+        else
+        if((strstr((const char *)vbuf,"ping")==(char *)vbuf))
+        {
+          char *host = (char *)vbuf + 4;
+          while((*host == '"' || *host==' ')&&(*host != 0))
+            host++;
+          while(strlen(host)>0)
+          {
+            char c = *(host + strlen(host)-1);
+            if((c!='"') && (c!=' '))
+              break;
+            *(host + strlen(host)-1) = 0;
+          }
+          debugPrintf("h6 %s\n",host);
+          if(strlen(host)==0)
+            result = ZERROR;
+          else
+            result = Ping.ping(host, 1) ? ZOK : ZERROR;
         }
 #  endif
         else

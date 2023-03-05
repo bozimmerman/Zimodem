@@ -14,7 +14,7 @@
    limitations under the License. 
 */
 //#define TCP_SND_BUF                     4 * TCP_MSS
-#define ZIMODEM_VERSION "3.7.1"
+#define ZIMODEM_VERSION "4.0.0"
 const char compile_date[] = __DATE__ " " __TIME__;
 #define DEFAULT_NO_DELAY true
 #define null 0
@@ -88,7 +88,7 @@ const char compile_date[] = __DATE__ " " __TIME__;
 # define echoEOLN serial.write
 //# define HARD_DCD_HIGH 1
 //# define HARD_DCD_LOW 1
-//# define INCLUDE_HOSTCM true // do this for special SP9000 modems only
+# define INCLUDE_HOSTCM true
 #else  // ESP-8266, e.g. ESP-01, ESP-12E, inverted for C64Net WiFi Modem
 # define DEFAULT_PIN_DSR 13
 # define DEFAULT_PIN_DTR 12
