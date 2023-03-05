@@ -16,7 +16,7 @@
 extern "C" void esp_schedule();
 extern "C" void esp_yield();
 
-#ifdef ZIMODEM_ESP32
+#ifdef INCLUDE_PING
 #  include "ESP32Ping.h"
 #endif
 
@@ -2567,7 +2567,7 @@ ZResult ZCommand::doSerialCommand()
             ircMode.switchTo();
         }
 #  endif
-#  ifdef ZIMODEM_ESP32
+#  ifdef INCLUDE_PING
         else
         if((strstr((const char *)vbuf,"ping")==(char *)vbuf))
         {
