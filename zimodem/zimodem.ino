@@ -88,8 +88,8 @@ const char compile_date[] = __DATE__ " " __TIME__;
 # define echoEOLN serial.write
 //# define HARD_DCD_HIGH 1
 //# define HARD_DCD_LOW 1
-# define INCLUDE_HOSTCM true // remove this if you don't want SuperPET support
-# define INCLUDE_PING true  // remove this if you don't feel like installed ESP32Ping lib
+# define INCLUDE_HOSTCM true // safe to remove if you need space
+# define INCLUDE_PING true
 #else  // ESP-8266, e.g. ESP-01, ESP-12E, inverted for C64Net WiFi Modem
 # define DEFAULT_PIN_DSR 13
 # define DEFAULT_PIN_DTR 12

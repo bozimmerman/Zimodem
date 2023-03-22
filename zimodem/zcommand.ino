@@ -17,7 +17,7 @@ extern "C" void esp_schedule();
 extern "C" void esp_yield();
 
 #ifdef INCLUDE_PING
-#  include "ESP32Ping.h"
+#  include "proto_ping.h"
 #endif
 
 ZCommand::ZCommand()
@@ -2581,11 +2581,10 @@ ZResult ZCommand::doSerialCommand()
               break;
             *(host + strlen(host)-1) = 0;
           }
-          debugPrintf("h6 %s\n",host);
           if(strlen(host)==0)
             result = ZERROR;
           else
-            result = Ping.ping(host, 1) ? ZOK : ZERROR;
+            result = (ping(host) >= 0 )? ZOK : ZERROR;
         }
 #  endif
         else
