@@ -33,7 +33,7 @@ static int ping(char *host)
     return socketfd;
 
   const size_t pingpktLen = 10 + sizeof(struct icmp_echo_hdr);
-  struct icmp_echo_hdr *pingpkt = (struct icmp_echo_hdr *)mem_malloc(pingpktLen);
+  struct icmp_echo_hdr *pingpkt = (struct icmp_echo_hdr *)malloc(pingpktLen);
   ICMPH_TYPE_SET(pingpkt, ICMP_ECHO);
   ICMPH_CODE_SET(pingpkt, 0);
   pingpkt->id = 65535;
