@@ -23,7 +23,7 @@ void ZConfig::switchTo()
   newListen=commandMode.preserveListeners;
   commandMode.doEcho=true;
   serverSpec.port=6502;
-  serverSpec.flagsBitmap=commandMode.getConfigFlagBitmap();
+  serverSpec.flagsBitmap=commandMode.getConfigFlagBitmap() & (~FLAG_ECHO);
   if(servs)
     serverSpec = *servs;
   serial.setXON(true);
