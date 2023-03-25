@@ -1818,6 +1818,7 @@ ZResult ZCommand::doHangupCommand(int vval, uint8_t *vbuf, int vlen, bool isNumb
     }
     return ZERROR;
   }
+  return ZERROR;
 }
 
 void ZCommand::updateAutoAnswer()
