@@ -276,24 +276,20 @@ void ZConfig::doModeCommand()
           currState=ZCFGMENU_NOTES; // just keep old values
       else
       {
-        boolean fail = cmd.indexOf(',') >= 0;
-        int colonDex=cmd.indexOf(':');
-        fail = fail || (colonDex <= 0) || (colonDex == cmd.length()-1);
-        fail = fail || (colonDex != cmd.lastIndexOf(':'));
-        if(!fail)
-        {
-          for(int i=colonDex+1;i<cmd.length();i++)
-            if(strchr("0123456789",cmd[i])<0)
-              fail=true;
-        }
-        if(fail)
-        {
-          serial.printf("%sInvalid address format (hostname:port) for '%s'.%s%s",EOLNC,cmd.c_str(),EOLNC,EOLNC);
-        }
+        if(!validateHostInfo((uint8_t *)cmd.c_str()))
+          serial.printf("%sInvalid address format (hostname:port) or (user:pass@hostname:port) for '%s'.%s%s",EOLNC,cmd.c_str(),EOLNC,EOLNC);
         else
         {
           lastAddress = cmd;
           currState=ZCFGMENU_NOTES;
+          if(lastAddress.indexOf("@")>0)
+          {
+            int x = lastOptions.indexOf("S"); 
+            if(x<0)
+              lastOptions += "S";
+            else
+              lastOptions = lastOptions.substring(0,x) + lastOptions.substring(x+1);
+          }
         }
       }
       showMenu=true; // re-show the menu
@@ -723,9 +719,9 @@ void ZConfig::loop()
       {
         PhoneBookEntry *lastEntry = PhoneBookEntry::findPhonebookEntry(lastNumber);
         if(lastEntry == null)
-          serial.printf("%sEnter a new hostname:port%s: ",EOLNC,EOLNC);
+          serial.printf("%sEnter hostname:port, or user:pass@hostname:port for SSH%s: ",EOLNC,EOLNC);
         else
-          serial.printf("%sModify hostname:port, or enter DELETE (%s)%s: ",EOLNC,lastAddress.c_str(),EOLNC);
+          serial.printf("%sModify address, or enter DELETE (%s)%s: ",EOLNC,lastAddress.c_str(),EOLNC);
         break;
       }
       case ZCFGMENU_OPTIONS:
@@ -736,6 +732,7 @@ void ZConfig::loop()
         serial.printf("[TELNET] Translation: %s%s",flags.telnet?"ON":"OFF",EOLNC);
         serial.printf("[ECHO]: %s%s",flags.echo?"ON":"OFF",EOLNC);
         serial.printf("[FLOW] Control: %s%s",flags.xonxoff?"XON/XOFF":flags.rtscts?"RTS/CTS":"DISABLED",EOLNC);
+        serial.printf("[SSH/SSL] Security: %s%s",flags.secure?"ON":"OFF",EOLNC);
         serial.printf("%sEnter option to toggle or ENTER to exit%s: ",EOLNC,EOLNC);
         break;
       }

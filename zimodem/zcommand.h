@@ -22,6 +22,7 @@ static const char *CONFIG_FILE     = "/zconfig_v2.txt";
 #define DEFAULT_BUSYMSG "\r\nBUSY\r\n7\r\n"
 
 static void parseHostInfo(uint8_t *vbuf, char **hostIp, int *port, char **username, char **password);
+static bool validateHostInfo(uint8_t *vbuf);
 
 enum ZResult
 {

@@ -60,6 +60,29 @@ static void parseHostInfo(uint8_t *vbuf, char **hostIp, int *port, char **userna
   }
 }
 
+static bool validateHostInfo(uint8_t *vbuf)
+{
+  String cmd = (char *)vbuf;
+  int atDex=cmd.indexOf('@');
+  int colonDex=cmd.indexOf(':');
+  int lastColonDex=cmd.lastIndexOf(':');
+  bool fail = cmd.indexOf(',') >= 0;
+  if(atDex >=0)
+  {
+    colonDex=cmd.indexOf(':',atDex+1);
+    fail = cmd.indexOf(',') >= atDex;
+  }
+  fail = fail || (colonDex <= 0) || (colonDex == cmd.length()-1);
+  fail = fail || (colonDex != cmd.lastIndexOf(':'));
+  if(!fail)
+  {
+    for(int i=colonDex+1;i<cmd.length();i++)
+      if(strchr("0123456789",cmd[i])<0)
+        fail=true;
+  }
+  return !fail;
+}
+
 void ZCommand::reset()
 {
   doResetCommand();
@@ -899,6 +922,17 @@ ZResult ZCommand::doBaudCommand(int vval, uint8_t *vbuf, int vlen)
 
 ZResult ZCommand::doConnectCommand(int vval, uint8_t *vbuf, int vlen, bool isNumber, const char *dmodifiers)
 {
+  if((WiFi.status() != WL_CONNECTED)
+  &&((vlen==0)||(isNumber && (vval==0)))
+  &&(conns==null))
+  {
+    if(wifiSSI.length()==0)
+      return ZERROR;
+    debugPrintf("Connecting to %s\n",wifiSSI.c_str());
+    bool doconn = connectWifi(wifiSSI.c_str(),wifiPW.c_str(),staticIP,staticDNS,staticGW,staticSN);
+    debugPrintf("Done attempting connect to %s\n",wifiSSI.c_str());
+    return doconn ? ZOK : ZERROR;
+  }
   if(vlen == 0)
   {
     logPrintln("ConnCheck: CURRENT");
@@ -929,17 +963,6 @@ ZResult ZCommand::doConnectCommand(int vval, uint8_t *vbuf, int vlen, bool isNum
   else
   if((vval >= 0)&&(isNumber))
   {
-    if((WiFi.status() != WL_CONNECTED)
-    &&(vval== 1)
-    &&(conns==null))
-    {
-      if(wifiSSI.length()==0)
-        return ZERROR;
-      debugPrintf("Connecting to %s\n",wifiSSI.c_str());
-      bool doconn = connectWifi(wifiSSI.c_str(),wifiPW.c_str(),staticIP,staticDNS,staticGW,staticSN);
-      debugPrintf("Done attempting connect to %s\n",wifiSSI.c_str());
-      return doconn ? ZOK : ZERROR;
-    }
     if(vval == 0)
       logPrintln("ConnList0:\r\n");
     else
@@ -995,7 +1018,7 @@ ZResult ZCommand::doConnectCommand(int vval, uint8_t *vbuf, int vlen, bool isNum
   {
     logPrintln("Connnect-Start:");
     char *host = 0;
-    int port = 23;
+    int port = -1;
     char *username = 0;
     char *password = 0;
     parseHostInfo(vbuf, &host, &port, &username, &password);
@@ -1004,6 +1027,8 @@ ZResult ZCommand::doConnectCommand(int vval, uint8_t *vbuf, int vlen, bool isNum
       ConnSettings flags(dmodifiers);
       flagsBitmap = flags.getBitmap(serial.getFlowControlType());
     }
+    if(port < 0)
+      port = ((username != 0) && ((flagsBitmap&FLAG_SECURE)==FLAG_SECURE))?22:23;
     if(username != null)
       logPrintfln("Connnecting: %s@%s:%d %d",username,host,port,flagsBitmap);
     else
@@ -1616,10 +1641,12 @@ ZResult ZCommand::doDialStreamCommand(unsigned long vval, uint8_t *vbuf, int vle
       flags.setFlag(FLAG_TELNET, false);
     int flagsBitmap = flags.getBitmap(serial.getFlowControlType());
     char *host = 0;
-    int port = 23;
+    int port = -1;
     char *username = 0;
     char *password = 0;
     parseHostInfo(vbuf, &host, &port, &username, &password);
+    if(port < 0)
+      port = ((username != 0) && ((flagsBitmap&FLAG_SECURE)==FLAG_SECURE))?22:23;
     WiFiClientNode *c = new WiFiClientNode(host,port,username,password,flagsBitmap | FLAG_DISCONNECT_ON_EXIT);
     if(!c->isConnected())
     {
