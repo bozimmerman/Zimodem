@@ -17,7 +17,10 @@
 #define PACKET_BUF_SIZE 256
 
 #ifdef ZIMODEM_ESP32
-#include <WiFiClientSecure.h>
+# include <WiFiClientSecure.h>
+#endif
+#ifdef INCLUDE_SSH
+# include "wifisshclient.h"
 #endif
 
 static WiFiClient *createWiFiClient(bool SSL)
@@ -56,6 +59,9 @@ class WiFiClientNode : public Stream
     int ringsRemain=0;
     unsigned long nextRingMillis = 0;
     unsigned long nextDisconnect = 0;
+    void constructNode();
+    void constructNode(char *hostIp, int newport, int flagsBitmap, int ringDelay);
+    void constructNode(char *hostIp, int newport, char *username, char *password, int flagsBitmap, int ringDelay);
 
   public:
     int id=0;
@@ -77,6 +83,7 @@ class WiFiClientNode : public Stream
     WiFiClientNode *next = null;
 
     WiFiClientNode(char *hostIp, int newport, int flagsBitmap);
+    WiFiClientNode(char *hostIp, int newport, char *username, char *password, int flagsBitmap);
     WiFiClientNode(WiFiClient newClient, int flagsBitmap, int ringDelay);
     ~WiFiClientNode();
     bool isConnected();

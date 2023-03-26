@@ -36,6 +36,30 @@ ZCommand::ZCommand()
   machineState = stateMachine;
 }
 
+static void parseHostInfo(uint8_t *vbuf, char **hostIp, int *port, char **username, char **password)
+{
+  char *at=strstr((char *)vbuf,"@");
+  *hostIp = (char *)vbuf;
+  if(at != null)
+  {
+    *at = 0;
+    *hostIp = at+1;
+    char *ucol = strstr((char *)vbuf,":");
+    *username = (char *)vbuf;
+    if(ucol != null)
+    {
+      *ucol = 0;
+      *password = ucol + 1;
+    }
+  }
+  char *colon=strstr(*hostIp,":");
+  if(colon != null)
+  {
+    (*colon)=0;
+    *port=atoi((char *)(++colon));
+  }
+}
+
 void ZCommand::reset()
 {
   doResetCommand();
@@ -970,20 +994,21 @@ ZResult ZCommand::doConnectCommand(int vval, uint8_t *vbuf, int vlen, bool isNum
   else
   {
     logPrintln("Connnect-Start:");
-    char *colon=strstr((char *)vbuf,":");
-    int port=23;
-    if(colon != null)
-    {
-      (*colon)=0;
-      port=atoi((char *)(++colon));
-    }
+    char *host = 0;
+    int port = 23;
+    char *username = 0;
+    char *password = 0;
+    parseHostInfo(vbuf, &host, &port, &username, &password);
     int flagsBitmap=0;
     {
       ConnSettings flags(dmodifiers);
       flagsBitmap = flags.getBitmap(serial.getFlowControlType());
     }
-    logPrintfln("Connnecting: %s %d %d",(char *)vbuf,port,flagsBitmap);
-    WiFiClientNode *c = new WiFiClientNode((char *)vbuf,port,flagsBitmap);
+    if(username != null)
+      logPrintfln("Connnecting: %s@%s:%d %d",username,host,port,flagsBitmap);
+    else
+      logPrintfln("Connnecting: %s %d %d",host,port,flagsBitmap);
+    WiFiClientNode *c = new WiFiClientNode(host,port,username,password,flagsBitmap);
     if(!c->isConnected())
     {
       logPrintln("Connnect: FAIL");
@@ -1590,14 +1615,12 @@ ZResult ZCommand::doDialStreamCommand(unsigned long vval, uint8_t *vbuf, int vle
     if(!telnetSupport)
       flags.setFlag(FLAG_TELNET, false);
     int flagsBitmap = flags.getBitmap(serial.getFlowControlType());
-    char *colon=strstr((char *)vbuf,":");
-    int port=23;
-    if(colon != null)
-    {
-      (*colon)=0;
-      port=atoi((char *)(++colon));
-    }
-    WiFiClientNode *c = new WiFiClientNode((char *)vbuf,port,flagsBitmap | FLAG_DISCONNECT_ON_EXIT);
+    char *host = 0;
+    int port = 23;
+    char *username = 0;
+    char *password = 0;
+    parseHostInfo(vbuf, &host, &port, &username, &password);
+    WiFiClientNode *c = new WiFiClientNode(host,port,username,password,flagsBitmap | FLAG_DISCONNECT_ON_EXIT);
     if(!c->isConnected())
     {
       delete c;
@@ -1818,6 +1841,7 @@ ZResult ZCommand::doHangupCommand(int vval, uint8_t *vbuf, int vlen, bool isNumb
     }
     return ZERROR;
   }
+  return ZERROR;
 }
 
 void ZCommand::updateAutoAnswer()
