@@ -19,7 +19,6 @@ const char compile_date[] = __DATE__ " " __TIME__;
 #define DEFAULT_NO_DELAY true
 #define null 0
 #define INCLUDE_IRCC true
-//#define INCLUDE_SLIP true
 //# define USE_DEVUPDATER true // only enable this if your name is Bo
 
 #ifdef ARDUINO_ESP32_DEV
@@ -91,6 +90,7 @@ const char compile_date[] = __DATE__ " " __TIME__;
 # define INCLUDE_HOSTCM true // safe to remove if you need space
 # define INCLUDE_PING true
 # define INCLUDE_SSH true
+# define INCLUDE_SLIP false // dont bother -- conflict with existing wifi lib
 #else  // ESP-8266, e.g. ESP-01, ESP-12E, inverted for C64Net WiFi Modem
 # define DEFAULT_PIN_DSR 13
 # define DEFAULT_PIN_DTR 12

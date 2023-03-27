@@ -10,6 +10,7 @@
 class ZSLIPMode: public ZMode
 {
 private:
+  struct netif *sl_netif = 0;
   void switchBackToCommandMode();
 
 public:

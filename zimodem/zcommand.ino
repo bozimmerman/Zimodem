@@ -2618,6 +2618,14 @@ ZResult ZCommand::doSerialCommand()
             ircMode.switchTo();
         }
 #  endif
+#ifdef INCLUDE_SLIP
+        else
+        if((strstr((const char *)vbuf,"slip")==(char *)vbuf))
+        {
+            result = ZOK;
+            slipMode.switchTo();
+        }
+#  endif
 #  ifdef INCLUDE_PING
         else
         if((strstr((const char *)vbuf,"ping")==(char *)vbuf))
