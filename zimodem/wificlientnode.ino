@@ -40,6 +40,7 @@ void WiFiClientNode::constructNode()
 
 void WiFiClientNode::constructNode(char *hostIp, int newport, int flagsBitmap, int ringDelay)
 {
+  constructNode();
   port=newport;
   host=new char[strlen(hostIp)+1];
   strcpy(host,hostIp);
