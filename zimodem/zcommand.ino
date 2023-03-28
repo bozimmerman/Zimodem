@@ -3161,22 +3161,12 @@ void ZCommand::showInitMessage()
   serial.prints(commandMode.EOLN);
 #ifdef ZIMODEM_ESP32
   int totalSPIFFSSize = SPIFFS.totalBytes();
-#ifdef INCLUDE_SD_SHELL
-  serial.prints("GuruModem WiFi Firmware v");
-#else
-  serial.prints("Zimodem32 Firmware v");
-#endif
-
 #else
   FSInfo info;
   SPIFFS.info(info);
   int totalSPIFFSSize = info.totalBytes;
-#ifdef RS232_INVERTED
-  serial.prints("C64Net WiFi Firmware v");
-#else
+#endif
   serial.prints("Zimodem Firmware v");
-#endif
-#endif
   HWSerial.setTimeout(60000);
   serial.prints(ZIMODEM_VERSION);
   //serial.prints(" (");
