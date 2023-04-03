@@ -6,6 +6,7 @@
  */
 
 #ifdef INCLUDE_SLIP
+#include "lwip/raw.h"
 
 class ZSLIPMode: public ZMode
 {
