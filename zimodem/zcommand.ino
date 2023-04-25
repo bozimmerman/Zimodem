@@ -1525,7 +1525,7 @@ ZResult ZCommand::doTransmitCommand(int vval, uint8_t *vbuf, int vlen, bool isNu
   int crcChk = *crc8;
   *crc8=-1;
   int rcvdCrc8=-1;
-  if((vlen==0)||(current==null)||(!current->isConnected()))
+  if((current==null)||(!current->isConnected()))
     return ZERROR;
   else
   if(isNumber && (vval>0))
