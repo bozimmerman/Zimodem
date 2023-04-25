@@ -1,3 +1,4 @@
+#ifdef INCLUDE_SSH
 /* Copyright (C) 2007 The Written Word, Inc.  All rights reserved.
  * Copyright (C) 2009-2010 by Daniel Stenberg
  * Author: Daniel Stenberg <daniel@haxx.se>
@@ -929,3 +930,4 @@ int _libssh2_transport_send(LIBSSH2_SESSION *session,
 
     return LIBSSH2_ERROR_NONE;         /* all is good */
 }
+#endif

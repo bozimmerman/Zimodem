@@ -1,3 +1,4 @@
+#ifdef INCLUDE_SSH
 #ifndef __LIBSSH2_BLF_H
 #define __LIBSSH2_BLF_H
 /* $OpenBSD: blf.h,v 1.7 2007/03/14 17:59:41 grunk Exp $ */
@@ -84,3 +85,4 @@ int bcrypt_pbkdf(const char *pass, size_t passlen, const uint8_t *salt,
 
 #endif /* !defined(HAVE_BCRYPT_PBKDF) && !defined(HAVE_BLH_H) */
 #endif /* __LIBSSH2_BLF_H */
+#endif

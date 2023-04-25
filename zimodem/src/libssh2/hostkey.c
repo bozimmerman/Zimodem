@@ -1,3 +1,4 @@
+#ifdef INCLUDE_SSH
 /* Copyright (c) 2004-2006, Sara Golemon <sarag@libssh2.org>
  * Copyright (c) 2009-2019 by Daniel Stenberg
  * All rights reserved.
@@ -1385,3 +1386,4 @@ libssh2_session_hostkey(LIBSSH2_SESSION *session, size_t *len, int *type)
         *len = 0;
     return NULL;
 }
+#endif

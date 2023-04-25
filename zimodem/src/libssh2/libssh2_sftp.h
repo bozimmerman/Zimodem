@@ -1,3 +1,4 @@
+#ifdef INCLUDE_SSH
 /* Copyright (c) 2004-2008, Sara Golemon <sarag@libssh2.org>
  * All rights reserved.
  *
@@ -349,3 +350,4 @@ LIBSSH2_API int libssh2_sftp_symlink_ex(LIBSSH2_SFTP *sftp,
 #endif
 
 #endif /* LIBSSH2_SFTP_H */
+#endif

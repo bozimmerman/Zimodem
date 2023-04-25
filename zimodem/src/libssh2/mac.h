@@ -1,3 +1,4 @@
+#ifdef INCLUDE_SSH
 #ifndef __LIBSSH2_MAC_H
 #define __LIBSSH2_MAC_H
 /* Copyright (C) 2009-2010 by Daniel Stenberg
@@ -64,3 +65,4 @@ typedef struct _LIBSSH2_MAC_METHOD LIBSSH2_MAC_METHOD;
 const LIBSSH2_MAC_METHOD **_libssh2_mac_methods(void);
 
 #endif /* __LIBSSH2_MAC_H */
+#endif

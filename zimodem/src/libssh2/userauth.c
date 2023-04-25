@@ -1,3 +1,4 @@
+#ifdef INCLUDE_SSH
 /* Copyright (c) 2004-2007, Sara Golemon <sarag@libssh2.org>
  * Copyright (c) 2005 Mikhail Gusarov <dottedmag@dottedmag.net>
  * Copyright (c) 2009-2014 by Daniel Stenberg
@@ -2344,3 +2345,4 @@ libssh2_userauth_publickey_sk(LIBSSH2_SESSION *session,
 
     return rc;
 }
+#endif

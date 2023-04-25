@@ -1,3 +1,4 @@
+#ifdef INCLUDE_SSH
 /* Copyright (c) 2016, Art <https://github.com/wildart>
  * All rights reserved.
  *
@@ -1441,3 +1442,4 @@ _libssh2_supported_key_sign_algorithms(LIBSSH2_SESSION *session,
 
 #endif /* LIBSSH2_ECDSA */
 #endif /* LIBSSH2_MBEDTLS */
+#endif

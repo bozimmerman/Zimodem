@@ -1,3 +1,4 @@
+#ifdef INCLUDE_SSH
 /* Copyright (c) 2004-2009, Sara Golemon <sarag@libssh2.org>
  * Copyright (c) 2009-2021 Daniel Stenberg
  * Copyright (c) 2010 Simon Josefsson <simon@josefsson.org>
@@ -1414,3 +1415,4 @@ LIBSSH2_API int libssh2_trace_sethandler(LIBSSH2_SESSION *session,
 #endif /* !RC_INVOKED */
 
 #endif /* LIBSSH2_H */
+#endif

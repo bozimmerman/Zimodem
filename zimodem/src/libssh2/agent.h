@@ -1,3 +1,4 @@
+#ifdef INCLUDE_SSH
 #ifndef __LIBSSH2_AGENT_H
 #define __LIBSSH2_AGENT_H
 /*
@@ -110,3 +111,4 @@ extern struct agent_ops agent_ops_openssh;
 #endif
 
 #endif /* __LIBSSH2_AGENT_H */
+#endif

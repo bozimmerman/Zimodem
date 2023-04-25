@@ -1,3 +1,4 @@
+#ifdef INCLUDE_SSH
 /* Copyright (c) 2010 Lars Nordin <Lars.Nordin@SDlabs.se>
  * Copyright (C) 2010 Simon Josefsson <simon@josefsson.org>
  * All rights reserved.
@@ -76,3 +77,4 @@ _libssh2_init_if_needed(void)
     if(_libssh2_initialized == 0)
         (void)libssh2_init (0);
 }
+#endif

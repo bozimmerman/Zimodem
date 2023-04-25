@@ -1,3 +1,4 @@
+#ifdef INCLUDE_SSH
 /* Copyright (c) 2004-2007, 2019, Sara Golemon <sarag@libssh2.org>
  * Copyright (c) 2010-2014, Daniel Stenberg <daniel@haxx.se>
  * All rights reserved.
@@ -375,3 +376,4 @@ _libssh2_comp_methods(LIBSSH2_SESSION *session)
     else
         return no_comp_methods;
 }
+#endif

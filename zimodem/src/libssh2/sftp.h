@@ -1,3 +1,4 @@
+#ifdef INCLUDE_SSH
 #ifndef __LIBSSH2_SFTP_H
 #define __LIBSSH2_SFTP_H
 /*
@@ -236,3 +237,4 @@ struct _LIBSSH2_SFTP
 };
 
 #endif /* __LIBSSH2_SFTP_H */
+#endif

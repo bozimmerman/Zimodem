@@ -1,3 +1,4 @@
+#ifdef INCLUDE_SSH
 /* $OpenBSD: bcrypt_pbkdf.c,v 1.4 2013/07/29 00:55:53 tedu Exp $ */
 /*
  * Copyright (c) 2013 Ted Unangst <tedu@openbsd.org>
@@ -181,3 +182,4 @@ bcrypt_pbkdf(const char *pass, size_t passlen, const uint8_t *salt,
     return 0;
 }
 #endif /* HAVE_BCRYPT_PBKDF */
+#endif

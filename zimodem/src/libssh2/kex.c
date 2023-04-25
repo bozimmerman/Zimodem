@@ -1,3 +1,4 @@
+#ifdef INCLUDE_SSH
 /* Copyright (c) 2004-2007, Sara Golemon <sarag@libssh2.org>
  * Copyright (c) 2010-2019, Daniel Stenberg <daniel@haxx.se>
  * All rights reserved.
@@ -4161,3 +4162,4 @@ LIBSSH2_API int libssh2_session_supported_algs(LIBSSH2_SESSION* session,
 
     return ialg;
 }
+#endif

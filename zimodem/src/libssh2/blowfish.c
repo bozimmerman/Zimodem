@@ -1,3 +1,4 @@
+#ifdef INCLUDE_SSH
 /* $OpenBSD: blowfish.c,v 1.18 2004/11/02 17:23:26 hshoexer Exp $ */
 /*
  * Blowfish block cipher for OpenBSD
@@ -692,3 +693,4 @@ main(void)
           (!defined(HAVE_BLOWFISH_INITSTATE) ||   \
           !defined(HAVE_BLOWFISH_EXPAND0STATE) || \
           '!defined(HAVE_BLF_ENC)) */
+#endif

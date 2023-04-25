@@ -1,3 +1,4 @@
+#ifdef INCLUDE_SSH
 /* Copyright (c) 2004-2007 Sara Golemon <sarag@libssh2.org>
  * Copyright (c) 2009-2019 by Daniel Stenberg
  * Copyright (c) 2010  Simon Josefsson
@@ -928,3 +929,4 @@ int _libssh2_bcrypt_pbkdf(const char *pass,
                         keylen,
                         rounds);
 }
+#endif

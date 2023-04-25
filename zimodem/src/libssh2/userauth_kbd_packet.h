@@ -1,3 +1,4 @@
+#ifdef INCLUDE_SSH
 /* Copyright (c) 2022, Xaver Loppenstedt <xaver@loppenstedt.de>
  * All rights reserved.
  *
@@ -41,3 +42,4 @@
 int userauth_keyboard_interactive_decode_info_request(LIBSSH2_SESSION *);
 
 #endif /* __LIBSSH2_USERAUTH_KBD_PARSE_H */
+#endif

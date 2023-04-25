@@ -1,3 +1,4 @@
+#ifdef INCLUDE_SSH
 #ifndef __LIBSSH2_PACKET_H
 #define __LIBSSH2_PACKET_H
 /*
@@ -74,3 +75,4 @@ int _libssh2_packet_add(LIBSSH2_SESSION * session, unsigned char *data,
                         size_t datalen, int macstate);
 
 #endif /* __LIBSSH2_PACKET_H */
+#endif

@@ -1,3 +1,4 @@
+#ifdef INCLUDE_SSH
 #ifndef __LIBSSH2_TRANSPORT_H
 #define __LIBSSH2_TRANSPORT_H
 /* Copyright (C) 2007 The Written Word, Inc.  All rights reserved.
@@ -84,3 +85,4 @@ int _libssh2_transport_send(LIBSSH2_SESSION *session,
 int _libssh2_transport_read(LIBSSH2_SESSION * session);
 
 #endif /* __LIBSSH2_TRANSPORT_H */
+#endif

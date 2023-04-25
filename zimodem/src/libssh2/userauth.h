@@ -1,3 +1,4 @@
+#ifdef INCLUDE_SSH
 #ifndef __LIBSSH2_USERAUTH_H
 #define __LIBSSH2_USERAUTH_H
 /* Copyright (c) 2004-2007, Sara Golemon <sarag@libssh2.org>
@@ -49,3 +50,4 @@ _libssh2_userauth_publickey(LIBSSH2_SESSION *session,
                             void *abstract);
 
 #endif /* __LIBSSH2_USERAUTH_H */
+#endif

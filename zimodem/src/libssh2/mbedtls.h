@@ -1,3 +1,4 @@
+#ifdef INCLUDE_SSH
 #ifndef __LIBSSH2_MBEDTLS_H
 #define __LIBSSH2_MBEDTLS_H
 /* Copyright (c) 2016, Art <https://github.com/wildart>
@@ -607,3 +608,4 @@ extern void
 _libssh2_dh_dtor(_libssh2_dh_ctx *dhctx);
 
 #endif /* __LIBSSH2_MBEDTLS_H */
+#endif

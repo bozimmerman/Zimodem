@@ -1,3 +1,4 @@
+#ifdef INCLUDE_SSH
 /* Copyright (c) 2004-2007, Sara Golemon <sarag@libssh2.org>
  * All rights reserved.
  *
@@ -412,3 +413,4 @@ _libssh2_mac_methods(void)
 {
     return mac_methods;
 }
+#endif

@@ -1,3 +1,4 @@
+#ifdef INCLUDE_SSH
 /* Copyright (c) 2004-2006, Sara Golemon <sarag@libssh2.org>
  * All rights reserved.
  *
@@ -120,3 +121,4 @@ LIBSSH2_API int libssh2_publickey_shutdown(LIBSSH2_PUBLICKEY *pkey);
 #endif
 
 #endif /* ifndef: LIBSSH2_PUBLICKEY_H */
+#endif

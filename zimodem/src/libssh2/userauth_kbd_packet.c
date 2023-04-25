@@ -1,3 +1,4 @@
+#ifdef INCLUDE_SSH
 /* Copyright (c) 2022, Xaver Loppenstedt <xaver@loppenstedt.de>
  * All rights reserved.
  *
@@ -160,3 +161,4 @@ int userauth_keyboard_interactive_decode_info_request(LIBSSH2_SESSION *session)
 
     return 0;
 }
+#endif

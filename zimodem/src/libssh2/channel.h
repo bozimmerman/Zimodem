@@ -1,3 +1,4 @@
+#ifdef INCLUDE_SSH
 #ifndef __LIBSSH2_CHANNEL_H
 #define __LIBSSH2_CHANNEL_H
 /* Copyright (c) 2008-2010 by Daniel Stenberg
@@ -139,3 +140,4 @@ int _libssh2_channel_forward_cancel(LIBSSH2_LISTENER *listener);
 
 #endif /* __LIBSSH2_CHANNEL_H */
 
+#endif

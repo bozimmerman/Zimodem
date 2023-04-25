@@ -1,3 +1,4 @@
+#ifdef INCLUDE_SSH
 #ifndef __LIBSSH2_MISC_H
 #define __LIBSSH2_MISC_H
 /* Copyright (c) 2009-2019 by Daniel Stenberg
@@ -129,3 +130,4 @@ void _libssh2_xor_data(unsigned char *output,
 void _libssh2_aes_ctr_increment(unsigned char *ctr, size_t length);
 
 #endif /* _LIBSSH2_MISC_H */
+#endif

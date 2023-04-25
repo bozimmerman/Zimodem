@@ -1,3 +1,4 @@
+#ifdef INCLUDE_SSH
 /* Copyright (C) 2007 The Written Word, Inc.
  * Copyright (C) 2008, Simon Josefsson
  * All rights reserved.
@@ -909,3 +910,4 @@ _libssh2_pem_decode_integer(unsigned char **data, unsigned int *datalen,
 
     return 0;
 }
+#endif

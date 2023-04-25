@@ -1,3 +1,4 @@
+#ifdef INCLUDE_SSH
 /* Copyright (c) 2009, 2010 Simon Josefsson <simon@josefsson.org>
  * Copyright (c) 2004-2007, Sara Golemon <sarag@libssh2.org>
  * All rights reserved.
@@ -349,3 +350,4 @@ libssh2_crypt_methods(void)
 {
     return _libssh2_crypt_methods;
 }
+#endif

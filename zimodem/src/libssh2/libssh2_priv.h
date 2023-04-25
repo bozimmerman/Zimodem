@@ -1,3 +1,4 @@
+#ifdef INCLUDE_SSH
 #ifndef __LIBSSH2_PRIV_H
 #define __LIBSSH2_PRIV_H
 /* Copyright (c) 2004-2008, 2010, Sara Golemon <sarag@libssh2.org>
@@ -1168,3 +1169,4 @@ endings either CRLF or LF so 't' is appropriate.
 #endif
 
 #endif /* __LIBSSH2_PRIV_H */
+#endif

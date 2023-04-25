@@ -1,3 +1,4 @@
+#ifdef INCLUDE_SSH
 /* Copyright (c) 2004-2007 Sara Golemon <sarag@libssh2.org>
  * Copyright (c) 2005 Mikhail Gusarov <dottedmag@dottedmag.net>
  * Copyright (c) 2008-2019 by Daniel Stenberg
@@ -2904,3 +2905,4 @@ libssh2_channel_window_write_ex(LIBSSH2_CHANNEL *channel,
 
     return channel->local.window_size;
 }
+#endif

@@ -1,3 +1,4 @@
+#ifdef INCLUDE_SSH
 /* Copyright (C) 2010  Simon Josefsson
  * Author: Simon Josefsson
  *
@@ -98,3 +99,4 @@ libssh2_keepalive_send (LIBSSH2_SESSION *session,
 
     return 0;
 }
+#endif

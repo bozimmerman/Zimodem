@@ -1,3 +1,4 @@
+#ifdef INCLUDE_SSH
 /* Copyright (c) 2014 Alexander Lamaison <alexander.lamaison@gmail.com>
  *
  * Redistribution and use in source and binary forms,
@@ -70,4 +71,5 @@
 # define __func__ __FUNCTION__
 # define HAVE___FUNC__
 # endif
+#endif
 #endif

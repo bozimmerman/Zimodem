@@ -1,3 +1,4 @@
+#ifdef INCLUDE_SSH
 #ifndef __LIBSSH2_CRYPTO_H
 #define __LIBSSH2_CRYPTO_H
 /* Copyright (C) 2009, 2010 Simon Josefsson
@@ -334,3 +335,4 @@ _libssh2_supported_key_sign_algorithms(LIBSSH2_SESSION *session,
                                        size_t key_method_len);
 
 #endif /* __LIBSSH2_CRYPTO_H */
+#endif

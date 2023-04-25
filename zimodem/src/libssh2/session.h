@@ -1,3 +1,4 @@
+#ifdef INCLUDE_SSH
 #ifndef __LIBSSH2_SESSION_H
 #define __LIBSSH2_SESSION_H
 /* Copyright (c) 2004-2007 Sara Golemon <sarag@libssh2.org>
@@ -91,3 +92,4 @@ int _libssh2_wait_socket(LIBSSH2_SESSION *session, time_t entry_time);
 int _libssh2_session_set_blocking(LIBSSH2_SESSION * session, int blocking);
 
 #endif /* __LIBSSH2_SESSION_H */
+#endif

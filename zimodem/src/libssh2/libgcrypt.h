@@ -1,3 +1,4 @@
+#ifdef INCLUDE_SSH
 #ifndef __LIBSSH2_LIBGCRYPT_H
 #define __LIBSSH2_LIBGCRYPT_H
 /*
@@ -236,3 +237,4 @@ extern int _libssh2_dh_secret(_libssh2_dh_ctx *dhctx, _libssh2_bn *secret,
 extern void _libssh2_dh_dtor(_libssh2_dh_ctx *dhctx);
 
 #endif /* __LIBSSH2_LIBGCRYPT_H */
+#endif
