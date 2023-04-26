@@ -1,4 +1,4 @@
-#ifdef INCLUDE_SSH
+#if defined(ESP32)
 /* Copyright (C) 2007 The Written Word, Inc.
  * Copyright (C) 2008, Simon Josefsson
  * All rights reserved.

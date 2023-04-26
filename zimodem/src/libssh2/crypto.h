@@ -1,4 +1,4 @@
-#ifdef INCLUDE_SSH
+#if defined(ESP32)
 #ifndef __LIBSSH2_CRYPTO_H
 #define __LIBSSH2_CRYPTO_H
 /* Copyright (C) 2009, 2010 Simon Josefsson

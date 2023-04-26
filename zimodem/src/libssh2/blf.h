@@ -1,4 +1,4 @@
-#ifdef INCLUDE_SSH
+#if defined(ESP32)
 #ifndef __LIBSSH2_BLF_H
 #define __LIBSSH2_BLF_H
 /* $OpenBSD: blf.h,v 1.7 2007/03/14 17:59:41 grunk Exp $ */

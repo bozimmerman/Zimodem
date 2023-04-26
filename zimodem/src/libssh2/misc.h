@@ -1,4 +1,4 @@
-#ifdef INCLUDE_SSH
+#if defined(ESP32)
 #ifndef __LIBSSH2_MISC_H
 #define __LIBSSH2_MISC_H
 /* Copyright (c) 2009-2019 by Daniel Stenberg

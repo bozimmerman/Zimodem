@@ -1,4 +1,4 @@
-#ifdef INCLUDE_SSH
+#if defined(ESP32)
 /* Copyright (c) 2022, Xaver Loppenstedt <xaver@loppenstedt.de>
  * All rights reserved.
  *

@@ -1,4 +1,4 @@
-#ifdef INCLUDE_SSH
+#if defined(ESP32)
 /* Copyright (c) 2016, Art <https://github.com/wildart>
  * All rights reserved.
  *

@@ -1,4 +1,4 @@
-#ifdef INCLUDE_SSH
+#if defined(ESP32)
 /* Copyright (c) 2010 Lars Nordin <Lars.Nordin@SDlabs.se>
  * Copyright (C) 2010 Simon Josefsson <simon@josefsson.org>
  * All rights reserved.

@@ -1,4 +1,4 @@
-#ifdef INCLUDE_SSH
+#if defined(ESP32)
 #ifndef __LIBSSH2_LIBGCRYPT_H
 #define __LIBSSH2_LIBGCRYPT_H
 /*

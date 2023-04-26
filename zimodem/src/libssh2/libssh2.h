@@ -1,4 +1,4 @@
-#ifdef INCLUDE_SSH
+#if defined(ESP32)
 /* Copyright (c) 2004-2009, Sara Golemon <sarag@libssh2.org>
  * Copyright (c) 2009-2021 Daniel Stenberg
  * Copyright (c) 2010 Simon Josefsson <simon@josefsson.org>

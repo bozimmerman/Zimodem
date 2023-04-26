@@ -1,4 +1,4 @@
-#ifdef INCLUDE_SSH
+#if defined(ESP32)
 #ifndef __LIBSSH2_USERAUTH_H
 #define __LIBSSH2_USERAUTH_H
 /* Copyright (c) 2004-2007, Sara Golemon <sarag@libssh2.org>

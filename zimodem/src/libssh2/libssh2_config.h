@@ -1,4 +1,4 @@
-#ifdef INCLUDE_SSH
+#if defined(ESP32)
 /* Copyright (c) 2014 Alexander Lamaison <alexander.lamaison@gmail.com>
  *
  * Redistribution and use in source and binary forms,

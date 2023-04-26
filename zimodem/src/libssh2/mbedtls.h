@@ -1,4 +1,4 @@
-#ifdef INCLUDE_SSH
+#if defined(ESP32)
 #ifndef __LIBSSH2_MBEDTLS_H
 #define __LIBSSH2_MBEDTLS_H
 /* Copyright (c) 2016, Art <https://github.com/wildart>
