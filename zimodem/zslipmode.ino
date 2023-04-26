@@ -39,6 +39,9 @@ void ZSLIPMode::switchBackToCommandMode()
 
 void ZSLIPMode::switchTo()
 {
+  inPacket="";
+  started=false;
+  escaped=false;
   raw_pcb *_pcb = raw_new(IP_PROTO_TCP);
   if(!_pcb){
       return;
@@ -49,8 +52,80 @@ void ZSLIPMode::switchTo()
   debugPrintf("Switched to SLIP mode\n\r");
 }
 
+String ZSLIPMode::encodeSLIP(uint8_t *ipPacket, int ipLen)
+{
+  String slip;
+  slip += SLIP_END;
+  for(int i=0;i<ipLen;i++)
+  {
+    if(ipPacket[i] == SLIP_END)
+        slip += SLIP_ESC + SLIP_ESC_END;
+    else
+    if(ipPacket[i] == SLIP_ESC)
+        slip += SLIP_ESC + SLIP_ESC_ESC;
+    else
+      slip += ipPacket[i];
+  }
+  slip += SLIP_END;
+  return slip;
+}
+
 void ZSLIPMode::serialIncoming()
 {
+  while(HWSerial.available()>0)
+  {
+    uint8_t c = HWSerial.read();
+    if (c == SLIP_END)
+    {
+      if(started)
+      {
+        if(inPacket.length()>0)
+        {
+          //TODO: send the packet!
+        }
+      }
+      else
+        started=true;
+      inPacket="";
+    }
+    else
+    if(c == SLIP_ESC)
+      escaped=true;
+    else
+    if(c == SLIP_ESC_END)
+    {
+      if(escaped)
+      {
+        inPacket += SLIP_END;
+        escaped = false;
+      }
+      else
+        inPacket += c;
+    }
+    else
+    if(c == SLIP_ESC_ESC)
+    {
+      if(escaped)
+      {
+        inPacket += SLIP_ESC;
+        escaped=false;
+      }
+      else
+        inPacket += c;
+    }
+    else
+    if(escaped)
+    {
+      debugPrintf("SLIP Protocol Error\n");
+      inPacket="";
+      escaped=false;
+    }
+    else
+    {
+      inPacket += c;
+      started=true;
+    }
+  }
 }
 
 void ZSLIPMode::loop()

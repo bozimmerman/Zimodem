@@ -12,6 +12,14 @@ class ZSLIPMode: public ZMode
 {
 private:
   void switchBackToCommandMode();
+  static const char SLIP_END = '\xc0';
+  static const char SLIP_ESC = '\xdb';
+  static const char SLIP_ESC_END = '\xdc';
+  static const char SLIP_ESC_ESC = '\xdd';
+  String encodeSLIP(uint8_t *ipPacket, int ipLen);
+  String inPacket;
+  bool started=false;
+  bool escaped=false;
 
 public:
   void switchTo();
