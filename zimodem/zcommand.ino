@@ -370,7 +370,7 @@ void ZCommand::reSaveConfig()
             wifiSSIhex.c_str(), wifiPWhex.c_str(), baudRate, eoln,
             serial.getFlowControlType(), doEcho, suppressResponses, numericResponses,
             longResponses, serial.isPetsciiMode(), dcdMode, serialConfig, ctsMode,
-            rtsMode,pinDCD,pinCTS,pinRTS,autoStreamMode,ringCounter,preserveListeners,
+            rtsMode,pinDCD,pinCTS,pinRTS,ringCounter,autoStreamMode,preserveListeners,
             riMode,dtrMode,dsrMode,pinRI,pinDTR,pinDSR,
             zclock.isDisabled()?999:zclock.getTimeZoneCode(),
             zclockFormathex.c_str(),zclockHosthex.c_str(),hostnamehex.c_str(),
@@ -3689,7 +3689,7 @@ void ZCommand::acceptNewConnection()
         {
           //BZ:newClient.setNoDelay(true);
           int futureRings = (ringCounter > 0)?(ringCounter-1):5;
-          WiFiClientNode *newClientNode = new WiFiClientNode(newClient, serv->flagsBitmap, futureRings * 2);
+          WiFiClientNode *newClientNode = new WiFiClientNode(newClient, serv->flagsBitmap, (futureRings+1) * 2);
           setCharArray(&(newClientNode->delimiters),serv->delimiters);
           setCharArray(&(newClientNode->maskOuts),serv->maskOuts);
           setCharArray(&(newClientNode->stateMachine),serv->stateMachine);
@@ -3727,14 +3727,12 @@ void ZCommand::acceptNewConnection()
       {
         conn->nextRingTime(3000);
         int rings=conn->ringsRemaining(-1);
-        if(rings <= 0)
+        if(rings <= 1)
         {
           s_pinWrite(pinRI,riInactive);
           if(ringCounter > 0)
           {
             preEOLN(EOLN);
-            serial.prints(numericResponses?"2":"RING");
-            serial.prints(EOLN);
             conn->answer();
             if(autoStreamMode)
             {
@@ -3761,10 +3759,6 @@ void ZCommand::acceptNewConnection()
       }
     }
     conn = nextConn;
-  }
-  if(checkOpenConnections()==0)
-  {
-    s_pinWrite(pinRI,riInactive);
   }
 }
 
