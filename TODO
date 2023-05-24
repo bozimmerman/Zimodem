@@ -20,21 +20,21 @@ New hardware hopes:
  +K	6 CTS	Clear To Send
  M!	8 TxD	Transmit Data
 
-Existing pin counts:
- DEFAULT_PIN_AA
- DEFAULT_PIN_HS
- DEFAULT_PIN_WIFI
- PIN_FACTORY_RESET
- DEFAULT_PIN_DCD
- DEFAULT_PIN_CTS
- DEFAULT_PIN_RTS
- DEFAULT_PIN_RI
- DEFAULT_PIN_DSR
- DEFAULT_PIN_DTR
- DEFAULT_PIN_RX
- DEFAULT_PIN_TX
+GPIO Pin assignments:   ESP12-E      ESP32     ESP-01
+ DEFAULT_PIN_AA                       16
+ DEFAULT_PIN_HS                       15
+ DEFAULT_PIN_WIFI                     0
+ PIN_FACTORY_RESET                    0
+ DEFAULT_PIN_DCD          2           14         2
+ DEFAULT_PIN_CTS          5           13         0
+ DEFAULT_PIN_RTS          4           15         (5V)
+ DEFAULT_PIN_RI           14          32
+ DEFAULT_PIN_DSR          13          12
+ DEFAULT_PIN_DTR          12          27
+ DEFAULT_PIN_RX                      
+ DEFAULT_PIN_TX                      
  
-                TXDDSRRXD
+Connects to:    TXDDSRRXD
            R     U  U  U
    G       S     P  P  P                G
    N    5  E     9  9  9        9    9  N
@@ -47,5 +47,5 @@ Existing pin counts:
    G    R--R  R  D  R  D  P  C  U    T  G
    N    X--X  T  T  I  C  D  T  P    X  N
    D          S  R     D  P  S  9       D
-                            5V  6
-                               DSR
+                                6
+ Connects to:              *5v DSR
