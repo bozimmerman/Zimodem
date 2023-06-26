@@ -1,5 +1,5 @@
 Bugs Reported (nor reproduced):
- *. 
+ *. Test high speed X-modem transfers between two gurumodem hosts. 
  
 New Features:
   *. Support switching between CONNECT #ID and CONNECT 1200 messages?
