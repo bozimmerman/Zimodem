@@ -3166,7 +3166,16 @@ void ZCommand::showInitMessage()
   SPIFFS.info(info);
   int totalSPIFFSSize = info.totalBytes;
 #endif
-  serial.prints("Zimodem Firmware v");
+  serial.prints("Zimodem ");
+#ifdef ZIMODEM_ESP32
+  serial.prints("ESP32 ");
+#else
+  if (getDefaultCtsPin() == 0)
+    serial.prints("ESP01 ");
+  else
+    serial.prints("ESP8266 ");
+#endif
+  serial.prints("Firmware v");
   HWSerial.setTimeout(60000);
   serial.prints(ZIMODEM_VERSION);
   //serial.prints(" (");
