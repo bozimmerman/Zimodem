@@ -7,6 +7,7 @@
 
 #ifdef INCLUDE_SLIP
 #include "lwip/raw.h"
+#include "src/missing/slipif.h"
 
 static ZSerial sserial;
 class ZSLIPMode: public ZMode

@@ -14,6 +14,16 @@ void ZSLIPMode::switchBackToCommandMode()
 
 void ZSLIPMode::switchTo()
 {
+  uint8_t num_slip1 = 0;
+  struct netif slipif1;
+  ip4_addr_t ipaddr_slip1, netmask_slip1, gw_slip1;
+  //LWIP_PORT_INIT_SLIP1_IPADDR(&ipaddr_slip1);
+  //LWIP_PORT_INIT_SLIP1_GW(&gw_slip1);
+  //LWIP_PORT_INIT_SLIP1_NETMASK(&netmask_slip1);
+  //printf("Starting lwIP slipif, local interface IP is %s\n", ip4addr_ntoa(&ipaddr_slip1));
+
+  netif_add(&slipif1, &ipaddr_slip1, &netmask_slip1, &gw_slip1, &num_slip1, slipif_init, ip_input);
+
   sserial.setFlowControlType(FCT_DISABLED);
   if(commandMode.getFlowControlType()==FCT_RTSCTS)
     sserial.setFlowControlType(FCT_RTSCTS);
