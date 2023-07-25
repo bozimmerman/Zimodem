@@ -1,5 +1,7 @@
 Bugs Reported (nor reproduced):
- *. Test high speed X-modem transfers between two gurumodem hosts. 
+ *. Test carrier detect in ESP12-E in 4.0
+ *. Test incoming network packets of various sizes at different speeds
+ *. 
  
 New Features:
   *. Support switching between CONNECT #ID and CONNECT 1200 messages?
