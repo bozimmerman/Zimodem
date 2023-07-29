@@ -14,7 +14,7 @@ private:
   bool savedEcho;
   String EOLN;
   const char *EOLNC;
-  WiFiClientNode *current = null;
+  WiFiClientNode *irc_conn = null;
   unsigned long lastNumber;
   unsigned long timeout=0;
   String buf;
@@ -22,8 +22,10 @@ private:
   String lastAddress;
   String lastOptions;
   String lastNotes;
-  String channelName;
+  String currentChannel;
   bool joinReceived;
+  bool debugRaw;
+
   enum ZIRCMenu
   {
     ZIRCMENU_MAIN=0,
@@ -34,6 +36,7 @@ private:
     ZIRCMENU_OPTIONS=5,
     ZIRCMENU_COMMAND=6
   } currState;
+
   enum ZIRCState
   {
     ZIRCSTATE_WAIT=0,

@@ -9,10 +9,10 @@
 void ZIRCMode::switchBackToCommandMode()
 {
   serial.println("Back in command mode.");
-  if(current != null)
+  if(irc_conn != null)
   {
-    delete current;
-    current = null;
+    delete irc_conn;
+    irc_conn = null;
   }
   currMode = &commandMode;
 }
@@ -31,9 +31,11 @@ void ZIRCMode::switchTo()
   lastNumber=0;
   lastAddress="";
   lastOptions="";
-  channelName="";
+  currentChannel="";
   joinReceived=false;
-  if(nick.length()==0)
+  debugRaw = false;
+
+  if(nick.length() == 0)
   {
     randomSeed(millis());
     char tempNick[50];
@@ -117,7 +119,7 @@ void ZIRCMode::doIRCCommand()
           {
             logPrintfln("Connnect: SUCCESS: %d",c->id);
             serial.prints("Connected.\n\r"); //TODO: maybe get rid of?
-            current=c;
+            irc_conn=c;
             buf = "";
             currState=ZIRCMENU_COMMAND;
             ircState=ZIRCSTATE_WAIT;
@@ -267,33 +269,103 @@ void ZIRCMode::doIRCCommand()
 
     case ZIRCMENU_COMMAND:
     {
-      if(c=='/')
+      if (c == '/') // Entering an IRC command
       {
         String lccmd = cmd;
         lccmd.toLowerCase();
 
-        if(lccmd.startsWith("/join "))
+        // JOIN Channel
+        if (lccmd.startsWith("/join "))
         {
-          int cs=5;
-          while((cmd.length()>cs) && ((cmd[cs]==' ') || (cmd[cs]==7))) cs++;
-          if(cs < cmd.length())
+          int startOfChannel = cmd.indexOf(' ') + 1;
+          int endOfChannel = cmd.indexOf(' ', startOfChannel);
+          String chanToJoin = cmd.substring(startOfChannel, endOfChannel);
+          
+          if (chanToJoin.length()>0)
           {
-            // if channelName length is greater than 0 it means we're already on a channel
-            if(channelName.length()>0 && joinReceived)
+            if (irc_conn != null)
             {
-              serial.println("* Already in "+channelName+": Not Yet Implemented");
-              // we are already joined somewhere
-            }
-            else
-            {
-              channelName = cmd.substring(cs);
-              if(current != null)
-                current->print("JOIN :"+channelName+"\r\n");
+              irc_conn->print("JOIN :"+chanToJoin+"\r\n");
+              currentChannel = chanToJoin;
+              serial.println("* Now talking in: " + currentChannel);
             }
           }
+          
           else
             serial.println("* A channel name is required *");
         }
+
+        // PART (leave) Channel
+        else
+        if (lccmd.startsWith("/part "))
+        {
+          int startOfChannel = cmd.indexOf(' ') + 1;
+          int endOfChannel = cmd.indexOf(' ', startOfChannel);
+          String chanToPart = cmd.substring(startOfChannel, endOfChannel);
+          String partReason = cmd.substring(endOfChannel + 1, cmd.length());
+          
+          if (chanToPart.length() > 0)
+          {
+            if (partReason.length() == 0)
+              partReason = "Leaving...";
+            if(irc_conn != null)
+              irc_conn->print("PART " + chanToPart + " :" + partReason + "\r\n");
+              
+            serial.println("* You will need to /switch or /join a new channel to talk *");
+          }
+          else
+            serial.println("* You must specify the channel to part/leave *");
+        }
+
+        // WHOIS - get user info
+        else
+        if (lccmd.startsWith("/whois "))
+        {
+          int startOfParameter = cmd.indexOf(' ') + 1;
+          int endOfParameter = cmd.indexOf(' ', startOfParameter);
+          String whoisUser = cmd.substring(startOfParameter, endOfParameter);
+          
+          if(irc_conn != null)
+          {
+            irc_conn->print("WHOIS " + whoisUser + "\r\n");
+          }
+        }
+
+        // Switch to a new Channel to talk on
+        else
+        if (lccmd.startsWith("/switch "))
+        {
+          int startOfChannel = cmd.indexOf(' ') + 1;
+          int endOfChannel = cmd.indexOf(' ', startOfChannel);
+          String chanToSwitch = cmd.substring(startOfChannel, endOfChannel);
+          
+          if (chanToSwitch.length() > 0)
+          {
+            if(irc_conn != null)
+              currentChannel = chanToSwitch;
+              serial.println("* Now talking in: " + currentChannel);
+          }
+        }
+
+        // Toggle debug mode to receive all RAW messages
+        else
+        if (lccmd.startsWith("/debug"))
+        {
+          if (debugRaw)
+          {
+            debugRaw = false;
+            if(irc_conn != null)
+              serial.println("* Debug OFF - no longer receive RAW IRC messages");
+          }
+          else
+          {
+            debugRaw = true;
+            if(irc_conn != null)
+              serial.println("* Debug ON - receiving RAW IRC messages");
+          }
+        }
+
+        // Send "private message" to user
         else
         if(lccmd.startsWith("/msg "))
         {
@@ -302,14 +374,14 @@ void ZIRCMode::doIRCCommand()
           int endNick = cmd.indexOf(' ', startNick);
           String sendToNick = cmd.substring(startNick, endNick);
           String msgToSend = cmd.substring(endNick + 1, cmd.length());
-          serial.println("* sendToNick: " + sendToNick);
-          serial.println("* msgToSend: " + msgToSend);
+          //serial.println("* sendToNick: " + sendToNick);
+          //serial.println("* msgToSend: " + msgToSend);
 
           if(cs < cmd.length())
           {
-              if(current != null)
-                current->print("PRIVMSG " + sendToNick + " :" + msgToSend + "\r\n");
-                //current->printf("PRIVMSG %s :%s\r\n",sendToNick.c_str(),msgToSend.c_str());
+              if(irc_conn != null)
+                irc_conn->print("PRIVMSG " + sendToNick + " :" + msgToSend + "\r\n");
+                //irc_conn->printf("PRIVMSG %s :%s\r\n",sendToNick.c_str(),msgToSend.c_str());
           }
           else
             serial.println("* A nickname and message is required*");
@@ -317,14 +389,14 @@ void ZIRCMode::doIRCCommand()
         else
         if(lccmd.startsWith("/quit"))
         {
-          if(current != null)
+          if(irc_conn != null)
           {
-            current->print("QUIT Good bye!\r\n");
-            current->flush();
+            irc_conn->print("QUIT Good bye!\r\n");
+            irc_conn->flush();
             delay(1000);
-            current->markForDisconnect();
-            delete current;
-            current = null;
+            irc_conn->markForDisconnect();
+            delete irc_conn;
+            irc_conn = null;
           }
           switchBackToCommandMode();
         }
@@ -334,9 +406,10 @@ void ZIRCMode::doIRCCommand()
           serial.println("* Try /?");
         }
       }
+      // Otherwise send typed message to the active channel
       else
-      if((current != null) && (joinReceived))
-        current->printf("PRIVMSG %s :%s\r\n",channelName.c_str(),cmd.c_str());
+      if((irc_conn != null) && (joinReceived))
+        irc_conn->printf("PRIVMSG %s :%s\r\n", currentChannel.c_str(), cmd.c_str());
       break;
     }
   }
@@ -404,76 +477,82 @@ void ZIRCMode::loopMenuMode()
       case ZIRCMENU_COMMAND:
       {
         showMenu=true; // keep coming back here, over and over and over
-        if((current==null)||(!current->isConnected()))
+        if ((irc_conn == null) || (!irc_conn->isConnected()))
           switchBackToCommandMode();
         else
         {
             String cmd;
-            while((current->available()>0) && (current->isConnected()))
+            while ((irc_conn->available() > 0) && (irc_conn->isConnected()))
             {
-              uint8_t c = current->read();
-              if((c == '\r')||(c == '\n')||(buf.length()>510))
+              uint8_t c = irc_conn->read();
+              if ((c == '\r') || (c == '\n') || (buf.length()>510))
               {
-                  if((c=='\r')||(c=='\n'))
+                  if ((c == '\r') || (c == '\n'))
                   {
-                    cmd=buf;
-                    buf="";
+                    cmd = buf;
+                    buf = "";
                     break;
                   }
-                  buf="";
+                  buf = "";
               }
               else
                   buf += (char)c;
             }
-            if(cmd.length()>0)
+
+            if (cmd.length() > 0)
             {
-              if(cmd.indexOf("PING :")==0)
+              if (cmd.indexOf("PING :") == 0)
               {
                   int x = cmd.indexOf(':');
-                  if(x>0)
-                    current->print("PONG "+cmd.substring(x+1)+"\r\n");
+                  if (x > 0)
+                    irc_conn->print("PONG " + cmd.substring(x + 1) + "\r\n");
               }
               else
               switch(ircState)
               {
                 case ZIRCSTATE_WAIT:
                 {
-                  if(cmd.indexOf("376")>=0) // 376 == End of MOTD
+                  // 376 == End of MOTD
+                  if (cmd.indexOf("376") >= 0) 
                   {
                       ircState = ZIRCSTATE_COMMAND;
                       //TODO: say something?
                   }
+
                   else
-                  if(cmd.indexOf("No Ident response")>=0)
+                  if(cmd.indexOf("No Ident response") >= 0)
                   {
-                      current->print("NICK "+nick+"\r\n");
-                      current->print("USER rewt 0 * :"+nick+"\r\n");
+                      irc_conn->print("NICK " + nick + "\r\n");
+                      irc_conn->print("USER rewt 0 * :" + nick + "\r\n");
                   }
+
+                  // 433 == Error, nickname in use
                   else
-                  if(cmd.indexOf("433")>=0) // 433 == Error, nickname in use
+                  if(cmd.indexOf("433") >= 0) 
                   {
-                      if(nick.indexOf("_____")==0)
+                      if(nick.indexOf("_____") == 0)
                       {
                           ircState = ZIRCSTATE_WAIT;
-                          delete current;
-                          current = null;
+                          delete irc_conn;
+                          irc_conn = null;
                           currState = ZIRCMENU_MAIN;
                       }
                       else
                       {
                         nick = "_" + nick;
-                        current->print("NICK "+nick+"\r\n");
-                        current->print("USER rewt 0 * :"+nick+"\r\n");
+                        irc_conn->print("NICK " + nick + "\r\n");
+                        irc_conn->print("USER rewt 0 * :" + nick + "\r\n");
                         // above was user nick * * : nick
                       }
                   }
+
                   else
-                  if(cmd.indexOf(":")==0)
+                  if(cmd.indexOf(":") == 0)
                   {
                     int x = cmd.indexOf(":",1);
-                    if(x>1)
+                    if(x > 1)
                     {
-                      serial.prints(cmd.substring(x+1));
+                      serial.prints(cmd.substring(x + 1));
                       serial.prints(EOLNC);
                     }
                   }
@@ -484,64 +563,143 @@ void ZIRCMode::loopMenuMode()
                 {
 
                   // Print copy of raw IRC messages for debugging. Comment in/out as needed.
-                  //serial.prints("RAW> " + cmd);
-                  //serial.prints(EOLNC);
+                  if (debugRaw)
+                  {
+                    serial.prints("RAW> " + cmd);
+                    serial.prints(EOLNC);
+                  }
 
-                  int rawMsgStart = cmd.indexOf(":"); // raw IRC messages start with ':'
-                  int secondColon = (rawMsgStart >= 0) ? cmd.indexOf(":", rawMsgStart + 1) : -1; // this is the 2nd colon, after which is the message
-                  String theMessage = cmd.substring(secondColon + 1);
+                  // raw IRC messages start with ':'
+                  int rawMsgStart = cmd.indexOf(":"); 
+                  // the first space occurs after the user details (which sometimes contain extra ':' chars)
+                  int firstSpace = cmd.indexOf(" ");
+
+                  // this is the 2nd colon, which divides the message meta data from the message contents
+                  int msgDelimiter = cmd.indexOf(":", firstSpace);
+
+                  String theMessage = cmd.substring(msgDelimiter + 1);
                   theMessage.trim();
-                  String msgMetaData = cmd.substring(rawMsgStart + 1, secondColon);
+                  String msgMetaData = cmd.substring(rawMsgStart + 1, msgDelimiter);
                   msgMetaData.trim();
 
-                  if (cmd.indexOf(" PRIVMSG ") >= 0)
+                  // on JOIN & PART messages, there is no second colon, so the entire message is meta data
+                  if (msgDelimiter <= 0)
                   {
-                    //int endOfPrivMsg = (rawMsgStart >= 0) ? cmd.indexOf(" PRIVMSG ", rawMsgStart + 1) : -1;
-                    //int colonAfterPrivMsg = (endOfPrivMsg > 0) ? cmd.indexOf(":", endOfPrivMsg + 1) : (rawMsgStart >= 0) ? cmd.indexOf(":", rawMsgStart + 1) : -1;
-                    if (secondColon > 0)
+                    msgMetaData = theMessage;
+                  }
+
+                  // PRIVMSG - either messages to channel we are in or private messages to us
+                  // nickname before the '!' ex: :Wulfgar!~wulf459@user/wulf459 PRIVMSG Velma :that worked!
+                  if (cmd.indexOf(" PRIVMSG ") > 0)
+                  {                  
+                    int endOfNick = msgMetaData.indexOf("!"); 
+                    int startMsgType = cmd.indexOf("PRIVMSG");
+                    int endMsgType = cmd.indexOf(' ', startMsgType);
+                    int startSentTo = endMsgType + 1;
+                    int endSentTo = cmd.indexOf(' ', startSentTo);
+                    String sentTo = cmd.substring(startSentTo, endSentTo);
+                    String fromNick = msgMetaData.substring(0,endOfNick);
+                    //serial.println("* sentTo: " + sentTo);
+                    if (sentTo.startsWith("#")) // contains channel name in msg, so it is a channel message
                     {
-                      // nickname before the '!' ex: :Wulfgar!~wulf459@user/wulf459 PRIVMSG Velma :that worked!
-                      int endOfNick = msgMetaData.indexOf("!"); 
-                      if (endOfNick >= 0)
-                      {
-                        String fromNick = msgMetaData.substring(0,endOfNick);
-                        if (cmd.indexOf(channelName) > 0) // contains channel name in msg, so it is a channel message
-                        {
-                          serial.print("[" + channelName + "]: <" + fromNick+ "> " + theMessage);
-                        }
-                        else
-                        {
-                          serial.print("*PRIV* <" + fromNick+ "> " + theMessage);
-                        }
-                      } 
+                      serial.print("[" + sentTo + "]: <" + fromNick+ "> " + theMessage);
+                    }
+                    else
+                    {
+                      serial.print("*PRIV* <" + fromNick+ "> " + theMessage);
                     }
                   }
 
+                  // QUIT - message when a client quits IRC
+                  else if (msgMetaData.indexOf(" QUIT ") > 0) 
+                  {                  
+                    int endOfNick = msgMetaData.indexOf("!"); 
+                    String fromNick = msgMetaData.substring(0,endOfNick);
+                    serial.print("[" + fromNick+ ": QUIT (" + theMessage + ")");
+                  }
+
+                  // JOIN - message when a client joins a channel we are in
+                  else if (msgMetaData.indexOf(" JOIN ") > 0) 
+                  {                  
+                    int endOfNick = msgMetaData.indexOf("!");
+                    int startOfChanName = msgMetaData.indexOf("#");
+                    String fromNick = msgMetaData.substring(1,endOfNick);
+                    String chanName = msgMetaData.substring(startOfChanName, msgMetaData.length());
+                    serial.print("[" + fromNick+ " --> JOIN (" + chanName + ")");
+
+                  }
+
+                  // PART - message when a client leaves a channel we are in
+                  else if (msgMetaData.indexOf(" PART ") > 0) 
+                  {                  
+                    int endOfNick = msgMetaData.indexOf("!"); 
+                    int startOfChanName = msgMetaData.indexOf("#");
+                    String fromNick = msgMetaData.substring(1,endOfNick);
+                    String chanName = msgMetaData.substring(startOfChanName, msgMetaData.length());
+                    serial.print("[" + fromNick+ " <-- PART (" + chanName + ")");
+
+                  }
+
                   // 353 = Names (lists all nicknames on channel) -- ignore this to prevent nickname spam on channel join
-                  else if (cmd.indexOf("353") >= 0) 
-                  {}
+                  else if (msgMetaData.indexOf(" 353 ") > 0) 
+                  {
+                    break;
+                  }
 
                   // 332 = TOPIC
-                  else if (cmd.indexOf("332") >= 0)
+                  else if (msgMetaData.indexOf(" 332 ") > 0)
                   {
                     serial.prints("TOPIC: " + theMessage);
                   }
 
                   // 333 = Who set TOPIC & Time set
-                  else if (cmd.indexOf("333") >= 0)
-                  {}
+                  else if (msgMetaData.indexOf(" 333 ") > 0)
+                  {
+                    break;
+                  }
 
                   // 366 = End of Names (channel joined)
-                  else if((!joinReceived) && (channelName.length()>0) && (cmd.indexOf("366")>=0))
+                  else if(msgMetaData.indexOf(" 366 ") > 0)
                   {
                     joinReceived=true;
-                    serial.prints("Channel joined.  Enter a message to send to channel, /msg <nick> <message>, or /quit.");
-                    serial.prints(EOLNC);
+                    serial.println("Channel joined.  Enter a message to send to channel, /msg <nick> <message>, /part #channel, /switch #channel, or /quit.");
+                    
+                  }
+
+                  // Handle message types from WHOIS lookups
+                  // 319 = WHOIS (Channel)
+                  else if (msgMetaData.indexOf(" 319 ") > 0)
+                  {
+                    serial.prints("W| " + cmd.substring(cmd.indexOf(" 319 ")));
+                  }
+                  // 312 = WHOIS (server)
+                  else if (msgMetaData.indexOf(" 312 ") > 0)
+                  {
+                    serial.prints("W| " + cmd.substring(cmd.indexOf(" 312 ")));
+                  }
+                  // 311 = WHOIS (hostmask)
+                  else if (msgMetaData.indexOf(" 311 ") > 0)
+                  {
+                    serial.prints("W| " + cmd.substring(cmd.indexOf(" 311 ")));
+                  }
+                  // 330 = WHOIS (hostmask)
+                  else if (msgMetaData.indexOf(" 330 ") > 0)
+                  {
+                    serial.prints("W| " + cmd.substring(cmd.indexOf(" 330 ")));
+                  }
+                  // 671 = WHOIS (hostmask)
+                  else if (msgMetaData.indexOf(" 671 ") > 0)
+                  {
+                    serial.prints("W| " + cmd.substring(cmd.indexOf(" 671 ")));
                   }
 
                   else
                     serial.prints(theMessage);
-                  serial.prints(EOLNC);
+                    // Print copy of raw IRC messages for debugging. Comment in/out as needed.
+                    //serial.prints("RAW> " + cmd);
+                    serial.prints(EOLNC);
+
+                  //serial.prints(EOLNC);
                   break;
                 }
                 default:
@@ -556,8 +714,8 @@ void ZIRCMode::loopMenuMode()
               if(millis()>timeout)
               {
                 timeout = millis()+60000;
-                current->print("NICK "+nick+"\r\n");
-                current->print("USER rewt 0 * :"+nick+"\r\n");
+                irc_conn->print("NICK "+nick+"\r\n");
+                irc_conn->print("USER rewt 0 * :"+nick+"\r\n");
               }
             }
         }
