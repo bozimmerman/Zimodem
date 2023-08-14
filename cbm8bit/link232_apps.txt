@@ -1,0 +1,266 @@
+/**************************
+/* Link232 WiFi Software  *
+/* for the Commodore 64   *
+/**************************
+///////////////////////////
+
+This disk includes applications written to work with the Link232 WiFi modem running firmware version 2.0 or better. If this is your first time using the modem, you should start with the configure program to get your modem connected to the internet.  You can then use the FTP, TELNET, IRC, WGET, and other programs whenever you wish to communicate with the internet.  The disk includes numerous machine language binaries (pml64.bin, and swiftdrvr.bin) which are required for some the several programs provided.
+
+The disk includes the source assembly code for the pml64 and the SwiftLink Kernal Wedge driver binary.  These source files are in LADS format.  The disk also includes the LADS assembler for the C64 to re-assemble the binaries from the source files.  To use the LADS assembler, you should use a C64 or C128 in C64 mode, and load the LADS assembler using LOAD"LADS",8,1.  Once the assembler is loaded, clear the screen and type the name of the source file to assemble in the upper left-hand corner of the screen.  Once that is done, use SYS11000 to begin the assembly, which will create the .bin files.
+
+The disk lastly includes the program "emutil", which is a C64, C128, or VIC-20 program to creating and dissolving .D64 images, such as those downloaded by the d64wget program discussed below. 
+
+Below you will find information on the application programs included on this disk, as well as instructions on using the PML64, PML128, PMLVIC, and UP9600 machine language libraries from BASIC or machine language.
+
+CONFIGURE
+*************************************
+
+The Configure program is for setting up or altering the WiFi Hotspot, also known as a Wireless Internet Router, that your modem uses to communicate with the internet.  It also allows you to modify the modems built in phone book.  It is written in BASIC, but uses the PML64.BIN  libraries for speed (see below).  This program requires a C64 or C128 in 64 mode and your Link232 WiFi Modem configured for 19200 baud, which is the default factory configuration.  To run the program, enter LOAD"CONFIGURE",8  and then RUN.
+
+When the program runs, it will initialize the Link232 modem with certain commands.  If you receive an error at this point, or if the program hangs for longer than a minute, try turning your computer off and on again to clear memory and reset the modem, and then load and run it again.
+
+After initialization, the program will scan the area for WiFi Hotspots and provide you a list to select from.  If you do not see your own wireless router listed, or do not know the name, consult your ISP's internet equipment documentation.  After you have selected the appropriate hotspot, you will be prompted for the password.  After the password is entered, the program will test the settings and, if successful, save the settings to the flash memory in your modem  it will be remembered even after the computer is turned off.  When wifi configuration is complete, and the modem passes the connection test, you can modify the modems internal phone book. 
+
+The modems internal phone book maintains a list of numbers and associated internet addresses and configurations.  These numbers can then be used by third party software to 'dial' to those sites using the modems ATD command.  A phone number, in this case, is any large number, preferably 7 digits or more, that is assigned to a particuler internet host and port.  Each host can then be configured for ASCII-PETSCII translation, TELNET code translation, XON/XOFF flow control, and/or local ECHO (half vs full duplex).  Every modification you make is saved to the modem and available after reboots.  This system can be used to connect to the online Q-Link service online using the existing Q-Link software.
+
+
+FTP
+*************************************
+
+File Transfer Protocol program supports a minimal number of features to connect to FTP Servers all over the internet in order to download and/or upload programs.  It is written in BASIC, but uses PML64.BIN and SWIFTDRVR.BIN. 
+
+This program requires a C64 or C128 in 64 mode, and your Link232 WiFi Modem configured for 19200 baud, which is the default factory configuration.  To run the program, enter LOAD"FTP",8  and then RUN.
+
+When you start the program, it will initialize your Link232 modem with certain commands.  If you receive an error at this point, or if the program hangs for longer than a minute, try turning your computer off and on again to clear memory and reset the modem, and then load and run it again.
+
+After initialization, you will be given a menu where you can enter the host name of the ftp server to connect to, and the login and password to use.  If you plan to login with the name "anonymous", you should use your email address as your password.  The last option on the menu is the drive number to upload files from and download files to.  When all options are correct, hit RETURN to connect.
+
+At the FTP prompt, you may enter one of the following commands:
+
+DIR : list the files in the current directory
+CD [DIRECTORY OR PATH] : change to a new directory
+QUIT : exit the ftp program
+HELP : show the commands supported by the client and the server
+GET [FILENAME,P] : download the program with the name filename as a PRG.  Use ,S for SEQ.
+PUT [FILENAME,P] : upload the program with the name filename which is a PRG file. Use ,S for SEQ.
+DEL [FILENAME] : delete the given file from the server
+LCD [DEVICE NUMBER or CMD Hard Drive PATH] : change the active local upload/download drive, or change which directory you are using if the active drive is a UIEC or CMD Hard Drive compatible.
+LDIR [MASK] : get a directory of the active local drive.
+LDEL [FILENAME] : delete the given local file from the active drive.
+
+
+WGET
+*************************************
+
+WGET program is for downloading files and pages from a standard HTTP web address (URL).  It is written in BASIC, but uses PML64.BIN and SWIFTDRVR.BIN.
+
+This program requires a C64 or C128 in 64 mode, and your Link232 WiFi Modem configured for 19200 baud, which is the default factory configuration. To run the program, enter LOAD"WGET",8  and then RUN.
+
+When you start the program, it will initialize your Link232 modem with certain commands.  If you receive an error at this point, or if the program hangs for longer than a minute, try turning your computer off and on again to clear memory and reset the modem, and then load and run it again.
+
+After initialization, you will be given a menu where you can enter the url of the file or page to download, the unit number of the disk drive to download the file or page to, and the name of the file to write to the disk.  Your filename should end with ,P to create a PRG file, and ,S to create a SEQ file.  For example, a filename of "mypage,s" will create a file called "mypage" of type SEQ.  When all options are correct, hit RETURN to connect and begin the download.  When the download completes, the program will exit.
+
+
+IRC
+*************************************
+
+IRC program is for chatting with people on free internet IRC Servers.  It is written in BASIC, but uses the PML64.BIN, PMLVIC.BIN, or PML128.BIN libraries for speed (see below). This program requires a C64 or C128 in 64 mode, and your Link232 WiFi Modem configured for 19200 baud, which is the default factory configuration. To run the program, enter LOAD"IRC",8  and then RUN.
+
+When you start the program, it will initialize your Link232 modem with certain commands.  If you receive an error at this point, or if the program hangs for longer than a minute, try turning your computer off and on again to clear memory and reset the modem, and then load and run it again.
+
+After initialization, you will be asked to enter the host name of the IRC Server to connect to.  Next you will be prompted for the port number that the server listens on.  The program will then attempt to connect to the host and port.  If successful, you will be prompted to enter a nickname, which is the name you will be known by during chatting.  If your nickname is already in use by someone else, you will eventually be prompted to enter a new one.  Either way, the program will display the servers MOTD and other information.  This could take several minutes.  It's best to just wait until you see the message "End of MOTD" to begin typing.
+
+After the MOTD message, you may type at any time.  If you have joined a chat channel, you will automatically see messages as they appear in the channel.  When you begin typing, all messages from the server are suspended until you hit RETURN.  Since the IRC client will appear to the server to be idle while you are typing, it is best to spend as little time as necessary in messaage and command entry mode.  You may enter ? followed by RETURN to see the IRC commands supported by this client.  
+
+Commands include:
+/QUIT : exit the IRC chat program
+/JOIN #channelname : join the new channel named "#channelname"
+* Anything else entered will be assumed to be a message to sent to the channel you have already joined.
+
+TELNET
+*************************************
+
+TELNET program is for communicating with a TELNET server as a terminal, or with a TELNET-like server such as a Multi-User Dungeon game (a MUD).  It is written in BASIC, but uses the PML64.BIN, PMLVIC.BIN, or PML128.BIN libraries for speed (see below).  This program requires a C64 or C128 in 64 mode, and your Link232 WiFi Modem configured for 19200 baud, which is the default factory configuration. To run the program, enter LOAD"TELNET",8  and then RUN.
+
+When you start the program, it will initialize your Link232 modem with certain commands.  If you receive an error at this point, or if the program hangs for longer than a minute, try turning your computer off and on again to clear memory and reset the modem, and then load and run it again.
+
+After initialization, you will be shown a menu with the following options:
+
+Dial from Phonebook: 
+This will let you connect to a server saved in your phonebook on disk.  See below for information about terminal mode while connected to a server
+
+Modify Phonebook:
+This will let you add or modify servers to save in your phonebook on disk.  These can be then "Dialed" to quickly later on.
+
+Quick Connect:
+This will let you manually enter a server host name and port to immediately connect to.  See below for information about terminal mode while connected to a server.
+
+Terminal Mode: 
+This will put you into terminal mode without connecting to any server.  In this case, you would be in the modem firmware's Command Mode.  You should consult the documentation for the Link232 WiFi Firmware for more information on this mode.  Use the F1 key or the C128's ESC key to exit terminal mode.
+
+Quit:
+Exit the TELNET program
+
+When you have connected to a server, you will be in ANSI terminal mode.  You can exit the server and disconnect at any time by hitting the F1 key on your C64, or the ESC key on your C128.  When connected to a server, the modem will translate as much ASCII/ANSI into mostly viewable PETSCII for your Commodore computer.  However, you will notice that underscores look like back-arrows.  ANSI colors will be translated to Commodore PETSCII colors wherever possible.  Your own keystrokes will also be translated to ASCII/ANSI as you type.  
+
+CBMTERM
+*************************************
+
+C= TERM program is for communicating with a telnet-style Commodore Graphics BBS servers as a terminal.  It is written in BASIC, but uses PML64.BIN and SWIFTDRVR.BIN.  This program requires a C64 or C128 in 64 mode, and your Link232 WiFi Modem configured for 19200 baud, which is the default factory configuration.  To run the program, enter LOAD"CBMTERM",8  and then RUN.
+
+When you start the program, it will initialize your Link232 modem with certain commands.  If you receive an error at this point, or if the program hangs for longer than a minute, try turning your computer off and on again to clear memory and reset the modem, and then load and run it again.
+
+After initialization, you will be shown a menu with the following options:
+
+Dial from Phonebook: 
+This will let you connect to a server saved in your phonebook on disk.  See below for information about terminal mode while connected to a server
+
+Modify Phonebook:
+This will let you add or modify servers to save in your phonebook on disk.  These can be then "Dialed" to quickly later on.  You will receive an option for a Host Name, a Port Number, and Local Echo.  Consult your online BBS list for hosts and ports of the BBSes you wish to connect to.  The Local Echo option should usually be answered with NO, as most BBSes will echo for you, and having the modem do local echo will corrupt X-Modem transfers.
+
+Quick Connect:
+This will let you manually enter a server host name and port to immediately connect to.  See below for information about terminal mode while connected to a server.
+
+Terminal Mode: 
+This will put you into terminal mode without connecting to any server.  In this case, you would be in the modem firmware's Command Mode.  You will be prompted as to whether you would like Local Echo turned on.  If you plan to remain in Command Mode and not connect to anything, you can say Yes.  However, if you plan to connect to a BBS, or especially if you plan to do any file transfers, you should definitely answer NO.  You should consult the documentation for the Link232 WiFi Firmware for more information on this mode.  Use the F1 key or the C128's ESC key to exit terminal mode.  See below for more you can do after exiting terminal mode.
+
+Quit:
+Exit the CBMBBS program
+
+When you have connected to a server, you will be in CBM PETSCII/Graphics mode.  You can exit the terminal at any time by hitting the F1 key on your C64, or the ESC key on your C128.  If you are offline, you will immediately return to the main menu.  However, if you are still online, you will have the option to hangup and return to the main menu, upload a file using X-Modem CRC, download a file, or continue back to terminal mode.
+
+D64WGET
+*************************************
+
+D64WGET program is for downloading and writing full emulator disk images (such as .D64, .D71, .D81, .DNP, etc) files from a standard HTTP web address (URL) and write them to a formatted, blank diskette.  It is written in BASIC, but uses PML64.BIN and SWIFTDRVR.BIN.
+
+This program requires a C64 or C128 in 64 mode, and your Link232 WiFi Modem configured for 19200 baud, which is the default factory configuration.  To run the program, enter LOAD"D64WGET",8  and then RUN.
+
+When you start the program, it will initialize your Link232 modem with certain commands.  If you receive an error at this point, or if the program hangs for longer than a minute, try turning your computer off and on again to clear memory and reset the modem, and then load and run it again.
+
+After initialization, you will be given a menu where you can enter the url of the disk image file to download and write, and the unit number of the disk drive containing the *formatted* blank disk to write the image to.  When all options are correct, hit RETURN and answer Y to the confirmation to connect and begin the download and disk write.  When the download completes, which could take awhile, the program will exit.
+
+PML64.BIN
+*************************************
+
+This file for the C64 in 128 mode is a machine language support file for performing certain common Link232 modem functions from BASIC.  PML64.BIN loads to $C000 (49152).
+
+To use them from BASIC, make sure to follow two important rules: 1. Load the appropriate binary into memory (pml64.bin).  and 2. Initialize the variable p$, by giving it some value, as early in your program as possible.  For example: P$="" would be fine.
+
+Throughout this section, I will refer to the variable ML to refer to the starting address of the library.  For the C64, this is always 49152.  So, when I say ML+3, I mean 49155 on the C64.
+
+---------
+BUF1LIN
+
+Usage:
+sys ML
+
+Pre-requisites: 
+P$ must be initialized in BASIC
+Channel 5 must be OPEN to the modem
+
+Outputs:
+P$ contains the string line read from the modem, if any
+ML + 19 is 0 to denote success, or 255 for a timeout
+ML + 26 contains the CRC8 value of the received string
+
+Description:
+Reads from the open modem channel until a carriage return (13) is seen, or until 255 characters are read, or until a timeout occurs.  The characters are returned in the BASIC variable P$, although character values 10 and 0 are always ignored.  The timeout is about 12 seconds.
+
+---------
+BUFXLIN
+
+Usage:
+sys ML+3
+
+Pre-requisites: 
+P$ must be initialized in BASIC
+Channel 5 must be OPEN to the modem
+ML + 18 contains the number of bytes to read
+
+Outputs:
+P$ contains the X bytes read from the modem if any
+ML + 18 contains the number of bytes NOT read (0 on success)
+ML + 19 is 255 for a timeout, or any other value for the index of the last carriage return (13) in the returned buffer.
+ML + 26 contains the CRC8 value of the received bytes
+
+Reads from the open modem channel until the number of bytes in ML+18 have been read, or until 253 bytes are read, or until a timeout occurs.  The bytes are returned in the BASIC variable P$.  The timeout is about 12 seconds.
+
+---------
+GETPACKET
+
+Usage:
+sys ML+6
+
+Pre-requisites: 
+P$ must be initialized in BASIC
+Channel 5 must be OPEN to the modem
+
+Outputs:
+ML + 18 contains the number of bytes read
+ML + 19 is 255 for a timeout or packet formatting error
+ML + 20 is the packet/channel ID that sent the data (0=none)
+ML + 22 is the size of the packet received
+ML + 24 is the EXPECTED CRC8 of the packet data sent by the modem
+ML + 26 contains the CRC8 value of the received string
+
+Reads a special Link232 WiFi Firmware formatted Packet from modem channel. This function will block until it times out, or a packet is received, so it's best used with the ATF3 flow control to ensure that every time XON is sent to the modem, a single packet header is guarenteed to be sent to the computer. When this method returns, ML+19 should be checked for an error, ML+22 for a non-0 to see if any data was received, or ML+20 to make sure it matches the expected channel (this can be 0 for a non-response when using ATF3).  You can also optionally compare ML+26 to ML+24 to check for RS232 errors.
+
+---------
+CRCP
+
+Usage:
+sys ML+9
+
+Pre-requisites: 
+P$ contains the string to calculate the CRC of
+
+Outputs:
+ML + 26 contains the CRC8 value of the received string
+
+Description:
+Calculates the CRC8 of P$ and returns it.
+
+---------
+BUFAP
+
+Usage:
+sys ML+12
+
+Pre-requisites: 
+P$ must be initialized in BASIC
+ML + 32 contains the channel number to read from
+The above channel must be open
+
+Outputs:
+P$ contains the bytes read from the channel, if any
+ML + 26 contains the CRC8 value of the received bytes
+
+Description:
+Reads from the open channel whose number is contained in ML+32 until no more bytes are available, or until 254 bytes are read.  The bytes are returned in the BASIC variable P$.
+
+SWIFTDRVR.BIN
+*************************************
+
+This file is the SwiftLink/Turbo232 BASIC wedge driver for the C64.  Use SYS51200 to activate.  After this point, all device 2 access will go to the SwiftLink/Turbo232 cartridge instead of the user port.
+The baud rate codes used in the OPEN command are compatible with the C64 KERNAL, with additions:
+00000 (bit value of 0)   = Nonstandard (User-Defined) Rate (Not Implemented)
+00001 (bit value of 1)   = 50 Baud  (Not supported)
+00010 (bit value of 2)   = 75 Baud  (Not supported)
+00011 (bit value of 3)   = 110 Baud  (Not supported)
+00100 (bit value of 4)   = 134.5 Baud  (Not supported)
+00101 (bit value of 5)   = 150 Baud  (Not supported)
+00110 (bit value of 6)   = 300 Baud
+00111 (bit value of 7)   = 600 Baud
+01000 (bit value of 8)   = 1200 Baud
+01001 (bit value of 9)   = 1800 Baud  (Not supported)
+01010 (bit value of 10)  = 2400 Baud
+01011 (bit value of 11)  = 3600 Baud
+01100 (bit value of 12)  = 4800 Baud
+01101 (bit value of 13)  = 7200 Baud
+01110 (bit value of 14)  = 9600 Baud
+01111 (bit value of 15)  = 19200 Baud
+10000 (bit value of 16)  = 38400 Baud
+10001 (bit value of 17)  = 57600 Baud (Turbo232 only)
+10010 (bit value of 18)  = 115200 Baud (Turbo232 only)
+10011 (bit value of 19)  = 230400 Baud (Turbo232 only)

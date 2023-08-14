@@ -1,0 +1,52 @@
+Bugs Reported (nor reproduced):
+ *. 
+ 
+New Features:
+  *. Add gopher client, or at least at&g type gopher command (gopher://?)
+  *. Some sort of RI timer?  See github. https://github.com/bozimmerman/Zimodem/issues/86
+  *. Ability to use protocols for at&g, and maybe have alternative at+web
+  *. Ability to ftp file streamdown, like at&g.. maybe at+ftp
+  *. Support switching between CONNECT 1 and CONNECT 1200 messages
+  *. Baud rate test commend
+  *. ATW0 should be same as ATW
+  *. SLIP support?
+  *. PPP support?
+
+New hardware hopes:
+ C+B 0 FLAG2+PB0	RxD	Receive Data (Must be applied to both pins!)
+ D!  1 RTS	Ready To Send
+ F!  3 RI	Ring Indicator (1650 ring indicator - output of modem -> input of computer )
+ H!	4 DCD	Data Carrier Detect
+ J!   5 1650 Pulse Dial Pin (output of computer -> input to modem)
+ +K	6 CTS	Clear To Send
+ M!	8 TxD	Transmit Data
+
+Existing pin counts:
+ DEFAULT_PIN_AA
+ DEFAULT_PIN_HS
+ DEFAULT_PIN_WIFI
+ PIN_FACTORY_RESET
+ DEFAULT_PIN_DCD
+ DEFAULT_PIN_CTS
+ DEFAULT_PIN_RTS
+ DEFAULT_PIN_RI
+ DEFAULT_PIN_DSR
+ DEFAULT_PIN_DTR
+ DEFAULT_PIN_RX
+ DEFAULT_PIN_TX
+ 
+                TXDDSRRXD
+           R     U  U  U
+   G       S     P  P  P                G
+   N    5  E     9  9  9        9    9  N
+   D    V  T     6  6  6        V    V  D
+           
+   1    2  3  4  5  6  7  8  9 10   11 12
+  --  ---------------------------  ------
+   A    B  C  D  E  F  H  J  K  L    M  N
+    
+   G    R--R  R  D  R  D  P  C  U    T  G
+   N    X--X  T  T  I  C  D  T  P    X  N
+   D          S  R     D  P  S  9       D
+                            5V  6
+                               DSR
