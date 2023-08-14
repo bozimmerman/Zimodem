@@ -137,7 +137,7 @@ const char compile_date[] = __DATE__ " " __TIME__;
 #define DEFAULT_SERIAL_CONFIG SERIAL_8N1
 #define MAX_PIN_NO 50
 #define INTERNAL_FLOW_CONTROL_DIV 380
-#define DEFAULT_RECONNECT_DELAY 5000
+#define DEFAULT_RECONNECT_DELAY 60000
 #define MAX_RECONNECT_DELAY 1800000
 
 class ZMode
@@ -330,7 +330,7 @@ static bool connectWifi(const char* ssid, const char* password, IPAddress *ip, I
     amConnected = (WiFi.status() == WL_CONNECTED) && (strcmp(WiFi.localIP().toString().c_str(), "0.0.0.0")!=0);
   }
   lastConnectAttempt = millis();
-  if(lastConnectAttempt == 0)
+  if(lastConnectAttempt == 0)  // it IS possible for millis() to be 0, but we need to ignore it.
     lastConnectAttempt = 1; // 0 is a special case, so skip it
 
   if(!amConnected)
