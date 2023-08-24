@@ -65,6 +65,8 @@ const char compile_date[] = __DATE__ " " __TIME__;
 # define DEFAULT_PIN_RTS GPIO_NUM_15 // unused
 # define DEFAULT_PIN_RI GPIO_NUM_32
 # define DEFAULT_PIN_DSR GPIO_NUM_12
+# define DEFAULT_PIN_SND GPIO_NUM_25
+# define DEFAULT_PIN_OTH GPIO_NUM_26
 # define DEFAULT_PIN_DTR GPIO_NUM_27
 # define debugPrintf Serial.printf
 # define INCLUDE_SD_SHELL true
@@ -183,7 +185,6 @@ static WiFiClientNode *conns = null;
 static WiFiServerNode *servs = null;
 static PhoneBookEntry *phonebook = null;
 static bool pinSupport[MAX_PIN_NO];
-static bool browseEnabled = false;
 static String termType = DEFAULT_TERMTYPE;
 static String busyMsg = DEFAULT_BUSYMSG;
 

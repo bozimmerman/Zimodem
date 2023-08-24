@@ -2587,7 +2587,8 @@ ZResult ZCommand::doSerialCommand()
         }
 #ifdef INCLUDE_SD_SHELL
         else
-        if((strstr((const char *)vbuf,"shell")==(char *)vbuf)&&(browseEnabled))
+        if((strstr((const char *)vbuf,"shell")==(char *)vbuf)
+        &&(SD.cardType() != CARD_NONE))
         {
             char *colon=strchr((const char*)vbuf,':');
             result = ZOK;

@@ -20,8 +20,6 @@ static void initSDShell()
 {
   if(SD.begin())
   {
-    if(SD.cardType() != CARD_NONE)
-      browseEnabled = true;
   }
 }
 
