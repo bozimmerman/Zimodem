@@ -106,7 +106,7 @@ class WiFiClientNode : public Stream
     String readLine(unsigned int timeout);
 
     static int getNumOpenWiFiConnections();
-    static int checkForAutoDisconnections();
+    static void checkForAutoDisconnections();
 };
 
 

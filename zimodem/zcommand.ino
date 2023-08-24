@@ -320,7 +320,7 @@ void ZCommand::reSaveConfig()
             wifiSSIhex.c_str(), wifiPWhex.c_str(), baudRate, eoln,
             serial.getFlowControlType(), doEcho, suppressResponses, numericResponses,
             longResponses, serial.isPetsciiMode(), dcdMode, serialConfig, ctsMode,
-            rtsMode,pinDCD,pinCTS,pinRTS,autoStreamMode,ringCounter,preserveListeners,
+            rtsMode,pinDCD,pinCTS,pinRTS,ringCounter,autoStreamMode,preserveListeners,
             riMode,dtrMode,dsrMode,pinRI,pinDTR,pinDSR,
             zclock.isDisabled()?999:zclock.getTimeZoneCode(),
             zclockFormathex.c_str(),zclockHosthex.c_str(),hostnamehex.c_str(),
@@ -864,6 +864,17 @@ ZResult ZCommand::doBaudCommand(int vval, uint8_t *vbuf, int vlen)
 
 ZResult ZCommand::doConnectCommand(int vval, uint8_t *vbuf, int vlen, bool isNumber, const char *dmodifiers)
 {
+  if((WiFi.status() != WL_CONNECTED)
+  &&((vlen==0)||(isNumber && (vval==0)))
+  &&(conns==null))
+  {
+    if(wifiSSI.length()==0)
+      return ZERROR;
+    debugPrintf("Connecting to %s\n",wifiSSI.c_str());
+    bool doconn = connectWifi(wifiSSI.c_str(),wifiPW.c_str(),staticIP,staticDNS,staticGW,staticSN);
+    debugPrintf("Done attempting connect to %s\n",wifiSSI.c_str());
+    return doconn ? ZOK : ZERROR;
+  }
   if(vlen == 0)
   {
     logPrintln("ConnCheck: CURRENT");
@@ -894,17 +905,6 @@ ZResult ZCommand::doConnectCommand(int vval, uint8_t *vbuf, int vlen, bool isNum
   else
   if((vval >= 0)&&(isNumber))
   {
-    if((WiFi.status() != WL_CONNECTED)
-    &&(vval== 1)
-    &&(conns==null))
-    {
-      if(wifiSSI.length()==0)
-        return ZERROR;
-      debugPrintf("Connecting to %s\n",wifiSSI.c_str());
-      bool doconn = connectWifi(wifiSSI.c_str(),wifiPW.c_str(),staticIP,staticDNS,staticGW,staticSN);
-      debugPrintf("Done attempting connect to %s\n",wifiSSI.c_str());
-      return doconn ? ZOK : ZERROR;
-    }
     if(vval == 0)
       logPrintln("ConnList0:\r\n");
     else
@@ -1163,6 +1163,7 @@ ZResult ZCommand::doWebDump(Stream *in, int len, const bool cacheFlag)
   machineState = stateMachine;
   if(bct > 0)
     serial.prints(EOLN);
+  return ZOK;
 }
 
 ZResult ZCommand::doWebDump(const char *filename, const bool cache)
@@ -1723,6 +1724,8 @@ ZResult ZCommand::doAnswerCommand(int vval, uint8_t *vbuf, int vlen, bool isNumb
   }
   else
   {
+    while(WiFi.status() != WL_CONNECTED)
+      return ZERROR;
     ConnSettings flags(dmodifiers);
     int flagsBitmap = flags.getBitmap(serial.getFlowControlType());
     WiFiServerNode *s=servs;
@@ -1804,6 +1807,7 @@ ZResult ZCommand::doHangupCommand(int vval, uint8_t *vbuf, int vlen, bool isNumb
     }
     return ZERROR;
   }
+  return ZERROR;
 }
 
 void ZCommand::updateAutoAnswer()
@@ -2169,10 +2173,15 @@ ZResult ZCommand::doSerialCommand()
       }
       
       if(vlen > 0)
+      {
         logPrintfln("Proc: %c %lu '%s'",lastCmd,vval,vbuf);
+        debugPrintf("Proc: %c %lu '%s'\n",lastCmd,vval,vbuf);
+      }
       else
+      {
         logPrintfln("Proc: %c %lu ''",lastCmd,vval);
-
+        debugPrintf("Proc: %c %lu ''\n",lastCmd,vval);
+      }
       /*
        * We have cmd and args, time to DO!
        */
@@ -3317,7 +3326,7 @@ void ZCommand::reSendLastPacket(WiFiClientNode *conn, uint8_t which)
   }
 }
 
-bool ZCommand::clearPlusProgress()
+void ZCommand::clearPlusProgress()
 {
   if(currentExpiresTimeMs > 0)
     currentExpiresTimeMs = 0;
@@ -3601,7 +3610,7 @@ void ZCommand::acceptNewConnection()
         {
           //BZ:newClient.setNoDelay(true);
           int futureRings = (ringCounter > 0)?(ringCounter-1):5;
-          WiFiClientNode *newClientNode = new WiFiClientNode(newClient, serv->flagsBitmap, futureRings * 2);
+          WiFiClientNode *newClientNode = new WiFiClientNode(newClient, serv->flagsBitmap, (futureRings+1) * 2);
           setCharArray(&(newClientNode->delimiters),serv->delimiters);
           setCharArray(&(newClientNode->maskOuts),serv->maskOuts);
           setCharArray(&(newClientNode->stateMachine),serv->stateMachine);
@@ -3639,14 +3648,12 @@ void ZCommand::acceptNewConnection()
       {
         conn->nextRingTime(3000);
         int rings=conn->ringsRemaining(-1);
-        if(rings <= 0)
+        if(rings <= 1)
         {
           s_pinWrite(pinRI,riInactive);
           if(ringCounter > 0)
           {
             preEOLN(EOLN);
-            serial.prints(numericResponses?"2":"RING");
-            serial.prints(EOLN);
             conn->answer();
             if(autoStreamMode)
             {
@@ -3673,10 +3680,6 @@ void ZCommand::acceptNewConnection()
       }
     }
     conn = nextConn;
-  }
-  if(checkOpenConnections()==0)
-  {
-    s_pinWrite(pinRI,riInactive);
   }
 }
 

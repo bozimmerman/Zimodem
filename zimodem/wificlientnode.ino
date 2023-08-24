@@ -397,6 +397,7 @@ size_t WiFiClientNode::write(uint8_t c)
 {
   const uint8_t one[] = {c};
   write(one,1);
+  return 1;
 }
 
 int WiFiClientNode::getNumOpenWiFiConnections()
@@ -433,7 +434,7 @@ bool WiFiClientNode::isMarkedForDisconnect()
   return nextDisconnect != 0;
 }
 
-int WiFiClientNode::checkForAutoDisconnections()
+void WiFiClientNode::checkForAutoDisconnections()
 {
   WiFiClientNode *conn = conns;
   while(conn != null)

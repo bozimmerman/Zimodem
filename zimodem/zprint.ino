@@ -93,7 +93,6 @@ ZResult ZPrint::switchToPostScript(char *prefix)
     return ZERROR;
   char *workBuf = (char *)malloc(strlen(lastPrinterSpec) +1);
   strcpy(workBuf, lastPrinterSpec);
-  
   char *hostIp;
   char *req;
   int port;

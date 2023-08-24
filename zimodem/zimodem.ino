@@ -14,12 +14,11 @@
    limitations under the License.
 */
 //#define TCP_SND_BUF                     4 * TCP_MSS
-#define ZIMODEM_VERSION "3.7.1"
+#define ZIMODEM_VERSION "3.7.2"
 const char compile_date[] = __DATE__ " " __TIME__;
 #define DEFAULT_NO_DELAY true
 #define null 0
 #define INCLUDE_IRCC true
-//#define INCLUDE_SLIP true
 //# define USE_DEVUPDATER true // only enable this if your name is Bo
 
 #ifdef ARDUINO_ESP32_DEV
@@ -88,7 +87,7 @@ const char compile_date[] = __DATE__ " " __TIME__;
 # define echoEOLN serial.write
 //# define HARD_DCD_HIGH 1
 //# define HARD_DCD_LOW 1
-//# define INCLUDE_HOSTCM true // do this for special SP9000 modems only
+# define INCLUDE_HOSTCM true // do this for special SP9000 modems only
 #else  // ESP-8266, e.g. ESP-01, ESP-12E, inverted for C64Net WiFi Modem
 # define DEFAULT_PIN_DSR 13
 # define DEFAULT_PIN_DTR 12
@@ -228,7 +227,7 @@ static int dequeSize = 1 + (DEFAULT_BAUD_RATE / INTERNAL_FLOW_CONTROL_DIV);
 static BaudState baudState = BS_NORMAL;
 static unsigned long resetPushTimer = 0;
 static int tempBaud = -1; // -1 do nothing
-static int dcdStatus = LOW;
+static int dcdStatus = DEFAULT_DCD_LOW;
 static int pinDCD = DEFAULT_PIN_DCD;
 static int pinCTS = DEFAULT_PIN_CTS;
 static int pinRTS = DEFAULT_PIN_RTS;
@@ -514,7 +513,8 @@ void checkFactoryReset()
         if (resetPushTimer == 1)
           resetPushTimer++;
       }
-      else if ((millis() - resetPushTimer) > 5000)
+        else
+        if((millis() - resetPushTimer) > 5000)
       {
         SPIFFS.remove(CONFIG_FILE);
         SPIFFS.remove(CONFIG_FILE_OLD);
@@ -540,7 +540,8 @@ void checkFactoryReset()
       }
     }
   }
-  else if (resetPushTimer != 0)
+    else
+    if(resetPushTimer != 0)
     resetPushTimer = 0;
 #endif
 }
