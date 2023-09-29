@@ -66,7 +66,7 @@ const char compile_date[] = __DATE__ " " __TIME__;
 # define DEFAULT_PIN_RI GPIO_NUM_32
 # define DEFAULT_PIN_DSR GPIO_NUM_12
 # define DEFAULT_PIN_SND GPIO_NUM_25
-# define DEFAULT_PIN_OTH GPIO_NUM_26
+# define DEFAULT_PIN_OTH GPIO_NUM_4
 # define DEFAULT_PIN_DTR GPIO_NUM_27
 # define debugPrintf Serial.printf
 # define INCLUDE_SD_SHELL true
@@ -434,14 +434,14 @@ void setup()
   Serial.begin(115200); //the debug port
   Serial.setDebugOutput(true);
   debugPrintf("Debug port open and ready.\n");
+  pinSupport[4]=true;
+  pinSupport[5]=true;
   for(int i=12;i<=23;i++)
     pinSupport[i]=true;
   for(int i=25;i<=27;i++)
     pinSupport[i]=true;
   for(int i=32;i<=33;i++)
     pinSupport[i]=true;
-  pinSupport[36]=true;
-  pinSupport[39]=true;
 #else
   pinSupport[0]=true;
   pinSupport[2]=true;
