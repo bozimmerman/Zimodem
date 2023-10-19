@@ -105,7 +105,7 @@ const char compile_date[] = __DATE__ " " __TIME__;
 # define preEOLN(...)
 # define echoEOLN(...) serial.prints(EOLN)
 #endif
-#define INCLUDE_SLIP true
+#define INCLUDE_SLIP false
 
 #ifdef RS232_INVERTED
 # define DEFAULT_DCD_HIGH  HIGH
