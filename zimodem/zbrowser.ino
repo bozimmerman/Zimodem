@@ -435,7 +435,6 @@ void ZBrowser::makeFileList(String ***l, int *n, String p, String mask, bool rec
         file = root.openNextFile();
     }
   }
-
 }
 
 void ZBrowser::deleteFile(String p, String mask, bool recurse)
@@ -514,10 +513,6 @@ bool ZBrowser::matches(String fname, String mask)
 
 void ZBrowser::showDirectory(String p, String mask, String prefix, bool recurse)
 {
-  int maskFilterLen = p.length();
-  if(!p.endsWith("/"))
-    maskFilterLen++;
-
   File root = SD.open(p);
   if(!root)
     serial.printf("Unknown path: %s%s",p.c_str(),EOLNC);
@@ -527,20 +522,20 @@ void ZBrowser::showDirectory(String p, String mask, String prefix, bool recurse)
     File file = root.openNextFile();
     while(file)
     {
-      if(matches(file.name()+maskFilterLen, mask))
+      if(matches(file.name(), mask))
       {
         debugPrintf("file matched:%s\n",file.name());
         if(file.isDirectory())
         {
-          serial.printf("%sd %s%s",prefix.c_str(),file.name()+maskFilterLen,EOLNC);
+          serial.printf("%sd %s%s",prefix.c_str(),file.name(),EOLNC);
           if(recurse)
           {
             String newPrefix = prefix + "  ";
-            showDirectory(file.name(), mask, newPrefix, recurse);
+            showDirectory(p + "/" + file.name(), mask, newPrefix, recurse);
           }
         }
         else
-          serial.printf("%s  %s %lu%s",prefix.c_str(),file.name()+maskFilterLen,file.size(),EOLNC);
+          serial.printf("%s  %s %lu%s",prefix.c_str(),file.name(),file.size(),EOLNC);
       }
       else
         debugPrintf("file unmatched:%s (%s)\n",file.name(),mask.c_str());

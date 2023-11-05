@@ -15,6 +15,7 @@ New Features:
   *. ATW0 should be same as ATW
   *. SLIP support?
   *. PPP support?
+  *. @19200, on C64 modem, extend start bit by 30 cycles
 
 New hardware hopes:
  C+B 0 FLAG2+PB0	RxD	Receive Data (Must be applied to both pins!)
