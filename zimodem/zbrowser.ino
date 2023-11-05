@@ -297,10 +297,6 @@ String ZBrowser::stripArgs(String line, String &argLetters)
 
 void ZBrowser::copyFiles(String source, String mask, String target, bool recurse, bool overwrite)
 {
-  int maskFilterLen = source.length();
-  if(!source.endsWith("/"))
-    maskFilterLen++;
-
   File root = SD.open(source);
   if(!root)
   {
@@ -326,7 +322,7 @@ void ZBrowser::copyFiles(String source, String mask, String target, bool recurse
     }
     for(File file = root.openNextFile(); file != null; file = root.openNextFile())
     {
-      if(matches(file.name()+maskFilterLen, mask))
+      if(matches(file.name(), mask))
       {
         debugPrintf("file matched:%s\n",file.name());
         String tpath = target;
@@ -338,10 +334,10 @@ void ZBrowser::copyFiles(String source, String mask, String target, bool recurse
           {
             if(!tpath.endsWith("/"))
               tpath += "/";
-            tpath += stripFilename(file.name());
+            tpath += file.name();
           }
         }
-        copyFiles(file.name(),"",tpath,false,overwrite);
+        copyFiles(source + "/" + file.name(),"",tpath,false,overwrite);
       }
     }
   }
@@ -355,7 +351,7 @@ void ZBrowser::copyFiles(String source, String mask, String target, bool recurse
       {
         if(!tpath.endsWith("/"))
           tpath += "/";
-        tpath += stripFilename(root.name());
+        tpath += root.name();
         debugPrintf("file xform to file in dir:%s\n",tpath.c_str());
       }
       DD.close();
@@ -395,10 +391,6 @@ void ZBrowser::copyFiles(String source, String mask, String target, bool recurse
 
 void ZBrowser::makeFileList(String ***l, int *n, String p, String mask, bool recurse)
 {
-  int maskFilterLen = p.length();
-  if(!p.endsWith("/"))
-    maskFilterLen++;
-
   File root = SD.open(p);
   if(!root)
     serial.printf("Unknown path: %s%s",p.c_str(),EOLNC);
@@ -408,7 +400,7 @@ void ZBrowser::makeFileList(String ***l, int *n, String p, String mask, bool rec
     File file = root.openNextFile();
     while(file)
     {
-      if(matches(file.name()+maskFilterLen, mask))
+      if(matches(file.name(), mask))
       {
         String fileName = file.name();
         if(file.isDirectory())
@@ -416,7 +408,7 @@ void ZBrowser::makeFileList(String ***l, int *n, String p, String mask, bool rec
           if(recurse)
           {
             file = root.openNextFile();
-            makeFileList(l,n,fileName.c_str(),"*",recurse);
+            makeFileList(l,n,p + "/" + fileName.c_str(),"*",recurse);
           } 
         }
         else
@@ -439,10 +431,6 @@ void ZBrowser::makeFileList(String ***l, int *n, String p, String mask, bool rec
 
 void ZBrowser::deleteFile(String p, String mask, bool recurse)
 {
-  int maskFilterLen = p.length();
-  if(!p.endsWith("/"))
-    maskFilterLen++;
-
   File root = SD.open(p);
   if(!root)
     serial.printf("Unknown path: %s%s",p.c_str(),EOLNC);
@@ -452,29 +440,30 @@ void ZBrowser::deleteFile(String p, String mask, bool recurse)
     File file = root.openNextFile();
     while(file)
     {
-      if(matches(file.name()+maskFilterLen, mask))
+      if(matches(file.name(), mask))
       {
         String fileName = file.name();
+        String delFile = p + "/" + fileName;
         if(file.isDirectory())
         {
           if(recurse)
           {
             file = root.openNextFile();
-            deleteFile(fileName.c_str(),"*",recurse);
-            if(!SD.rmdir(fileName.c_str()))
-              serial.printf("Unable to delete: %s%s",fileName.c_str()+maskFilterLen,EOLNC);
+            deleteFile(delFile,"*",recurse);
+            if(!SD.rmdir(delFile))
+              serial.printf("Unable to delete: %s%s",delFile.c_str(),EOLNC);
           } 
           else
           {
-            serial.printf("Skipping: %s%s",file.name()+maskFilterLen,EOLNC);
+            serial.printf("Skipping: %s%s",delFile.c_str(),EOLNC);
             file = root.openNextFile();
           }
         }
         else
         {
           file = root.openNextFile();
-          if(!SD.remove(fileName))
-            serial.printf("Unable to delete: %s%s",file.name()+maskFilterLen,EOLNC);
+          if(!SD.remove(delFile))
+            serial.printf("Unable to delete: %s%s",delFile.c_str(),EOLNC);
         }
       }
       else
