@@ -1302,7 +1302,11 @@ ZResult ZCommand::doUpdateFirmware(int vval, uint8_t *vbuf, int vlen, bool isNum
   int updaterPort = 80;
 #endif
 #ifdef ZIMODEM_ESP32
+# ifdef RS232_INVERTED
+  char *updaterPrefix = "/otherprojs/c64net2";
+# else
   char *updaterPrefix = "/otherprojs/guru2";
+# endif
 #else
   char *updaterPrefix = "/otherprojs/c64net";
 #endif
