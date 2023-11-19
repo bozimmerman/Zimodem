@@ -140,7 +140,7 @@ void ZSerial::setFlowControlType(FlowControlType type)
           invertMask = invertMask | UART_SIGNAL_RTS_INV;
 #       endif
     }
-    //debugPrintf("invert = %d magic values = %d %d, RTS_HIGH=%d, RTS_LOW=%d HIGHHIGH=%d LOWLOW=%d\n",invertMask,ctsActive,rtsActive, DEFAULT_RTS_HIGH, DEFAULT_RTS_LOW, HIGH, LOW);
+    //debugPrintf("invert = %d magic values = %d %d, RTS_HIGH=%d, RTS_LOW=%d HIGHHIGH=%d LOWLOW=%d\n",invertMask,ctsActive,rtsActive, DEFAULT_RTS_ACTIVE, DEFAULT_RTS_INACTIVE, HIGH, LOW);
     if(invertMask != 0)
       uart_set_line_inverse(UART_NUM_2, invertMask);
     const int CUTOFF = 100;
