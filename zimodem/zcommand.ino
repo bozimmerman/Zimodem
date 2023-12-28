@@ -734,27 +734,27 @@ ZResult ZCommand::doInfoCommand(int vval, uint8_t *vbuf, int vlen, bool isNumber
       serial.prints("S45=");
       serial.printi(binType);
     }
-    if((dcdActive != DEFAULT_DCD_HIGH)||(dcdInactive == DEFAULT_DCD_ACTIVE)||(showAll))
+    if((dcdActive != DEFAULT_DCD_ACTIVE)||(dcdInactive == DEFAULT_DCD_ACTIVE)||(showAll))
       serial.printf("S46=%d",pinModeCoder(dcdActive,dcdInactive,DEFAULT_DCD_ACTIVE));
     if((pinDCD != DEFAULT_PIN_DCD)||(showAll))
       serial.printf("S47=%d",pinDCD);
-    if((ctsActive != DEFAULT_CTS_HIGH)||(ctsInactive == DEFAULT_CTS_ACTIVE)||(showAll))
+    if((ctsActive != DEFAULT_CTS_ACTIVE)||(ctsInactive == DEFAULT_CTS_ACTIVE)||(showAll))
       serial.printf("S48=%d",pinModeCoder(ctsActive,ctsInactive,DEFAULT_CTS_ACTIVE));
     if((pinCTS != getDefaultCtsPin())||(showAll))
       serial.printf("S49=%d",pinCTS);
-    if((rtsActive != DEFAULT_RTS_HIGH)||(rtsInactive == DEFAULT_RTS_ACTIVE)||(showAll))
+    if((rtsActive != DEFAULT_RTS_ACTIVE)||(rtsInactive == DEFAULT_RTS_ACTIVE)||(showAll))
       serial.printf("S50=%d",pinModeCoder(rtsActive,rtsInactive,DEFAULT_RTS_ACTIVE));
     if((pinRTS != DEFAULT_PIN_RTS)||(showAll))
       serial.printf("S51=%d",pinRTS);
-    if((riActive != DEFAULT_RI_HIGH)||(riInactive == DEFAULT_RI_ACTIVE)||(showAll))
+    if((riActive != DEFAULT_RI_ACTIVE)||(riInactive == DEFAULT_RI_ACTIVE)||(showAll))
       serial.printf("S52=%d",pinModeCoder(riActive,riInactive,DEFAULT_RI_ACTIVE));
     if((pinRI != DEFAULT_PIN_RI)||(showAll))
       serial.printf("S53=%d",pinRI);
-    if((dtrActive != DEFAULT_DTR_HIGH)||(dtrInactive == DEFAULT_DTR_ACTIVE)||(showAll))
+    if((dtrActive != DEFAULT_DTR_ACTIVE)||(dtrInactive == DEFAULT_DTR_ACTIVE)||(showAll))
       serial.printf("S54=%d",pinModeCoder(dtrActive,dtrInactive,DEFAULT_DTR_ACTIVE));
     if((pinDTR != DEFAULT_PIN_DTR)||(showAll))
       serial.printf("S55=%d",pinDTR);
-    if((dsrActive != DEFAULT_DSR_HIGH)||(dsrInactive == DEFAULT_DSR_ACTIVE)||(showAll))
+    if((dsrActive != DEFAULT_DSR_ACTIVE)||(dsrInactive == DEFAULT_DSR_ACTIVE)||(showAll))
       serial.printf("S56=%d",pinModeCoder(dsrActive,dsrInactive,DEFAULT_DSR_ACTIVE));
     if((pinDSR != DEFAULT_PIN_DSR)||(showAll))
       serial.printf("S57=%d",pinDSR);
