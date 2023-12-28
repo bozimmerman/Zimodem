@@ -109,7 +109,7 @@ ATD : Start a streaming connection between the current opened connection.  Use "
 ATDn : Where n > 0, this will start a streaming connection between the previously opened connection with an id the same as n.  Use "+++" to exit back to Command mode.
 ATD"[HOSTNAME]:[PORT]" : This opens a streaming connection between the terminal and the given host/port. Use "+++" to disconnect and exit back to command mode.
 ATDP"[HOSTNAME]:[PORT]" : Adding a P modifier causes connection input to be translated to PETSCII during the streaming session.
-ATDT"[HOSTNAME]:[PORT]" : Adding a T modifier causes connection input to be translated per TELNET during the streaming session.
+ATDT"[HOSTNAME]:[PORT]" : Adding a T modifier allows connection input to be translated per TELNET during the streaming session (see S62).
 ATDE"[HOSTNAME]:[PORT]" : Adding a E modifier causes terminal echo to be enabled that streaming session.
 ATDX"[HOSTNAME]:[PORT]" : Adding a X modifier causes XON/XOFF flow control to be enabled that streaming session.
 ATDS"[NAME]:[PASS]@[HOSTNAME]:[PORT]" : Adding a S modifier, along with username and password, causes an SSH shell connection to be made.
