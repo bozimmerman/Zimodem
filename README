@@ -32,7 +32,7 @@ AT+SHELL: ESP32 Modem users with SD-cards can enter AT+SHELL to get a shell comm
 
 AT+PING: To check if your wifi is connected and DNS resolution is working, try AT+PING"google.com".  An OK means a response was received.
 
-Telnet Dialing: If you want to connect to a remote telnet server, eg coffeemud.net, port 23, you'll want to enter ATDT"coffeemud.net:23".  Don't forget to set your terminal program to the proper translation mode (ANSI, ASCII, or whatever). 
+Telnet Dialing: If you want to connect to a remote telnet server, eg coffeemud.net, port 23, you'll want to enter AT&S62=1DT"coffeemud.net:23".  Don't forget to set your terminal program to the proper translation mode (ANSI, ASCII, or whatever). 
 
 Non-Telnet Dialing: If you are using a Commodore Graphics terminal program and want to connect to a Commodore BBS, or a standard ASCII terminal program for a non-Commodore BBS, you'll want to enter e.g. ATD"cottonwoodbbs.dyndns.org:6502".
 
@@ -165,7 +165,7 @@ ATS56=n : Changes DSR status. n=0 is default DSR=HIGH=active. n=1 is RTS=LOW=act
 ATS57=n : Changes DSR pin number, n=13 is default (N/A on ESP01)
 ATS60=n : When n > 0, immediately saves existing listeners and automatically restores them later. n=0 to clear.
 ATS61=n : When n > 0, sets the number of seconds to timeout a print job stream (AT+PRINT). Default is 5 seconds
-ATS62=n : When n > 0, enables/disables telnet support in the ATD (Dial) command. Default is 1 (enabled).
+ATS62=n : When n > 0, enables/disables telnet support in the ATD (Dial) command. Default is 0 (disabled).
 
 +++ : With a 1 second pause with no other characters afterwards, this will disconnect the current opened connection.
 

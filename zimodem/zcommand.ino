@@ -128,7 +128,7 @@ void ZCommand::setConfigDefaults()
 {
   doEcho=true;
   autoStreamMode=false;
-  telnetSupport=true;
+  telnetSupport=false;
   preserveListeners=false;
   ringCounter=1;
   serial.setFlowControlType(DEFAULT_FCT);
@@ -760,7 +760,7 @@ ZResult ZCommand::doInfoCommand(int vval, uint8_t *vbuf, int vlen, bool isNumber
       serial.printf("S57=%d",pinDSR);
     if(preserveListeners ||(showAll))
       serial.prints(preserveListeners ? "S60=1" : "S60=0");
-    if(!telnetSupport ||(showAll))
+    if(telnetSupport ||(showAll))
       serial.prints(telnetSupport ? "S62=1" : "S62=0");
     if((serial.isPetsciiMode())||(showAll))
       serial.prints(serial.isPetsciiMode() ? "&P1" : "&P0");

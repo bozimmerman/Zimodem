@@ -120,7 +120,7 @@ class ZCommand : public ZMode
     int lastServerClientId = 0;
     WiFiClientNode *current = null;
     bool autoStreamMode=false;
-    bool telnetSupport=true;
+    bool telnetSupport=false;
     bool preserveListeners=false;
     unsigned long lastNonPlusTimeMs = 0;
     unsigned long currentExpiresTimeMs = 0;
