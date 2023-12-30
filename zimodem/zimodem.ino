@@ -62,11 +62,11 @@ const char compile_date[] = __DATE__ " " __TIME__;
 # define PIN_FACTORY_RESET GPIO_NUM_0
 # define DEFAULT_PIN_DCD GPIO_NUM_14
 # define DEFAULT_PIN_CTS GPIO_NUM_13
-# define DEFAULT_PIN_RTS GPIO_NUM_15 // unused
+# define DEFAULT_PIN_RTS GPIO_NUM_15 // unused?
 # define DEFAULT_PIN_RI GPIO_NUM_32
 # define DEFAULT_PIN_DSR GPIO_NUM_12
 # define DEFAULT_PIN_SND GPIO_NUM_25
-# define DEFAULT_PIN_OTH GPIO_NUM_4
+# define DEFAULT_PIN_OTH GPIO_NUM_4 // pulse pin
 # define DEFAULT_PIN_DTR GPIO_NUM_27
 # define debugPrintf Serial.printf
 # define INCLUDE_SD_SHELL true
@@ -85,8 +85,10 @@ const char compile_date[] = __DATE__ " " __TIME__;
 # define UART_NB_STOP_BIT_1    0B00010000
 # define UART_NB_STOP_BIT_15   0B00100000
 # define UART_NB_STOP_BIT_2    0B00110000
-# define preEOLN serial.prints
-# define echoEOLN serial.write
+# define preEOLN(...)
+//# define preEOLN serial.prints
+# define echoEOLN(...) serial.prints(EOLN)
+//# define echoEOLN serial.write
 //# define HARD_DCD_HIGH 1
 //# define HARD_DCD_LOW 1
 # define INCLUDE_HOSTCM true // safe to remove if you need space
@@ -237,6 +239,7 @@ static int pinCTS = DEFAULT_PIN_CTS;
 static int pinRTS = DEFAULT_PIN_RTS;
 static int pinDSR = DEFAULT_PIN_DSR;
 static int pinDTR = DEFAULT_PIN_DTR;
+static int pinOTH = DEFAULT_PIN_OTH;
 static int pinRI = DEFAULT_PIN_RI;
 static int dcdActive = DEFAULT_DCD_ACTIVE;
 static int dcdInactive = DEFAULT_DCD_INACTIVE;
@@ -433,7 +436,6 @@ void setup()
 #ifdef ZIMODEM_ESP32
   Serial.begin(115200); //the debug port
   Serial.setDebugOutput(true);
-  debugPrintf("Debug port open and ready.\n");
   pinSupport[4]=true;
   pinSupport[5]=true;
   for(int i=12;i<=23;i++)
@@ -454,6 +456,7 @@ void setup()
     pinSupport[11]=false;
   }
 #endif    
+  debugPrintf("Zimodem %s firmware starting initialization\n",ZIMODEM_VERSION);
   initSDShell();
   currMode = &commandMode;
   if(!SPIFFS.begin())

@@ -135,6 +135,9 @@ class ZCommand : public ZMode
     String previousCommand = "";
     WiFiClientNode *nextConn=null;
     int lastPacketId = -1;
+    unsigned long lastPulseTimeMs = 0;
+    bool lastPulseState = false;
+    String pulseBuf = "";
 
     byte CRC8(const byte *data, byte len);
 
@@ -155,6 +158,7 @@ class ZCommand : public ZMode
     void sendNextPacket();
     void connectionArgs(WiFiClientNode *c);
     void updateAutoAnswer();
+    void checkPulseDial();
     uint8_t *doStateMachine(uint8_t *buf, uint16_t *bufLen, char **machineState, String *machineQue, char *stateMachine);
     uint8_t *doMaskOuts(uint8_t *buf, uint16_t *bufLen, char *maskOuts);
     ZResult doWebDump(Stream *in, int len, const bool cacheFlag);

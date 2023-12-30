@@ -12,7 +12,6 @@ New Features:
   *. SHELL wget command.
   *. LYNX-like browser?
   *. Baud rate test command (what good is this? how do you send cmd if baud is wrong?!)
-  *. ATW0 should be same as ATW
   *. SLIP support?
   *. PPP support?
   *. @19200, on C64 modem, extend start bit by 30 cycles

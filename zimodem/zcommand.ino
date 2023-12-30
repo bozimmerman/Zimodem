@@ -128,7 +128,7 @@ void ZCommand::setConfigDefaults()
 {
   doEcho=true;
   autoStreamMode=false;
-  telnetSupport=false;
+  telnetSupport=true;
   preserveListeners=false;
   ringCounter=1;
   serial.setFlowControlType(DEFAULT_FCT);
@@ -158,6 +158,7 @@ void ZCommand::setConfigDefaults()
   pinCTS = getDefaultCtsPin();
   pinRTS = DEFAULT_PIN_RTS;
   pinDTR = DEFAULT_PIN_DTR;
+  pinOTH = DEFAULT_PIN_OTH;
   pinDSR = DEFAULT_PIN_DSR;
   pinRI = DEFAULT_PIN_RI;
   dcdStatus = dcdInactive;
@@ -169,6 +170,8 @@ void ZCommand::setConfigDefaults()
     pinMode(pinDCD,OUTPUT);
   if(pinSupport[pinDTR])
     pinMode(pinDTR,INPUT);
+  if(pinSupport[pinOTH])
+    pinMode(pinOTH,INPUT);
   if(pinSupport[pinDSR])
     pinMode(pinDSR,OUTPUT);
   if(pinSupport[pinRI])
@@ -596,9 +599,8 @@ void ZCommand::loadConfig()
     nextReconnectDelay = DEFAULT_RECONNECT_DELAY;
     debugPrintf("Done attempting to connect to %s\n",wifiSSI.c_str());
   }
-  debugPrintf("Reset start.\n");
+  debugPrintf("Resetting...\n");
   doResetCommand();
-  debugPrintf("Reset complete.  Init start\n");
   showInitMessage();
   debugPrintf("Init complete.\n");
 }
@@ -760,7 +762,7 @@ ZResult ZCommand::doInfoCommand(int vval, uint8_t *vbuf, int vlen, bool isNumber
       serial.printf("S57=%d",pinDSR);
     if(preserveListeners ||(showAll))
       serial.prints(preserveListeners ? "S60=1" : "S60=0");
-    if(telnetSupport ||(showAll))
+    if(!telnetSupport ||(showAll))
       serial.prints(telnetSupport ? "S62=1" : "S62=0");
     if((serial.isPetsciiMode())||(showAll))
       serial.prints(serial.isPetsciiMode() ? "&P1" : "&P0");
@@ -1401,7 +1403,7 @@ ZResult ZCommand::doUpdateFirmware(int vval, uint8_t *vbuf, int vlen, bool isNum
 ZResult ZCommand::doWiFiCommand(int vval, uint8_t *vbuf, int vlen, bool isNumber, const char *dmodifiers)
 {
   bool doPETSCII = (strchr(dmodifiers,'p')!=null) || (strchr(dmodifiers,'P')!=null);
-  if((vlen==0)||(vval>0))
+  if((vlen==0)||((isNumber && (vval>=0))))
   {
     int n = WiFi.scanNetworks();
     if((vval > 0)&&(vval < n))
@@ -3196,9 +3198,9 @@ void ZCommand::showInitMessage()
   serial.prints(s);
   serial.prints(commandMode.EOLN);
 #ifdef ZIMODEM_ESP32
-  sprintf(s,"totsize=%dk hsize=%dk fsize=%dk speed=%dm",(ESP.getFlashChipSize()/1024),(ESP.getFreeHeap()/1024),totalSPIFFSSize/1024,(ESP.getFlashChipSpeed()/1000000));
+  sprintf(s,"tot=%dk heap=%dk fsize=%dk",(ESP.getFlashChipSize()/1024),(ESP.getFreeHeap()/1024),totalSPIFFSSize/1024);
 #else
-  sprintf(s,"totsize=%dk ssize=%dk fsize=%dk speed=%dm",(ESP.getFlashChipRealSize()/1024),(ESP.getSketchSize()/1024),totalSPIFFSSize/1024,(ESP.getFlashChipSpeed()/1000000));
+  sprintf(s,"tot=%dk heap=%dk fsize=%dk",(ESP.getFlashChipRealSize()/1024),(ESP.getSketchSize()/1024),totalSPIFFSSize/1024);
 #endif
   
   serial.prints(s);
@@ -3776,6 +3778,15 @@ void ZCommand::acceptNewConnection()
   }
 }
 
+void ZCommand::checkPulseDial()
+{
+  if(digitalRead(pinOTH) != lastPulseState)
+  {
+    lastPulseState = !lastPulseState;
+    debugPrintf("\n\rPULSE=%d\n\r",lastPulseState);
+    lastPulseTimeMs = millis();
+  }
+}
 void ZCommand::serialIncoming()
 {
   bool crReceived=readSerialStream();
@@ -3796,6 +3807,6 @@ void ZCommand::loop()
     sendNextPacket();
     serialOutDeque();
   }
+  checkPulseDial();
   checkBaudChange();
 }
-
