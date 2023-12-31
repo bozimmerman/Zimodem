@@ -1100,6 +1100,17 @@ ZResult ZCommand::doWebStream(int vval, uint8_t *vbuf, int vlen, bool isNumber, 
   char *req;
   int port;
   bool doSSL;
+#ifdef INCLUDE_FTP
+  FTPHost *ftpHost = 0;
+  if((strstr((char *)vbuf,"ftp:")==(char *)vbuf)
+  ||(strstr((char *)vbuf,"ftps:")==(char *)vbuf))
+  {
+    ftpHost = makeFTPHost(true,ftpHost,vbuf,&req);
+    if((req == 0)||(ftpHost==0))
+      return ZERROR;
+  }
+  else
+#endif
   if(!parseWebUrl(vbuf,&hostIp,&req,&port,&doSSL))
     return ZERROR;
 
@@ -1107,6 +1118,17 @@ ZResult ZCommand::doWebStream(int vval, uint8_t *vbuf, int vlen, bool isNumber, 
   {
     if(!SPIFFS.exists(filename))
     {
+#ifdef INCLUDE_FTP
+      if(ftpHost != 0)
+      {
+        if(!ftpHost->doGet(&SPIFFS,filename,req))
+        {
+          delete ftpHost;
+          return ZERROR;
+        }
+      }
+      else
+#endif
       if(!doWebGet(hostIp, port, &SPIFFS, filename, req, doSSL))
         return ZERROR;
     }
@@ -1116,7 +1138,18 @@ ZResult ZCommand::doWebStream(int vval, uint8_t *vbuf, int vlen, bool isNumber, 
   &&(machineQue.length()==0))
   {
     uint32_t respLength=0;
-    WiFiClient *c = doWebGetStream(hostIp, port, req, doSSL, &respLength); 
+    WiFiClient *c;
+    
+#ifdef INCLUDE_FTP
+    if(ftpHost != 0)
+    {
+      c=ftpHost->doGetStream(req, &respLength);
+      if(c==null)
+        delete ftpHost;
+    }
+    else
+#endif
+    c = doWebGetStream(hostIp, port, req, doSSL, &respLength); 
     if(c==null)
     {
       serial.prints(EOLN);
@@ -1125,14 +1158,36 @@ ZResult ZCommand::doWebStream(int vval, uint8_t *vbuf, int vlen, bool isNumber, 
     headerOut(0,1,respLength,0);
     serial.flush(); // stupid important because otherwise apps that go xoff miss the header info
     ZResult res = doWebDump(c,respLength,false);
-    c->stop();
-    delete c;
+#ifdef INCLUDE_FTP
+    if(ftpHost != 0)
+      delete ftpHost;
+    else
+#endif
+    {
+      c->stop();
+      delete c;
+    }
     serial.prints(EOLN);
     return res;
   }
   else
-  if(!doWebGet(hostIp, port, &SPIFFS, filename, req, doSSL))
-    return ZERROR;
+  {
+    if(!SPIFFS.exists(filename))
+      SPIFFS.delete(filename);
+#ifdef INCLUDE_FTP
+    if(ftpHost != 0)
+    {
+      if(!ftpHost->doGet(&SPIFFS,filename,req))
+      {
+        delete ftpHost;
+        return ZERROR;
+      }
+    }
+    else
+#endif
+    if(!doWebGet(hostIp, port, &SPIFFS, filename, req, doSSL))
+      return ZERROR;
+  }
   return doWebDump(filename, cache);
 }
 

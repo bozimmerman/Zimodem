@@ -25,11 +25,13 @@ static void initSDShell()
 
 ZBrowser::~ZBrowser()
 {
+#ifdef INCLUDE_FTP
   if(ftpHost != 0)
   {
     delete ftpHost;
     ftpHost = 0;
   }
+#endif
 }
 
 void ZBrowser::switchTo()
@@ -953,6 +955,7 @@ void ZBrowser::doModeCommand(String &line)
         }
       }
       else
+#ifdef INCLUDE_FTP
       if(cmd.equalsIgnoreCase("fget"))
       {
         String p1=cleanFirstArg(line);
@@ -1049,6 +1052,7 @@ void ZBrowser::doModeCommand(String &line)
             serial.printf("Fls failed: %s",p1.c_str());
         }
       }
+#endif
       else
       if(cmd.equalsIgnoreCase("mv")||cmd.equalsIgnoreCase("move"))
       {
@@ -1117,9 +1121,11 @@ void ZBrowser::doModeCommand(String &line)
         serial.printf("xget/zget/kget [/][path]filename               - Download a file%s",EOLNC);
         serial.printf("xput/zput/kput [/][path]filename               - Upload a file%s",EOLNC);
         serial.printf("wget [http://url] [/][path]filename            - Download url to file%s",EOLNC);
+#ifdef INCLUDE_FTP
         serial.printf("fget [ftp://user:pass@url/file] [/][path]file  - FTP get file%s",EOLNC);
         serial.printf("fput [/][path]file [ftp://user:pass@url/file]  - FTP put file%s",EOLNC);
         serial.printf("fdir [ftp://user:pass@url/path]                - ftp url dir%s",EOLNC);
+#endif
         serial.printf("exit/quit/x/endshell                           - Quit to command mode%s",EOLNC);
         serial.printf("%s",EOLNC);
       }

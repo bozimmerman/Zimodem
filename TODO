@@ -8,7 +8,6 @@ New Features:
   *. Add gopher client, or at least at&g type gopher command (gopher://?)
   *. Ability to use protocols for at&g, and maybe have alternative at+web
   *. SSL/SSH server sockets? 
-  *. Ability to ftp file streamdown, like at&g.. maybe at+ftp
   *. SHELL wget command.
   *. LYNX-like browser?
   *. Baud rate test command (what good is this? how do you send cmd if baud is wrong?!)
