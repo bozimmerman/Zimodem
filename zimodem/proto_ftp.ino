@@ -241,8 +241,13 @@ static int getFTPResponseCode(WiFiClient *c, char *buf)
       if(resp.length()==0)
         return -1;
   }
-  if((buf != NULL)&&(resp.length()<132))
-    strcpy(buf,resp.substring(4).c_str());
+  if(buf != NULL)
+  {
+    int start = 4;
+    if(resp.length()>=132)
+      start=4+(resp.length()-132);
+    strcpy(buf,resp.substring(start).c_str());
+  }
   return atoi(resp.substring(0,3).c_str());
 }
 
@@ -362,7 +367,6 @@ FTPClientPair *doFTPGetStream(const char *hostIp, int port, const char *remotepa
   WiFiClient *cc = createWiFiClient(doSSL);
   if(!doFTPLogin(cc, hostIp, port, username, pw))
     return 0;
-debugPrintf("1\r\n");
   cc->printf("TYPE I\r\n");
   int respCode = getFTPResponseCode(cc, NULL);
   if(respCode < 0)
@@ -370,13 +374,12 @@ debugPrintf("1\r\n");
     doFTPQuit(&cc);
     return 0;
   }
-debugPrintf("2\r\n");
   WiFiClient *c = doFTPPassive(cc, doSSL);
   if(c == 0)
     return 0;
-debugPrintf("3\r\n");
   cc->printf("RETR %s\r\n",remotepath);
-  respCode = getFTPResponseCode(cc, NULL);
+  char lbuf[133];
+  respCode = getFTPResponseCode(cc, lbuf);
   if((respCode < 0)||(respCode > 400))
   {
     c->stop();
@@ -384,7 +387,19 @@ debugPrintf("3\r\n");
     doFTPQuit(&cc);
     return 0;
   }
-debugPrintf("4\r\n");
+  if(respCode == 150)
+  {
+    char *eob=strstr(lbuf," bytes");
+    if(eob)
+    {
+      *eob=0;
+      char *sob=eob-1;
+      while(strchr("0123456789",*sob) && (sob > lbuf))
+        sob--;
+      if((sob<(eob-1))&&(sob>lbuf))
+        *responseSize=atoi(sob+1);
+    }
+  }
   FTPClientPair *pair = (FTPClientPair *)malloc(sizeof(FTPClientPair));
   pair->cmdClient = cc;
   pair->dataClient = c;
@@ -393,7 +408,6 @@ debugPrintf("4\r\n");
 
 WiFiClient *FTPHost::doGetStream(const char *remotepath, uint32_t *responseSize)
 {
-  fixPath(remotepath);
   streams = doFTPGetStream(hostIp,port,remotepath,username,pw,doSSL,responseSize);
   if(streams != 0)
     return streams->dataClient;

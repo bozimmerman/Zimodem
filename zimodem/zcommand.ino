@@ -1172,8 +1172,8 @@ ZResult ZCommand::doWebStream(int vval, uint8_t *vbuf, int vlen, bool isNumber, 
   }
   else
   {
-    if(!SPIFFS.exists(filename))
-      SPIFFS.delete(filename);
+    if(SPIFFS.exists(filename))
+      SPIFFS.remove(filename);
 #ifdef INCLUDE_FTP
     if(ftpHost != 0)
     {
