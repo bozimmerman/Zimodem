@@ -4,6 +4,7 @@ Bugs Reported (nor reproduced):
  *. 
  
 New Features:
+  *. Make a disconnected-stream mode that will send BUSY messages and allow local mode type stuff.
   *. Support switching between CONNECT #ID and CONNECT 1200 messages?
   *. Add gopher client, or at least at&g type gopher command (gopher://?)
   *. Ability to use protocols for at&g, and maybe have alternative at+web
