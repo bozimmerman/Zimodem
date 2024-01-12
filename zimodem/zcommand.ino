@@ -662,6 +662,8 @@ ZResult ZCommand::doInfoCommand(int vval, uint8_t *vbuf, int vlen, bool isNumber
       serial.prints("F4");
       break;
     }
+    if(busyMode)
+      serial.prints("H1");
     if(EOLN==CR)
       serial.prints("R0");
     else
@@ -1837,10 +1839,12 @@ ZResult ZCommand::doAnswerCommand(int vval, uint8_t *vbuf, int vlen, bool isNumb
             ringCounter = 0;
             streamMode.switchTo(c);
             checkOpenConnections();
+            busyMode=false;
             return ZIGNORE;
           }
           else
           {
+              busyMode=false;
               streamMode.switchTo(c);
               checkOpenConnections();
               return ZOK;
@@ -1849,6 +1853,7 @@ ZResult ZCommand::doAnswerCommand(int vval, uint8_t *vbuf, int vlen, bool isNumb
         }
         c=c->next;
       }
+      busyMode=false;
       return ZOK; // not really doing anything important...
   }
   else
@@ -1872,6 +1877,7 @@ ZResult ZCommand::doAnswerCommand(int vval, uint8_t *vbuf, int vlen, bool isNumb
     freeCharArray(&tempMaskOuts);
     freeCharArray(&tempStateMachine);
     updateAutoAnswer();
+    busyMode=false;
     return ZOK;
   }
 }
