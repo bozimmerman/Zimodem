@@ -152,7 +152,7 @@ class ZCommand : public ZMode
     void setOptionsFromSavedConfig(String configArguments[]);
     void reSaveConfig();
     void reSendLastPacket(WiFiClientNode *conn, uint8_t which);
-    void acceptNewConnection();
+    bool acceptNewConnection();
     void headerOut(const int channel, const int num, const int sz, const int crc8);
     void sendConnectionNotice(int nodeId);
     void sendNextPacket();

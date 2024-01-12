@@ -3537,7 +3537,8 @@ void ZCommand::sendNextPacket()
     nextConn = nextConn->next;
   while(serial.isSerialOut() && (nextConn != null) && (packetXOn))
   {
-    if(nextConn->available()>0)
+    if((nextConn->available()>0)
+    &&(nextConn->isAnswered())) // being unanswered is a server thing that must be respected
     //&& (nextConn->isConnected())) // being connected is not required to have buffered bytes waiting!
     {
       int availableBytes = nextConn->available();
@@ -3733,7 +3734,7 @@ void ZCommand::sendConnectionNotice(int id)
   serial.prints(EOLN);
 }
 
-void ZCommand::acceptNewConnection()
+bool ZCommand::acceptNewConnection()
 {
   WiFiServerNode *serv = servs;
   while(serv != null)
@@ -3760,15 +3761,18 @@ void ZCommand::acceptNewConnection()
         {
           //BZ:newClient.setNoDelay(true);
           int futureRings = (ringCounter > 0)?(ringCounter-1):5;
-          WiFiClientNode *newClientNode = new WiFiClientNode(newClient, serv->flagsBitmap, (futureRings+1) * 2);
+          WiFiClientNode *newClientNode = new WiFiClientNode(newClient, serv->flagsBitmap, futureRings>0?(futureRings+1) * 2:0);
           setCharArray(&(newClientNode->delimiters),serv->delimiters);
           setCharArray(&(newClientNode->maskOuts),serv->maskOuts);
           setCharArray(&(newClientNode->stateMachine),serv->stateMachine);
           newClientNode->machineState = newClientNode->stateMachine;
           s_pinWrite(pinRI,riActive);
-          preEOLN(EOLN);
-          serial.prints(numericResponses?"2":"RING");
-          serial.prints(EOLN);
+          if(futureRings>0)
+          {
+            preEOLN(EOLN);
+            serial.prints(numericResponses?"2":"RING");
+            serial.prints(EOLN);
+          }
           lastServerClientId = newClientNode->id;
           if(newClientNode->isAnswered())
           {
@@ -3831,6 +3835,7 @@ void ZCommand::acceptNewConnection()
     }
     conn = nextConn;
   }
+  return currMode != this;
 }
 
 void ZCommand::checkPulseDial()
@@ -3856,7 +3861,11 @@ void ZCommand::serialIncoming()
 void ZCommand::loop()
 {
   checkPlusEscape();
-  acceptNewConnection();
+  if(acceptNewConnection())
+  {
+      checkBaudChange();
+      return;
+  }
   if(serial.isSerialOut())
   {
     sendNextPacket();
