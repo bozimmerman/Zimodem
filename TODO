@@ -1,20 +1,18 @@
 Bugs Reported (nor reproduced):
  *. Test carrier detect in ESP12-E in 4.0
  *. Test incoming network packets of various sizes at different speeds
- *. 
  
 New Features:
-  *. Make a disconnected-stream mode that will send BUSY messages and allow local mode type stuff.
-  *. Support switching between CONNECT #ID and CONNECT 1200 messages?
+  *. Support dial modifiers ,W,R,@,',',; <-- connect!,!,L <--last number!
+  *. Support switching between CONNECT #ID and CONNECT 1200 messages? (also NO CARRIER vs NO CARRIER #)
   *. Add gopher client, or at least at&g type gopher command (gopher://?)
-  *. Ability to use protocols for at&g, and maybe have alternative at+web
-  *. SSL/SSH server sockets? 
   *. SHELL wget command.
-  *. LYNX-like browser?
-  *. Baud rate test command (what good is this? how do you send cmd if baud is wrong?!)
   *. SLIP support?
   *. PPP support?
   *. @19200, on C64 modem, extend start bit by 30 cycles
+  *. Baud rate test command (what good is this? how do you send cmd if baud is wrong?!)
+  *. SSL/SSH server sockets? 
+  *. LYNX-like browser?
 
 New hardware hopes:
  C+B 0 FLAG2+PB0	RxD	Receive Data (Must be applied to both pins!)

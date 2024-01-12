@@ -71,7 +71,7 @@ ATAEn : Adding a E modifier causes connection terminal echo to be enabled when t
 ATAXn : Adding a X modifier causes connection XON/XOFF flow control to be enabled  when the changed to Stream mode.
 
 ATN0 : Shuts down all listeners, leaving client connections open
-ATNn : if n > 0 then same as ATAn
+ATNn : if n > 0 then closes a Server (ATA) listener with the given id; does not close any connections received from that listener.
 
 ATE0 : Turns serial terminal echo off for command mode.
 ATE1 : Turns serial terminal echo on for command mode.
@@ -126,7 +126,8 @@ ATCX"[HOSTNAME]:[PORT]" : Adding a X modifier causes XON/XOFF flow control to be
 
 ATH  : Hangs up (disconnects and deletes) all open connections.  Does not close Server listeners.
 ATH0 : Hangs up (disconnects and deletes) the current opened connection.
-ATHn : Hangs up (disconnects and deletes) the open connection with the given id.  Closing a Server (ATA) listener does not close any connections received from that listener.
+ATH1 : If no client connection with id 1 is open, this will put server listeners into 'busy' mode.
+ATHn : Hangs up (disconnects and deletes) the open client connection with the given id.
 
 ATO : Re-enters a Streaming session (see ATD) under the previous settings, with the current (previous) connection.
 
@@ -157,11 +158,11 @@ ATS48=n : Changes CTS status. n=0 is default CTS=HIGH=active. n=1 is CTS=LOW=act
 ATS49=n : Changes CTS pin number, n=0 is default on ESP01, and default is 5 otherwise
 ATS50=n : Changes RTS status. n=0 is default RTS=HIGH=active. n=1 is RTS=LOW=active. n=2 always HIGH. n=3 always LOW. (N/A on ESP01)
 ATS51=n : Changes RTS pin number, n=4 is default (N/A on ESP01)
-ATS52=n : Changes RI status. n=0 is default RI=HIGH=active. n=1 is RTS=LOW=active. n=2 always HIGH. n=3 always LOW. (N/A on ESP01)
+ATS52=n : Changes RI status. n=0 is default RI=HIGH=active. n=1 is RI=LOW=active. n=2 always HIGH. n=3 always LOW. (N/A on ESP01)
 ATS53=n : Changes RI pin number, n=14 is default (N/A on ESP01)
-ATS54=n : Changes DTR status. n=0 is default DTR=HIGH=active. n=1 is RTS=LOW=active. n=2 always HIGH. n=3 always LOW. (N/A on ESP01)
+ATS54=n : Changes DTR status. n=0 is default DTR=HIGH=active. n=1 is DTR=LOW=active. n=2 always HIGH. n=3 always LOW. (N/A on ESP01)
 ATS55=n : Changes DTR pin number, n=12 is default (N/A on ESP01)
-ATS56=n : Changes DSR status. n=0 is default DSR=HIGH=active. n=1 is RTS=LOW=active. n=2 always HIGH. n=3 always LOW. (N/A on ESP01)
+ATS56=n : Changes DSR status. n=0 is default DSR=HIGH=active. n=1 is DSR=LOW=active. n=2 always HIGH. n=3 always LOW. (N/A on ESP01)
 ATS57=n : Changes DSR pin number, n=13 is default (N/A on ESP01)
 ATS60=n : When n > 0, immediately saves existing listeners and automatically restores them later. n=0 to clear.
 ATS61=n : When n > 0, sets the number of seconds to timeout a print job stream (AT+PRINT). Default is 5 seconds

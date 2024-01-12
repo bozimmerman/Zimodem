@@ -113,6 +113,7 @@ class ZCommand : public ZMode
 
     ZSerial serial;
     bool packetXOn = true;
+    bool busyMode = false;
     BinType binType = BTYPE_NORMAL;
     uint8_t nbuf[MAX_COMMAND_SIZE];
     char hbuf[MAX_COMMAND_SIZE];
@@ -165,7 +166,7 @@ class ZCommand : public ZMode
     ZResult doWebDump(const char *filename, const bool cache);
 
     ZResult doResetCommand();
-    ZResult doNoListenCommand();
+    ZResult doNoListenCommand(int vval, uint8_t *vbuf, int vlen, bool isNumber);
     ZResult doBaudCommand(int vval, uint8_t *vbuf, int vlen);
     ZResult doTransmitCommand(int vval, uint8_t *vbuf, int vlen, bool isNumber, const char *dmodifiers, int *crc8);
     ZResult doLastPacket(int vval, uint8_t *vbuf, int vlen, bool isNumber);

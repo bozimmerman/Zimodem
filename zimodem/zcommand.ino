@@ -127,6 +127,7 @@ byte ZCommand::CRC8(const byte *data, byte len)
 void ZCommand::setConfigDefaults()
 {
   doEcho=true;
+  busyMode=false;
   autoStreamMode=false;
   telnetSupport=true;
   preserveListeners=false;
@@ -253,21 +254,27 @@ ZResult ZCommand::doResetCommand()
   serial.setFlowControlType(DEFAULT_FCT);
   setOptionsFromSavedConfig(argv);
   memset(nbuf,0,MAX_COMMAND_SIZE);
+  busyMode=false;
   return ZOK;
 }
 
-ZResult ZCommand::doNoListenCommand()
+ZResult ZCommand::doNoListenCommand(int vval, uint8_t *vbuf, int vlen, bool isNumber)
 {
-  /*
-  WiFiClientNode *c=conns;
-  while(c != null)
+  if(vval>0 && isNumber)
   {
-    WiFiClientNode *c2=c->next;
-    if(c->serverClient)
-      delete c;
-    c=c2;
+    WiFiServerNode *s=servs;
+    while(s!=null)
+    {
+      if(vval == s->id)
+      {
+        delete s;
+        updateAutoAnswer();
+        return ZOK;
+      }
+      s=s->next;
+    }
+    return ZERROR;
   }
-  */
   WiFiServerNode::DestroyAllServers();
   return ZOK;
 }
@@ -1881,6 +1888,7 @@ ZResult ZCommand::doHangupCommand(int vval, uint8_t *vbuf, int vlen, bool isNumb
     lastServerClientId=0;
     current = null;
     nextConn = null;
+    busyMode=false;
     return ZOK;
   }
   else
@@ -1893,6 +1901,12 @@ ZResult ZCommand::doHangupCommand(int vval, uint8_t *vbuf, int vlen, bool isNumb
         delete current;
         current = conns;
         nextConn = conns;
+        busyMode=false;
+        return ZOK;
+      }
+      if(busyMode)
+      {
+        busyMode=false;
         return ZOK;
       }
       return ZERROR;
@@ -1916,16 +1930,10 @@ ZResult ZCommand::doHangupCommand(int vval, uint8_t *vbuf, int vlen, bool isNumb
       }
       c=c->next;
     }
-    WiFiServerNode *s=servs;
-    while(s!=null)
+    if(vval == 1) // enter busy mode ATH1 in command mode...
     {
-      if(vval == s->id)
-      {
-        delete s;
-        updateAutoAnswer();
-        return ZOK;
-      }
-      s=s->next;
+      busyMode=true;
+      return ZOK;
     }
     return ZERROR;
   }
@@ -2313,11 +2321,8 @@ ZResult ZCommand::doSerialCommand()
         result = doResetCommand();
         break;
       case 'n':
-        if(isNumber && (vval == 0))
-        {
-          doNoListenCommand();
-          break;
-        }
+        doNoListenCommand(vval,vbuf,vlen,isNumber);
+        break;
       case 'a':
         result = doAnswerCommand(vval,vbuf,vlen,isNumber,dmodifiers.c_str());
         break;
@@ -3744,6 +3749,15 @@ bool ZCommand::acceptNewConnection()
       WiFiClient newClient = serv->server->available();
       if(newClient.connected())
       {
+        if(busyMode)
+        {
+            newClient.write((uint8_t *)busyMsg.c_str(), busyMsg.length());
+            newClient.flush();
+            delay(100); // yes, i know, but seriously....
+            newClient.stop();
+            serv=serv->next;
+            continue;
+        }
         int port=newClient.localPort();
         String remoteIPStr = newClient.remoteIP().toString();
         const char *remoteIP=remoteIPStr.c_str();
