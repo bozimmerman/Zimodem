@@ -11,14 +11,13 @@
    distributed under the License is distributed on an "AS IS" BASIS,
    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
    See the License for the specific language governing permissions and
-   limitations under the License.
+   limitations under the License. 
 */
 //#define TCP_SND_BUF                     4 * TCP_MSS
-#define ZIMODEM_VERSION "3.7.2"
+#define ZIMODEM_VERSION "3.7.3"
 const char compile_date[] = __DATE__ " " __TIME__;
 #define DEFAULT_NO_DELAY true
 #define null 0
-#define INCLUDE_IRCC true
 //# define USE_DEVUPDATER true // only enable this if your name is Bo
 
 #ifdef ARDUINO_ESP32_DEV
@@ -88,6 +87,9 @@ const char compile_date[] = __DATE__ " " __TIME__;
 //# define HARD_DCD_HIGH 1
 //# define HARD_DCD_LOW 1
 # define INCLUDE_HOSTCM true // do this for special SP9000 modems only
+# define INCLUDE_FTP true
+# define INCLUDE_IRCC true
+//#define INCLUDE_SLIP true
 #else  // ESP-8266, e.g. ESP-01, ESP-12E, inverted for C64Net WiFi Modem
 # define DEFAULT_PIN_DSR 13
 # define DEFAULT_PIN_DTR 12
@@ -134,7 +136,7 @@ const char compile_date[] = __DATE__ " " __TIME__;
 #define DEFAULT_SERIAL_CONFIG SERIAL_8N1
 #define MAX_PIN_NO 50
 #define INTERNAL_FLOW_CONTROL_DIV 380
-#define DEFAULT_RECONNECT_DELAY 30000
+#define DEFAULT_RECONNECT_DELAY 60000
 #define MAX_RECONNECT_DELAY 1800000
 
 class ZMode
@@ -193,15 +195,15 @@ static ZConfig configMode;
 static RealTimeClock zclock(0);
 #ifdef INCLUDE_SD_SHELL
 #  ifdef INCLUDE_HOSTCM
-static ZHostCMMode hostcmMode;
+     static ZHostCMMode hostcmMode;
 #  endif
-static ZBrowser browseMode;
+   static ZBrowser browseMode;
 #endif
 #ifdef INCLUDE_SLIP
-static ZSLIPMode slipMode;
+   static ZSLIPMode slipMode;
 #endif
 #ifdef INCLUDE_IRCC
-static ZIRCMode ircMode;
+   static ZIRCMode ircMode;
 #endif
 
 enum BaudState
@@ -222,10 +224,10 @@ static IPAddress *staticSN = null;
 static unsigned long lastConnectAttempt = 0;
 static unsigned long nextReconnectDelay = 0; // zero means don't attempt reconnects
 static SerialConfig serialConfig = DEFAULT_SERIAL_CONFIG;
-static int baudRate = DEFAULT_BAUD_RATE;
-static int dequeSize = 1 + (DEFAULT_BAUD_RATE / INTERNAL_FLOW_CONTROL_DIV);
-static BaudState baudState = BS_NORMAL;
-static unsigned long resetPushTimer = 0;
+static int baudRate=DEFAULT_BAUD_RATE;
+static int dequeSize=1+(DEFAULT_BAUD_RATE/INTERNAL_FLOW_CONTROL_DIV);
+static BaudState baudState = BS_NORMAL; 
+static unsigned long resetPushTimer=0;
 static int tempBaud = -1; // -1 do nothing
 static int dcdStatus = DEFAULT_DCD_LOW;
 static int pinDCD = DEFAULT_PIN_DCD;
@@ -252,20 +254,20 @@ static int getDefaultCtsPin()
 #ifdef ZIMODEM_ESP32
   return DEFAULT_PIN_CTS;
 #else
-  if ((ESP.getFlashChipRealSize() / 1024) >= 4096) // assume this is a striketerm/esp12e
+  if((ESP.getFlashChipRealSize()/1024)>=4096) // assume this is a striketerm/esp12e
     return DEFAULT_PIN_CTS;
   else
     return 0;
-#endif
+#endif 
 }
 
-static void doNothing(const char* format, ...)
+static void doNothing(const char* format, ...) 
 {
 }
 
 static void s_pinWrite(uint8_t pinNo, uint8_t value)
 {
-  if (pinSupport[pinNo])
+  if(pinSupport[pinNo])
   {
     digitalWrite(pinNo, value);
   }
@@ -274,63 +276,63 @@ static void s_pinWrite(uint8_t pinNo, uint8_t value)
 static void setHostName(const char *hname)
 {
 #ifdef ZIMODEM_ESP32
-  tcpip_adapter_set_hostname(TCPIP_ADAPTER_IF_STA, hname);
+      tcpip_adapter_set_hostname(TCPIP_ADAPTER_IF_STA, hname);
 #else
-  WiFi.hostname(hname);
+      WiFi.hostname(hname);
 #endif
 }
 
 static void setNewStaticIPs(IPAddress *ip, IPAddress *dns, IPAddress *gateWay, IPAddress *subNet)
 {
-  if (staticIP != null)
+  if(staticIP != null)
     free(staticIP);
   staticIP = ip;
-  if (staticDNS != null)
+  if(staticDNS != null)
     free(staticDNS);
   staticDNS = dns;
-  if (staticGW != null)
+  if(staticGW != null)
     free(staticGW);
   staticGW = gateWay;
-  if (staticSN != null)
+  if(staticSN != null)
     free(staticSN);
   staticSN = subNet;
 }
 
 static bool connectWifi(const char* ssid, const char* password, IPAddress *ip, IPAddress *dns, IPAddress *gateWay, IPAddress *subNet)
 {
-  while (WiFi.status() == WL_CONNECTED)
+  while(WiFi.status() == WL_CONNECTED)
   {
     WiFi.disconnect();
     delay(100);
     yield();
   }
 #ifndef ZIMODEM_ESP32
-  if (hostname.length() > 0)
+  if(hostname.length() > 0)
     setHostName(hostname.c_str());
 #endif
   WiFi.mode(WIFI_STA);
-  if ((ip != null) && (gateWay != null) && (dns != null) && (subNet != null))
+  if((ip != null)&&(gateWay != null)&&(dns != null)&&(subNet!=null))
   {
-    if (!WiFi.config(*ip, *gateWay, *subNet, *dns))
+    if(!WiFi.config(*ip,*gateWay,*subNet,*dns))
       return false;
   }
   WiFi.begin(ssid, password);
-  if (hostname.length() > 0)
+  if(hostname.length() > 0)
     setHostName(hostname.c_str());
-  bool amConnected = (WiFi.status() == WL_CONNECTED) && (strcmp(WiFi.localIP().toString().c_str(), "0.0.0.0") != 0);
+  bool amConnected = (WiFi.status() == WL_CONNECTED) && (strcmp(WiFi.localIP().toString().c_str(), "0.0.0.0")!=0);
   int WiFiCounter = 0;
   while ((!amConnected) && (WiFiCounter < 20))
   {
     WiFiCounter++;
-    if (!amConnected)
+    if(!amConnected)
       delay(500);
-    amConnected = (WiFi.status() == WL_CONNECTED) && (strcmp(WiFi.localIP().toString().c_str(), "0.0.0.0") != 0);
+    amConnected = (WiFi.status() == WL_CONNECTED) && (strcmp(WiFi.localIP().toString().c_str(), "0.0.0.0")!=0);
   }
   lastConnectAttempt = millis();
-  if (lastConnectAttempt == 0)
+  if(lastConnectAttempt == 0)  // it IS possible for millis() to be 0, but we need to ignore it.
     lastConnectAttempt = 1; // 0 is a special case, so skip it
 
-  if (!amConnected)
+  if(!amConnected)
   {
     nextReconnectDelay = 0; // assume no retry is desired.. let the caller set it up, as it could be bad PW
     WiFi.disconnect();
@@ -339,14 +341,14 @@ static bool connectWifi(const char* ssid, const char* password, IPAddress *ip, I
     nextReconnectDelay = DEFAULT_RECONNECT_DELAY; // if connected, we always want to try reconns in the future
 
 #ifdef SUPPORT_LED_PINS
-  s_pinWrite(DEFAULT_PIN_WIFI, (WiFi.status() == WL_CONNECTED) ? DEFAULT_WIFI_ACTIVE : DEFAULT_WIFI_INACTIVE);
+  s_pinWrite(DEFAULT_PIN_WIFI,(WiFi.status() == WL_CONNECTED)?DEFAULT_WIFI_ACTIVE:DEFAULT_WIFI_INACTIVE);
 #endif
   return (WiFi.status() == WL_CONNECTED);
 }
 
 static void checkBaudChange()
 {
-  switch (baudState)
+  switch(baudState)
   {
     case BS_SWITCH_TEMP_NEXT:
       changeBaudRate(tempBaud);
@@ -365,27 +367,27 @@ static void changeBaudRate(int baudRate)
 {
   flushSerial(); // blocking, but very very necessary
   delay(500); // give the client half a sec to catch up
-  logPrintfln("Baud change to %d.\n", baudRate);
-  debugPrintf("Baud change to %d.\n", baudRate);
-  dequeSize = 1 + (baudRate / INTERNAL_FLOW_CONTROL_DIV);
-  debugPrintf("Deque constant now: %d\n", dequeSize);
+  logPrintfln("Baud change to %d.\n",baudRate);
+  debugPrintf("Baud change to %d.\n",baudRate);
+  dequeSize=1+(baudRate/INTERNAL_FLOW_CONTROL_DIV);
+  debugPrintf("Deque constant now: %d\n",dequeSize);
 #ifdef ZIMODEM_ESP32
   HWSerial.changeBaudRate(baudRate);
 #else
   HWSerial.begin(baudRate, serialConfig);  //Change baud rate
 #endif
 #ifdef SUPPORT_LED_PINS
-  s_pinWrite(DEFAULT_PIN_HS, (baudRate >= DEFAULT_HS_BAUD) ? DEFAULT_HS_ACTIVE : DEFAULT_HS_INACTIVE);
-#endif
+  s_pinWrite(DEFAULT_PIN_HS,(baudRate>=DEFAULT_HS_BAUD)?DEFAULT_HS_ACTIVE:DEFAULT_HS_INACTIVE);
+#endif  
 }
 
 static void changeSerialConfig(SerialConfig conf)
 {
   flushSerial(); // blocking, but very very necessary
   delay(500); // give the client half a sec to catch up
-  debugPrintf("Config changing %d.\n", (int)conf);
-  dequeSize = 1 + (baudRate / INTERNAL_FLOW_CONTROL_DIV);
-  debugPrintf("Deque constant now: %d\n", dequeSize);
+  debugPrintf("Config changing to %d.\n",(int)conf);
+  dequeSize=1+(baudRate/INTERNAL_FLOW_CONTROL_DIV);
+  debugPrintf("Deque constant now: %d\n",dequeSize);
 #ifdef ZIMODEM_ESP32
   HWSerial.changeConfig(conf);
 #else
@@ -396,67 +398,67 @@ static void changeSerialConfig(SerialConfig conf)
 
 static int checkOpenConnections()
 {
-  int num = WiFiClientNode::getNumOpenWiFiConnections();
-  if (num == 0)
+  int num=WiFiClientNode::getNumOpenWiFiConnections();
+  if(num == 0)
   {
-    if ((dcdStatus == dcdActive)
-        && (dcdStatus != dcdInactive))
+    if((dcdStatus == dcdActive)
+    &&(dcdStatus != dcdInactive))
     {
       logPrintfln("DCD going inactive.\n");
       dcdStatus = dcdInactive;
-      s_pinWrite(pinDCD, dcdStatus);
-      if (baudState == BS_SWITCHED_TEMP)
+      s_pinWrite(pinDCD,dcdStatus);
+      if(baudState == BS_SWITCHED_TEMP)
         baudState = BS_SWITCH_NORMAL_NEXT;
-      if (currMode == &commandMode)
+      if(currMode == &commandMode)
         clearSerialOutBuffer();
     }
   }
   else
   {
-    if ((dcdStatus == dcdInactive)
-        && (dcdStatus != dcdActive))
+    if((dcdStatus == dcdInactive)
+    &&(dcdStatus != dcdActive))
     {
       logPrintfln("DCD going active.\n");
       dcdStatus = dcdActive;
-      s_pinWrite(pinDCD, dcdStatus);
-      if ((tempBaud > 0) && (baudState == BS_NORMAL))
+      s_pinWrite(pinDCD,dcdStatus);
+      if((tempBaud > 0) && (baudState == BS_NORMAL))
         baudState = BS_SWITCH_TEMP_NEXT;
     }
   }
   return num;
 }
 
-void setup()
+void setup() 
 {
-  for (int i = 0; i < MAX_PIN_NO; i++)
-    pinSupport[i] = false;
+  for(int i=0;i<MAX_PIN_NO;i++)
+    pinSupport[i]=false;
 #ifdef ZIMODEM_ESP32
   Serial.begin(115200); //the debug port
   Serial.setDebugOutput(true);
-  debugPrintf("Debug port open and ready.\n");
-  for (int i = 12; i <= 23; i++)
-    pinSupport[i] = true;
-  for (int i = 25; i <= 27; i++)
-    pinSupport[i] = true;
-  for (int i = 32; i <= 33; i++)
-    pinSupport[i] = true;
+  for(int i=12;i<=23;i++)
+    pinSupport[i]=true;
+  for(int i=25;i<=27;i++)
+    pinSupport[i]=true;
+  for(int i=32;i<=33;i++)
+    pinSupport[i]=true;
   pinSupport[36] = true;
   pinSupport[39] = true;
 #else
-  pinSupport[0] = true;
-  pinSupport[2] = true;
-  if ((ESP.getFlashChipRealSize() / 1024) >= 4096) // assume this is a strykelink/esp12e
+  pinSupport[0]=true;
+  pinSupport[2]=true;
+  if((ESP.getFlashChipRealSize()/1024)>=4096) // assume this is a strykelink/esp12e
   {
-    pinSupport[4] = true;
-    pinSupport[5] = true;
-    for (int i = 9; i <= 16; i++)
-      pinSupport[i] = true;
-    pinSupport[11] = false;
+    pinSupport[4]=true;
+    pinSupport[5]=true;
+    for(int i=9;i<=16;i++)
+      pinSupport[i]=true;
+    pinSupport[11]=false;
   }
-#endif
+#endif    
+  debugPrintf("Zimodem %s firmware starting initialization\n",ZIMODEM_VERSION);
   initSDShell();
   currMode = &commandMode;
-  if (!SPIFFS.begin())
+  if(!SPIFFS.begin())
   {
     SPIFFS.format();
     SPIFFS.begin();
@@ -469,11 +471,11 @@ void setup()
   commandMode.loadConfig();
   PhoneBookEntry::loadPhonebook();
   dcdStatus = dcdInactive;
-  s_pinWrite(pinDCD, dcdStatus);
+  s_pinWrite(pinDCD,dcdStatus);
   flushSerial();
 #ifdef SUPPORT_LED_PINS
-  s_pinWrite(DEFAULT_PIN_WIFI, (WiFi.status() == WL_CONNECTED) ? DEFAULT_WIFI_ACTIVE : DEFAULT_WIFI_INACTIVE);
-  s_pinWrite(DEFAULT_PIN_HS, (baudRate >= DEFAULT_HS_BAUD) ? DEFAULT_HS_ACTIVE : DEFAULT_HS_INACTIVE);
+  s_pinWrite(DEFAULT_PIN_WIFI,(WiFi.status() == WL_CONNECTED)?DEFAULT_WIFI_ACTIVE:DEFAULT_WIFI_INACTIVE);
+  s_pinWrite(DEFAULT_PIN_HS,(baudRate>=DEFAULT_HS_BAUD)?DEFAULT_HS_ACTIVE:DEFAULT_HS_INACTIVE);
 #endif
 }
 

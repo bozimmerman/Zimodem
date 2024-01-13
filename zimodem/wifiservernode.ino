@@ -55,7 +55,7 @@ WiFiServerNode::WiFiServerNode(int newport, int flagsBitmap)
   id=++WiFiNextClientId;
   port=newport;
   this->flagsBitmap = flagsBitmap;
-  server = new WiFiServer(newport);
+  server = new WiFiServer((uint16_t)newport);
   //BZ:server->setNoDelay(DEFAULT_NO_DELAY);
   server->begin();
   if(servs==null)

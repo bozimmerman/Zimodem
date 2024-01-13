@@ -1,4 +1,4 @@
-#ifdef INCLUDE_SD_SHELL
+#ifdef INCLUDE_FTP
 #ifndef ZIMODEM_PROTO_FTP
 #define ZIMODEM_PROTO_FTP
 /*
@@ -17,8 +17,18 @@
    limitations under the License.
 */
 
+class FTPClientPair
+{
+public:
+  WiFiClient *cmdClient = 0;
+  WiFiClient *dataClient = 0;
+  ~FTPClientPair();
+};
+
 class FTPHost
 {
+private:
+  FTPClientPair *streams = 0;
 public:
   char *hostIp = 0;
   int port = 0;
@@ -32,6 +42,7 @@ public:
   bool doPut(File &f, const char *remotepath);
   bool doLS(ZSerial *serial, const char *remotepath);
   bool parseUrl(uint8_t *vbuf, char **req);
+  WiFiClient *doGetStream(const char *remotepath, uint32_t *responseSize);
   void fixPath(const char *remotepath);
 };
 
@@ -40,5 +51,6 @@ bool parseFTPUrl(uint8_t *vbuf, char **hostIp, char **req, int *port, bool *doSS
 bool doFTPGet(FS *fs, const char *hostIp, int port, const char *localpath, const char *remotepath, const char *username, const char *pw, const bool doSSL);
 bool doFTPPut(File &f, const char *hostIp, int port, const char *remotepath, const char *username, const char *pw, const bool doSSL);
 bool doFTPLS(ZSerial *serial, const char *hostIp, int port, const char *remotepath, const char *username, const char *pw, const bool doSSL);
+FTPClientPair *doFTPGetStream(const char *hostIp, int port, const char *remotepath, const char *username, const char *pw, bool doSSL, uint32_t *responseSize);
 #endif
 #endif

@@ -10,9 +10,10 @@ The default baud rate that the firmware establishes is 1200.  Be sure to use the
 
 Building:
 ---------
-To build this firmware for the ESP-01 or ESP-12, I used the Arduino IDE rev1.8.10 with the 2.7.4 Arduino ESP8266 libraries using the Generic ESP8266 Module.  Versions newer than 2.7.4 may not work.  Install the libraries from the Boards Manager using http://arduino.esp8266.com/stable/package_esp8266com_index.json. Both versions of the firmware are built with SPIFFS enabled.  On the ESP8266, I used settings of 1M/160k, but you may want to alter that depending on your hardware and needs. 
+To build this firmware for the ESP-01 or ESP-12, I used the Arduino IDE rev1.8.10 with the 2.4.0 Arduino ESP8266 libraries using the Generic ESP8266 Module.  Versions newer than 2.7.4 may not work.  Install the libraries from the Boards Manager using http://arduino.esp8266.com/stable/package_esp8266com_index.json. Both versions of the firmware are built with SPIFFS enabled.  On the ESP8266, I used settings of 1M/160k, but you may want to alter that depending on your hardware and needs. 
 
-To build this firmware for the ESP-32, I also used the Arduino IDE rev 1.8.10 with the Arduino ESP32 Dev Module installed from the board manager * , with the following settings: QIO, 4MB, 80MHZ, 921600, NONE, Avrisp Mk II **.  I found that baud changing corrupts the serial bus as of 1/13/2018, so the following changes were made to the base libraries: 
+To build this firmware for the ESP-32, I also used the Arduino IDE rev 1.8.10 with the Arduino ESP32 Dev Module installed from the board manager * , with the following settings: QIO, 4MB, 80MHZ, 921600, NONE, Avrisp Mk II **.  
+I found that baud changing corrupts the serial bus as of 1/13/2018, so the following changes were made to the base libraries: 
 > Added to esp32-hal-uart.c:
 void uartChangeBaudRate(uint8_t uart_nr, uint32_t baudrate)
 { 
@@ -76,9 +77,9 @@ If you want to run a Commodore BBS program using the modem, you'll want to confi
 
 If you want to try printing to a CUPS/IPP-printer, enter AT+PRINT?:<host>:<port>/<path>, followed by your data.  Where ? is A)scii, P)etscii, or R)aw.  A 5 second pause in incoming data completes the document and returns to command mode.  Example: AT+PRINTR:192.168.1.10:631/ipp/printer  -- followed by ENTER and then the data to print, without any pause longer than 5 seconds.  Subsequent to doing this, using AT+PRINT will repeat the previous URL.
 
-If you want to chat on IRC, enter AT+IRC, enter a nickname and a irc host as a phone number entry, then /join channels, chat, or /quit.
-
 ESP32 Guru Modem users with SD-cards can enter AT+SHELL to get a shell command prompt.  Enter ? to get a list of shell commands.
+
+If you want to chat on IRC, enter AT+IRC, enter a nickname and a irc host as a phone number entry, then /join channels, chat, or /quit.
 
 Command Set:
 -----------
@@ -111,7 +112,7 @@ ATAEn : Adding a E modifier causes connection terminal echo to be enabled when t
 ATAXn : Adding a X modifier causes connection XON/XOFF flow control to be enabled  when the changed to Stream mode.
 
 ATN0 : Shuts down all listeners, leaving client connections open
-ATNn : if n > 0 then same as ATAn
+ATNn : if n > 0 then closes a Server (ATA) listener with the given id; does not close any connections received from that listener.
 
 ATE0 : Turns serial terminal echo off for command mode.
 ATE1 : Turns serial terminal echo on for command mode.
@@ -165,7 +166,8 @@ ATCX"[HOSTNAME]:[PORT]" : Adding a X modifier causes XON/XOFF flow control to be
 
 ATH  : Hangs up (disconnects and deletes) all open connections.  Does not close Server listeners.
 ATH0 : Hangs up (disconnects and deletes) the current opened connection.
-ATHn : Hangs up (disconnects and deletes) the open connection with the given id.  Closing a Server (ATA) listener does not close any connections received from that listener.
+ATH1 : If no client connection with id 1 is open, this will put server listeners into 'busy' mode. 
+ATHn : Hangs up (disconnects and deletes) the open client connection with the given id.
 
 ATO : Re-enters a Streaming session (see ATD) under the previous settings, with the current (previous) connection.
 
@@ -238,7 +240,7 @@ AT&S"41=[TERMTYPE]" : Change the telnet 'termtype' response string
 AT&S"42=[BUSYMSG]" : Change the stream connection 'busy message'
 
 AT&T"[TIMEZONE],[TIME FORMAT],[NTP URL]" : set up the NTP clock. DISABLE to disable. Format is like Java SimpleDateFormat, but with % escapes. Each argument is optional.
-AT&G"[HOSTNAME]:[PORT]/[FILENAME]" : Streams a file from an HTTP source on the internet.  The header contains channel 0, file length, and an 8-bit sum of all the bytes in the forthcoming file, followed by the bytes of the file, all formatted as a normal packet.  An ASCII 3 (CNTRL-C) received during the transfer will abort. The S44 register can be used to create artificial delays in this output.  XON/XOFF Flow control also remains in effect with, on a byte-by-byte basis for the auto and manual flow control systems. Requires flash space for caching, or S45=3 to eliminate the SUM header.
+AT&G"[HOSTNAME]:[PORT]/[FILENAME]" : Streams a file from an HTTP/FTP source on the internet.  The header contains channel 0, file length, and an 8-bit sum of all the bytes in the forthcoming file, followed by the bytes of the file, all formatted as a normal packet.  An ASCII 3 (CNTRL-C) received during the transfer will abort. The S44 register can be used to create artificial delays in this output.  XON/XOFF Flow control also remains in effect with, on a byte-by-byte basis for the auto and manual flow control systems. Requires flash space for caching, or S45=3 to eliminate the SUM header.
 AT&Y  : Resets the state machine string. No state machine will be executed.
 AT&Yn : Change the current state (for command mode AND current connection) to state n, where n is a decimal number.
 AT&Y"[CODED STATE MACHINE]" : Adds the coded format string to a state machine.  If this command is followed by a C, N, or A command on the SAME LINE, then the setting will apply ONLY to that connection or listener.   State Machine Format: MMcCCNN ...  States are numbered by their order in the list starting with 00.  Non-matches automatically go to the next state until a match is made.   'MM' is hex byte to match (or 00 to match all).  'c' is one of these commands :e=eat byte, p=push byte to que, d=send byte, q=send all queued, x=flush queue, r=replace with byte represented by hex CC.  'C' is either '-', one of the command letters above, or a hex byte value if the first command was 'r'.  'NN' is the next state to go to, with 00 being the first state.
