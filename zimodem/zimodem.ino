@@ -102,13 +102,14 @@ const char compile_date[] = __DATE__ " " __TIME__;
 # define DEFAULT_PIN_RTS 4
 # define DEFAULT_PIN_CTS 5 // is 0 for ESP-01, see getDefaultCtsPin() below.
 # define DEFAULT_PIN_DCD 2
+# define DEFAULT_PIN_OTH 99 // pulse pin
 # define DEFAULT_FCT FCT_DISABLED
 # define RS232_INVERTED 1
 # define debugPrintf doNothing
 # define preEOLN(...)
 # define echoEOLN(...) serial.prints(EOLN)
 #endif
-#define INCLUDE_SLIP false
+//#define INCLUDE_SLIP false
 
 #ifdef RS232_INVERTED
 # define DEFAULT_DCD_ACTIVE  HIGH

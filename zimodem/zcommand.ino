@@ -3860,11 +3860,14 @@ bool ZCommand::acceptNewConnection()
 
 void ZCommand::checkPulseDial()
 {
-  if(digitalRead(pinOTH) != lastPulseState)
+  if(pinSupport[pinOTH])
   {
-    lastPulseState = !lastPulseState;
-    debugPrintf("\n\rPULSE=%d\n\r",lastPulseState);
-    lastPulseTimeMs = millis();
+    if(digitalRead(pinOTH) != lastPulseState)
+    {
+      lastPulseState = !lastPulseState;
+      debugPrintf("\n\rPULSE=%d\n\r",lastPulseState);
+      lastPulseTimeMs = millis();
+    }
   }
 }
 void ZCommand::serialIncoming()
