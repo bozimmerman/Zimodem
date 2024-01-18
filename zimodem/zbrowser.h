@@ -41,7 +41,9 @@ class ZBrowser : public ZMode
     void showDirectory(String path, String mask, String prefix, bool recurse);
     void copyFiles(String source, String mask, String target, bool recurse, bool overwrite);
     
+#ifdef INCLUDE_FTP
     FTPHost *ftpHost = 0;
+#endif
     bool showMenu;
     bool savedEcho;
     String path="/";

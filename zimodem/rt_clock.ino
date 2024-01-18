@@ -109,7 +109,6 @@ void RealTimeClock::tick()
       // subtract seventy years:
       uint32_t epoch = secsSince1900 - seventyYears;
       lastMillis = millis();
-      debugPrintf("Received NTP: %d/%d/%d %d:%d:%d\n\r",(int)getMonth(),(int)getDay(),(int)getYear(),(int)getHour(),(int)getMinute(),(int)getSecond());
       // now to apply the timezone.  Ugh;
       setByUnixEpoch(epoch);
       String tz="";
@@ -140,6 +139,7 @@ void RealTimeClock::tick()
         uint32_t echg = (atoi(tz.c_str()) * 3600);
         echg += ((echg < 0)?(-(mm * 60)):(mm * 60));
         setByUnixEpoch(epoch + echg);
+        debugPrintf("Received NTP: %d/%d/%d %d:%d:%d\n\r",(int)getMonth(),(int)getDay(),(int)getYear(),(int)getHour(),(int)getMinute(),(int)getSecond());
       }
       nextNTPMillis = millis() + ntpPeriodLongMillis; // one hour
     }

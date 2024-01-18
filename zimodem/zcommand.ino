@@ -127,6 +127,7 @@ byte ZCommand::CRC8(const byte *data, byte len)
 void ZCommand::setConfigDefaults()
 {
   doEcho=true;
+  busyMode=false;
   autoStreamMode=false;
   telnetSupport=true;
   preserveListeners=false;
@@ -137,27 +138,28 @@ void ZCommand::setConfigDefaults()
   serial.setPetsciiMode(false);
   binType=BTYPE_NORMAL;
   serialDelayMs=0;
-  dcdActive=DEFAULT_DCD_HIGH;
-  dcdInactive=DEFAULT_DCD_LOW;
+  dcdActive=DEFAULT_DCD_ACTIVE;
+  dcdInactive=DEFAULT_DCD_INACTIVE;
 # ifdef HARD_DCD_HIGH
-  dcdInactive=DEFAULT_DCD_HIGH;
+  dcdInactive=DEFAULT_DCD_ACTIVE;
 # elif defined(HARD_DCD_LOW)
-  dcdActive=DEFAULT_DCD_LOW;
+  dcdActive=DEFAULT_DCD_INACTIVE;
 # endif 
-  ctsActive=DEFAULT_CTS_HIGH;
-  ctsInactive=DEFAULT_CTS_LOW;
-  rtsActive=DEFAULT_RTS_HIGH;
-  rtsInactive=DEFAULT_RTS_LOW;
-  riActive = DEFAULT_RTS_HIGH;
-  riInactive = DEFAULT_RTS_LOW;
-  dtrActive = DEFAULT_RTS_HIGH;
-  dtrInactive = DEFAULT_RTS_LOW;
-  dsrActive = DEFAULT_RTS_HIGH;
-  dsrInactive = DEFAULT_RTS_LOW;
+  ctsActive=DEFAULT_CTS_ACTIVE;
+  ctsInactive=DEFAULT_CTS_INACTIVE;
+  rtsActive=DEFAULT_RTS_ACTIVE;
+  rtsInactive=DEFAULT_RTS_INACTIVE;
+  riActive = DEFAULT_RTS_ACTIVE;
+  riInactive = DEFAULT_RTS_INACTIVE;
+  dtrActive = DEFAULT_RTS_ACTIVE;
+  dtrInactive = DEFAULT_RTS_INACTIVE;
+  dsrActive = DEFAULT_RTS_ACTIVE;
+  dsrInactive = DEFAULT_RTS_INACTIVE;
   pinDCD = DEFAULT_PIN_DCD;
   pinCTS = getDefaultCtsPin();
   pinRTS = DEFAULT_PIN_RTS;
   pinDTR = DEFAULT_PIN_DTR;
+  pinOTH = DEFAULT_PIN_OTH;
   pinDSR = DEFAULT_PIN_DSR;
   pinRI = DEFAULT_PIN_RI;
   dcdStatus = dcdInactive;
@@ -169,6 +171,8 @@ void ZCommand::setConfigDefaults()
     pinMode(pinDCD,OUTPUT);
   if(pinSupport[pinDTR])
     pinMode(pinDTR,INPUT);
+  if(pinSupport[pinOTH])
+    pinMode(pinOTH,INPUT);
   if(pinSupport[pinDSR])
     pinMode(pinDSR,OUTPUT);
   if(pinSupport[pinRI])
@@ -250,21 +254,27 @@ ZResult ZCommand::doResetCommand()
   serial.setFlowControlType(DEFAULT_FCT);
   setOptionsFromSavedConfig(argv);
   memset(nbuf,0,MAX_COMMAND_SIZE);
+  busyMode=false;
   return ZOK;
 }
 
-ZResult ZCommand::doNoListenCommand()
+ZResult ZCommand::doNoListenCommand(int vval, uint8_t *vbuf, int vlen, bool isNumber)
 {
-  /*
-  WiFiClientNode *c=conns;
-  while(c != null)
+  if(vval>0 && isNumber)
   {
-    WiFiClientNode *c2=c->next;
-    if(c->serverClient)
-      delete c;
-    c=c2;
+    WiFiServerNode *s=servs;
+    while(s!=null)
+    {
+      if(vval == s->id)
+      {
+        delete s;
+        updateAutoAnswer();
+        return ZOK;
+      }
+      s=s->next;
+    }
+    return ZERROR;
   }
-  */
   WiFiServerNode::DestroyAllServers();
   return ZOK;
 }
@@ -333,12 +343,12 @@ void ZCommand::reSaveConfig()
   SPIFFS.remove(CONFIG_FILE);
   delay(500);
   const char *eoln = EOLN.c_str();
-  int dcdMode = pinModeCoder(dcdActive, dcdInactive, DEFAULT_DCD_HIGH);
-  int ctsMode = pinModeCoder(ctsActive, ctsInactive, DEFAULT_CTS_HIGH);
-  int rtsMode = pinModeCoder(rtsActive, rtsInactive, DEFAULT_RTS_HIGH);
-  int riMode = pinModeCoder(riActive, riInactive, DEFAULT_RTS_HIGH);
-  int dtrMode = pinModeCoder(dtrActive, dtrInactive, DEFAULT_DTR_HIGH);
-  int dsrMode = pinModeCoder(dsrActive, dsrInactive, DEFAULT_DSR_HIGH);
+  int dcdMode = pinModeCoder(dcdActive, dcdInactive, DEFAULT_DCD_ACTIVE);
+  int ctsMode = pinModeCoder(ctsActive, ctsInactive, DEFAULT_CTS_ACTIVE);
+  int rtsMode = pinModeCoder(rtsActive, rtsInactive, DEFAULT_RTS_ACTIVE);
+  int riMode = pinModeCoder(riActive, riInactive, DEFAULT_RTS_ACTIVE);
+  int dtrMode = pinModeCoder(dtrActive, dtrInactive, DEFAULT_DTR_ACTIVE);
+  int dsrMode = pinModeCoder(dsrActive, dsrInactive, DEFAULT_DSR_ACTIVE);
   String wifiSSIhex = TOHEX(wifiSSI.c_str(),hex,256);
   String wifiPWhex = TOHEX(wifiPW.c_str(),hex,256);
   String zclockFormathex = TOHEX(zclock.getFormat().c_str(),hex,256);
@@ -437,12 +447,12 @@ void ZCommand::setOptionsFromSavedConfig(String configArguments[])
     longResponses = atoi(configArguments[CFG_RESP_LONG].c_str());
   if(configArguments[CFG_PETSCIIMODE].length()>0)
     serial.setPetsciiMode(atoi(configArguments[CFG_PETSCIIMODE].c_str()));
-  pinModeDecoder(configArguments[CFG_DCDMODE],&dcdActive,&dcdInactive,DEFAULT_DCD_HIGH,DEFAULT_DCD_LOW);
-  pinModeDecoder(configArguments[CFG_CTSMODE],&ctsActive,&ctsInactive,DEFAULT_CTS_HIGH,DEFAULT_CTS_LOW);
-  pinModeDecoder(configArguments[CFG_RTSMODE],&rtsActive,&rtsInactive,DEFAULT_RTS_HIGH,DEFAULT_RTS_LOW);
-  pinModeDecoder(configArguments[CFG_RIMODE],&riActive,&riInactive,DEFAULT_RI_HIGH,DEFAULT_RI_LOW);
-  pinModeDecoder(configArguments[CFG_DTRMODE],&dtrActive,&dtrInactive,DEFAULT_DTR_HIGH,DEFAULT_DTR_LOW);
-  pinModeDecoder(configArguments[CFG_DSRMODE],&dsrActive,&dsrInactive,DEFAULT_DSR_HIGH,DEFAULT_DSR_LOW);
+  pinModeDecoder(configArguments[CFG_DCDMODE],&dcdActive,&dcdInactive,DEFAULT_DCD_ACTIVE,DEFAULT_DCD_INACTIVE);
+  pinModeDecoder(configArguments[CFG_CTSMODE],&ctsActive,&ctsInactive,DEFAULT_CTS_ACTIVE,DEFAULT_CTS_INACTIVE);
+  pinModeDecoder(configArguments[CFG_RTSMODE],&rtsActive,&rtsInactive,DEFAULT_RTS_ACTIVE,DEFAULT_RTS_INACTIVE);
+  pinModeDecoder(configArguments[CFG_RIMODE],&riActive,&riInactive,DEFAULT_RI_ACTIVE,DEFAULT_RI_INACTIVE);
+  pinModeDecoder(configArguments[CFG_DTRMODE],&dtrActive,&dtrInactive,DEFAULT_DTR_ACTIVE,DEFAULT_DTR_INACTIVE);
+  pinModeDecoder(configArguments[CFG_DSRMODE],&dsrActive,&dsrInactive,DEFAULT_DSR_ACTIVE,DEFAULT_DSR_INACTIVE);
   if(configArguments[CFG_DCDPIN].length()>0)
   {
     pinDCD = atoi(configArguments[CFG_DCDPIN].c_str());
@@ -596,9 +606,8 @@ void ZCommand::loadConfig()
     nextReconnectDelay = DEFAULT_RECONNECT_DELAY;
     debugPrintf("Done attempting to connect to %s\n",wifiSSI.c_str());
   }
-  debugPrintf("Reset start.\n");
+  debugPrintf("Resetting...\n");
   doResetCommand();
-  debugPrintf("Reset complete.  Init start\n");
   showInitMessage();
   debugPrintf("Init complete.\n");
 }
@@ -653,6 +662,8 @@ ZResult ZCommand::doInfoCommand(int vval, uint8_t *vbuf, int vlen, bool isNumber
       serial.prints("F4");
       break;
     }
+    if(busyMode)
+      serial.prints("H1");
     if(EOLN==CR)
       serial.prints("R0");
     else
@@ -734,28 +745,28 @@ ZResult ZCommand::doInfoCommand(int vval, uint8_t *vbuf, int vlen, bool isNumber
       serial.prints("S45=");
       serial.printi(binType);
     }
-    if((dcdActive != DEFAULT_DCD_HIGH)||(dcdInactive == DEFAULT_DCD_HIGH)||(showAll))
-      serial.printf("S46=%d",pinModeCoder(dcdActive,dcdInactive,DEFAULT_DCD_HIGH));
+    if((dcdActive != DEFAULT_DCD_ACTIVE)||(dcdInactive == DEFAULT_DCD_ACTIVE)||(showAll))
+      serial.printf("S46=%d",pinModeCoder(dcdActive,dcdInactive,DEFAULT_DCD_ACTIVE));
     if((pinDCD != DEFAULT_PIN_DCD)||(showAll))
       serial.printf("S47=%d",pinDCD);
-    if((ctsActive != DEFAULT_CTS_HIGH)||(ctsInactive == DEFAULT_CTS_HIGH)||(showAll))
-      serial.printf("S48=%d",pinModeCoder(ctsActive,ctsInactive,DEFAULT_CTS_HIGH));
+    if((ctsActive != DEFAULT_CTS_ACTIVE)||(ctsInactive == DEFAULT_CTS_ACTIVE)||(showAll))
+      serial.printf("S48=%d",pinModeCoder(ctsActive,ctsInactive,DEFAULT_CTS_ACTIVE));
     if((pinCTS != getDefaultCtsPin())||(showAll))
       serial.printf("S49=%d",pinCTS);
-    if((rtsActive != DEFAULT_RTS_HIGH)||(rtsInactive == DEFAULT_RTS_HIGH)||(showAll))
-      serial.printf("S50=%d",pinModeCoder(rtsActive,rtsInactive,DEFAULT_RTS_HIGH));
+    if((rtsActive != DEFAULT_RTS_ACTIVE)||(rtsInactive == DEFAULT_RTS_ACTIVE)||(showAll))
+      serial.printf("S50=%d",pinModeCoder(rtsActive,rtsInactive,DEFAULT_RTS_ACTIVE));
     if((pinRTS != DEFAULT_PIN_RTS)||(showAll))
       serial.printf("S51=%d",pinRTS);
-    if((riActive != DEFAULT_RI_HIGH)||(riInactive == DEFAULT_RI_HIGH)||(showAll))
-      serial.printf("S52=%d",pinModeCoder(riActive,riInactive,DEFAULT_RI_HIGH));
+    if((riActive != DEFAULT_RI_ACTIVE)||(riInactive == DEFAULT_RI_ACTIVE)||(showAll))
+      serial.printf("S52=%d",pinModeCoder(riActive,riInactive,DEFAULT_RI_ACTIVE));
     if((pinRI != DEFAULT_PIN_RI)||(showAll))
       serial.printf("S53=%d",pinRI);
-    if((dtrActive != DEFAULT_DTR_HIGH)||(dtrInactive == DEFAULT_DTR_HIGH)||(showAll))
-      serial.printf("S54=%d",pinModeCoder(dtrActive,dtrInactive,DEFAULT_DTR_HIGH));
+    if((dtrActive != DEFAULT_DTR_ACTIVE)||(dtrInactive == DEFAULT_DTR_ACTIVE)||(showAll))
+      serial.printf("S54=%d",pinModeCoder(dtrActive,dtrInactive,DEFAULT_DTR_ACTIVE));
     if((pinDTR != DEFAULT_PIN_DTR)||(showAll))
       serial.printf("S55=%d",pinDTR);
-    if((dsrActive != DEFAULT_DSR_HIGH)||(dsrInactive == DEFAULT_DSR_HIGH)||(showAll))
-      serial.printf("S56=%d",pinModeCoder(dsrActive,dsrInactive,DEFAULT_DSR_HIGH));
+    if((dsrActive != DEFAULT_DSR_ACTIVE)||(dsrInactive == DEFAULT_DSR_ACTIVE)||(showAll))
+      serial.printf("S56=%d",pinModeCoder(dsrActive,dsrInactive,DEFAULT_DSR_ACTIVE));
     if((pinDSR != DEFAULT_PIN_DSR)||(showAll))
       serial.printf("S57=%d",pinDSR);
     if(preserveListeners ||(showAll))
@@ -907,7 +918,7 @@ ZResult ZCommand::doBaudCommand(int vval, uint8_t *vbuf, int vlen)
   hwSerialFlush();
   if(baudChk != baudRate)
   {
-    if((baudChk<128)||(baudChk>115200))
+    if((baudChk<128)||(baudChk>230400))
       return ZERROR;
     baudRate = baudChk;
     changeBaudRate(baudRate);
@@ -1098,6 +1109,17 @@ ZResult ZCommand::doWebStream(int vval, uint8_t *vbuf, int vlen, bool isNumber, 
   char *req;
   int port;
   bool doSSL;
+#ifdef INCLUDE_FTP
+  FTPHost *ftpHost = 0;
+  if((strstr((char *)vbuf,"ftp:")==(char *)vbuf)
+  ||(strstr((char *)vbuf,"ftps:")==(char *)vbuf))
+  {
+    ftpHost = makeFTPHost(true,ftpHost,vbuf,&req);
+    if((req == 0)||(ftpHost==0))
+      return ZERROR;
+  }
+  else
+#endif
   if(!parseWebUrl(vbuf,&hostIp,&req,&port,&doSSL))
     return ZERROR;
 
@@ -1105,6 +1127,17 @@ ZResult ZCommand::doWebStream(int vval, uint8_t *vbuf, int vlen, bool isNumber, 
   {
     if(!SPIFFS.exists(filename))
     {
+#ifdef INCLUDE_FTP
+      if(ftpHost != 0)
+      {
+        if(!ftpHost->doGet(&SPIFFS,filename,req))
+        {
+          delete ftpHost;
+          return ZERROR;
+        }
+      }
+      else
+#endif
       if(!doWebGet(hostIp, port, &SPIFFS, filename, req, doSSL))
         return ZERROR;
     }
@@ -1114,7 +1147,18 @@ ZResult ZCommand::doWebStream(int vval, uint8_t *vbuf, int vlen, bool isNumber, 
   &&(machineQue.length()==0))
   {
     uint32_t respLength=0;
-    WiFiClient *c = doWebGetStream(hostIp, port, req, doSSL, &respLength); 
+    WiFiClient *c;
+    
+#ifdef INCLUDE_FTP
+    if(ftpHost != 0)
+    {
+      c=ftpHost->doGetStream(req, &respLength);
+      if(c==null)
+        delete ftpHost;
+    }
+    else
+#endif
+    c = doWebGetStream(hostIp, port, req, doSSL, &respLength); 
     if(c==null)
     {
       serial.prints(EOLN);
@@ -1123,14 +1167,36 @@ ZResult ZCommand::doWebStream(int vval, uint8_t *vbuf, int vlen, bool isNumber, 
     headerOut(0,1,respLength,0);
     serial.flush(); // stupid important because otherwise apps that go xoff miss the header info
     ZResult res = doWebDump(c,respLength,false);
-    c->stop();
-    delete c;
+#ifdef INCLUDE_FTP
+    if(ftpHost != 0)
+      delete ftpHost;
+    else
+#endif
+    {
+      c->stop();
+      delete c;
+    }
     serial.prints(EOLN);
     return res;
   }
   else
-  if(!doWebGet(hostIp, port, &SPIFFS, filename, req, doSSL))
-    return ZERROR;
+  {
+    if(SPIFFS.exists(filename))
+      SPIFFS.remove(filename);
+#ifdef INCLUDE_FTP
+    if(ftpHost != 0)
+    {
+      if(!ftpHost->doGet(&SPIFFS,filename,req))
+      {
+        delete ftpHost;
+        return ZERROR;
+      }
+    }
+    else
+#endif
+    if(!doWebGet(hostIp, port, &SPIFFS, filename, req, doSSL))
+      return ZERROR;
+  }
   return doWebDump(filename, cache);
 }
 
@@ -1302,7 +1368,11 @@ ZResult ZCommand::doUpdateFirmware(int vval, uint8_t *vbuf, int vlen, bool isNum
   int updaterPort = 80;
 #endif
 #ifdef ZIMODEM_ESP32
+# ifdef RS232_INVERTED
+  char *updaterPrefix = "/otherprojs/c64net2";
+# else
   char *updaterPrefix = "/otherprojs/guru2";
+# endif
 #else
   char *updaterPrefix = "/otherprojs/c64net";
 #endif
@@ -1397,7 +1467,7 @@ ZResult ZCommand::doUpdateFirmware(int vval, uint8_t *vbuf, int vlen, bool isNum
 ZResult ZCommand::doWiFiCommand(int vval, uint8_t *vbuf, int vlen, bool isNumber, const char *dmodifiers)
 {
   bool doPETSCII = (strchr(dmodifiers,'p')!=null) || (strchr(dmodifiers,'P')!=null);
-  if((vlen==0)||(vval>0))
+  if((vlen==0)||((isNumber && (vval>=0))))
   {
     int n = WiFi.scanNetworks();
     if((vval > 0)&&(vval < n))
@@ -1769,10 +1839,12 @@ ZResult ZCommand::doAnswerCommand(int vval, uint8_t *vbuf, int vlen, bool isNumb
             ringCounter = 0;
             streamMode.switchTo(c);
             checkOpenConnections();
+            busyMode=false;
             return ZIGNORE;
           }
           else
           {
+              busyMode=false;
               streamMode.switchTo(c);
               checkOpenConnections();
               return ZOK;
@@ -1781,6 +1853,7 @@ ZResult ZCommand::doAnswerCommand(int vval, uint8_t *vbuf, int vlen, bool isNumb
         }
         c=c->next;
       }
+      busyMode=false;
       return ZOK; // not really doing anything important...
   }
   else
@@ -1804,6 +1877,7 @@ ZResult ZCommand::doAnswerCommand(int vval, uint8_t *vbuf, int vlen, bool isNumb
     freeCharArray(&tempMaskOuts);
     freeCharArray(&tempStateMachine);
     updateAutoAnswer();
+    busyMode=false;
     return ZOK;
   }
 }
@@ -1820,6 +1894,7 @@ ZResult ZCommand::doHangupCommand(int vval, uint8_t *vbuf, int vlen, bool isNumb
     lastServerClientId=0;
     current = null;
     nextConn = null;
+    busyMode=false;
     return ZOK;
   }
   else
@@ -1832,6 +1907,12 @@ ZResult ZCommand::doHangupCommand(int vval, uint8_t *vbuf, int vlen, bool isNumb
         delete current;
         current = conns;
         nextConn = conns;
+        busyMode=false;
+        return ZOK;
+      }
+      if(busyMode)
+      {
+        busyMode=false;
         return ZOK;
       }
       return ZERROR;
@@ -1855,16 +1936,10 @@ ZResult ZCommand::doHangupCommand(int vval, uint8_t *vbuf, int vlen, bool isNumb
       }
       c=c->next;
     }
-    WiFiServerNode *s=servs;
-    while(s!=null)
+    if(vval == 1) // enter busy mode ATH1 in command mode...
     {
-      if(vval == s->id)
-      {
-        delete s;
-        updateAutoAnswer();
-        return ZOK;
-      }
-      s=s->next;
+      busyMode=true;
+      return ZOK;
     }
     return ZERROR;
   }
@@ -2252,11 +2327,8 @@ ZResult ZCommand::doSerialCommand()
         result = doResetCommand();
         break;
       case 'n':
-        if(isNumber && (vval == 0))
-        {
-          doNoListenCommand();
-          break;
-        }
+        doNoListenCommand(vval,vbuf,vlen,isNumber);
+        break;
       case 'a':
         result = doAnswerCommand(vval,vbuf,vlen,isNumber,dmodifiers.c_str());
         break;
@@ -2447,7 +2519,7 @@ ZResult ZCommand::doSerialCommand()
              case 46:
              {
                bool wasActive=(dcdStatus==dcdActive);
-               pinModeDecoder(sval,&dcdActive,&dcdInactive,DEFAULT_DCD_HIGH,DEFAULT_DCD_LOW);
+               pinModeDecoder(sval,&dcdActive,&dcdInactive,DEFAULT_DCD_ACTIVE,DEFAULT_DCD_INACTIVE);
                dcdStatus = wasActive?dcdActive:dcdInactive;
                result=ZOK;
                s_pinWrite(pinDCD,dcdStatus);
@@ -2465,7 +2537,7 @@ ZResult ZCommand::doSerialCommand()
                  result=ZERROR;
                break;
              case 48:
-               pinModeDecoder(sval,&ctsActive,&ctsInactive,DEFAULT_CTS_HIGH,DEFAULT_CTS_LOW);
+               pinModeDecoder(sval,&ctsActive,&ctsInactive,DEFAULT_CTS_ACTIVE,DEFAULT_CTS_INACTIVE);
                result=ZOK;
                break;
              case 49:
@@ -2480,7 +2552,7 @@ ZResult ZCommand::doSerialCommand()
                  result=ZERROR;
                break;
              case 50:
-               pinModeDecoder(sval,&rtsActive,&rtsInactive,DEFAULT_RTS_HIGH,DEFAULT_RTS_LOW);
+               pinModeDecoder(sval,&rtsActive,&rtsInactive,DEFAULT_RTS_ACTIVE,DEFAULT_RTS_INACTIVE);
                if(pinSupport[pinRTS])
                {
                  serial.setFlowControlType(serial.getFlowControlType());
@@ -2501,7 +2573,7 @@ ZResult ZCommand::doSerialCommand()
                  result=ZERROR;
                break;
              case 52:
-               pinModeDecoder(sval,&riActive,&riInactive,DEFAULT_RI_HIGH,DEFAULT_RI_LOW);
+               pinModeDecoder(sval,&riActive,&riInactive,DEFAULT_RI_ACTIVE,DEFAULT_RI_INACTIVE);
                if(pinSupport[pinRI])
                {
                  serial.setFlowControlType(serial.getFlowControlType());
@@ -2521,7 +2593,7 @@ ZResult ZCommand::doSerialCommand()
                  result=ZERROR;
                break;
              case 54:
-               pinModeDecoder(sval,&dtrActive,&dtrInactive,DEFAULT_DTR_HIGH,DEFAULT_DTR_LOW);
+               pinModeDecoder(sval,&dtrActive,&dtrInactive,DEFAULT_DTR_ACTIVE,DEFAULT_DTR_INACTIVE);
                result=ZOK;
                break;
              case 55:
@@ -2535,7 +2607,7 @@ ZResult ZCommand::doSerialCommand()
                  result=ZERROR;
                break;
              case 56:
-               pinModeDecoder(sval,&dsrActive,&dsrInactive,DEFAULT_DSR_HIGH,DEFAULT_DSR_LOW);
+               pinModeDecoder(sval,&dsrActive,&dsrInactive,DEFAULT_DSR_ACTIVE,DEFAULT_DSR_INACTIVE);
                s_pinWrite(pinDSR,dsrActive);
                result=ZOK;
                break;
@@ -2587,7 +2659,8 @@ ZResult ZCommand::doSerialCommand()
         }
 #ifdef INCLUDE_SD_SHELL
         else
-        if((strstr((const char *)vbuf,"shell")==(char *)vbuf)&&(browseEnabled))
+        if((strstr((const char *)vbuf,"shell")==(char *)vbuf)
+        &&(SD.cardType() != CARD_NONE))
         {
             char *colon=strchr((const char*)vbuf,':');
             result = ZOK;
@@ -3191,9 +3264,9 @@ void ZCommand::showInitMessage()
   serial.prints(s);
   serial.prints(commandMode.EOLN);
 #ifdef ZIMODEM_ESP32
-  sprintf(s,"totsize=%dk hsize=%dk fsize=%dk speed=%dm",(ESP.getFlashChipSize()/1024),(ESP.getFreeHeap()/1024),totalSPIFFSSize/1024,(ESP.getFlashChipSpeed()/1000000));
+  sprintf(s,"tot=%dk heap=%dk fsize=%dk",(ESP.getFlashChipSize()/1024),(ESP.getFreeHeap()/1024),totalSPIFFSSize/1024);
 #else
-  sprintf(s,"totsize=%dk ssize=%dk fsize=%dk speed=%dm",(ESP.getFlashChipRealSize()/1024),(ESP.getSketchSize()/1024),totalSPIFFSSize/1024,(ESP.getFlashChipSpeed()/1000000));
+  sprintf(s,"tot=%dk heap=%dk fsize=%dk",(ESP.getFlashChipRealSize()/1024),(ESP.getSketchSize()/1024),totalSPIFFSSize/1024);
 #endif
   
   serial.prints(s);
@@ -3475,7 +3548,8 @@ void ZCommand::sendNextPacket()
     nextConn = nextConn->next;
   while(serial.isSerialOut() && (nextConn != null) && (packetXOn))
   {
-    if(nextConn->available()>0)
+    if((nextConn->available()>0)
+    &&(nextConn->isAnswered())) // being unanswered is a server thing that must be respected
     //&& (nextConn->isConnected())) // being connected is not required to have buffered bytes waiting!
     {
       int availableBytes = nextConn->available();
@@ -3671,7 +3745,7 @@ void ZCommand::sendConnectionNotice(int id)
   serial.prints(EOLN);
 }
 
-void ZCommand::acceptNewConnection()
+bool ZCommand::acceptNewConnection()
 {
   WiFiServerNode *serv = servs;
   while(serv != null)
@@ -3681,6 +3755,15 @@ void ZCommand::acceptNewConnection()
       WiFiClient newClient = serv->server->available();
       if(newClient.connected())
       {
+        if(busyMode)
+        {
+            newClient.write((uint8_t *)busyMsg.c_str(), busyMsg.length());
+            newClient.flush();
+            delay(100); // yes, i know, but seriously....
+            newClient.stop();
+            serv=serv->next;
+            continue;
+        }
         int port=newClient.localPort();
         String remoteIPStr = newClient.remoteIP().toString();
         const char *remoteIP=remoteIPStr.c_str();
@@ -3698,15 +3781,18 @@ void ZCommand::acceptNewConnection()
         {
           //BZ:newClient.setNoDelay(true);
           int futureRings = (ringCounter > 0)?(ringCounter-1):5;
-          WiFiClientNode *newClientNode = new WiFiClientNode(newClient, serv->flagsBitmap, (futureRings+1) * 2);
+          WiFiClientNode *newClientNode = new WiFiClientNode(newClient, serv->flagsBitmap, futureRings>0?(futureRings+1) * 2:0);
           setCharArray(&(newClientNode->delimiters),serv->delimiters);
           setCharArray(&(newClientNode->maskOuts),serv->maskOuts);
           setCharArray(&(newClientNode->stateMachine),serv->stateMachine);
           newClientNode->machineState = newClientNode->stateMachine;
           s_pinWrite(pinRI,riActive);
-          preEOLN(EOLN);
-          serial.prints(numericResponses?"2":"RING");
-          serial.prints(EOLN);
+          if(futureRings>0)
+          {
+            preEOLN(EOLN);
+            serial.prints(numericResponses?"2":"RING");
+            serial.prints(EOLN);
+          }
           lastServerClientId = newClientNode->id;
           if(newClientNode->isAnswered())
           {
@@ -3769,8 +3855,21 @@ void ZCommand::acceptNewConnection()
     }
     conn = nextConn;
   }
+  return currMode != this;
 }
 
+void ZCommand::checkPulseDial()
+{
+  if(pinSupport[pinOTH])
+  {
+    if(digitalRead(pinOTH) != lastPulseState)
+    {
+      lastPulseState = !lastPulseState;
+      debugPrintf("\n\rPULSE=%d\n\r",lastPulseState);
+      lastPulseTimeMs = millis();
+    }
+  }
+}
 void ZCommand::serialIncoming()
 {
   bool crReceived=readSerialStream();
@@ -3785,12 +3884,16 @@ void ZCommand::serialIncoming()
 void ZCommand::loop()
 {
   checkPlusEscape();
-  acceptNewConnection();
+  if(acceptNewConnection())
+  {
+      checkBaudChange();
+      return;
+  }
   if(serial.isSerialOut())
   {
     sendNextPacket();
     serialOutDeque();
   }
+  checkPulseDial();
   checkBaudChange();
 }
-

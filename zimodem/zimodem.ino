@@ -14,7 +14,7 @@
    limitations under the License. 
 */
 //#define TCP_SND_BUF                     4 * TCP_MSS
-#define ZIMODEM_VERSION "4.0.0"
+#define ZIMODEM_VERSION "4.0.1"
 const char compile_date[] = __DATE__ " " __TIME__;
 #define DEFAULT_NO_DELAY true
 #define null 0
@@ -62,9 +62,11 @@ const char compile_date[] = __DATE__ " " __TIME__;
 # define PIN_FACTORY_RESET GPIO_NUM_0
 # define DEFAULT_PIN_DCD GPIO_NUM_14
 # define DEFAULT_PIN_CTS GPIO_NUM_13
-# define DEFAULT_PIN_RTS GPIO_NUM_15 // unused
+# define DEFAULT_PIN_RTS GPIO_NUM_15 // unused?
 # define DEFAULT_PIN_RI GPIO_NUM_32
 # define DEFAULT_PIN_DSR GPIO_NUM_12
+# define DEFAULT_PIN_SND GPIO_NUM_25
+# define DEFAULT_PIN_OTH GPIO_NUM_4 // pulse pin
 # define DEFAULT_PIN_DTR GPIO_NUM_27
 # define debugPrintf Serial.printf
 # define INCLUDE_SD_SHELL true
@@ -83,13 +85,16 @@ const char compile_date[] = __DATE__ " " __TIME__;
 # define UART_NB_STOP_BIT_1    0B00010000
 # define UART_NB_STOP_BIT_15   0B00100000
 # define UART_NB_STOP_BIT_2    0B00110000
-# define preEOLN serial.prints
-# define echoEOLN serial.write
+# define preEOLN(...)
+//# define preEOLN serial.prints
+# define echoEOLN(...) serial.prints(EOLN)
+//# define echoEOLN serial.write
 //# define HARD_DCD_HIGH 1
 //# define HARD_DCD_LOW 1
 # define INCLUDE_HOSTCM true // safe to remove if you need space
 # define INCLUDE_PING true
 # define INCLUDE_SSH true
+# define INCLUDE_FTP true
 #else  // ESP-8266, e.g. ESP-01, ESP-12E, inverted for C64Net WiFi Modem
 # define DEFAULT_PIN_DSR 13
 # define DEFAULT_PIN_DTR 12
@@ -97,47 +102,48 @@ const char compile_date[] = __DATE__ " " __TIME__;
 # define DEFAULT_PIN_RTS 4
 # define DEFAULT_PIN_CTS 5 // is 0 for ESP-01, see getDefaultCtsPin() below.
 # define DEFAULT_PIN_DCD 2
+# define DEFAULT_PIN_OTH 99 // pulse pin
 # define DEFAULT_FCT FCT_DISABLED
 # define RS232_INVERTED 1
 # define debugPrintf doNothing
 # define preEOLN(...)
 # define echoEOLN(...) serial.prints(EOLN)
 #endif
-#define INCLUDE_SLIP true
+//#define INCLUDE_SLIP false
 
 #ifdef RS232_INVERTED
-# define DEFAULT_DCD_HIGH  HIGH
-# define DEFAULT_DCD_LOW  LOW
-# define DEFAULT_CTS_HIGH  HIGH
-# define DEFAULT_CTS_LOW  LOW
-# define DEFAULT_RTS_HIGH  HIGH
-# define DEFAULT_RTS_LOW  LOW
-# define DEFAULT_RI_HIGH  HIGH
-# define DEFAULT_RI_LOW  LOW
-# define DEFAULT_DSR_HIGH  HIGH
-# define DEFAULT_DSR_LOW  LOW
-# define DEFAULT_DTR_HIGH  HIGH
-# define DEFAULT_DTR_LOW  LOW
+# define DEFAULT_DCD_ACTIVE  HIGH
+# define DEFAULT_DCD_INACTIVE  LOW
+# define DEFAULT_CTS_ACTIVE  HIGH
+# define DEFAULT_CTS_INACTIVE  LOW
+# define DEFAULT_RTS_ACTIVE  HIGH
+# define DEFAULT_RTS_INACTIVE  LOW
+# define DEFAULT_RI_ACTIVE  HIGH
+# define DEFAULT_RI_INACTIVE  LOW
+# define DEFAULT_DSR_ACTIVE  HIGH
+# define DEFAULT_DSR_INACTIVE  LOW
+# define DEFAULT_DTR_ACTIVE  HIGH
+# define DEFAULT_DTR_INACTIVE  LOW
 #else
-# define DEFAULT_DCD_HIGH  LOW
-# define DEFAULT_DCD_LOW  HIGH
-# define DEFAULT_CTS_HIGH  LOW
-# define DEFAULT_CTS_LOW  HIGH
-# define DEFAULT_RTS_HIGH  LOW
-# define DEFAULT_RTS_LOW  HIGH
-# define DEFAULT_RI_HIGH  LOW
-# define DEFAULT_RI_LOW  HIGH
-# define DEFAULT_DSR_HIGH  LOW
-# define DEFAULT_DSR_LOW  HIGH
-# define DEFAULT_DTR_HIGH  LOW
-# define DEFAULT_DTR_LOW  HIGH
+# define DEFAULT_DCD_ACTIVE  LOW
+# define DEFAULT_DCD_INACTIVE  HIGH
+# define DEFAULT_CTS_ACTIVE  LOW
+# define DEFAULT_CTS_INACTIVE  HIGH
+# define DEFAULT_RTS_ACTIVE  LOW
+# define DEFAULT_RTS_INACTIVE  HIGH
+# define DEFAULT_RI_ACTIVE  LOW
+# define DEFAULT_RI_INACTIVE  HIGH
+# define DEFAULT_DSR_ACTIVE  LOW
+# define DEFAULT_DSR_INACTIVE  HIGH
+# define DEFAULT_DTR_ACTIVE  LOW
+# define DEFAULT_DTR_INACTIVE  HIGH
 #endif
 
 #define DEFAULT_BAUD_RATE 1200
 #define DEFAULT_SERIAL_CONFIG SERIAL_8N1
 #define MAX_PIN_NO 50
 #define INTERNAL_FLOW_CONTROL_DIV 380
-#define DEFAULT_RECONNECT_DELAY 5000
+#define DEFAULT_RECONNECT_DELAY 60000
 #define MAX_RECONNECT_DELAY 1800000
 
 class ZMode
@@ -183,7 +189,6 @@ static WiFiClientNode *conns = null;
 static WiFiServerNode *servs = null;
 static PhoneBookEntry *phonebook = null;
 static bool pinSupport[MAX_PIN_NO];
-static bool browseEnabled = false;
 static String termType = DEFAULT_TERMTYPE;
 static String busyMsg = DEFAULT_BUSYMSG;
 
@@ -230,25 +235,26 @@ static int dequeSize=1+(DEFAULT_BAUD_RATE/INTERNAL_FLOW_CONTROL_DIV);
 static BaudState baudState = BS_NORMAL; 
 static unsigned long resetPushTimer=0;
 static int tempBaud = -1; // -1 do nothing
-static int dcdStatus = DEFAULT_DCD_LOW;
+static int dcdStatus = DEFAULT_DCD_INACTIVE;
 static int pinDCD = DEFAULT_PIN_DCD;
 static int pinCTS = DEFAULT_PIN_CTS;
 static int pinRTS = DEFAULT_PIN_RTS;
 static int pinDSR = DEFAULT_PIN_DSR;
 static int pinDTR = DEFAULT_PIN_DTR;
+static int pinOTH = DEFAULT_PIN_OTH;
 static int pinRI = DEFAULT_PIN_RI;
-static int dcdActive = DEFAULT_DCD_HIGH;
-static int dcdInactive = DEFAULT_DCD_LOW;
-static int ctsActive = DEFAULT_CTS_HIGH;
-static int ctsInactive = DEFAULT_CTS_LOW;
-static int rtsActive = DEFAULT_RTS_HIGH;
-static int rtsInactive = DEFAULT_RTS_LOW;
-static int riActive = DEFAULT_RI_HIGH;
-static int riInactive = DEFAULT_RI_LOW;
-static int dtrActive = DEFAULT_DTR_HIGH;
-static int dtrInactive = DEFAULT_DTR_LOW;
-static int dsrActive = DEFAULT_DSR_HIGH;
-static int dsrInactive = DEFAULT_DSR_LOW;
+static int dcdActive = DEFAULT_DCD_ACTIVE;
+static int dcdInactive = DEFAULT_DCD_INACTIVE;
+static int ctsActive = DEFAULT_CTS_ACTIVE;
+static int ctsInactive = DEFAULT_CTS_INACTIVE;
+static int rtsActive = DEFAULT_RTS_ACTIVE;
+static int rtsInactive = DEFAULT_RTS_INACTIVE;
+static int riActive = DEFAULT_RI_ACTIVE;
+static int riInactive = DEFAULT_RI_INACTIVE;
+static int dtrActive = DEFAULT_DTR_ACTIVE;
+static int dtrInactive = DEFAULT_DTR_INACTIVE;
+static int dsrActive = DEFAULT_DSR_ACTIVE;
+static int dsrInactive = DEFAULT_DSR_INACTIVE;
 
 static int getDefaultCtsPin()
 {
@@ -330,7 +336,7 @@ static bool connectWifi(const char* ssid, const char* password, IPAddress *ip, I
     amConnected = (WiFi.status() == WL_CONNECTED) && (strcmp(WiFi.localIP().toString().c_str(), "0.0.0.0")!=0);
   }
   lastConnectAttempt = millis();
-  if(lastConnectAttempt == 0)
+  if(lastConnectAttempt == 0)  // it IS possible for millis() to be 0, but we need to ignore it.
     lastConnectAttempt = 1; // 0 is a special case, so skip it
 
   if(!amConnected)
@@ -432,15 +438,14 @@ void setup()
 #ifdef ZIMODEM_ESP32
   Serial.begin(115200); //the debug port
   Serial.setDebugOutput(true);
-  debugPrintf("Debug port open and ready.\n");
+  pinSupport[4]=true;
+  pinSupport[5]=true;
   for(int i=12;i<=23;i++)
     pinSupport[i]=true;
   for(int i=25;i<=27;i++)
     pinSupport[i]=true;
   for(int i=32;i<=33;i++)
     pinSupport[i]=true;
-  pinSupport[36]=true;
-  pinSupport[39]=true;
 #else
   pinSupport[0]=true;
   pinSupport[2]=true;
@@ -453,6 +458,7 @@ void setup()
     pinSupport[11]=false;
   }
 #endif    
+  debugPrintf("Zimodem %s firmware starting initialization\n",ZIMODEM_VERSION);
   initSDShell();
   currMode = &commandMode;
   if(!SPIFFS.begin())

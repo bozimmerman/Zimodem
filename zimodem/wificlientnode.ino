@@ -101,7 +101,7 @@ WiFiClientNode::WiFiClientNode(WiFiClient newClient, int flagsBitmap, int ringDe
 {
   constructNode();
   this->flagsBitmap = flagsBitmap;
-  clientPtr=null;
+  clientPtr=null; // why is this so important?!
   newClient.setNoDelay(DEFAULT_NO_DELAY);
   port=newClient.localPort();
   String remoteIPStr = newClient.remoteIP().toString();
@@ -162,7 +162,14 @@ WiFiClientNode::~WiFiClientNode()
 
 bool WiFiClientNode::isConnected()
 {
-  return (host != null) && (clientPtr != null) && clientPtr->connected();
+  if(host != null)
+  {
+    if(clientPtr != null)
+      return clientPtr->connected();
+    else
+      return client.connected();
+  }
+  return false;
 }
 
 bool WiFiClientNode::isPETSCII()
@@ -257,8 +264,17 @@ int WiFiClientNode::peek()
 
 void WiFiClientNode::flush()
 {
-  if((host != null)&&(clientPtr != null) && (clientPtr->available()==0))
-    flushAlways();
+  if(host != null)
+  {
+    if(clientPtr != null)
+    {
+      if(clientPtr->available()==0)
+        flushAlways();
+    }
+    else
+    if(client.available()==0)
+      flushAlways();
+  }
 }
 
 void WiFiClientNode::flushAlways()

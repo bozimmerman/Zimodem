@@ -113,6 +113,7 @@ class ZCommand : public ZMode
 
     ZSerial serial;
     bool packetXOn = true;
+    bool busyMode = false;
     BinType binType = BTYPE_NORMAL;
     uint8_t nbuf[MAX_COMMAND_SIZE];
     char hbuf[MAX_COMMAND_SIZE];
@@ -120,7 +121,7 @@ class ZCommand : public ZMode
     int lastServerClientId = 0;
     WiFiClientNode *current = null;
     bool autoStreamMode=false;
-    bool telnetSupport=true;
+    bool telnetSupport=false;
     bool preserveListeners=false;
     unsigned long lastNonPlusTimeMs = 0;
     unsigned long currentExpiresTimeMs = 0;
@@ -135,6 +136,9 @@ class ZCommand : public ZMode
     String previousCommand = "";
     WiFiClientNode *nextConn=null;
     int lastPacketId = -1;
+    unsigned long lastPulseTimeMs = 0;
+    bool lastPulseState = false;
+    String pulseBuf = "";
 
     byte CRC8(const byte *data, byte len);
 
@@ -149,19 +153,20 @@ class ZCommand : public ZMode
     void setOptionsFromSavedConfig(String configArguments[]);
     void reSaveConfig();
     void reSendLastPacket(WiFiClientNode *conn, uint8_t which);
-    void acceptNewConnection();
+    bool acceptNewConnection();
     void headerOut(const int channel, const int num, const int sz, const int crc8);
     void sendConnectionNotice(int nodeId);
     void sendNextPacket();
     void connectionArgs(WiFiClientNode *c);
     void updateAutoAnswer();
+    void checkPulseDial();
     uint8_t *doStateMachine(uint8_t *buf, uint16_t *bufLen, char **machineState, String *machineQue, char *stateMachine);
     uint8_t *doMaskOuts(uint8_t *buf, uint16_t *bufLen, char *maskOuts);
     ZResult doWebDump(Stream *in, int len, const bool cacheFlag);
     ZResult doWebDump(const char *filename, const bool cache);
 
     ZResult doResetCommand();
-    ZResult doNoListenCommand();
+    ZResult doNoListenCommand(int vval, uint8_t *vbuf, int vlen, bool isNumber);
     ZResult doBaudCommand(int vval, uint8_t *vbuf, int vlen);
     ZResult doTransmitCommand(int vval, uint8_t *vbuf, int vlen, bool isNumber, const char *dmodifiers, int *crc8);
     ZResult doLastPacket(int vval, uint8_t *vbuf, int vlen, bool isNumber);

@@ -59,6 +59,8 @@
  *
  */
 
+#ifdef INCLUDE_SLIP
+
 #include "slipif.h"
 #include "lwip/opt.h"
 
@@ -567,3 +569,4 @@ slipif_received_bytes(struct netif *netif, u8_t *data, u8_t len)
   }
 }
 #endif /* SLIP_RX_FROM_ISR */
+#endif /* include slip */

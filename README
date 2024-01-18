@@ -32,7 +32,7 @@ AT+SHELL: ESP32 Modem users with SD-cards can enter AT+SHELL to get a shell comm
 
 AT+PING: To check if your wifi is connected and DNS resolution is working, try AT+PING"google.com".  An OK means a response was received.
 
-Telnet Dialing: If you want to connect to a remote telnet server, eg coffeemud.net, port 23, you'll want to enter ATDT"coffeemud.net:23".  Don't forget to set your terminal program to the proper translation mode (ANSI, ASCII, or whatever). 
+Telnet Dialing: If you want to connect to a remote telnet server, eg coffeemud.net, port 23, you'll want to enter AT&S62=1DT"coffeemud.net:23".  Don't forget to set your terminal program to the proper translation mode (ANSI, ASCII, or whatever). 
 
 Non-Telnet Dialing: If you are using a Commodore Graphics terminal program and want to connect to a Commodore BBS, or a standard ASCII terminal program for a non-Commodore BBS, you'll want to enter e.g. ATD"cottonwoodbbs.dyndns.org:6502".
 
@@ -71,7 +71,7 @@ ATAEn : Adding a E modifier causes connection terminal echo to be enabled when t
 ATAXn : Adding a X modifier causes connection XON/XOFF flow control to be enabled  when the changed to Stream mode.
 
 ATN0 : Shuts down all listeners, leaving client connections open
-ATNn : if n > 0 then same as ATAn
+ATNn : if n > 0 then closes a Server (ATA) listener with the given id; does not close any connections received from that listener.
 
 ATE0 : Turns serial terminal echo off for command mode.
 ATE1 : Turns serial terminal echo on for command mode.
@@ -109,7 +109,7 @@ ATD : Start a streaming connection between the current opened connection.  Use "
 ATDn : Where n > 0, this will start a streaming connection between the previously opened connection with an id the same as n.  Use "+++" to exit back to Command mode.
 ATD"[HOSTNAME]:[PORT]" : This opens a streaming connection between the terminal and the given host/port. Use "+++" to disconnect and exit back to command mode.
 ATDP"[HOSTNAME]:[PORT]" : Adding a P modifier causes connection input to be translated to PETSCII during the streaming session.
-ATDT"[HOSTNAME]:[PORT]" : Adding a T modifier causes connection input to be translated per TELNET during the streaming session.
+ATDT"[HOSTNAME]:[PORT]" : Adding a T modifier allows connection input to be translated per TELNET during the streaming session (see S62).
 ATDE"[HOSTNAME]:[PORT]" : Adding a E modifier causes terminal echo to be enabled that streaming session.
 ATDX"[HOSTNAME]:[PORT]" : Adding a X modifier causes XON/XOFF flow control to be enabled that streaming session.
 ATDS"[NAME]:[PASS]@[HOSTNAME]:[PORT]" : Adding a S modifier, along with username and password, causes an SSH shell connection to be made.
@@ -126,7 +126,8 @@ ATCX"[HOSTNAME]:[PORT]" : Adding a X modifier causes XON/XOFF flow control to be
 
 ATH  : Hangs up (disconnects and deletes) all open connections.  Does not close Server listeners.
 ATH0 : Hangs up (disconnects and deletes) the current opened connection.
-ATHn : Hangs up (disconnects and deletes) the open connection with the given id.  Closing a Server (ATA) listener does not close any connections received from that listener.
+ATH1 : If no client connection with id 1 is open, this will put server listeners into 'busy' mode.
+ATHn : Hangs up (disconnects and deletes) the open client connection with the given id.
 
 ATO : Re-enters a Streaming session (see ATD) under the previous settings, with the current (previous) connection.
 
@@ -157,15 +158,15 @@ ATS48=n : Changes CTS status. n=0 is default CTS=HIGH=active. n=1 is CTS=LOW=act
 ATS49=n : Changes CTS pin number, n=0 is default on ESP01, and default is 5 otherwise
 ATS50=n : Changes RTS status. n=0 is default RTS=HIGH=active. n=1 is RTS=LOW=active. n=2 always HIGH. n=3 always LOW. (N/A on ESP01)
 ATS51=n : Changes RTS pin number, n=4 is default (N/A on ESP01)
-ATS52=n : Changes RI status. n=0 is default RI=HIGH=active. n=1 is RTS=LOW=active. n=2 always HIGH. n=3 always LOW. (N/A on ESP01)
+ATS52=n : Changes RI status. n=0 is default RI=HIGH=active. n=1 is RI=LOW=active. n=2 always HIGH. n=3 always LOW. (N/A on ESP01)
 ATS53=n : Changes RI pin number, n=14 is default (N/A on ESP01)
-ATS54=n : Changes DTR status. n=0 is default DTR=HIGH=active. n=1 is RTS=LOW=active. n=2 always HIGH. n=3 always LOW. (N/A on ESP01)
+ATS54=n : Changes DTR status. n=0 is default DTR=HIGH=active. n=1 is DTR=LOW=active. n=2 always HIGH. n=3 always LOW. (N/A on ESP01)
 ATS55=n : Changes DTR pin number, n=12 is default (N/A on ESP01)
-ATS56=n : Changes DSR status. n=0 is default DSR=HIGH=active. n=1 is RTS=LOW=active. n=2 always HIGH. n=3 always LOW. (N/A on ESP01)
+ATS56=n : Changes DSR status. n=0 is default DSR=HIGH=active. n=1 is DSR=LOW=active. n=2 always HIGH. n=3 always LOW. (N/A on ESP01)
 ATS57=n : Changes DSR pin number, n=13 is default (N/A on ESP01)
 ATS60=n : When n > 0, immediately saves existing listeners and automatically restores them later. n=0 to clear.
 ATS61=n : When n > 0, sets the number of seconds to timeout a print job stream (AT+PRINT). Default is 5 seconds
-ATS62=n : When n > 0, enables/disables telnet support in the ATD (Dial) command. Default is 1 (enabled).
+ATS62=n : When n > 0, enables/disables telnet support in the ATD (Dial) command. Default is 0 (disabled).
 
 +++ : With a 1 second pause with no other characters afterwards, this will disconnect the current opened connection.
 
@@ -199,7 +200,7 @@ AT&S"41=[TERMTYPE]" : Change the telnet 'termtype' response string
 AT&S"42=[BUSYMSG]" : Change the stream connection 'busy message'
 
 AT&T"[TIMEZONE],[TIME FORMAT],[NTP URL]" : set up the NTP clock. DISABLE to disable. Format is like Java SimpleDateFormat, but with % escapes. Each argument is optional.
-AT&G"[HOSTNAME]:[PORT]/[FILENAME]" : Streams a file from an HTTP source on the internet.  The header contains channel 0, file length, and an 8-bit sum of all the bytes in the forthcoming file, followed by the bytes of the file, all formatted as a normal packet.  An ASCII 3 (CNTRL-C) received during the transfer will abort. The S44 register can be used to create artificial delays in this output.  XON/XOFF Flow control also remains in effect with, on a byte-by-byte basis for the auto and manual flow control systems. Requires flash space for caching, or S45=3 to eliminate the SUM header.
+AT&G"[HOSTNAME]:[PORT]/[FILENAME]" : Streams a file from an HTTP/FTP source on the internet.  The header contains channel 0, file length, and an 8-bit sum of all the bytes in the forthcoming file, followed by the bytes of the file, all formatted as a normal packet.  An ASCII 3 (CNTRL-C) received during the transfer will abort. The S44 register can be used to create artificial delays in this output.  XON/XOFF Flow control also remains in effect with, on a byte-by-byte basis for the auto and manual flow control systems. Requires flash space for caching, or S45=3 to eliminate the SUM header.
 AT&Y  : Resets the state machine string. No state machine will be executed.
 AT&Yn : Change the current state (for command mode AND current connection) to state n, where n is a decimal number.
 AT&Y"[CODED STATE MACHINE]" : Adds the coded format string to a state machine.  If this command is followed by a C, N, or A command on the SAME LINE, then the setting will apply ONLY to that connection or listener.   State Machine Format: MMcCCNN ...  States are numbered by their order in the list starting with 00.  Non-matches automatically go to the next state until a match is made.   'MM' is hex byte to match (or 00 to match all).  'c' is one of these commands :e=eat byte, p=push byte to que, d=send byte, q=send all queued, x=flush queue, r=replace with byte represented by hex CC.  'C' is either '-', one of the command letters above, or a hex byte value if the first command was 'r'.  'NN' is the next state to go to, with 00 being the first state.

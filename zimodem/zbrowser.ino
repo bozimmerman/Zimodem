@@ -20,18 +20,18 @@ static void initSDShell()
 {
   if(SD.begin())
   {
-    if(SD.cardType() != CARD_NONE)
-      browseEnabled = true;
   }
 }
 
 ZBrowser::~ZBrowser()
 {
+#ifdef INCLUDE_FTP
   if(ftpHost != 0)
   {
     delete ftpHost;
     ftpHost = 0;
   }
+#endif
 }
 
 void ZBrowser::switchTo()
@@ -299,10 +299,6 @@ String ZBrowser::stripArgs(String line, String &argLetters)
 
 void ZBrowser::copyFiles(String source, String mask, String target, bool recurse, bool overwrite)
 {
-  int maskFilterLen = source.length();
-  if(!source.endsWith("/"))
-    maskFilterLen++;
-
   File root = SD.open(source);
   if(!root)
   {
@@ -328,7 +324,7 @@ void ZBrowser::copyFiles(String source, String mask, String target, bool recurse
     }
     for(File file = root.openNextFile(); file != null; file = root.openNextFile())
     {
-      if(matches(file.name()+maskFilterLen, mask))
+      if(matches(file.name(), mask))
       {
         debugPrintf("file matched:%s\n",file.name());
         String tpath = target;
@@ -340,10 +336,10 @@ void ZBrowser::copyFiles(String source, String mask, String target, bool recurse
           {
             if(!tpath.endsWith("/"))
               tpath += "/";
-            tpath += stripFilename(file.name());
+            tpath += file.name();
           }
         }
-        copyFiles(file.name(),"",tpath,false,overwrite);
+        copyFiles(source + "/" + file.name(),"",tpath,false,overwrite);
       }
     }
   }
@@ -357,7 +353,7 @@ void ZBrowser::copyFiles(String source, String mask, String target, bool recurse
       {
         if(!tpath.endsWith("/"))
           tpath += "/";
-        tpath += stripFilename(root.name());
+        tpath += root.name();
         debugPrintf("file xform to file in dir:%s\n",tpath.c_str());
       }
       DD.close();
@@ -397,10 +393,6 @@ void ZBrowser::copyFiles(String source, String mask, String target, bool recurse
 
 void ZBrowser::makeFileList(String ***l, int *n, String p, String mask, bool recurse)
 {
-  int maskFilterLen = p.length();
-  if(!p.endsWith("/"))
-    maskFilterLen++;
-
   File root = SD.open(p);
   if(!root)
     serial.printf("Unknown path: %s%s",p.c_str(),EOLNC);
@@ -410,7 +402,7 @@ void ZBrowser::makeFileList(String ***l, int *n, String p, String mask, bool rec
     File file = root.openNextFile();
     while(file)
     {
-      if(matches(file.name()+maskFilterLen, mask))
+      if(matches(file.name(), mask))
       {
         String fileName = file.name();
         if(file.isDirectory())
@@ -418,7 +410,7 @@ void ZBrowser::makeFileList(String ***l, int *n, String p, String mask, bool rec
           if(recurse)
           {
             file = root.openNextFile();
-            makeFileList(l,n,fileName.c_str(),"*",recurse);
+            makeFileList(l,n,p + "/" + fileName.c_str(),"*",recurse);
           } 
         }
         else
@@ -437,15 +429,10 @@ void ZBrowser::makeFileList(String ***l, int *n, String p, String mask, bool rec
         file = root.openNextFile();
     }
   }
-
 }
 
 void ZBrowser::deleteFile(String p, String mask, bool recurse)
 {
-  int maskFilterLen = p.length();
-  if(!p.endsWith("/"))
-    maskFilterLen++;
-
   File root = SD.open(p);
   if(!root)
     serial.printf("Unknown path: %s%s",p.c_str(),EOLNC);
@@ -455,29 +442,30 @@ void ZBrowser::deleteFile(String p, String mask, bool recurse)
     File file = root.openNextFile();
     while(file)
     {
-      if(matches(file.name()+maskFilterLen, mask))
+      if(matches(file.name(), mask))
       {
         String fileName = file.name();
+        String delFile = p + "/" + fileName;
         if(file.isDirectory())
         {
           if(recurse)
           {
             file = root.openNextFile();
-            deleteFile(fileName.c_str(),"*",recurse);
-            if(!SD.rmdir(fileName.c_str()))
-              serial.printf("Unable to delete: %s%s",fileName.c_str()+maskFilterLen,EOLNC);
+            deleteFile(delFile,"*",recurse);
+            if(!SD.rmdir(delFile))
+              serial.printf("Unable to delete: %s%s",delFile.c_str(),EOLNC);
           } 
           else
           {
-            serial.printf("Skipping: %s%s",file.name()+maskFilterLen,EOLNC);
+            serial.printf("Skipping: %s%s",delFile.c_str(),EOLNC);
             file = root.openNextFile();
           }
         }
         else
         {
           file = root.openNextFile();
-          if(!SD.remove(fileName))
-            serial.printf("Unable to delete: %s%s",file.name()+maskFilterLen,EOLNC);
+          if(!SD.remove(delFile))
+            serial.printf("Unable to delete: %s%s",delFile.c_str(),EOLNC);
         }
       }
       else
@@ -516,10 +504,6 @@ bool ZBrowser::matches(String fname, String mask)
 
 void ZBrowser::showDirectory(String p, String mask, String prefix, bool recurse)
 {
-  int maskFilterLen = p.length();
-  if(!p.endsWith("/"))
-    maskFilterLen++;
-
   File root = SD.open(p);
   if(!root)
     serial.printf("Unknown path: %s%s",p.c_str(),EOLNC);
@@ -529,20 +513,20 @@ void ZBrowser::showDirectory(String p, String mask, String prefix, bool recurse)
     File file = root.openNextFile();
     while(file)
     {
-      if(matches(file.name()+maskFilterLen, mask))
+      if(matches(file.name(), mask))
       {
         debugPrintf("file matched:%s\n",file.name());
         if(file.isDirectory())
         {
-          serial.printf("%sd %s%s",prefix.c_str(),file.name()+maskFilterLen,EOLNC);
+          serial.printf("%sd %s%s",prefix.c_str(),file.name(),EOLNC);
           if(recurse)
           {
             String newPrefix = prefix + "  ";
-            showDirectory(file.name(), mask, newPrefix, recurse);
+            showDirectory(p + "/" + file.name(), mask, newPrefix, recurse);
           }
         }
         else
-          serial.printf("%s  %s %lu%s",prefix.c_str(),file.name()+maskFilterLen,file.size(),EOLNC);
+          serial.printf("%s  %s %lu%s",prefix.c_str(),file.name(),file.size(),EOLNC);
       }
       else
         debugPrintf("file unmatched:%s (%s)\n",file.name(),mask.c_str());
@@ -971,6 +955,7 @@ void ZBrowser::doModeCommand(String &line)
         }
       }
       else
+#ifdef INCLUDE_FTP
       if(cmd.equalsIgnoreCase("fget"))
       {
         String p1=cleanFirstArg(line);
@@ -1067,6 +1052,7 @@ void ZBrowser::doModeCommand(String &line)
             serial.printf("Fls failed: %s",p1.c_str());
         }
       }
+#endif
       else
       if(cmd.equalsIgnoreCase("mv")||cmd.equalsIgnoreCase("move"))
       {
@@ -1135,9 +1121,11 @@ void ZBrowser::doModeCommand(String &line)
         serial.printf("xget/zget/kget [/][path]filename               - Download a file%s",EOLNC);
         serial.printf("xput/zput/kput [/][path]filename               - Upload a file%s",EOLNC);
         serial.printf("wget [http://url] [/][path]filename            - Download url to file%s",EOLNC);
+#ifdef INCLUDE_FTP
         serial.printf("fget [ftp://user:pass@url/file] [/][path]file  - FTP get file%s",EOLNC);
         serial.printf("fput [/][path]file [ftp://user:pass@url/file]  - FTP put file%s",EOLNC);
         serial.printf("fdir [ftp://user:pass@url/path]                - ftp url dir%s",EOLNC);
+#endif
         serial.printf("exit/quit/x/endshell                           - Quit to command mode%s",EOLNC);
         serial.printf("%s",EOLNC);
       }
