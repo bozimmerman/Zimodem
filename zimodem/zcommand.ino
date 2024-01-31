@@ -3864,8 +3864,16 @@ void ZCommand::checkPulseDial()
   {
     if(digitalRead(pinOTH) != lastPulseState)
     {
+        /*
+         * One 'pulse' is:
+         * 1->0 over 50 ms
+         * 0->1 over 50ms
+         * (repeat)
+         * if 1->0 lasts 300-320ms, it is between numbers
+         */
       lastPulseState = !lastPulseState;
-      debugPrintf("\n\rPULSE=%d\n\r",lastPulseState);
+      debugPrintf("\n\rPrev=%ul PULSE=%d @ %ul\n\r",lastPulseTimeMs,lastPulseState,millis());
+      logPrintf("\n\rPrev=%ul PULSE=%d @ %ul\n\r",lastPulseTimeMs,lastPulseState,millis());
       lastPulseTimeMs = millis();
     }
   }
