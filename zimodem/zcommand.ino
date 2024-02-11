@@ -3887,10 +3887,7 @@ void ZCommand::checkPulseDial()
       {
         unsigned short diff = (millis()-lastPulseTimeMs);
         if((diff > 30)&&(diff < 70))
-        {
           pulseWork++;
-          logPrintf("\n\rP.D.: PULSE! Now=%u\n\r",pulseWork);
-        }
         else
         {
           logPrintf("\n\rP.D.: ERROR!\n\r");
@@ -3915,7 +3912,6 @@ void ZCommand::checkPulseDial()
               sprintf(nums,"%u",pulseWork);
             pulseBuf += nums;
             pulseWork=0;
-            logPrintf("\n\rP.D.: NUM! Now=%s\n\r",pulseBuf.c_str());
         }
         else
         if((diff > 30)
@@ -3947,7 +3943,6 @@ void ZCommand::checkPulseDial()
           logPrintf("\n\rP.D.: Dialing: %lu\n\r",vval);
           doDialStreamCommand(vval, (uint8_t *)pulseBuf.c_str(), pulseBuf.length(), true, "");
       }
-      logPrintf("\n\rP.D.: DONE!\n\r");
       pulseBuf = "";
       lastPulseTimeMs = 0;
       pulseWork = 0;
