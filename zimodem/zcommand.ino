@@ -1,5 +1,5 @@
 /*
-   Copyright 2016-2019 Bo Zimmerman
+   Copyright 2016-2024 Bo Zimmerman
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -2682,6 +2682,14 @@ ZResult ZCommand::doSerialCommand()
             hostcmMode.switchTo();
         }
 #  endif
+#  ifdef INCLUDE_COMET64
+        else
+        if((strstr((const char *)vbuf,"comet64")==(char *)vbuf))
+        {
+            result = ZOK;
+            comet64Mode.switchTo();
+        }
+#  endif
 #endif
 #  ifdef INCLUDE_IRCC
         else
@@ -3862,19 +3870,87 @@ void ZCommand::checkPulseDial()
 {
   if(pinSupport[pinOTH])
   {
-    if(digitalRead(pinOTH) != lastPulseState)
+    /*
+     * One 'pulse' is:
+     * 1->0 over 50 ms
+     * 0->1 over 50ms
+     * (repeat)
+     * if 1->0 lasts 300-320ms, it is between numbers
+     */
+    bool bit = digitalRead(pinOTH);
+    if(bit != lastPulseState)
     {
-        /*
-         * One 'pulse' is:
-         * 1->0 over 50 ms
-         * 0->1 over 50ms
-         * (repeat)
-         * if 1->0 lasts 300-320ms, it is between numbers
-         */
-      lastPulseState = !lastPulseState;
-      debugPrintf("\n\rPrev=%ul PULSE=%d @ %ul\n\r",lastPulseTimeMs,lastPulseState,millis());
-      logPrintf("\n\rPrev=%ul PULSE=%d @ %ul\n\r",lastPulseTimeMs,lastPulseState,millis());
+      if(lastPulseTimeMs == 0)
+          lastPulseTimeMs = millis();
+      else
+      if(!bit)
+      {
+        unsigned short diff = (millis()-lastPulseTimeMs);
+        if((diff > 30)&&(diff < 70))
+        {
+          pulseWork++;
+          logPrintf("\n\rP.D.: PULSE! Now=%u\n\r",pulseWork);
+        }
+        else
+        {
+          logPrintf("\n\rP.D.: ERROR!\n\r");
+          pulseBuf = ""; // error out
+          lastPulseTimeMs = 0;
+          pulseWork = 0;
+          return;
+        }
+      }
+      else
+      if(bit)
+      {
+        unsigned short diff = (millis()-lastPulseTimeMs);
+        if((diff > 280)
+        && (diff < 350)
+        && (pulseWork > 0))
+        {
+            char nums[2];
+            if(pulseWork > 9)
+              sprintf(nums,"0");
+            else
+              sprintf(nums,"%u",pulseWork);
+            pulseBuf += nums;
+            pulseWork=0;
+            logPrintf("\n\rP.D.: NUM! Now=%s\n\r",pulseBuf.c_str());
+        }
+        else
+        if((diff > 30)
+        && (diff < 70))
+        {} // between bits
+        else
+          logPrintf("\n\rP.D.: Ignoring your fail\n\r");
+        //else if this happens too quickly, do nothing
+      }
+      lastPulseState = bit;
       lastPulseTimeMs = millis();
+    }
+    else
+    if((lastPulseTimeMs != 0)
+    &&((millis() - lastPulseTimeMs) > 350))
+    {
+      if(pulseWork > 0)
+      {
+        char nums[2];
+        if(pulseWork > 9)
+          sprintf(nums,"0");
+        else
+          sprintf(nums,"%u",pulseWork);
+        pulseBuf += nums;
+      }
+      if(pulseBuf.length() > 2) //2 digits is minimum to prevent false dials
+      {
+          unsigned long vval = atoi(pulseBuf.c_str());
+          logPrintf("\n\rP.D.: Dialing: %lu\n\r",vval);
+          doDialStreamCommand(vval, (uint8_t *)pulseBuf.c_str(), pulseBuf.length(), true, "");
+      }
+      logPrintf("\n\rP.D.: DONE!\n\r");
+      pulseBuf = "";
+      lastPulseTimeMs = 0;
+      pulseWork = 0;
     }
   }
 }

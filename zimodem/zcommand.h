@@ -1,5 +1,5 @@
 /*
-   Copyright 2016-2019 Bo Zimmerman
+   Copyright 2016-2024 Bo Zimmerman
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -84,14 +84,14 @@ const ConfigOptions v2HexCfgs[] = { CFG_WIFISSI, CFG_WIFIPW, CFG_TIMEZONE, CFG_T
 
 enum BinType
 {
-  BTYPE_NORMAL=0,
-  BTYPE_HEX=1,
-  BTYPE_DEC=2,
-  BTYPE_NORMAL_NOCHK=3,
-  BTYPE_NORMAL_PLUS=4,
-  BTYPE_HEX_PLUS=5,
-  BTYPE_DEC_PLUS=6,
-  BTYPE_INVALID=7
+  BTYPE_NORMAL      = 0,
+  BTYPE_HEX         = 1,
+  BTYPE_DEC         = 2,
+  BTYPE_NORMAL_NOCHK= 3,
+  BTYPE_NORMAL_PLUS = 4,
+  BTYPE_HEX_PLUS    = 5,
+  BTYPE_DEC_PLUS    = 6,
+  BTYPE_INVALID     = 7
 };
 
 class ZCommand : public ZMode
@@ -102,43 +102,49 @@ class ZCommand : public ZMode
 #ifdef INCLUDE_IRCC
   friend class ZIRCMode;
 #endif
+#ifdef INCLUDE_COMET64
+  friend class ZComet64Mode;
+#endif
 
   private:
-    char CRLF[4];
-    char LFCR[4];
-    char LF[2];
-    char CR[2];
-    char BS=8;
-    char ringCounter = 1;
+    char            CRLF[4];
+    char            LFCR[4];
+    char            LF[2];
+    char            CR[2];
+    char            BS                   = 8;
 
-    ZSerial serial;
-    bool packetXOn = true;
-    bool busyMode = false;
-    BinType binType = BTYPE_NORMAL;
-    uint8_t nbuf[MAX_COMMAND_SIZE];
-    char hbuf[MAX_COMMAND_SIZE];
-    int eon=0;
-    int lastServerClientId = 0;
-    WiFiClientNode *current = null;
-    bool autoStreamMode=false;
-    bool telnetSupport=false;
-    bool preserveListeners=false;
-    unsigned long lastNonPlusTimeMs = 0;
-    unsigned long currentExpiresTimeMs = 0;
-    char *tempDelimiters = NULL;
-    char *tempMaskOuts = NULL;
-    char *tempStateMachine = NULL;
-    char *delimiters = NULL;
-    char *maskOuts = NULL;
-    char *stateMachine = NULL;
-    char *machineState = NULL;
-    String machineQue = "";
-    String previousCommand = "";
-    WiFiClientNode *nextConn=null;
-    int lastPacketId = -1;
-    unsigned long lastPulseTimeMs = 0;
-    bool lastPulseState = false;
-    String pulseBuf = "";
+    ZSerial         serial;
+
+    WiFiClientNode *current              = null;
+    WiFiClientNode *nextConn             = null;
+    bool            packetXOn            = true;
+    bool            busyMode             = false;
+    char            ringCounter          = 1;
+    BinType         binType              = BTYPE_NORMAL;
+    unsigned long   lastNonPlusTimeMs    = 0;
+    unsigned long   currentExpiresTimeMs = 0;
+    uint8_t         nbuf[MAX_COMMAND_SIZE];
+    char            hbuf[MAX_COMMAND_SIZE];
+    int             eon                  = 0;
+    int             lastServerClientId   = 0;
+    bool            autoStreamMode       = false;
+    bool            telnetSupport        = false;
+    bool            preserveListeners    = false;
+    char           *tempDelimiters       = NULL;
+    char           *delimiters           = NULL;
+    char           *tempMaskOuts         = NULL;
+    char           *maskOuts             = NULL;
+    char           *tempStateMachine     = NULL;
+    char           *stateMachine         = NULL;
+    char           *machineState         = NULL;
+    String          machineQue           = "";
+    String          previousCommand      = "";
+    int             lastPacketId         = -1;
+
+    unsigned long   lastPulseTimeMs      = 0;
+    bool            lastPulseState       = false;
+    unsigned int    pulseWork            = 0;
+    String          pulseBuf             = "";
 
     byte CRC8(const byte *data, byte len);
 
@@ -183,14 +189,14 @@ class ZCommand : public ZMode
     ZResult doTimeZoneSetupCommand(int vval, uint8_t *vbuf, int vlen, bool isNumber);
 
   public:
-    int packetSize = 127;
-    bool suppressResponses;
-    bool numericResponses;
-    bool longResponses;
+    int     packetSize          = 127;
+    bool    suppressResponses;
+    bool    numericResponses;
+    bool    longResponses;
     boolean doEcho;
-    String EOLN;
-    char EC='+';
-    char ECS[32];
+    String  EOLN;
+    char    EC                  = '+';
+    char    ECS[32];
 
     ZCommand();
     void loadConfig();

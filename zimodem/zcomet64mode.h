@@ -1,5 +1,5 @@
 /*
-   Copyright 2016-2024 Bo Zimmerman
+   Copyright 2024-2024 Bo Zimmerman
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -15,14 +15,14 @@
 */
 
 #ifdef INCLUDE_SD_SHELL
-#ifdef INCLUDE_HOSTCM
-#include "proto_hostcm.h"
+#ifdef INCLUDE_COMET64
+#include "proto_comet64.h"
 
-class ZHostCMMode : public ZMode
+class ZComet64Mode : public ZMode
 {
   private:
     void switchBackToCommandMode();
-    HostCM *proto = 0;
+    Comet64 *proto = 0;
 
   public:
     void switchTo();

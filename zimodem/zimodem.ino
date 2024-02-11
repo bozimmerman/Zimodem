@@ -1,5 +1,5 @@
 /*
-   Copyright 2016-2019 Bo Zimmerman
+   Copyright 2016-2024 Bo Zimmerman
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -104,12 +104,12 @@ const char compile_date[] = __DATE__ " " __TIME__;
 # define DEFAULT_PIN_DCD 2
 # define DEFAULT_PIN_OTH 99 // pulse pin
 # define DEFAULT_FCT FCT_DISABLED
-# define RS232_INVERTED 1
 # define debugPrintf doNothing
 # define preEOLN(...)
 # define echoEOLN(...) serial.prints(EOLN)
 #endif
-//#define INCLUDE_SLIP false
+//#define INCLUDE_SLIP true
+#define INCLUDE_COMET64 true
 
 #ifdef RS232_INVERTED
 # define DEFAULT_DCD_ACTIVE  HIGH
@@ -173,6 +173,9 @@ class ZMode
 #  ifdef INCLUDE_HOSTCM
 #    include "zhostcmmode.h"
 #  endif
+#  ifdef INCLUDE_COMET64
+#    include "zcomet64mode.h"
+#  endif
 #  include "proto_xmodem.h"
 #  include "proto_zmodem.h"
 #  include "proto_kermit.h"
@@ -202,6 +205,9 @@ static RealTimeClock zclock(0);
 #ifdef INCLUDE_SD_SHELL
 #  ifdef INCLUDE_HOSTCM
      static ZHostCMMode hostcmMode;
+#  endif
+#  ifdef INCLUDE_COMET64
+     static ZComet64Mode comet64Mode;
 #  endif
    static ZBrowser browseMode;
 #endif

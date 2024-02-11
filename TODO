@@ -1,6 +1,6 @@
 Bugs Reported (nor reproduced):
- *. Test carrier detect in ESP12-E in 4.0
- *. Test incoming network packets of various sizes at different speeds
+ *. Are Server Sockets being saved properly?  Do they need delaying during load?
+ *. Test incoming network packets of various sizes at different periods
  
 New Features:
   *. Support dial modifiers ,W,R,@,',',; <-- connect!,!,L <--last number!

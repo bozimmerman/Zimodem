@@ -13,22 +13,36 @@
    See the License for the specific language governing permissions and
    limitations under the License.
 */
-
 #ifdef INCLUDE_SD_SHELL
-#ifdef INCLUDE_HOSTCM
-#include "proto_hostcm.h"
+#ifdef INCLUDE_COMET64
 
-class ZHostCMMode : public ZMode
+void ZComet64Mode::switchBackToCommandMode()
 {
-  private:
-    void switchBackToCommandMode();
-    HostCM *proto = 0;
+  if(proto != 0)
+    delete proto;
+  proto = 0;
+  currMode = &commandMode;
+}
 
-  public:
-    void switchTo();
-    void serialIncoming();
-    void loop();
-};
+void ZComet64Mode::switchTo()
+{
+  currMode=&comet64Mode;
+  if(proto == 0)
+    proto = new Comet64(&SD,commandMode.serial.getFlowControlType());
+}
+
+void ZComet64Mode::serialIncoming()
+{
+  if(proto != 0)
+    proto->receiveLoop();
+}
+
+void ZComet64Mode::loop()
+{
+  serialOutDeque();
+  if((proto != 0) && (proto->isAborted()))
+    switchBackToCommandMode();
+}
 
 #endif
 #endif
