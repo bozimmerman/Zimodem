@@ -17,6 +17,10 @@
 #ifdef INCLUDE_SD_SHELL
 class ZBrowser : public ZMode
 {
+#  ifdef INCLUDE_COMET64
+     friend class Comet64;
+#  endif
+
   private:
     enum ZBrowseState
     {
@@ -37,9 +41,9 @@ class ZBrowser : public ZMode
     bool isMask(String mask);
     bool matches(String fname, String mask);
     void makeFileList(String ***l, int *n, String p, String mask, bool recurse);
-    void deleteFile(String fname, String mask, bool recurse);
+    bool deleteFile(String fname, String mask, bool recurse);
     void showDirectory(String path, String mask, String prefix, bool recurse);
-    void copyFiles(String source, String mask, String target, bool recurse, bool overwrite);
+    bool copyFiles(String source, String mask, String target, bool recurse, bool overwrite);
     
 #ifdef INCLUDE_FTP
     FTPHost *ftpHost = 0;
@@ -51,6 +55,7 @@ class ZBrowser : public ZMode
     char EOLNC[5];
     unsigned long lastNumber;
     String lastString;
+    bool quiet = false;
 
   public:
     ~ZBrowser();
@@ -58,6 +63,6 @@ class ZBrowser : public ZMode
     void serialIncoming();
     void loop();
     void init();
-    void doModeCommand(String &line);
+    bool doModeCommand(String &line, bool showShellOutput);
 };
 #endif

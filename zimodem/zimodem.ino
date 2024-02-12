@@ -69,7 +69,7 @@ const char compile_date[] = __DATE__ " " __TIME__;
 # define DEFAULT_PIN_OTH GPIO_NUM_4 // pulse pin
 # define DEFAULT_PIN_DTR GPIO_NUM_27
 # define debugPrintf Serial.printf
-# define INCLUDE_SD_SHELL true
+# define INCLUDE_SD_SHELL true            /* ****** Delete this line if you do not have an external SD card interface *****/
 # define DEFAULT_FCT FCT_DISABLED
 # define SerialConfig uint32_t
 # define UART_CONFIG_MASK 0x8000000

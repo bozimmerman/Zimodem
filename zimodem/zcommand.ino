@@ -2671,7 +2671,7 @@ ZResult ZCommand::doSerialCommand()
               String line = colon+1;
               line.trim();
               browseMode.init();
-              browseMode.doModeCommand(line);
+              browseMode.doModeCommand(line,false);
             }
         }
 #  ifdef INCLUDE_HOSTCM
@@ -2684,7 +2684,8 @@ ZResult ZCommand::doSerialCommand()
 #  endif
 #  ifdef INCLUDE_COMET64
         else
-        if((strstr((const char *)vbuf,"comet64")==(char *)vbuf))
+        if((strstr((const char *)vbuf,"comet64")==(char *)vbuf)
+        &&(SD.cardType() != CARD_NONE))
         {
             result = ZOK;
             comet64Mode.switchTo();
