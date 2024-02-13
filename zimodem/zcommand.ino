@@ -2745,6 +2745,34 @@ ZResult ZCommand::doSerialCommand()
             baudRate=300;
             changeBaudRate(baudRate);
           }
+          othActive = DEFAULT_OTH_ACTIVE;
+          othInactive = DEFAULT_OTH_INACTIVE;
+          dcdActive = HIGH;
+          dcdInactive = LOW;
+          checkOpenConnections();
+        }
+        else
+        if(strstr((const char *)vbuf,"1660")==(char *)vbuf)
+        {
+          result = ZOK;
+          suppressResponses=true;
+          doEcho=false;
+          busyMode=false;
+          autoStreamMode=true;
+          telnetSupport=false;
+          preserveListeners=true;
+          streamMode.setHangupType(HANGUP_PDP);
+          ringCounter=1;
+          serial.setFlowControlType(FCT_DISABLED);
+          serial.setXON(true);
+          packetXOn = true;
+          if(baudRate != 300)
+          {
+            baudRate=300;
+            changeBaudRate(baudRate);
+          }
+          othActive = DEFAULT_OTH_INACTIVE;
+          othInactive = DEFAULT_OTH_ACTIVE;
           dcdActive = HIGH;
           dcdInactive = LOW;
           checkOpenConnections();
