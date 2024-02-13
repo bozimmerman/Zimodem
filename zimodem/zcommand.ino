@@ -156,6 +156,8 @@ void ZCommand::setConfigDefaults()
   dtrInactive = DEFAULT_RTS_INACTIVE;
   dsrActive = DEFAULT_RTS_ACTIVE;
   dsrInactive = DEFAULT_RTS_INACTIVE;
+  othActive = DEFAULT_OTH_ACTIVE;
+  othInactive = DEFAULT_OTH_INACTIVE;
   pinDCD = DEFAULT_PIN_DCD;
   pinCTS = getDefaultCtsPin();
   pinRTS = DEFAULT_PIN_RTS;
