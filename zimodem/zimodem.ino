@@ -95,7 +95,7 @@ const char compile_date[] = __DATE__ " " __TIME__;
 # define INCLUDE_PING true
 # define INCLUDE_SSH true
 # define INCLUDE_FTP true
-#else  // ESP-8266, e.g. ESP-01, ESP-12E, inverted for C64Net WiFi Modem
+#else  // ESP-8266, e.g. ESP-01, ESP-12E, inverted for old-style C64Net WiFi Modem
 # define DEFAULT_PIN_DSR 13
 # define DEFAULT_PIN_DTR 12
 # define DEFAULT_PIN_RI 14
@@ -110,6 +110,7 @@ const char compile_date[] = __DATE__ " " __TIME__;
 #endif
 //#define INCLUDE_SLIP true
 #define INCLUDE_COMET64 true
+#define INCLUDE_CBMMODEM true  // 1650, 1660, 1670, and Pulse Dialing support
 
 #ifdef RS232_INVERTED
 # define DEFAULT_DCD_ACTIVE  HIGH

@@ -2688,10 +2688,40 @@ ZResult ZCommand::doSerialCommand()
         &&(SD.cardType() != CARD_NONE))
         {
             result = ZOK;
+            if(baudRate != 2400)
+            {
+              baudRate=2400;
+              changeBaudRate(baudRate);
+            }
             comet64Mode.switchTo();
         }
 #  endif
 #endif
+#  ifdef INCLUDE_CBMMODEM
+        else
+        if(strstr((const char *)vbuf,"+1650")==(char *)vbuf)
+        {
+          result = ZOK;
+          suppressResponses=true;
+          doEcho=false;
+          busyMode=false;
+          autoStreamMode=true;
+          telnetSupport=false;
+          preserveListeners=true;
+          ringCounter=1;
+          serial.setFlowControlType(FCT_DISABLED);
+          serial.setXON(true);
+          packetXOn = true;
+          if(baudRate != 300)
+          {
+            baudRate=300;
+            changeBaudRate(baudRate);
+          }
+          dcdActive = HIGH;
+          dcdInactive = LOW;
+          checkOpenConnections();
+        }
+#  endif
 #  ifdef INCLUDE_IRCC
         else
         if((strstr((const char *)vbuf,"irc")==(char *)vbuf))
@@ -3869,6 +3899,7 @@ bool ZCommand::acceptNewConnection()
 
 void ZCommand::checkPulseDial()
 {
+#ifdef INCLUDE_CBMMODEM
   if(pinSupport[pinOTH])
   {
     /*
@@ -3949,7 +3980,10 @@ void ZCommand::checkPulseDial()
       pulseWork = 0;
     }
   }
+#endif
 }
+
+
 void ZCommand::serialIncoming()
 {
   bool crReceived=readSerialStream();
@@ -3974,6 +4008,8 @@ void ZCommand::loop()
     sendNextPacket();
     serialOutDeque();
   }
+#ifdef INCLUDE_CBMMODEM
   checkPulseDial();
+#endif
   checkBaudChange();
 }

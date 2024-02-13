@@ -148,11 +148,11 @@ void Comet64::receiveLoop()
   char *lbhbc = strchr((char *)inbuf,',');
   if(lbhbc != 0)
   {
-    char *lbhb2 = strchr(lbhbc+1,',');
+    char *lbhb2 = strchr((const char *)(lbhbc+1),',');
     if(lbhb2 != 0)
       *lbhb2=0;
-    char lbhbcs[strlen(lbhb+1)+1];
-    strcpy(lbhbcs,lbhb+1);
+    char lbhbcs[strlen((const char *)(lbhb+1))+1];
+    strcpy(lbhbcs,(const char *)lbhb+1);
     if(lbhb2 != 0)
       *lbhb2=',';
     if((strlen(lbhbcs)>2)&&(lbhbcs[0]==' '))

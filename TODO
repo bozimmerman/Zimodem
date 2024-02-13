@@ -23,19 +23,20 @@ New hardware hopes:
  +K	6 CTS	Clear To Send
  M!	8 TxD	Transmit Data
 
-GPIO Pin assignments:   ESP12-E      ESP32     ESP-01
+GPIO Pin assignments:   ESP12-E      ESP32     ESP-01    User port
  DEFAULT_PIN_AA                       16
  DEFAULT_PIN_HS                       15
  DEFAULT_PIN_WIFI                     0
  PIN_FACTORY_RESET                    0
- DEFAULT_PIN_DCD          2           14         2
- DEFAULT_PIN_CTS          5           13         0
- DEFAULT_PIN_RTS          4           15         (5V)
- DEFAULT_PIN_RI           14          32
- DEFAULT_PIN_DSR          13          12
- DEFAULT_PIN_DTR          12          27
- DEFAULT_PIN_RX                      
- DEFAULT_PIN_TX                      
+ DEFAULT_PIN_DCD          2           14         2       H (bit 16)
+ DEFAULT_PIN_CTS          5           13         0       K (bit 64)
+ DEFAULT_PIN_RTS          4           15         (5V)    D (bit 2)
+ DEFAULT_PIN_RI           14          32                 F (bit 8)
+ DEFAULT_PIN_DSR          13          12                 L (bit 128)
+ DEFAULT_PIN_DTR          12          27                 E (bit 4)
+ DEFAULT_PIN_RX                                          C (bit 1)
+ DEFAULT_PIN_TX                                          M (port A somewhere)
+ DEFAULT_PIN_OTH                       4                 J (bit 32)
  
 Connects to:    TXDDSRRXD
            R     U  U  U
@@ -52,3 +53,30 @@ Connects to:    TXDDSRRXD
    D          S  R     D  P  S  9       D
                                 6
  Connects to:              *5v DSR
+ 
+             1650   1660
+Hangup       16     16
+Hangup 56577  0     32
+Hangup 56579 32     0
+Pickup 56577  2     0
+Pickup 56579  6     38
+
+1660 off hook: 
+   poke 56579,peek(56579) or 32  (set bit 32 writeable)
+   poke 56577,peek(56577) and (255-32) (set bit 32 low)
+1660 hang-up:
+   poke56577,peek(56577) or 32  (set bit 32 high)
+1660 carrier detect:
+   if((peek(56577)and16)=0)then // carrier detected!!!!
+
+????????????????????????????????????????????????????
+1650 off hook: 
+   poke 56579,6  (set rts & dtr writeable)
+   poke 56577,2  (set rts high, dts low)
+1650 hang-up:
+   poke 56579,32  (set bit 32 writeable)
+   poke 56577,0  (set bit 32 low?)
+1650 carrier detect:
+   if((peek(56577)and16)=0)then // carrier detected!!!!
+
+
