@@ -41,13 +41,13 @@ const char compile_date[] = __DATE__ " " __TIME__;
 
 #ifdef SUPPORT_LED_PINS
 # ifdef GPIO_NUM_0
-#   define DEFAULT_PIN_AA GPIO_NUM_16
-#   define DEFAULT_PIN_HS GPIO_NUM_15
-#   define DEFAULT_PIN_WIFI GPIO_NUM_0
+#   define DEFAULT_PIN_AA GPIO_NUM_35
+#   define DEFAULT_PIN_HS GPIO_NUM_34
+#   define DEFAULT_PIN_WIFI GPIO_NUM_26
 # else
-#   define DEFAULT_PIN_AA 16
-#   define DEFAULT_PIN_HS 15
-#   define DEFAULT_PIN_WIFI 0
+#   define DEFAULT_PIN_AA 35
+#   define DEFAULT_PIN_HS 34
+#   define DEFAULT_PIN_WIFI 26
 # endif
 # define DEFAULT_HS_BAUD 38400
 # define DEFAULT_AA_ACTIVE LOW
@@ -57,6 +57,10 @@ const char compile_date[] = __DATE__ " " __TIME__;
 # define DEFAULT_WIFI_ACTIVE LOW
 # define DEFAULT_WIFI_INACTIVE HIGH
 #endif
+/*
+ * Unused pins on WROOM32:
+ * 2, 20, 21, 22.   36,39 (sensor)
+ */
 
 #ifdef ZIMODEM_ESP32
 # define PIN_FACTORY_RESET GPIO_NUM_0
@@ -451,14 +455,16 @@ void setup()
 #ifdef ZIMODEM_ESP32
   Serial.begin(115200); //the debug port
   Serial.setDebugOutput(true);
+  pinSupport[2]=true;
   pinSupport[4]=true;
   pinSupport[5]=true;
   for(int i=12;i<=23;i++)
     pinSupport[i]=true;
   for(int i=25;i<=27;i++)
     pinSupport[i]=true;
-  for(int i=32;i<=33;i++)
+  for(int i=32;i<=36;i++)
     pinSupport[i]=true;
+  pinSupport[39]=true;
 #else
   pinSupport[0]=true;
   pinSupport[2]=true;
