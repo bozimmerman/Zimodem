@@ -132,6 +132,7 @@ void ZCommand::setConfigDefaults()
   telnetSupport=true;
   preserveListeners=false;
   ringCounter=1;
+  streamMode.setHangupType(HANGUP_CMDONLY);
   serial.setFlowControlType(DEFAULT_FCT);
   serial.setXON(true);
   packetXOn = true;
@@ -376,7 +377,7 @@ void ZCommand::reSaveConfig()
            "%s,%s,%s,"
            "%d,%s,%s,"
            "%s,%s,%s,%s,"
-           "%s,%d",
+           "%s,%d,%d",
             wifiSSIhex.c_str(), wifiPWhex.c_str(), baudRate, eoln,
             serial.getFlowControlType(), doEcho, suppressResponses, numericResponses,
             longResponses, serial.isPetsciiMode(), dcdMode, serialConfig, ctsMode,
@@ -386,7 +387,7 @@ void ZCommand::reSaveConfig()
             zclockFormathex.c_str(),zclockHosthex.c_str(),hostnamehex.c_str(),
             printMode.getTimeoutDelayMs(),printSpechex.c_str(),termTypehex.c_str(),
             staticIPstr.c_str(),staticDNSstr.c_str(),staticGWstr.c_str(),staticSNstr.c_str(),
-            busyMsghex.c_str(),telnetSupport
+            busyMsghex.c_str(),telnetSupport,streamMode.getHangupType()
             );
   f.close();
   delay(500);
@@ -503,6 +504,8 @@ void ZCommand::setOptionsFromSavedConfig(String configArguments[])
     autoStreamMode = atoi(configArguments[CFG_S41_STREAM].c_str());
   if(configArguments[CFG_S62_TELNET].length()>0)
     telnetSupport = atoi(configArguments[CFG_S62_TELNET].c_str());
+  if(configArguments[CFG_S63_HANGUP].length()>0)
+    streamMode.setHangupType((HangupType)atoi(configArguments[CFG_S63_HANGUP].c_str()));
   if(configArguments[CFG_S60_LISTEN].length()>0)
   {
     preserveListeners = atoi(configArguments[CFG_S60_LISTEN].c_str());
@@ -773,6 +776,21 @@ ZResult ZCommand::doInfoCommand(int vval, uint8_t *vbuf, int vlen, bool isNumber
       serial.prints(preserveListeners ? "S60=1" : "S60=0");
     if(!telnetSupport ||(showAll))
       serial.prints(telnetSupport ? "S62=1" : "S62=0");
+    if((streamMode.getHangupType()!=HANGUP_CMDONLY) ||(showAll))
+    {
+      switch(streamMode.getHangupType())
+      {
+        case HANGUP_DTR:
+          serial.prints("S63=1");
+          break;
+        case HANGUP_PDP:
+          serial.prints("S63=2");
+          break;
+        default:
+          serial.prints("S63=0");
+          break;
+      }
+    }
     if((serial.isPetsciiMode())||(showAll))
       serial.prints(serial.isPetsciiMode() ? "&P1" : "&P0");
     if((logFileOpen) || showAll)
@@ -2642,6 +2660,15 @@ ZResult ZCommand::doSerialCommand()
                  break;
              case 62:
                telnetSupport = (sval > 0);
+               break;
+             case 63:
+               streamMode.setHangupType(HANGUP_CMDONLY);
+               if(sval == 1)
+                 streamMode.setHangupType(HANGUP_DTR);
+               else
+               if(sval == 2)
+                 streamMode.setHangupType(HANGUP_PDP);
+               break;
              default:
                 break;
               }
@@ -2699,7 +2726,7 @@ ZResult ZCommand::doSerialCommand()
 #endif
 #  ifdef INCLUDE_CBMMODEM
         else
-        if(strstr((const char *)vbuf,"+1650")==(char *)vbuf)
+        if(strstr((const char *)vbuf,"1650")==(char *)vbuf)
         {
           result = ZOK;
           suppressResponses=true;
@@ -2708,6 +2735,7 @@ ZResult ZCommand::doSerialCommand()
           autoStreamMode=true;
           telnetSupport=false;
           preserveListeners=true;
+          streamMode.setHangupType(HANGUP_PDP);
           ringCounter=1;
           serial.setFlowControlType(FCT_DISABLED);
           serial.setXON(true);

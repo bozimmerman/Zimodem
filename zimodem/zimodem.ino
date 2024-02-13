@@ -102,7 +102,7 @@ const char compile_date[] = __DATE__ " " __TIME__;
 # define DEFAULT_PIN_RTS 4
 # define DEFAULT_PIN_CTS 5 // is 0 for ESP-01, see getDefaultCtsPin() below.
 # define DEFAULT_PIN_DCD 2
-# define DEFAULT_PIN_OTH 99 // pulse pin
+# define DEFAULT_PIN_OTH MAX_PIN_NO // pulse pin
 # define DEFAULT_FCT FCT_DISABLED
 # define debugPrintf doNothing
 # define preEOLN(...)
@@ -125,6 +125,8 @@ const char compile_date[] = __DATE__ " " __TIME__;
 # define DEFAULT_DSR_INACTIVE  LOW
 # define DEFAULT_DTR_ACTIVE  HIGH
 # define DEFAULT_DTR_INACTIVE  LOW
+# define DEFAULT_OTH_ACTIVE  HIGH
+# define DEFAULT_OTH_INACTIVE  LOW
 #else
 # define DEFAULT_DCD_ACTIVE  LOW
 # define DEFAULT_DCD_INACTIVE  HIGH
@@ -138,6 +140,8 @@ const char compile_date[] = __DATE__ " " __TIME__;
 # define DEFAULT_DSR_INACTIVE  HIGH
 # define DEFAULT_DTR_ACTIVE  LOW
 # define DEFAULT_DTR_INACTIVE  HIGH
+# define DEFAULT_OTH_ACTIVE  LOW
+# define DEFAULT_OTH_INACTIVE  HIGH
 #endif
 
 #define DEFAULT_BAUD_RATE 1200
@@ -262,6 +266,8 @@ static int dtrActive = DEFAULT_DTR_ACTIVE;
 static int dtrInactive = DEFAULT_DTR_INACTIVE;
 static int dsrActive = DEFAULT_DSR_ACTIVE;
 static int dsrInactive = DEFAULT_DSR_INACTIVE;
+static int othActive = DEFAULT_OTH_ACTIVE;
+static int othInactive = DEFAULT_OTH_INACTIVE;
 
 static int getDefaultCtsPin()
 {

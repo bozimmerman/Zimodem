@@ -27,6 +27,8 @@ void ZStream::switchTo(WiFiClientNode *conn)
   checkBaudChange();
   if(pinSupport[pinDTR])
     lastDTR = digitalRead(pinDTR);
+  if(pinSupport[pinOTH])
+    lastPDP = digitalRead(pinOTH);
 }
 
 bool ZStream::isPETSCII()
@@ -191,6 +193,58 @@ void ZStream::socketWrite(uint8_t c)
   }
 }
 
+void ZStream::setHangupType(HangupType type)
+{
+  hangupType = type;
+}
+
+HangupType ZStream::getHangupType()
+{
+  return hangupType;
+}
+
+void ZStream::doHangupChecks()
+{
+  if(hangupType == HANGUP_DTR)
+  {
+    if(pinSupport[pinDTR])
+    {
+      if(lastDTR==dtrActive)
+      {
+        lastDTR = digitalRead(pinDTR);
+        if((lastDTR==dtrInactive)
+        &&(dtrInactive != dtrActive))
+        {
+          if(current != null)
+            current->setDisconnectOnStreamExit(true);
+          switchBackToCommandMode(true);
+        }
+      }
+      lastDTR = digitalRead(pinDTR);
+    }
+  }
+  else
+  if(hangupType == HANGUP_PDP)
+  {
+    if(pinSupport[pinOTH])
+    {
+      if(lastPDP==dtrActive)
+      {
+        lastPDP = digitalRead(pinOTH);
+        if((lastPDP==othInactive)
+        &&(othInactive != othActive))
+        {
+          if(current != null)
+            current->setDisconnectOnStreamExit(true);
+          switchBackToCommandMode(true);
+        }
+      }
+      lastPDP = digitalRead(pinOTH);
+    }
+  }
+
+}
+
 void ZStream::loop()
 {
   WiFiServerNode *serv = servs;
@@ -240,22 +294,8 @@ void ZStream::loop()
   }
   
   WiFiClientNode::checkForAutoDisconnections();
+  doHangupChecks();
   
-  if(pinSupport[pinDTR])
-  {
-    if(lastDTR==dtrActive)
-    {
-      lastDTR = digitalRead(pinDTR);
-      if((lastDTR==dtrInactive)
-      &&(dtrInactive != dtrActive))
-      {
-        if(current != null)
-          current->setDisconnectOnStreamExit(true);
-        switchBackToCommandMode(true);
-      }
-    }
-    lastDTR = digitalRead(pinDTR);
-  }
   if((current==null)||(!current->isConnected()))
   {
     switchBackToCommandMode(true);

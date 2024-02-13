@@ -167,6 +167,7 @@ ATS57=n : Changes DSR pin number, n=13 is default (N/A on ESP01)
 ATS60=n : When n > 0, immediately saves existing listeners and automatically restores them later. n=0 to clear.
 ATS61=n : When n > 0, sets the number of seconds to timeout a print job stream (AT+PRINT). Default is 5 seconds
 ATS62=n : When n > 0, enables/disables telnet support in the ATD (Dial) command. Default is 0 (disabled).
+ATS63=n : When n > 0, enables/disables DTR (n=1), or OTH (n=2) hangup while in stream mode
 
 +++ : With a 1 second pause with no other characters afterwards, this will disconnect the current opened connection.
 

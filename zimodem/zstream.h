@@ -16,6 +16,13 @@
 
 #define ZSTREAM_ESC_BUF_MAX 10
 
+enum HangupType
+{
+  HANGUP_CMDONLY,
+  HANGUP_DTR,
+  HANGUP_PDP
+};
+
 class ZStream : public ZMode
 {
   private:
@@ -25,7 +32,9 @@ class ZStream : public ZMode
     unsigned long nextFlushMs = 0;
     int plussesInARow = 0;
     ZSerial serial;
+    HangupType hangupType = HANGUP_CMDONLY;
     int lastDTR = 0;
+    int lastPDP = 0;
     uint8_t escBuf[ZSTREAM_ESC_BUF_MAX];
     unsigned long nextAlarm = millis() + 5000;
     
@@ -39,11 +48,13 @@ class ZStream : public ZMode
     FlowControlType getFlowControl();
     bool isTelnet();
     bool isDisconnectedOnStreamExit();
+    void doHangupChecks();
 
- 
   public:
     
     void switchTo(WiFiClientNode *conn);
+    void setHangupType(HangupType type);
+    HangupType getHangupType();
     
     void serialIncoming();
     void loop();

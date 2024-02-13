@@ -143,37 +143,23 @@ void Comet64::receiveLoop()
     serialOutDeque();
     return;
   }
+
   //since de-petsciify breaks save, and we needs lb,hb in the args. :(
+  char *sp = strchr((char *)inbuf,' ');
+  char *args = (sp+1);
+  char *cmd = (char *)inbuf;
   uint8_t lbhb[2];
-  char *lbhbc = strchr((char *)inbuf,',');
-  if(lbhbc != 0)
+  char *lbhbc = strchr((char *)args,',');
+  if(lbhbc > args)
   {
-    char *lbhb2 = strchr((const char *)(lbhbc+1),',');
-    if(lbhb2 != 0)
-      *lbhb2=0;
-    char lbhbcs[strlen((const char *)(lbhb+1))+1];
-    strcpy(lbhbcs,(const char *)lbhb+1);
-    if(lbhb2 != 0)
-      *lbhb2=',';
-    if((strlen(lbhbcs)>2)&&(lbhbcs[0]==' '))
-    {
-      lbhb[0] = lbhbcs[1];
-      lbhb[1] = lbhbcs[2];
-    }
-    else
-    {
-      lbhb[0] = lbhbcs[0];
-      lbhb[1] = lbhbcs[1];
-    }
+    lbhb[0] = lbhbc[1];
+    lbhb[1] = lbhbc[2];
   }
 
 
   // ok, for most commands, petscii translation helps...
   for(int i=0;i<idex;i++)
     inbuf[i] = (uint8_t)petToAsc((char)inbuf[i]);
-  char *sp = strchr((char *)inbuf,' ');
-  char *args = (sp+1);
-  char *cmd = (char *)inbuf;
   for(int i=0;cmd[i]!=0;i++)
     cmd[i]=(uint8_t)toupper((char)cmd[i]);
   if(sp == 0)
@@ -331,7 +317,7 @@ void Comet64::receiveLoop()
         File f=SD.open(p, FILE_WRITE);
         unsigned long last=millis();
         boolean fail=false;
-        for(size_t i=0;i<bytes;i++)
+        for(size_t i=0;i<bytes;)
         {
           yield();
           if(cserial.available()>0)
@@ -339,6 +325,7 @@ void Comet64::receiveLoop()
             int c = cserial.read();
             f.write(c);
             last=millis();
+            i++;
           }
           else
           if((millis()-last)>3000)
