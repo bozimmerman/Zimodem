@@ -96,6 +96,38 @@ void Comet64::printFilename(const char* name)
     cserial.print(" ");
 }
 
+String Comet64::getNormalExistingFilename(String name)
+{
+  File f = cFS->open(name,FILE_READ);
+  if(f)
+  {
+    bool isDir = f.isDirectory();
+    f.close();
+    if(!isDir)
+      return name;
+  }
+  if((!name.endsWith(".prg"))
+  &&(!name.endsWith(".PRG"))
+  &&(!name.endsWith(".seq"))
+  &&(!name.endsWith(".SEQ")))
+  {
+    String chk;
+    chk = getNormalExistingFilename(name + ".prg");
+    if(chk.length() > 0)
+      return chk;
+    chk = getNormalExistingFilename(name + ".PRG");
+    if(chk.length() > 0)
+      return chk;
+    chk = getNormalExistingFilename(name + ".seq");
+    if(chk.length() > 0)
+      return chk;
+    chk = getNormalExistingFilename(name + ".SEQ");
+    if(chk.length() > 0)
+      return chk;
+  }
+  return "";
+}
+
 void Comet64::printPetscii(const char* name)
 {
   int i=0;
@@ -148,6 +180,10 @@ void Comet64::receiveLoop()
   char *sp = strchr((char *)inbuf,' ');
   char *args = (sp+1);
   char *cmd = (char *)inbuf;
+  if(sp == 0)
+    args=(char *)(inbuf-1);
+  else
+    *sp=0;
   uint8_t lbhb[2];
   char *lbhbc = strchr((char *)args,',');
   if(lbhbc > args)
@@ -159,13 +195,10 @@ void Comet64::receiveLoop()
 
   // ok, for most commands, petscii translation helps...
   for(int i=0;i<idex;i++)
-    inbuf[i] = (uint8_t)petToAsc((char)inbuf[i]);
+    if(inbuf[i]!=0)
+      inbuf[i] = (uint8_t)petToAsc((char)inbuf[i]);
   for(int i=0;cmd[i]!=0;i++)
     cmd[i]=(uint8_t)toupper((char)cmd[i]);
-  if(sp == 0)
-    args=(char *)(inbuf-1);
-  else
-    *sp=0;
   debugPrintf("COMET64 received: '%s' '%s'\n",cmd,args);
   if((strcmp(cmd,"LOGIN")==0)
   ||(strcmp(cmd,"LOGOUT")==0)
@@ -264,8 +297,12 @@ void Comet64::receiveLoop()
   if(strcmp(cmd,"SCRATCH")==0)
   {
       String cmd = "rm ";
-      cmd += args;
-      if(browseMode.doModeCommand(cmd,false))
+      String p = args;
+      String chk = getNormalExistingFilename(p);
+      if(p.length()==0)
+        printPetscii("?62 - file not found\r\n");
+      else
+      if(browseMode.doModeCommand(cmd+p,false))
         printPetscii("00 - ok\r\n");
       else
         printPetscii("?500 - operation failed\r\n");
@@ -275,10 +312,9 @@ void Comet64::receiveLoop()
   if(strcmp(cmd,"LOAD")==0)
   {
       String p = browseMode.makePath(browseMode.cleanOneArg(args));
-      File root = SD.open(p);
-      if(root && !root.isDirectory())
+      p = getNormalExistingFilename(p);
+      if(p.length()>0)
       {
-        root.close();
         File f=SD.open(p, FILE_READ);
         unsigned char hb = round(floor(f.size()/256));
         unsigned char lb = (f.size()-(hb*256));
@@ -378,6 +414,7 @@ void Comet64::receiveLoop()
       {
         if((!find)||(browseMode.matches(file.name(),args)))
         {
+          String fname = file.name();
           String ext = " prg";
           String blks;
           if(file.isDirectory())
@@ -387,13 +424,21 @@ void Comet64::receiveLoop()
           }
           else
           {
-              int numBlocks = round(ceil(file.size()/254.0));
-              blks = numBlocks;
-              while(blks.length()<4)
-                blks += " ";
+            if(fname.endsWith(".prg")||fname.endsWith(".PRG"))
+              fname = fname.substring(0,fname.length()-4);
+            else
+            if(fname.endsWith(".seq")||fname.endsWith(".SEQ"))
+            {
+              fname = fname.substring(0,fname.length()-4);
+              ext = " seq";
+            }
+            int numBlocks = round(ceil(file.size()/254.0));
+            blks = numBlocks;
+            while(blks.length()<4)
+              blks += " ";
           }
           cserial.printf(blks.c_str());
-          printFilename(file.name());
+          printFilename(fname.c_str());
           printPetscii(ext.c_str());
           cserial.printf("\r\n");
         }

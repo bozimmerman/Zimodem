@@ -310,6 +310,11 @@ void ZStream::loop()
       if(current != 0)
       {
         commandMode.sendOfficialResponse(ZOK);
+        if(hangupType != HANGUP_NONE)
+        {
+            current->flushAlways();
+            current->markForDisconnect();
+        }
         switchBackToCommandMode(false);
       }
     }

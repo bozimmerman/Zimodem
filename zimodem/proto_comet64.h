@@ -39,6 +39,7 @@ private:
   void printFilename(const char* name);
   void printDiskHeader(const char* name);
   void printPetscii(const char* name);
+  String getNormalExistingFilename(String name);
 
 public:
   void receiveLoop();

@@ -132,7 +132,7 @@ void ZCommand::setConfigDefaults()
   telnetSupport=true;
   preserveListeners=false;
   ringCounter=1;
-  streamMode.setHangupType(HANGUP_CMDONLY);
+  streamMode.setHangupType(HANGUP_NONE);
   serial.setFlowControlType(DEFAULT_FCT);
   serial.setXON(true);
   packetXOn = true;
@@ -778,15 +778,18 @@ ZResult ZCommand::doInfoCommand(int vval, uint8_t *vbuf, int vlen, bool isNumber
       serial.prints(preserveListeners ? "S60=1" : "S60=0");
     if(!telnetSupport ||(showAll))
       serial.prints(telnetSupport ? "S62=1" : "S62=0");
-    if((streamMode.getHangupType()!=HANGUP_CMDONLY) ||(showAll))
+    if((streamMode.getHangupType()!=HANGUP_NONE) ||(showAll))
     {
       switch(streamMode.getHangupType())
       {
-        case HANGUP_DTR:
+        case HANGUP_PPPHARD:
           serial.prints("S63=1");
           break;
-        case HANGUP_PDP:
+        case HANGUP_DTR:
           serial.prints("S63=2");
+          break;
+        case HANGUP_PDP:
+          serial.prints("S63=3");
           break;
         default:
           serial.prints("S63=0");
@@ -2664,11 +2667,14 @@ ZResult ZCommand::doSerialCommand()
                telnetSupport = (sval > 0);
                break;
              case 63:
-               streamMode.setHangupType(HANGUP_CMDONLY);
+               streamMode.setHangupType(HANGUP_NONE);
                if(sval == 1)
-                 streamMode.setHangupType(HANGUP_DTR);
+                 streamMode.setHangupType(HANGUP_PPPHARD);
                else
                if(sval == 2)
+                 streamMode.setHangupType(HANGUP_DTR);
+               else
+               if(sval == 3)
                  streamMode.setHangupType(HANGUP_PDP);
                break;
              default:
@@ -2775,6 +2781,26 @@ ZResult ZCommand::doSerialCommand()
           }
           othActive = DEFAULT_OTH_INACTIVE;
           othInactive = DEFAULT_OTH_ACTIVE;
+          dcdActive = HIGH;
+          dcdInactive = LOW;
+          checkOpenConnections();
+        }
+        else
+        if(strstr((const char *)vbuf,"1670")==(char *)vbuf)
+        {
+          result = ZOK;
+          busyMode=false;
+          autoStreamMode=true;
+          telnetSupport=false;
+          preserveListeners=true;
+          streamMode.setHangupType(HANGUP_PPPHARD);
+          serial.setXON(true);
+          packetXOn = true;
+          if(baudRate != 1200)
+          {
+            baudRate=1200;
+            changeBaudRate(baudRate);
+          }
           dcdActive = HIGH;
           dcdInactive = LOW;
           checkOpenConnections();

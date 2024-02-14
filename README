@@ -1,4 +1,4 @@
-Zimodem 4.0.0 (C)2016-2023 Bo Zimmerman
+Zimodem 4.0.1 (C)2016-2023 Bo Zimmerman
 Please read the LICENSE file for license information
 Please read the NOTICE file for credits information
 
@@ -31,6 +31,12 @@ AT+IRC: If you want to chat on IRC, enter AT+IRC, enter a nickname and a irc hos
 AT+SHELL: ESP32 Modem users with SD-cards can enter AT+SHELL to get a shell command prompt.  Enter ? to get a list of shell commands.  If also you have a computer that supports the HOSTCM protocol over serial (such as the Commodore SupetPET SP9000), then use AT+HOSTCM.
 
 AT+PING: To check if your wifi is connected and DNS resolution is working, try AT+PING"google.com".  An OK means a response was received.
+
+AT+COMET64: For modems with SD-cards, this puts the modem into 2400 bps, CSIP protocol mode for reading/writing directly to the card (use V-1541). +++ to exit.
+
+AT+HOSTCM: For modems with SD-cards, this puts the modem into HOSTCM protocol mode for reading/writing directly to the card (use SP9000). +++ to exis.
+
+AT+1650, 1660, 1670: Puts the modem into a emulation mode for Commodore 1650, 1660, and 1670.  Changes baud rates accordingly.  Use ATZ or AT&F to clear emulation settings.
 
 Telnet Dialing: If you want to connect to a remote telnet server, eg coffeemud.net, port 23, you'll want to enter AT&S62=1DT"coffeemud.net:23".  Don't forget to set your terminal program to the proper translation mode (ANSI, ASCII, or whatever). 
 
@@ -167,7 +173,7 @@ ATS57=n : Changes DSR pin number, n=13 is default (N/A on ESP01)
 ATS60=n : When n > 0, immediately saves existing listeners and automatically restores them later. n=0 to clear.
 ATS61=n : When n > 0, sets the number of seconds to timeout a print job stream (AT+PRINT). Default is 5 seconds
 ATS62=n : When n > 0, enables/disables telnet support in the ATD (Dial) command. Default is 0 (disabled).
-ATS63=n : When n > 0, enables/disables DTR (n=1), or OTH (n=2) hangup while in stream mode
+ATS63=n : When n > 0, enables/disables +++ (n=1), DTR (n=2), or OTH/PDP (n=3) hangup while in stream mode
 
 +++ : With a 1 second pause with no other characters afterwards, this will disconnect the current opened connection.
 

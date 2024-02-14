@@ -18,9 +18,10 @@
 
 enum HangupType
 {
-  HANGUP_CMDONLY,
+  HANGUP_NONE,
+  HANGUP_PPPHARD,
   HANGUP_DTR,
-  HANGUP_PDP
+  HANGUP_PDP,
 };
 
 class ZStream : public ZMode
@@ -32,7 +33,7 @@ class ZStream : public ZMode
     unsigned long nextFlushMs = 0;
     int plussesInARow = 0;
     ZSerial serial;
-    HangupType hangupType = HANGUP_CMDONLY;
+    HangupType hangupType = HANGUP_NONE;
     int lastDTR = 0;
     int lastPDP = 0;
     uint8_t escBuf[ZSTREAM_ESC_BUF_MAX];

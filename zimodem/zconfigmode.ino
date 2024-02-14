@@ -223,6 +223,7 @@ void ZConfig::doModeCommand()
       }
       else
         showMenu=true;
+      break;
     }
     case ZCFGMENU_NUM:
     {
