@@ -799,7 +799,7 @@ ZResult ZCommand::doInfoCommand(int vval, uint8_t *vbuf, int vlen, bool isNumber
     if((serial.isPetsciiMode())||(showAll))
       serial.prints(serial.isPetsciiMode() ? "&P1" : "&P0");
     if((logFileOpen) || showAll)
-      serial.prints((logFileOpen && !logFileDebug) ? "&O1" : ((logFileOpen && logFileDebug) ? "&O88" : "&O0"));
+      serial.prints((logFileOpen && !logFile2Uart) ? "&O1" : ((logFileOpen && logFile2Uart) ? "&O88" : "&O0"));
     serial.prints(EOLN);
     break;
   }
@@ -3048,6 +3048,7 @@ ZResult ZCommand::doSerialCommand()
           result=ZOK;
           break;
         case 'o':
+          logFile2Uart=false;
           if(vval == 0)
           {
             if(logFileOpen)
@@ -3115,7 +3116,7 @@ ZResult ZCommand::doSerialCommand()
             SPIFFS.remove("/logfile.txt");
             logFile = SPIFFS.open("/logfile.txt", "w");
             if(vval==88)
-              logFileDebug=true;
+              logFile2Uart=true;
             result=ZOK;
           }
           break;

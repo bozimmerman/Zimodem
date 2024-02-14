@@ -202,7 +202,7 @@ static void rawLogPrintf(const char* format, ...)
 
 static void rawLogPrint(const char* str)
 {
-  if(logFileDebug)
+  if(logFile2Uart)
     debugPrintf(str);
   else
     logFile.print(str);
@@ -210,7 +210,7 @@ static void rawLogPrint(const char* str)
 
 static void rawLogPrintln(const char* str)
 {
-  if(logFileDebug)
+  if(logFile2Uart)
   {
     debugPrintf(str);
     debugPrintf("\n");
