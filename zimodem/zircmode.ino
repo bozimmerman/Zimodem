@@ -179,7 +179,7 @@ void ZIRCMode::doIRCCommand()
           currState=ZIRCMENU_NOTES; // just keep old values
       else
       {
-        boolean fail = cmd.indexOf(',') >= 0;
+        bool fail = cmd.indexOf(',') >= 0;
         int colonDex=cmd.indexOf(':');
         fail = fail || (colonDex <= 0) || (colonDex == cmd.length()-1);
         fail = fail || (colonDex != cmd.lastIndexOf(':'));

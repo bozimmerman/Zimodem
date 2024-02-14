@@ -194,7 +194,7 @@ class ZCommand : public ZMode
     bool    suppressResponses;
     bool    numericResponses;
     bool    longResponses;
-    boolean doEcho;
+    bool    doEcho;
     String  EOLN;
     char    EC                  = '+';
     char    ECS[32];

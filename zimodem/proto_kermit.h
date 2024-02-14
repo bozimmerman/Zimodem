@@ -134,7 +134,7 @@ static bool kDDataHandler(File *kfp, unsigned long number, char *buf, int sz)
   return true;
 }
 
-static boolean kDownload(FlowControlType commandFlow, FS &fs, String **fileList, int fileCount, String &errors)
+static bool kDownload(FlowControlType commandFlow, FS &fs, String **fileList, int fileCount, String &errors)
 {
   KModem kmo(commandFlow, kReceiveSerial, kSendSerial, kDDataHandler, errors);
   kmo.kfileSystem = &fs;
@@ -143,7 +143,7 @@ static boolean kDownload(FlowControlType commandFlow, FS &fs, String **fileList,
   return result;
 }
 
-static boolean kUpload(FlowControlType commandFlow, FS &fs, String rootPath, String &errors)
+static bool kUpload(FlowControlType commandFlow, FS &fs, String rootPath, String &errors)
 {
   KModem kmo(commandFlow, kReceiveSerial, kSendSerial, kUDataHandler, errors);
   kmo.kfileSystem = &fs;

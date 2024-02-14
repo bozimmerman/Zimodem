@@ -352,7 +352,7 @@ void Comet64::receiveLoop()
         yield();
         File f=SD.open(p, FILE_WRITE);
         unsigned long last=millis();
-        boolean fail=false;
+        bool fail=false;
         for(size_t i=0;i<bytes;)
         {
           yield();
