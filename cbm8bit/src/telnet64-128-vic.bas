@@ -87,7 +87,7 @@
 2110 HO$=HO$(X-1):PO=PO(X-1)
 2300 PRINT"{reverse on}{light green}Connecting to ";HO$;":";MID$(STR$(PO),2);"...{reverse off}";CO$
 2310 GET#5,A$:IFA$<>""THEN2310
-2320 PRINT#5,CR$;"atf3hctep";QU$;HO$;":";MID$(STR$(PO),2);QU$;CR$;
+2320 PRINT#5,CR$;"at&S62=1f3hctep";QU$;HO$;":";MID$(STR$(PO),2);QU$;CR$;
 2330 GOSUB900:IFLEN(P$)>7ANDLEFT$(P$,7)="connect"THEN2400
 2340 PRINT"{reverse on}{red}Unable to connect to ";HO$;":";MID$(STR$(PO),2)
 2350 RETURN

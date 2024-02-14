@@ -4,7 +4,6 @@ Bugs Reported (nor reproduced):
  
 New Features:
   *. Support dial modifiers ,W,R,@,',',; <-- connect!,!,L <--last number!
-  *. Support switching between CONNECT #ID and CONNECT 1200 messages? (also NO CARRIER vs NO CARRIER #)
   *. Add gopher client, or at least at&g type gopher command (gopher://?)
   *. SHELL wget command.
   *. SLIP support?

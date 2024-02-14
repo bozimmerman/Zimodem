@@ -215,6 +215,7 @@ void ZStream::doHangupChecks()
         if((lastDTR==dtrInactive)
         &&(dtrInactive != dtrActive))
         {
+          logPrintln("Hangup: DTR");
           if(current != null)
             current->setDisconnectOnStreamExit(true);
           switchBackToCommandMode(true);
@@ -234,6 +235,7 @@ void ZStream::doHangupChecks()
         if((lastPDP==othInactive)
         &&(othInactive != othActive))
         {
+          logPrintln("Hangup: PDP");
           if(current != null)
             current->setDisconnectOnStreamExit(true);
           switchBackToCommandMode(true);

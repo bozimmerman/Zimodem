@@ -2738,16 +2738,12 @@ ZResult ZCommand::doSerialCommand()
         {
           result = ZOK;
           suppressResponses=true;
-          doEcho=false;
           busyMode=false;
           autoStreamMode=true;
           telnetSupport=false;
-          preserveListeners=true;
           streamMode.setHangupType(HANGUP_PDP);
           ringCounter=1;
           serial.setFlowControlType(FCT_DISABLED);
-          serial.setXON(true);
-          packetXOn = true;
           if(baudRate != 300)
           {
             baudRate=300;
@@ -2768,12 +2764,9 @@ ZResult ZCommand::doSerialCommand()
           busyMode=false;
           autoStreamMode=true;
           telnetSupport=false;
-          preserveListeners=true;
           streamMode.setHangupType(HANGUP_PDP);
           ringCounter=1;
           serial.setFlowControlType(FCT_DISABLED);
-          serial.setXON(true);
-          packetXOn = true;
           if(baudRate != 300)
           {
             baudRate=300;
@@ -2792,8 +2785,8 @@ ZResult ZCommand::doSerialCommand()
           busyMode=false;
           autoStreamMode=true;
           telnetSupport=false;
-          preserveListeners=true;
           streamMode.setHangupType(HANGUP_PPPHARD);
+          serial.setPetsciiMode(true);
           serial.setXON(true);
           packetXOn = true;
           if(baudRate != 1200)
@@ -3344,7 +3337,7 @@ void ZCommand::sendOfficialResponse(ZResult res)
       break;
     case ZCONNECT:
       logPrintln("Response: Connected!");
-      sendConnectionNotice((current == null) ? baudRate : current->id);
+      sendConnectionNotice(((current == null)||(autoStreamMode)) ? baudRate : current->id);
       break;
     default:
       break;
@@ -3638,8 +3631,9 @@ bool ZCommand::checkPlusEscape()
           else
           if(current->isAnswered())
           {
-            serial.prints("NO CARRIER ");
-            serial.printf("%d %s:%d",current->id,current->host,current->port);
+            serial.prints("NO CARRIER");
+            if(longResponses && (!autoStreamMode))
+              serial.printf(" %d %s:%d",current->id,current->host,current->port);
             serial.prints(EOLN);
             serial.flush();
           }
@@ -3776,8 +3770,12 @@ void ZCommand::sendNextPacket()
           if(nextConn->isAnswered())
           {
             preEOLN(EOLN);
-            serial.prints("NO CARRIER ");
-            serial.printi(nextConn->id);
+            serial.prints("NO CARRIER");
+            if(longResponses && (!autoStreamMode))
+            {
+              serial.prints(" ");
+              serial.printi(nextConn->id);
+            }
             serial.prints(EOLN);
             serial.flush();
           }
