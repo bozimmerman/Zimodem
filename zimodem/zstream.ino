@@ -359,5 +359,6 @@ void ZStream::loop()
     }
   }
   checkBaudChange();
+  logFileLoop();
 }
 

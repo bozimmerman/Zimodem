@@ -353,7 +353,6 @@ void ZSerial::prints(String str)
 
 void ZSerial::printf(const char* format, ...) 
 {
-  int ret;
   va_list arglist;
   va_start(arglist, format);
   vsnprintf(FBUF, sizeof(FBUF), format, arglist);

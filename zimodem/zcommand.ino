@@ -4095,4 +4095,5 @@ void ZCommand::loop()
   checkPulseDial();
 #endif
   checkBaudChange();
+  logFileLoop();
 }

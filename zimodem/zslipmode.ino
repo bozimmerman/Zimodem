@@ -179,6 +179,7 @@ void ZSLIPMode::loop()
 {
   if(sserial.isSerialOut())
     serialOutDeque();
+  logFileLoop();
 }
 
 #endif /* INCLUDE_SLIP_ */

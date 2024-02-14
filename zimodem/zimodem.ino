@@ -72,7 +72,7 @@ const char compile_date[] = __DATE__ " " __TIME__;
 # define DEFAULT_PIN_SND GPIO_NUM_25
 # define DEFAULT_PIN_OTH GPIO_NUM_4 // pulse pin
 # define DEFAULT_PIN_DTR GPIO_NUM_27
-# define debugPrintf Serial.printf
+# define debugPrintf DBSerial.printf
 # define INCLUDE_SD_SHELL true            /* ****** Delete this line if you do not have an external SD card interface *****/
 # define DEFAULT_FCT FCT_DISABLED
 # define SerialConfig uint32_t
@@ -201,8 +201,10 @@ static WiFiClientNode *conns = null;
 static WiFiServerNode *servs = null;
 static PhoneBookEntry *phonebook = null;
 static bool pinSupport[MAX_PIN_NO];
+static int pinCache[MAX_PIN_NO];
 static String termType = DEFAULT_TERMTYPE;
 static String busyMsg = DEFAULT_BUSYMSG;
+static bool debugUart = false;
 
 static ZMode *currMode = null;
 static ZStream streamMode;
@@ -293,6 +295,7 @@ static void s_pinWrite(uint8_t pinNo, uint8_t value)
 {
   if(pinSupport[pinNo])
   {
+    pinCache[pinNo] = value;
     digitalWrite(pinNo, value);
   }
 }
@@ -424,7 +427,6 @@ static int checkOpenConnections()
     if((dcdStatus == dcdActive)
     &&(dcdStatus != dcdInactive))
     {
-      logPrintfln("DCD going inactive.\n");
       dcdStatus = dcdInactive;
       s_pinWrite(pinDCD,dcdStatus);
       if(baudState == BS_SWITCHED_TEMP)
@@ -438,7 +440,6 @@ static int checkOpenConnections()
     if((dcdStatus == dcdInactive)
     &&(dcdStatus != dcdActive))
     {
-      logPrintfln("DCD going active.\n");
       dcdStatus = dcdActive;
       s_pinWrite(pinDCD,dcdStatus);
       if((tempBaud > 0) && (baudState == BS_NORMAL))
@@ -453,8 +454,8 @@ void setup()
   for(int i=0;i<MAX_PIN_NO;i++)
     pinSupport[i]=false;
 #ifdef ZIMODEM_ESP32
-  Serial.begin(115200); //the debug port
-  Serial.setDebugOutput(true);
+  DBSerial.begin(115200); //the debug port
+  DBSerial.setDebugOutput(true);
   pinSupport[2]=true;
   pinSupport[4]=true;
   pinSupport[5]=true;

@@ -412,5 +412,6 @@ void ZPrint::loop()
     switchBackToCommandMode(false);
   }
   checkBaudChange();
+  logFileLoop();
 }
 

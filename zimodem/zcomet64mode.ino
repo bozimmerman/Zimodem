@@ -42,6 +42,7 @@ void ZComet64Mode::loop()
   serialOutDeque();
   if((proto != 0) && (proto->isAborted()))
     switchBackToCommandMode();
+  logFileLoop();
 }
 
 #endif

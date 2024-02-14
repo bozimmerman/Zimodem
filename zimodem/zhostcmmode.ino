@@ -41,6 +41,7 @@ void ZHostCMMode::loop()
   serialOutDeque();
   if((proto != 0) && (proto->isAborted()))
     switchBackToCommandMode();
+  logFileLoop();
 }
 
 #endif

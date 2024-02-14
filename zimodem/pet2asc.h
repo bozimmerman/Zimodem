@@ -23,6 +23,7 @@
 # include "SPI.h"
 # include "driver/uart.h"
   static HardwareSerial HWSerial(UART_NUM_2);
+  static HardwareSerial DBSerial(UART_NUM_0);
 #else
 # include "ESP8266WiFi.h"
 # define HWSerial Serial

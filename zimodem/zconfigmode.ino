@@ -871,5 +871,6 @@ void ZConfig::loop()
   {
     serialOutDeque();
   }
+  logFileLoop();
 }
 

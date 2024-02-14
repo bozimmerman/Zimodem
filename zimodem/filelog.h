@@ -37,6 +37,7 @@ static void logPrint(const char* msg);
 static void logPrintln(const char* msg);
 static void logPrintf(const char* format, ...);
 static void logPrintfln(const char* format, ...);
+static void logFileLoop();
 static char *TOHEX(const char *s, char *hex, const size_t len);
 static char *TOHEX(long a);
 static char *TOHEX(int a);

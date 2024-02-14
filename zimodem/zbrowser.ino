@@ -1366,6 +1366,7 @@ void ZBrowser::loop()
   {
     serialOutDeque();
   }
+  logFileLoop();
 }
 #else
 static void initSDShell()
