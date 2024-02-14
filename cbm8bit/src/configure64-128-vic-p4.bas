@@ -25,7 +25,7 @@
 80 IFSY=246THENREM ----SET CO$,BG COLOR
 100 REM
 110 P$="a"
-120 PRINTCO$;"{clear}{down*2}CONFIGURE v1.7":PRINT"Requires C64Net WiFi Firmware 2.0+"
+120 PRINTCO$;"{clear}{down*2}CONFIGURE v1.7":PRINT"Requires Zimodem Firmware 2.0+"
 130 PRINT"1200 baud version"
 140 PRINT"By Bo Zimmerman (bo@zimmers.net)":PRINT:PRINT
 197 REM --------------------------------

@@ -25,7 +25,7 @@
 101 REM
 102 REM
 110 P$="a"
-120 PRINTCO$;"{clear}{down*2}WGET v1.5":PRINT"Requires C64Net WiFi firmware 2.0+"
+120 PRINTCO$;"{clear}{down*2}WGET v1.5":PRINT"Requires Zimodem firmware 2.0+"
 140 PRINT"By Bo Zimmerman (bo@zimmers.net)":PRINT:PRINT
 198 REM --- MODEM INIT
 200 UN=PEEK(254)

@@ -24,7 +24,7 @@
 90 IFSY<>34THENPOKE56579,0:REM WHY DOES THIS WORK
 100 REM GET THE BAUD RATE
 110 P$="a"
-120 PRINTCO$;"{clear}{down*2}IRC CHAT v1.5":PRINT"Requires C64Net WiFi firmware 1.8+"
+120 PRINTCO$;"{clear}{down*2}IRC CHAT v1.5":PRINT"Requires Zimodem firmware 1.8+"
 140 PRINT"By Bo Zimmerman (bo@zimmers.net)":PRINT:PRINT
 197 REM --------------------------------
 198 REM GET STARTED                    !

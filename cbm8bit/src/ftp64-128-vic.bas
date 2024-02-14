@@ -26,7 +26,7 @@
 101 REM
 102 REM
 110 REM
-120 PRINTCO$;"{clear}{down*2}FTP v1.8":PRINT"Requires C64Net WiFi firmware 2.0+"
+120 PRINTCO$;"{clear}{down*2}FTP v1.8":PRINT"Requires Zimodem firmware 2.0+"
 140 PRINT"By Bo Zimmerman (bo@zimmers.net)":PRINT:PRINT
 199 REM ---- ZIMODEM SETUP
 200 UN=PEEK(254):IP$="":CR$=CHR$(13)+CHR$(10)
