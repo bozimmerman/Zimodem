@@ -17,6 +17,7 @@
 #ifdef INCLUDE_HOSTCM
 void ZHostCMMode::switchBackToCommandMode()
 {
+  debugPrintf("\nMode:Command\n");
   if(proto != 0)
     delete proto;
   proto = 0;
@@ -25,6 +26,7 @@ void ZHostCMMode::switchBackToCommandMode()
 
 void ZHostCMMode::switchTo()
 {
+  debugPrintf("\nMode:HostCM\n");
   currMode=&hostcmMode;
   if(proto == 0)
     proto = new HostCM(&SD);

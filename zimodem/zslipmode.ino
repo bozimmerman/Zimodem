@@ -17,12 +17,14 @@
 
 void ZSLIPMode::switchBackToCommandMode()
 {
+  debugPrintf("\nMode:Command\n");
   currMode = &commandMode;
   //TODO: UNDO THIS:   raw_recv(_pcb, &_raw_recv, (void *) _pcb);
 }
 
 void ZSLIPMode::switchTo()
 {
+  debugPrintf("\nMode:SLIP\n");
   uint8_t num_slip1 = 0;
   struct netif slipif1;
   ip4_addr_t ipaddr_slip1, netmask_slip1, gw_slip1;

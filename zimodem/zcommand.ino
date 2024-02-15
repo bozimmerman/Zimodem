@@ -609,7 +609,6 @@ void ZCommand::loadConfig()
     debugPrintf("Connecting to %s\n",wifiSSI.c_str());
     connectWifi(wifiSSI.c_str(),wifiPW.c_str(),staticIP,staticDNS,staticGW,staticSN);
     nextReconnectDelay = DEFAULT_RECONNECT_DELAY;
-    debugPrintf("Done attempting to connect to %s\n",wifiSSI.c_str());
   }
   debugPrintf("Resetting...\n");
   doResetCommand();
@@ -1391,13 +1390,9 @@ ZResult ZCommand::doUpdateFirmware(int vval, uint8_t *vbuf, int vlen, bool isNum
   int updaterPort = 80;
 #endif
 #ifdef ZIMODEM_ESP32
-# ifdef RS232_INVERTED
-  char *updaterPrefix = "/otherprojs/c64net2";
-# else
   char *updaterPrefix = "/otherprojs/guru2";
-# endif
 #else
-  char *updaterPrefix = "/otherprojs/c64net";
+  char *updaterPrefix = "/otherprojs/c64net2";
 #endif
   sprintf(firmwareName,"%s-latest-version.txt",updaterPrefix);
   if((!doWebGetBytes(updaterHost, updaterPort, firmwareName, false, buf, &bufSize))||(bufSize<=0))
@@ -2738,6 +2733,7 @@ ZResult ZCommand::doSerialCommand()
         {
           result = ZOK;
           suppressResponses=true;
+          doEcho=false;
           busyMode=false;
           autoStreamMode=true;
           telnetSupport=false;
@@ -2749,6 +2745,8 @@ ZResult ZCommand::doSerialCommand()
             baudRate=300;
             changeBaudRate(baudRate);
           }
+          riActive = HIGH; // remember, this are inverted, so active LOW
+          riInactive = LOW;
           othActive = DEFAULT_OTH_ACTIVE;
           othInactive = DEFAULT_OTH_INACTIVE;
           dcdActive = HIGH;
@@ -2772,10 +2770,10 @@ ZResult ZCommand::doSerialCommand()
             baudRate=300;
             changeBaudRate(baudRate);
           }
+          riActive = HIGH; // remember, this are inverted, so active LOW
+          riInactive = LOW;
           othActive = DEFAULT_OTH_INACTIVE;
           othInactive = DEFAULT_OTH_ACTIVE;
-          dcdActive = HIGH;
-          dcdInactive = LOW;
           checkOpenConnections();
         }
         else
@@ -3992,13 +3990,13 @@ void ZCommand::checkPulseDial()
      * (repeat)
      * if 1->0 lasts 300-320ms, it is between numbers
      */
-    bool bit = digitalRead(pinOTH);
+    int bit = digitalRead(pinOTH);
     if(bit != lastPulseState)
     {
       if(lastPulseTimeMs == 0)
           lastPulseTimeMs = millis();
       else
-      if(!bit)
+      if(bit == othActive)
       {
         unsigned short diff = (millis()-lastPulseTimeMs);
         if((diff > 30)&&(diff < 70))
@@ -4013,7 +4011,7 @@ void ZCommand::checkPulseDial()
         }
       }
       else
-      if(bit)
+      if(bit == othInactive)
       {
         unsigned short diff = (millis()-lastPulseTimeMs);
         if((diff > 280)

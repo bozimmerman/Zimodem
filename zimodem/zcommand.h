@@ -143,7 +143,7 @@ class ZCommand : public ZMode
     int             lastPacketId         = -1;
 
     unsigned long   lastPulseTimeMs      = 0;
-    bool            lastPulseState       = false;
+    int             lastPulseState       = DEFAULT_OTH_INACTIVE;
     unsigned int    pulseWork            = 0;
     String          pulseBuf             = "";
 

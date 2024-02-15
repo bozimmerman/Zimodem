@@ -173,6 +173,7 @@ bool ZPrint::testPrinterSpec(const char *vbuf, int vlen, bool petscii)
 
 ZResult ZPrint::switchTo(char *vbuf, int vlen, bool petscii)
 {
+  debugPrintf("\nMode:Print\n");
   char *workBuf = (char *)malloc(vlen+1);
   strcpy(workBuf, vbuf);
   if(petscii)
@@ -379,6 +380,7 @@ void ZPrint::serialIncoming()
 
 void ZPrint::switchBackToCommandMode(bool error)
 {
+  debugPrintf("\nMode:Command\n");
   if((wifiSock != null)||(outStream!=null))
   {
     if(error)

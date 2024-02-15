@@ -37,6 +37,7 @@ ZBrowser::~ZBrowser()
 
 void ZBrowser::switchTo()
 {
+  debugPrintf("\nMode:Browse\n");
   currMode=&browseMode;
   init();
 }
@@ -71,6 +72,7 @@ void ZBrowser::serialIncoming()
 
 void ZBrowser::switchBackToCommandMode()
 {
+  debugPrintf("\nMode:Command\n");
   commandMode.doEcho=savedEcho;
   currMode = &commandMode;
 }

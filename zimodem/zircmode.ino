@@ -17,6 +17,7 @@
 //https://github.com/bl4de/irc-client/blob/master/irc_client.py
 void ZIRCMode::switchBackToCommandMode()
 {
+  debugPrintf("\nMode:Command\n");
   serial.println("Back in command mode.");
   if(current != null)
   {
@@ -28,6 +29,7 @@ void ZIRCMode::switchBackToCommandMode()
 
 void ZIRCMode::switchTo()
 {
+  debugPrintf("\nMode:IRC\n");
   currMode=&ircMode;
   savedEcho=commandMode.doEcho;
   commandMode.doEcho=true;

@@ -99,7 +99,9 @@ const char compile_date[] = __DATE__ " " __TIME__;
 # define INCLUDE_PING true
 # define INCLUDE_SSH true
 # define INCLUDE_FTP true
-#else  // ESP-8266, e.g. ESP-01, ESP-12E, inverted for old-style C64Net WiFi Modem
+# define INCLUDE_CBMMODEM true  // 1650, 1660, 1670, and Pulse Dialing support
+# define INCLUDE_COMET64 true
+#else  // ESP-8266, e.g. ESP-01, ESP-12E, for old-style C64Net WiFi Modem
 # define DEFAULT_PIN_DSR 13
 # define DEFAULT_PIN_DTR 12
 # define DEFAULT_PIN_RI 14
@@ -113,25 +115,7 @@ const char compile_date[] = __DATE__ " " __TIME__;
 # define echoEOLN(...) serial.prints(EOLN)
 #endif
 //#define INCLUDE_SLIP true
-#define INCLUDE_COMET64 true
-#define INCLUDE_CBMMODEM true  // 1650, 1660, 1670, and Pulse Dialing support
 
-#ifdef RS232_INVERTED
-# define DEFAULT_DCD_ACTIVE  HIGH
-# define DEFAULT_DCD_INACTIVE  LOW
-# define DEFAULT_CTS_ACTIVE  HIGH
-# define DEFAULT_CTS_INACTIVE  LOW
-# define DEFAULT_RTS_ACTIVE  HIGH
-# define DEFAULT_RTS_INACTIVE  LOW
-# define DEFAULT_RI_ACTIVE  HIGH
-# define DEFAULT_RI_INACTIVE  LOW
-# define DEFAULT_DSR_ACTIVE  HIGH
-# define DEFAULT_DSR_INACTIVE  LOW
-# define DEFAULT_DTR_ACTIVE  HIGH
-# define DEFAULT_DTR_INACTIVE  LOW
-# define DEFAULT_OTH_ACTIVE  HIGH
-# define DEFAULT_OTH_INACTIVE  LOW
-#else
 # define DEFAULT_DCD_ACTIVE  LOW
 # define DEFAULT_DCD_INACTIVE  HIGH
 # define DEFAULT_CTS_ACTIVE  LOW
@@ -146,7 +130,6 @@ const char compile_date[] = __DATE__ " " __TIME__;
 # define DEFAULT_DTR_INACTIVE  HIGH
 # define DEFAULT_OTH_ACTIVE  LOW
 # define DEFAULT_OTH_INACTIVE  HIGH
-#endif
 
 #define DEFAULT_BAUD_RATE 1200
 #define DEFAULT_SERIAL_CONFIG SERIAL_8N1
@@ -370,6 +353,8 @@ static bool connectWifi(const char* ssid, const char* password, IPAddress *ip, I
 #ifdef SUPPORT_LED_PINS
   s_pinWrite(DEFAULT_PIN_WIFI,(WiFi.status() == WL_CONNECTED)?DEFAULT_WIFI_ACTIVE:DEFAULT_WIFI_INACTIVE);
 #endif
+  if(WiFi.status() == WL_CONNECTED)
+    debugPrintf("Connected to %s with IP %s.\n",ssid,WiFi.localIP().toString().c_str());
   return (WiFi.status() == WL_CONNECTED);
 }
 

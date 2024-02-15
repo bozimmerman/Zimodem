@@ -53,29 +53,16 @@ Connects to:    TXDDSRRXD
                                 6
  Connects to:              *5v DSR
  
-             1650   1660
-Hangup       16     16
-Hangup 56577  0     32
-Hangup 56579 32     0
-Pickup 56577  2     0
-Pickup 56579  6     38
+ 
+Hangup 1660: poke56579,38:poke56577,32 (drive bit 32 high)
+Pickup 1660: poke56579,38:poke56577,0  (drive bits 4 and 32 low)
 
-1660 off hook: 
-   poke 56579,peek(56579) or 32  (set bit 32 writeable)
-   poke 56577,peek(56577) and (255-32) (set bit 32 low)
-1660 hang-up:
-   poke56577,peek(56577) or 32  (set bit 32 high)
-1660 carrier detect:
-   if((peek(56577)and16)=0)then // carrier detected!!!!
+Hangup 1650: poke56579,38:poke56577,0 (drive bits 32 and 4 low)
+Pickup 1650: poke56579,6:poke56577,2  (drive bits 4 low and 2 high)
 
-????????????????????????????????????????????????????
-1650 off hook: 
-   poke 56579,6  (set rts & dtr writeable)
-   poke 56577,2  (set rts high, dtr low)
-1650 hang-up:
-   poke 56579,32  (set bit 32 writeable)
-   poke 56577,0  (set bit 32 low?)
-1650 carrier detect:
-   if((peek(56577)and16)=0)then // carrier detected!!!!
+Call Detect on 1650/1660:
+Wait for bit 8 (or 16?) to go low, then:
+1660: poke56579,38:pokeoh,4 -- (drive bit 32 low, leave bit 4 high)
+1650: poke56579,38:pokeoh,4 -- (drive bit 32 high, bit 4 low)
 
 
