@@ -16,7 +16,7 @@
 
 void ZConfig::switchTo()
 {
-  debugPrintf("\nMode:Config\n");
+  debugPrintf("\r\nMode:Config\r\n");
   currMode=&configMode;
   serial.setFlowControlType(commandMode.serial.getFlowControlType());
   serial.setPetsciiMode(commandMode.serial.isPetsciiMode());
@@ -51,7 +51,7 @@ void ZConfig::serialIncoming()
 
 void ZConfig::switchBackToCommandMode()
 {
-  debugPrintf("\nMode:Command\n");
+  debugPrintf("\r\nMode:Command\r\n");
   commandMode.doEcho=savedEcho;
   currMode = &commandMode;
 }

@@ -199,7 +199,7 @@ void Comet64::receiveLoop()
       inbuf[i] = (uint8_t)petToAsc((char)inbuf[i]);
   for(int i=0;cmd[i]!=0;i++)
     cmd[i]=(uint8_t)toupper((char)cmd[i]);
-  debugPrintf("COMET64 received: '%s' '%s'\n",cmd,args);
+  debugPrintf("COMET64 received: '%s' '%s'\r\n",cmd,args);
   if((strcmp(cmd,"LOGIN")==0)
   ||(strcmp(cmd,"LOGOUT")==0)
   ||(strcmp(cmd,"QUIT")==0))

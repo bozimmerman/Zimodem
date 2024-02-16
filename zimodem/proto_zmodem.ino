@@ -84,7 +84,7 @@ ZModem::ZModem(FS *zfs, void* cbdata)
 #if 0
   int ZModem::lputs(void* unused, int level, const char* str)
   {
-    debugPrintf("%s\n",str); // debug off -- seems like can't print to both serials too near each other.
+    debugPrintf("%s\r\n",str);
     return ZTRUE;
   }
   
@@ -153,7 +153,7 @@ int ZModem::data_waiting(unsigned timeout)
  */
 void ZModem::progress(void* cbdata, int64_t current_pos)
 {
-  //debugPrintf("POGRESS %lld\n",current_pos);
+  //debugPrintf("POGRESS %lld\r\n",current_pos);
   // do nothing?
 }
 
@@ -2393,7 +2393,7 @@ int ZModem::recv_file_frame(File* fp)
   do {
     type = recv_data(zm->rx_data_subpacket,sizeof(zm->rx_data_subpacket),&n,ZTRUE);
 
-    lprintf(LOG_INFO,"packet len %d type %d\n",n,type);
+    lprintf(LOG_INFO,"packet len %d type %d\r\n",n,type);
 
     if (type == ENDOFFRAME || type == FRAMEOK) {
       

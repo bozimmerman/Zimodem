@@ -140,7 +140,8 @@ void ZSerial::setFlowControlType(FlowControlType type)
           invertMask = invertMask | UART_SIGNAL_RTS_INV;
 #       endif
     }
-    //debugPrintf("invert = %d magic values = %d %d, RTS_HIGH=%d, RTS_LOW=%d HIGHHIGH=%d LOWLOW=%d\n",invertMask,ctsActive,rtsActive, DEFAULT_RTS_ACTIVE, DEFAULT_RTS_INACTIVE, HIGH, LOW);
+    //debugPrintf("invert = %d magic values = %d %d, RTS_HIGH=%d, RTS_LOW=%d HIGHHIGH=%d LOWLOW=%d\r\n",
+    //            invertMask,ctsActive,rtsActive, DEFAULT_RTS_ACTIVE, DEFAULT_RTS_INACTIVE, HIGH, LOW);
     if(invertMask != 0)
       uart_set_line_inverse(UART_NUM_2, invertMask);
     const int CUTOFF = 100;
@@ -192,7 +193,7 @@ bool ZSerial::isSerialOut()
   case FCT_RTSCTS:
     if(pinSupport[pinCTS])
     {
-      //debugPrintf("CTS: pin %d (%d == %d)\n",pinCTS,digitalRead(pinCTS),ctsActive);
+      //debugPrintf("CTS: pin %d (%d == %d)\r\n",pinCTS,digitalRead(pinCTS),ctsActive);
       return (digitalRead(pinCTS) == ctsActive);
     }
     return true;
@@ -214,7 +215,7 @@ bool ZSerial::isSerialCancelled()
   {
     if(pinSupport[pinCTS])
     {
-      //debugPrintf("CTS: pin %d (%d == %d)\n",pinCTS,digitalRead(pinCTS),ctsActive);
+      //debugPrintf("CTS: pin %d (%d == %d)\r\n",pinCTS,digitalRead(pinCTS),ctsActive);
       return (digitalRead(pinCTS) == ctsInactive);
     }
   }
@@ -269,7 +270,7 @@ void ZSerial::enqueByte(uint8_t c)
     }
   }
   // the car jam of blocked bytes stops HERE
-  //debugPrintf("%d\n",serialOutBufferBytesRemaining());
+  //debugPrintf("%d\r\n",serialOutBufferBytesRemaining());
   while(serialOutBufferBytesRemaining()<1)
   {
     if(!isSerialOut())

@@ -354,7 +354,7 @@ static bool connectWifi(const char* ssid, const char* password, IPAddress *ip, I
   s_pinWrite(DEFAULT_PIN_WIFI,(WiFi.status() == WL_CONNECTED)?DEFAULT_WIFI_ACTIVE:DEFAULT_WIFI_INACTIVE);
 #endif
   if(WiFi.status() == WL_CONNECTED)
-    debugPrintf("Connected to %s with IP %s.\n",ssid,WiFi.localIP().toString().c_str());
+    debugPrintf("Connected to %s with IP %s.\r\n",ssid,WiFi.localIP().toString().c_str());
   return (WiFi.status() == WL_CONNECTED);
 }
 
@@ -379,10 +379,9 @@ static void changeBaudRate(int baudRate)
 {
   flushSerial(); // blocking, but very very necessary
   delay(500); // give the client half a sec to catch up
-  logPrintfln("Baud change to %d.\n",baudRate);
-  debugPrintf("Baud change to %d.\n",baudRate);
+  logPrintfln("Baud change to %d.",baudRate);
   dequeSize=1+(baudRate/INTERNAL_FLOW_CONTROL_DIV);
-  debugPrintf("Deque constant now: %d\n",dequeSize);
+  debugPrintf("Baud %d, Deque constant now: %d\r\n",baudRate,dequeSize);
 #ifdef ZIMODEM_ESP32
   HWSerial.updateBaudRate(baudRate);
 #else
@@ -397,11 +396,11 @@ static void changeSerialConfig(SerialConfig conf)
 {
   flushSerial(); // blocking, but very very necessary
   delay(500); // give the client half a sec to catch up
-  debugPrintf("Config changing to %d.\n",(int)conf);
+  debugPrintf("Config changing to %d.\r\n",(int)conf);
   dequeSize=1+(baudRate/INTERNAL_FLOW_CONTROL_DIV);
-  debugPrintf("Deque constant now: %d\n",dequeSize);
+  debugPrintf("Deque constant now: %d\r\n",dequeSize);
   HWSerial.begin(baudRate, conf);  //Change baud rate
-  debugPrintf("Config changed.\n");
+  debugPrintf("Config changed.\r\n");
 }
 
 static int checkOpenConnections()
@@ -463,14 +462,14 @@ void setup()
     pinSupport[11]=false;
   }
 #endif    
-  debugPrintf("Zimodem %s firmware starting initialization\n",ZIMODEM_VERSION);
+  debugPrintf("Zimodem %s firmware starting initialization\r\n",ZIMODEM_VERSION);
   initSDShell();
   currMode = &commandMode;
   if(!SPIFFS.begin())
   {
     SPIFFS.format();
     SPIFFS.begin();
-    debugPrintf("SPIFFS Formatted.");
+    debugPrintf("SPIFFS Formatted.\r\n");
   }
   HWSerial.begin(DEFAULT_BAUD_RATE, DEFAULT_SERIAL_CONFIG);  //Start Serial
 #ifdef ZIMODEM_ESP8266
@@ -499,10 +498,10 @@ void checkReconnect()
        lastConnectAttempt=1;
      if(now > lastConnectAttempt + nextReconnectDelay)
      {
-        debugPrintf("Attempting Reconnect to %s\n",wifiSSI.c_str());
+        debugPrintf("Attempting Reconnect to %s\r\n",wifiSSI.c_str());
         unsigned long oldReconnectDelay = nextReconnectDelay;
         if(!connectWifi(wifiSSI.c_str(),wifiPW.c_str(),staticIP,staticDNS,staticGW,staticSN))
-          debugPrintf("%sUnable to reconnect to %s.\n",wifiSSI.c_str());
+          debugPrintf("%sUnable to reconnect to %s.\r\n",wifiSSI.c_str());
         nextReconnectDelay = oldReconnectDelay * 2;
         if(nextReconnectDelay > MAX_RECONNECT_DELAY)
           nextReconnectDelay = DEFAULT_RECONNECT_DELAY;

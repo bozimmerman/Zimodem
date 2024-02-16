@@ -401,7 +401,7 @@ void ZCommand::reSaveConfig()
     int argn=0;
     if((str!=null)&&(str.length()>0))
     {
-      debugPrintf("Saved Config: %s\n",str.c_str());
+      debugPrintf("Saved Config: %s\r\n",str.c_str());
       for(int i=0;i<str.length();i++)
       {
         if((str[i]==',')&&(argn<=CFG_LAST))
@@ -554,7 +554,7 @@ void ZCommand::parseConfigOptions(String configArguments[])
   f.close();
   if((str!=null)&&(str.length()>0))
   {
-    debugPrintf("Read Config: %s\n",str.c_str());
+    debugPrintf("Read Config: %s\r\n",str.c_str());
     int argn=0;
     for(int i=0;i<str.length();i++)
     {
@@ -606,14 +606,14 @@ void ZCommand::loadConfig()
       ConnSettings::parseIP(argv[CFG_STATIC_SN].c_str()));
   if(wifiSSI.length()>0)
   {
-    debugPrintf("Connecting to %s\n",wifiSSI.c_str());
+    debugPrintf("Connecting to %s\r\n",wifiSSI.c_str());
     connectWifi(wifiSSI.c_str(),wifiPW.c_str(),staticIP,staticDNS,staticGW,staticSN);
     nextReconnectDelay = DEFAULT_RECONNECT_DELAY;
   }
-  debugPrintf("Resetting...\n");
+  debugPrintf("Resetting...\r\n");
   doResetCommand();
   showInitMessage();
-  debugPrintf("Init complete.\n");
+  debugPrintf("Init complete.\r\n");
 }
 
 ZResult ZCommand::doInfoCommand(int vval, uint8_t *vbuf, int vlen, bool isNumber)
@@ -961,9 +961,9 @@ ZResult ZCommand::doConnectCommand(int vval, uint8_t *vbuf, int vlen, bool isNum
   {
     if(wifiSSI.length()==0)
       return ZERROR;
-    debugPrintf("Connecting to %s\n",wifiSSI.c_str());
+    debugPrintf("Connecting to %s\r\n",wifiSSI.c_str());
     bool doconn = connectWifi(wifiSSI.c_str(),wifiPW.c_str(),staticIP,staticDNS,staticGW,staticSN);
-    debugPrintf("Done attempting connect to %s\n",wifiSSI.c_str());
+    debugPrintf("Done attempting connect to %s\r\n",wifiSSI.c_str());
     return doconn ? ZOK : ZERROR;
   }
   if(vlen == 0)
@@ -2327,15 +2327,9 @@ ZResult ZCommand::doSerialCommand()
       }
       
       if(vlen > 0)
-      {
         logPrintfln("Proc: %c %lu '%s'",lastCmd,vval,vbuf);
-        debugPrintf("Proc: %c %lu '%s'\n",lastCmd,vval,vbuf);
-      }
       else
-      {
         logPrintfln("Proc: %c %lu ''",lastCmd,vval);
-        debugPrintf("Proc: %c %lu ''\n",lastCmd,vval);
-      }
       /*
        * We have cmd and args, time to DO!
        */
@@ -4003,7 +3997,7 @@ void ZCommand::checkPulseDial()
           pulseWork++;
         else
         {
-          logPrintf("\n\rP.D.: ERROR!\n\r");
+          logPrintf("\n\rP.D.: ERROR (%u ms)!\n\r",(unsigned int)diff);
           pulseBuf = ""; // error out
           lastPulseTimeMs = 0;
           pulseWork = 0;
@@ -4023,6 +4017,7 @@ void ZCommand::checkPulseDial()
               sprintf(nums,"0");
             else
               sprintf(nums,"%u",pulseWork);
+            debugPrintf("\n\rP.D.: got digit: %u\n\r",(unsigned int)pulseWork);
             pulseBuf += nums;
             pulseWork=0;
         }
@@ -4031,7 +4026,7 @@ void ZCommand::checkPulseDial()
         && (diff < 70))
         {} // between bits
         else
-          logPrintf("\n\rP.D.: Ignoring your fail\n\r");
+          logPrintf("\n\rP.D.: Ignoring FAIL (%u)\n\r",(unsigned int)diff);
         //else if this happens too quickly, do nothing
       }
       lastPulseState = bit;
@@ -4048,6 +4043,7 @@ void ZCommand::checkPulseDial()
           sprintf(nums,"0");
         else
           sprintf(nums,"%u",pulseWork);
+        debugPrintf("\n\rP.D.: got digit: %u\n\r",(unsigned int)pulseWork);
         pulseBuf += nums;
       }
       if(pulseBuf.length() > 2) //2 digits is minimum to prevent false dials

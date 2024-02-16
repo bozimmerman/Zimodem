@@ -18,7 +18,7 @@
 
 void ZComet64Mode::switchBackToCommandMode()
 {
-  debugPrintf("\nMode:Command\n");
+  debugPrintf("\r\nMode:Command\r\n");
   if(proto != 0)
     delete proto;
   proto = 0;
@@ -27,7 +27,7 @@ void ZComet64Mode::switchBackToCommandMode()
 
 void ZComet64Mode::switchTo()
 {
-  debugPrintf("\nMode:Comet64\n");
+  debugPrintf("\r\nMode:Comet64\r\n");
   currMode=&comet64Mode;
   if(proto == 0)
     proto = new Comet64(&SD,commandMode.serial.getFlowControlType());

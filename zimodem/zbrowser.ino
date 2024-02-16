@@ -20,7 +20,7 @@ static void initSDShell()
 {
   if(SD.begin())
   {
-      debugPrintf("External SD card initialized.\n");
+      debugPrintf("External SD card initialized.\r\n");
   }
 }
 
@@ -37,7 +37,7 @@ ZBrowser::~ZBrowser()
 
 void ZBrowser::switchTo()
 {
-  debugPrintf("\nMode:Browse\n");
+  debugPrintf("\n\rMode:Browse\r\n");
   currMode=&browseMode;
   init();
 }
@@ -72,7 +72,7 @@ void ZBrowser::serialIncoming()
 
 void ZBrowser::switchBackToCommandMode()
 {
-  debugPrintf("\nMode:Command\n");
+  debugPrintf("\r\nMode:Command\r\n");
   commandMode.doEcho=savedEcho;
   currMode = &commandMode;
 }
@@ -331,7 +331,7 @@ bool ZBrowser::copyFiles(String source, String mask, String target, bool recurse
     {
       if(matches(file.name(), mask))
       {
-        debugPrintf("file matched:%s\n",file.name());
+        debugPrintf("file matched:%s\r\n",file.name());
         String tpath = target;
         if(file.isDirectory())
         {
@@ -362,7 +362,7 @@ bool ZBrowser::copyFiles(String source, String mask, String target, bool recurse
         if(!tpath.endsWith("/"))
           tpath += "/";
         tpath += root.name();
-        debugPrintf("file xform to file in dir:%s\n",tpath.c_str());
+        debugPrintf("file xform to file in dir:%s\r\n",tpath.c_str());
       }
       DD.close();
     }
@@ -547,7 +547,7 @@ void ZBrowser::showDirectory(String p, String mask, String prefix, bool recurse)
     {
       if(matches(file.name(), mask))
       {
-        debugPrintf("file matched:%s\n",file.name());
+        debugPrintf("file matched:%s\r\n",file.name());
         if(file.isDirectory())
         {
           serial.printf("%sd %s%s",prefix.c_str(),file.name(),EOLNC);
@@ -561,7 +561,7 @@ void ZBrowser::showDirectory(String p, String mask, String prefix, bool recurse)
           serial.printf("%s  %s %lu%s",prefix.c_str(),file.name(),file.size(),EOLNC);
       }
       else
-        debugPrintf("file unmatched:%s (%s)\n",file.name(),mask.c_str());
+        debugPrintf("file unmatched:%s (%s)\r\n",file.name(),mask.c_str());
       file = root.openNextFile();
     }
   }
@@ -638,7 +638,7 @@ bool ZBrowser::doModeCommand(String &line, bool showShellOutput)
       if(cmd.equalsIgnoreCase("md")||cmd.equalsIgnoreCase("mkdir")||cmd.equalsIgnoreCase("makedir"))
       {
         String p = makePath(cleanOneArg(line));
-        debugPrintf("md:%s\n",p.c_str());
+        debugPrintf("md:%s\r\n",p.c_str());
         if((p.length() < 2) || isMask(p) || !SD.mkdir(p))
         {
           if(!quiet)
@@ -650,7 +650,7 @@ bool ZBrowser::doModeCommand(String &line, bool showShellOutput)
       if(cmd.equalsIgnoreCase("cd"))
       {
         String p = makePath(cleanOneArg(line));
-        debugPrintf("cd:%s\n",p.c_str());
+        debugPrintf("cd:%s\r\n",p.c_str());
         if(p.length()==0)
         {
           if(!quiet)
@@ -684,7 +684,7 @@ bool ZBrowser::doModeCommand(String &line, bool showShellOutput)
       if(cmd.equalsIgnoreCase("rd")||cmd.equalsIgnoreCase("rmdir")||cmd.equalsIgnoreCase("deletedir"))
       {
         String p = makePath(cleanOneArg(line));
-        debugPrintf("rd:%s\n",p.c_str());
+        debugPrintf("rd:%s\r\n",p.c_str());
         File root = SD.open(p);
         if(!root)
         {
@@ -710,7 +710,7 @@ bool ZBrowser::doModeCommand(String &line, bool showShellOutput)
       if(cmd.equalsIgnoreCase("cat")||cmd.equalsIgnoreCase("type"))
       {
         String p = makePath(cleanOneArg(line));
-        debugPrintf("cat:%s\n",p.c_str());
+        debugPrintf("cat:%s\r\n",p.c_str());
         File root = SD.open(p);
         if(!root)
         {
@@ -738,7 +738,7 @@ bool ZBrowser::doModeCommand(String &line, bool showShellOutput)
       if(cmd.equalsIgnoreCase("xget"))
       {
         String p = makePath(cleanOneArg(line));
-        debugPrintf("xget:%s\n",p.c_str());
+        debugPrintf("xget:%s\r\n",p.c_str());
         File root = SD.open(p);
         if(!root)
         {
@@ -783,7 +783,7 @@ bool ZBrowser::doModeCommand(String &line, bool showShellOutput)
       if(cmd.equalsIgnoreCase("xput"))
       {
         String p = makePath(cleanOneArg(line));
-        debugPrintf("xput:%s\n",p.c_str());
+        debugPrintf("xput:%s\r\n",p.c_str());
         File root = SD.open(p);
         if(root)
         {
@@ -833,7 +833,7 @@ bool ZBrowser::doModeCommand(String &line, bool showShellOutput)
       if(cmd.equalsIgnoreCase("zget")||cmd.equalsIgnoreCase("rz")||cmd.equalsIgnoreCase("rz.exe"))
       {
         String p = makePath(cleanOneArg(line));
-        debugPrintf("zget:%s\n",p.c_str());
+        debugPrintf("zget:%s\r\n",p.c_str());
         File root = SD.open(p);
         if(!root)
         {
@@ -872,7 +872,7 @@ bool ZBrowser::doModeCommand(String &line, bool showShellOutput)
       if(cmd.equalsIgnoreCase("zput")||cmd.equalsIgnoreCase("sz"))
       {
         String p = makePath(cleanOneArg(line));
-        debugPrintf("zput:%s\n",p.c_str());
+        debugPrintf("zput:%s\r\n",p.c_str());
         String dirNm=p;
         File rootDir=SD.open(dirNm);
         if((!rootDir)||(!rootDir.isDirectory()))
@@ -942,7 +942,7 @@ bool ZBrowser::doModeCommand(String &line, bool showShellOutput)
       if(cmd.equalsIgnoreCase("kput")||cmd.equalsIgnoreCase("sk"))
       {
         String p = makePath(cleanOneArg(line));
-        debugPrintf("kput:%s\n",p.c_str());
+        debugPrintf("kput:%s\r\n",p.c_str());
         String dirNm=p;
         File rootDir=SD.open(dirNm);
         if((!rootDir)||(!rootDir.isDirectory()))
@@ -987,7 +987,7 @@ bool ZBrowser::doModeCommand(String &line, bool showShellOutput)
         String rawPath = makePath(cleanOneArg(line));
         String p=stripDir(rawPath);
         String mask=stripFilename(rawPath);
-        debugPrintf("rm:%s (%s)\n",p.c_str(),mask.c_str());
+        debugPrintf("rm:%s (%s)\r\n",p.c_str(),mask.c_str());
         deleteFile(p,mask,recurse);
       }
       else
@@ -1011,7 +1011,7 @@ bool ZBrowser::doModeCommand(String &line, bool showShellOutput)
           else
             p1=stripDir(p1);
         }
-        debugPrintf("cp:%s (%s) -> %s\n",p1.c_str(),mask.c_str(), p2.c_str());
+        debugPrintf("cp:%s (%s) -> %s\r\n",p1.c_str(),mask.c_str(), p2.c_str());
         success = copyFiles(p1,mask,p2,recurse,overwrite);
       }
       else
@@ -1026,7 +1026,7 @@ bool ZBrowser::doModeCommand(String &line, bool showShellOutput)
         
         String p1=makePath(cleanFirstArg(line));
         String p2=makePath(cleanRemainArg(line));
-        debugPrintf("ren:%s -> %s\n",p1.c_str(), p2.c_str());
+        debugPrintf("ren:%s -> %s\r\n",p1.c_str(), p2.c_str());
         if(p1 == p2)
         {
           if(!quiet)
@@ -1055,7 +1055,7 @@ bool ZBrowser::doModeCommand(String &line, bool showShellOutput)
       {
         String p1=cleanFirstArg(line);
         String p2=makePath(cleanRemainArg(line));
-        debugPrintf("wget:%s -> %s\n",p1.c_str(), p2.c_str());
+        debugPrintf("wget:%s -> %s\r\n",p1.c_str(), p2.c_str());
         if((p1.length()<8)
         || ((strcmp(p1.substring(0,7).c_str(),"http://") != 0)
            && (strcmp(p1.substring(0,9).c_str(),"https://") != 0)))
@@ -1110,7 +1110,7 @@ bool ZBrowser::doModeCommand(String &line, bool showShellOutput)
         }
         else
           p2=makePath(p2);
-        debugPrintf("fget:%s -> %s\n",p1.c_str(), p2.c_str());
+        debugPrintf("fget:%s -> %s\r\n",p1.c_str(), p2.c_str());
         char *tmp=0;
         bool isUrl = ((p1.length()>=11)
                       && ((strcmp(p1.substring(0,6).c_str(),"ftp://") == 0)
@@ -1154,7 +1154,7 @@ bool ZBrowser::doModeCommand(String &line, bool showShellOutput)
       {
         String p1=makePath(cleanFirstArg(line));
         String p2=cleanRemainArg(line);
-        debugPrintf("fput:%s -> %s\n",p1.c_str(), p2.c_str());
+        debugPrintf("fput:%s -> %s\r\n",p1.c_str(), p2.c_str());
         char *tmp=0;
         bool isUrl = ((p2.length()>=11)
                       && ((strcmp(p2.substring(0,6).c_str(),"ftp://") == 0)
@@ -1208,7 +1208,7 @@ bool ZBrowser::doModeCommand(String &line, bool showShellOutput)
       if(cmd.equalsIgnoreCase("fls") || cmd.equalsIgnoreCase("fdir"))
       {
         String p1=cleanOneArg(line);
-        debugPrintf("fls:%s\n",p1.c_str());
+        debugPrintf("fls:%s\r\n",p1.c_str());
         char *tmp=0;
         bool isUrl = ((p1.length()>=11)
                       && ((strcmp(p1.substring(0,6).c_str(),"ftp://") == 0)
@@ -1261,7 +1261,7 @@ bool ZBrowser::doModeCommand(String &line, bool showShellOutput)
           else
             mask = "";
         }
-        debugPrintf("mv:%s(%s) -> %s\n",p1.c_str(),mask.c_str(),p2.c_str());
+        debugPrintf("mv:%s(%s) -> %s\r\n",p1.c_str(),mask.c_str(),p2.c_str());
         if((mask.length()==0)||(!isMask(mask)))
         {
           File root = SD.open(p2);
@@ -1270,7 +1270,7 @@ bool ZBrowser::doModeCommand(String &line, bool showShellOutput)
             if (!p2.endsWith("/"))
               p2 += "/";
             p2 += stripFilename(p1);
-            debugPrintf("mv:%s -> %s\n",p1.c_str(),p2.c_str());
+            debugPrintf("mv:%s -> %s\r\n",p1.c_str(),p2.c_str());
           }
           root.close();
           if(p1 == p2)

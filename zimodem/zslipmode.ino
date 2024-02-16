@@ -17,21 +17,21 @@
 
 void ZSLIPMode::switchBackToCommandMode()
 {
-  debugPrintf("\nMode:Command\n");
+  debugPrintf("\r\nMode:Command\r\n");
   currMode = &commandMode;
   //TODO: UNDO THIS:   raw_recv(_pcb, &_raw_recv, (void *) _pcb);
 }
 
 void ZSLIPMode::switchTo()
 {
-  debugPrintf("\nMode:SLIP\n");
+  debugPrintf("\r\nMode:SLIP\r\n");
   uint8_t num_slip1 = 0;
   struct netif slipif1;
   ip4_addr_t ipaddr_slip1, netmask_slip1, gw_slip1;
   //LWIP_PORT_INIT_SLIP1_IPADDR(&ipaddr_slip1);
   //LWIP_PORT_INIT_SLIP1_GW(&gw_slip1);
   //LWIP_PORT_INIT_SLIP1_NETMASK(&netmask_slip1);
-  //printf("Starting lwIP slipif, local interface IP is %s\n", ip4addr_ntoa(&ipaddr_slip1));
+  //printf("Starting lwIP slipif, local interface IP is %s\r\n", ip4addr_ntoa(&ipaddr_slip1));
 
   netif_add(&slipif1, &ipaddr_slip1, &netmask_slip1, &gw_slip1, &num_slip1, slipif_init, ip_input);
 

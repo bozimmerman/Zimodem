@@ -16,7 +16,7 @@
 
 void ZStream::switchTo(WiFiClientNode *conn)
 {
-  debugPrintf("\nMode:Stream\n");
+  debugPrintf("\r\nMode:Stream\r\n");
   current = conn;
   currentExpiresTimeMs = 0;
   lastNonPlusTimeMs = 0;
@@ -151,7 +151,7 @@ void ZStream::switchBackToCommandMode(bool logout)
     }
     delete current;
   }
-  debugPrintf("\nMode:Command\n");
+  debugPrintf("\r\nMode:Command\r\n");
   current = null;
   currMode = &commandMode;
 }

@@ -658,7 +658,7 @@ void HostCM::receiveLoop()
     sendNAK();
   else
   {
-    logPrintf("HOSTCM received: %c\n",inbuf[0]);
+    logPrintf("HOSTCM received: %c\r\n",inbuf[0]);
     switch(inbuf[0])
     {
       case 'N':
