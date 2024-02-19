@@ -3994,6 +3994,8 @@ void ZCommand::sendNextPacket()
 
 void ZCommand::sendConnectionNotice(int id)
 {
+  if((altOpMode == OPMODE_1650)||(altOpMode == OPMODE_1660))
+    return;
   preEOLN(EOLN);
   if(numericResponses)
   {
