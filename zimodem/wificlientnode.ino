@@ -72,6 +72,7 @@ void WiFiClientNode::constructNode(char *hostIp, int newport, char *username, ch
   client = *clientPtr;
   if(!clientPtr->connect(hostIp, newport))
   {
+    debugPrintf("\r\nFailed to Connected to %s:%d\r\n",hostIp,newport);
     // deleted when it returns and is deleted
   }
   else
