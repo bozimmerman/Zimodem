@@ -19,6 +19,7 @@ const char compile_date[] = __DATE__ " " __TIME__;
 #define DEFAULT_NO_DELAY true
 #define null 0
 #define INCLUDE_IRCC true
+//#define INCLUDE_CMDRX16 true // enable this if you are David or Kevin
 //# define USE_DEVUPDATER true // only enable this if your name is Bo
 
 #ifdef ARDUINO_ESP32_DEV
@@ -189,6 +190,7 @@ static String termType = DEFAULT_TERMTYPE;
 static String busyMsg = DEFAULT_BUSYMSG;
 static bool debugUart = false;
 
+static OpModes altOpMode = OPMODE_NONE;
 static ZMode *currMode = null;
 static ZStream streamMode;
 //static ZSlip slipMode; // not yet implemented

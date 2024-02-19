@@ -1,9 +1,9 @@
 Bugs Reported (nor reproduced):
- *. Are Server Sockets being saved properly?  Do they need delaying during load?
+ *. In 1670 mode, ATFx should be like ATE, but for terminal mode
  *. Test incoming network packets of various sizes at different periods
  
 New Features:
-  *. Support dial modifiers ,W,R,@,',',; <-- connect!,!,L <--last number!
+  *. Default Echo off in phonebook creation.
   *. Add gopher client, or at least at&g type gopher command (gopher://?)
   *. SHELL wget command.
   *. SLIP support?
@@ -28,14 +28,15 @@ GPIO Pin assignments:   ESP12-E      ESP32     ESP-01    User port
  DEFAULT_PIN_WIFI                     0
  PIN_FACTORY_RESET                    0
  DEFAULT_PIN_DCD          2           14         2       H (bit 16)
- DEFAULT_PIN_CTS          5           13         0       K (bit 64)
- DEFAULT_PIN_RTS          4           15         (5V)    D (bit 2)
+ DEFAULT_PIN_CTS          5           13         0       D (bit 2 - Actual RTS (modem input))
+ DEFAULT_PIN_RTS          4           15         (5V)    K (bit 64 - Actual CTS (computer input))
  DEFAULT_PIN_RI           14          32                 F (bit 8)
  DEFAULT_PIN_DSR          13          12                 L (bit 128)
  DEFAULT_PIN_DTR          12          27                 E (bit 4)
  DEFAULT_PIN_RX                                          C (bit 1)
  DEFAULT_PIN_TX                                          M (port A somewhere)
  DEFAULT_PIN_OTH                       4                 J (bit 32)
+ **** remember that default_pin_cts and rts are mis-labeled here!
  
 Connects to:    TXDDSRRXD
            R     U  U  U
@@ -64,5 +65,6 @@ Call Detect on 1650/1660:
 Wait for bit 8 (or 16?) to go low, then:
 1660: poke56579,38:pokeoh,4 -- (drive bit 32 low, leave bit 4 high)
 1650: poke56579,38:pokeoh,4 -- (drive bit 32 high, bit 4 low)
+After ring, SCBBS drives bits 4, 32 and 64 high, the rest low. (DTR and RTS and OTH high)
 
 

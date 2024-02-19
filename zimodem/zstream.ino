@@ -39,7 +39,17 @@ bool ZStream::isPETSCII()
 
 bool ZStream::isEcho()
 {
-  return (current != null) && (current->isEcho());
+  return defaultEcho || ((current != null) && (current->isEcho()));
+}
+
+void ZStream::setDefaultEcho(bool tf)
+{
+  defaultEcho = tf;
+}
+
+bool ZStream::isDefaultEcho()
+{
+  return defaultEcho;
 }
 
 FlowControlType ZStream::getFlowControl()
@@ -129,8 +139,22 @@ void ZStream::serialIncoming()
     currentExpiresTimeMs=millis()+800;
 }
 
-void ZStream::switchBackToCommandMode(bool logout)
+void ZStream::switchBackToCommandMode(bool pppMode)
 {
+  bool logout = true;
+  if(pppMode)
+  {
+    if(current != NULL)
+    {
+      commandMode.sendOfficialResponse(ZOK);
+      if(hangupType != HANGUP_NONE)
+      {
+        current->flushAlways();
+        current->markForDisconnect();
+      }
+      logout = false;
+    }
+  }
   if(logout && (current != null) && isDisconnectedOnStreamExit())
   {
     if(!commandMode.suppressResponses)
@@ -220,7 +244,7 @@ void ZStream::doHangupChecks()
           logPrintln("Hangup: DTR");
           if(current != null)
             current->setDisconnectOnStreamExit(true);
-          switchBackToCommandMode(true);
+          switchBackToCommandMode(false);
         }
       }
       lastDTR = digitalRead(pinDTR);
@@ -240,7 +264,7 @@ void ZStream::doHangupChecks()
           logPrintln("Hangup: PDP");
           if(current != null)
             current->setDisconnectOnStreamExit(true);
-          switchBackToCommandMode(true);
+          switchBackToCommandMode(false);
         }
       }
       lastPDP = digitalRead(pinOTH);
@@ -301,9 +325,7 @@ void ZStream::loop()
   doHangupChecks();
   
   if((current==null)||(!current->isConnected()))
-  {
-    switchBackToCommandMode(true);
-  }
+    switchBackToCommandMode(false);
   else
   if((currentExpiresTimeMs > 0) && (millis() > currentExpiresTimeMs))
   {
@@ -311,16 +333,7 @@ void ZStream::loop()
     if(plussesInARow == 3)
     {
       plussesInARow=0;
-      if(current != 0)
-      {
-        commandMode.sendOfficialResponse(ZOK);
-        if(hangupType != HANGUP_NONE)
-        {
-            current->flushAlways();
-            current->markForDisconnect();
-        }
-        switchBackToCommandMode(false);
-      }
+      switchBackToCommandMode(true);
     }
   }
   else
@@ -362,5 +375,9 @@ void ZStream::loop()
   }
   checkBaudChange();
   logFileLoop();
+#ifdef INCLUDE_CMDRX16
+  if(!digitalRead(pinOTH))
+    switchBackToCommandMode(true);
+#endif
 }
 

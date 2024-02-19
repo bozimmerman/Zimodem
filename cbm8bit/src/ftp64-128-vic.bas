@@ -1,8 +1,5 @@
 !--------------------------------------------------
-!- Wednesday, July 19, 2017 11:57:42 AM
-!- Import of : 
-!- c:\src\zimodem\cbm8bit\src\ftp64-128.prg
-!- Commodore 64
+!- 2/2024
 !--------------------------------------------------
 1 REM FTP64/128  1200B 2.0+
 2 REM UPDATED 09/02/2021 02:39A
@@ -37,6 +34,8 @@
 208 GET#5,A$:IFA$<>""THEN208
 210 PRINT#5,CR$;"ate0n0r0v1q0";CR$;
 220 GOSUB900:IFP$<>"ok"THEN208
+225 FORI=1TO100:NEXT
+228 GET#5,A$:IFA$>""THEN228
 230 PRINT#5,"ate0v1x1f3q0s40=248s0=1s41=0i4";CR$;CHR$(19);:L9=248
 235 GOSUB900:VR=VAL(P$):IFVR<2.0THENPRINT"Zimodem init failed: ";P$:STOP
 240 GOSUB900:IFP$<>"ok"THEN203

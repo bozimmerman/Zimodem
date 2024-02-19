@@ -21,7 +21,7 @@ enum HangupType
   HANGUP_NONE,
   HANGUP_PPPHARD,
   HANGUP_DTR,
-  HANGUP_PDP,
+  HANGUP_PDP
 };
 
 class ZStream : public ZMode
@@ -35,11 +35,12 @@ class ZStream : public ZMode
     ZSerial serial;
     HangupType hangupType = HANGUP_NONE;
     int lastDTR = 0;
+    bool defaultEcho=false;
     int lastPDP = 0;
     uint8_t escBuf[ZSTREAM_ESC_BUF_MAX];
     unsigned long nextAlarm = millis() + 5000;
     
-    void switchBackToCommandMode(bool logout);
+    void switchBackToCommandMode(bool pppMode);
     void socketWrite(uint8_t c);
     void socketWrite(uint8_t *buf, uint8_t len);
     void baudDelay();
@@ -48,11 +49,12 @@ class ZStream : public ZMode
     bool isEcho();
     FlowControlType getFlowControl();
     bool isTelnet();
+    bool isDefaultEcho();
     bool isDisconnectedOnStreamExit();
     void doHangupChecks();
 
   public:
-    
+    void setDefaultEcho(bool tf);
     void switchTo(WiFiClientNode *conn);
     void setHangupType(HangupType type);
     HangupType getHangupType();

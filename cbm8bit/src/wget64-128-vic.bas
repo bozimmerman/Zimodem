@@ -1,8 +1,5 @@
 !--------------------------------------------------
-!- Tuesday, July 18, 2017 2:54:41 AM
-!- Import of : 
-!- c:\src\zimodem\cbm8bit\src\wget64-128.prg
-!- Commodore 64
+!- 2/2024
 !--------------------------------------------------
 1 REM WGET4/128  1200B 2.0+
 2 REM UPDATED 10/13/2021 12:54A
@@ -36,7 +33,8 @@
 208 GET#5,A$:IFA$<>""THEN208
 210 PRINT#5,CR$;"ate0n0r0v1q0";CR$;
 220 GOSUB900:IFP$<>"ok"THEN208
-225 GET#5,A$:IFA$<>""THEN225
+225 FORI=1TO100:NEXT
+228 GET#5,A$:IFA$>""THEN228
 230 PRINT#5,"ate0v1x1f3q0s40=248i4";CR$;CHR$(19);
 235 GOSUB900:VR=VAL(P$):IFVR<2.0THENPRINT"Zimodem init failed: ";P$:STOP
 240 GOSUB900:IFP$<>"ok"THEN203

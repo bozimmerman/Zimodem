@@ -27,6 +27,8 @@ void WiFiClientNode::finishConnectionLink()
     last->next = this;
   }
   checkOpenConnections();
+  if(host != 0)
+    debugPrintf("\r\nConnected to %s:%d\r\n",host,port);
 }
 
 void WiFiClientNode::constructNode()
@@ -125,6 +127,7 @@ WiFiClientNode::~WiFiClientNode()
   lastPacket[1].len=0;
   if(host!=null)
   {
+    debugPrintf("\r\nDisconnected from %s:%d\r\n",host,port);
     if(clientPtr != null)
       clientPtr->stop();
     else

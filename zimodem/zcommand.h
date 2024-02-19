@@ -77,11 +77,14 @@ enum ConfigOptions
   CFG_BUSYMSG=37,
   CFG_S62_TELNET=38,
   CFG_S63_HANGUP=39,
-  CFG_LAST=39
+  CFG_ALTOPMODE=40,
+  CFG_LAST=40
 };
 
-const ConfigOptions v2HexCfgs[] = { CFG_WIFISSI, CFG_WIFIPW, CFG_TIMEZONE, CFG_TIMEFMT, CFG_TIMEURL,
-    CFG_PRINTSPEC, CFG_BUSYMSG, CFG_HOSTNAME, CFG_TERMTYPE, (ConfigOptions)255 };
+const ConfigOptions v2HexCfgs[] = {
+  CFG_WIFISSI, CFG_WIFIPW, CFG_TIMEZONE, CFG_TIMEFMT, CFG_TIMEURL,
+  CFG_PRINTSPEC, CFG_BUSYMSG, CFG_HOSTNAME, CFG_TERMTYPE, (ConfigOptions)255
+};
 
 enum BinType
 {
@@ -93,6 +96,14 @@ enum BinType
   BTYPE_HEX_PLUS    = 5,
   BTYPE_DEC_PLUS    = 6,
   BTYPE_INVALID     = 7
+};
+
+enum OpModes
+{
+  OPMODE_NONE,
+  OPMODE_1650,
+  OPMODE_1660,
+  OPMODE_1670
 };
 
 class ZCommand : public ZMode
@@ -158,7 +169,11 @@ class ZCommand : public ZMode
     void setConfigDefaults();
     void parseConfigOptions(String configArguments[]);
     void setOptionsFromSavedConfig(String configArguments[]);
-    void reSaveConfig();
+    bool reSaveConfig(int retries);
+    void setAltOpModeAdjustments();
+    int pinStatusDecoder(int pinActive, int pinInactive);
+    int getStatusRegister(const int snum, int crc8);
+    ZResult setStatusRegister(const int snum, const int sval, int *crc8, const ZResult oldRes);
     void reSendLastPacket(WiFiClientNode *conn, uint8_t which);
     bool acceptNewConnection();
     void headerOut(const int channel, const int num, const int sz, const int crc8);
@@ -172,7 +187,7 @@ class ZCommand : public ZMode
     ZResult doWebDump(Stream *in, int len, const bool cacheFlag);
     ZResult doWebDump(const char *filename, const bool cache);
 
-    ZResult doResetCommand();
+    ZResult doResetCommand(bool resetOpMode);
     ZResult doNoListenCommand(int vval, uint8_t *vbuf, int vlen, bool isNumber);
     ZResult doBaudCommand(int vval, uint8_t *vbuf, int vlen);
     ZResult doTransmitCommand(int vval, uint8_t *vbuf, int vlen, bool isNumber, const char *dmodifiers, int *crc8);

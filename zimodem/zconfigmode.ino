@@ -216,8 +216,10 @@ void ZConfig::doModeCommand()
             commandMode.updateAutoAnswer();
           }
         }
-        commandMode.reSaveConfig();
-        serial.printf("%sSettings saved.%s",EOLNC,EOLNC);
+        if(!commandMode.reSaveConfig(3))
+          serial.printf("%sFailed to save Settings.%s",EOLNC,EOLNC);
+        else
+          serial.printf("%sSettings saved.%s",EOLNC,EOLNC);
         commandMode.showInitMessage();
         WiFiServerNode::SaveWiFiServers();
         switchBackToCommandMode();
@@ -859,7 +861,7 @@ void ZConfig::loop()
       }
       case ZCFGMENU_WICONFIRM:
       {
-        serial.printf("%sYour setting changed. Save (y/N)?",EOLNC);
+        serial.printf("%sYour settings changed. Save (y/N)?",EOLNC);
         break;
       }
     }
