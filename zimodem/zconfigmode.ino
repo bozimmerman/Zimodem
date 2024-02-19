@@ -248,7 +248,9 @@ void ZConfig::doModeCommand()
       {
         lastNumber = atol((char *)cmd.c_str());
         lastAddress = "";
-        ConnSettings flags(commandMode.getConfigFlagBitmap());
+        int flagsBitmap = commandMode.getConfigFlagBitmap();
+        flagsBitmap = flagsBitmap & (~FLAG_ECHO);
+        ConnSettings flags(flagsBitmap);
         lastOptions = flags.getFlagString();
         lastNotes = "";
         currState=ZCFGMENU_ADDRESS;

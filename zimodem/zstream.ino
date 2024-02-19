@@ -255,7 +255,7 @@ void ZStream::doHangupChecks()
   {
     if(pinSupport[pinOTH])
     {
-      if(lastPDP==dtrActive)
+      if(lastPDP==othActive)
       {
         lastPDP = digitalRead(pinOTH);
         if((lastPDP==othInactive)

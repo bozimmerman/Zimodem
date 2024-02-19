@@ -130,7 +130,7 @@ void ZCommand::setConfigDefaults()
   altOpMode = OPMODE_NONE;
   doEcho=true;
   busyMode=false;
-  autoStreamMode=false;
+  autoStreamMode=false; // should prob have been true all along, ats0 takes care of this.
   telnetSupport=true;
   preserveListeners=false;
   ringCounter=1;
@@ -4216,7 +4216,7 @@ void ZCommand::checkPulseDial()
         }
         else
         if((diff > 15)
-        && (diff < 70))
+        && (diff < 60))
         {} // between bits
         else
           logPrintf("\n\rP.D.: Ignoring FAIL (%u)\n\r",(unsigned int)diff);
@@ -4238,16 +4238,26 @@ void ZCommand::checkPulseDial()
           sprintf(nums,"%u",pulseWork);
         debugPrintf("\n\rP.D.: got digit: %u\n\r",(unsigned int)pulseWork);
         pulseBuf += nums;
-      }
-      if(pulseBuf.length() > 2) //2 digits is minimum to prevent false dials
-      {
+        pulseWork = 0;
+        lastPulseTimeMs = millis();
+        if(pulseBuf.length() > 2) //2 digits is minimum to prevent false dials
+        {
           unsigned long vval = atoi(pulseBuf.c_str());
-          logPrintf("\n\rP.D.: Dialing: %lu\n\r",vval);
-          doDialStreamCommand(vval, (uint8_t *)pulseBuf.c_str(), pulseBuf.length(), true, "");
+          PhoneBookEntry *pb=PhoneBookEntry::findPhonebookEntry(vval);
+          if(pb != null)
+          {
+            pulseBuf = "";
+            lastPulseTimeMs = 0;
+            logPrintf("\n\rP.D.: Dialing: %lu\n\r",vval);
+            doDialStreamCommand(vval, (uint8_t *)pulseBuf.c_str(), pulseBuf.length(), true, "");
+          }
+        }
       }
-      pulseBuf = "";
-      lastPulseTimeMs = 0;
-      pulseWork = 0;
+      else
+      {
+        pulseBuf = "";
+        lastPulseTimeMs = 0;
+      }
     }
   }
 #endif

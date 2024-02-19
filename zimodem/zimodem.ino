@@ -503,7 +503,7 @@ void checkReconnect()
         debugPrintf("Attempting Reconnect to %s\r\n",wifiSSI.c_str());
         unsigned long oldReconnectDelay = nextReconnectDelay;
         if(!connectWifi(wifiSSI.c_str(),wifiPW.c_str(),staticIP,staticDNS,staticGW,staticSN))
-          debugPrintf("%sUnable to reconnect to %s.\r\n",wifiSSI.c_str());
+          debugPrintf("Unable to reconnect to %s.\r\n",wifiSSI.c_str());
         nextReconnectDelay = oldReconnectDelay * 2;
         if(nextReconnectDelay > MAX_RECONNECT_DELAY)
           nextReconnectDelay = DEFAULT_RECONNECT_DELAY;
