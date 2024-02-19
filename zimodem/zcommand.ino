@@ -4201,7 +4201,7 @@ void ZCommand::checkPulseDial()
       if(bit == othInactive)
       {
         unsigned short diff = (millis()-lastPulseTimeMs);
-        if((diff > 280)
+        if((diff > 225)
         && (diff < 350)
         && (pulseWork > 0))
         {
@@ -4246,10 +4246,10 @@ void ZCommand::checkPulseDial()
           PhoneBookEntry *pb=PhoneBookEntry::findPhonebookEntry(vval);
           if(pb != null)
           {
-            pulseBuf = "";
-            lastPulseTimeMs = 0;
             logPrintf("\n\rP.D.: Dialing: %lu\n\r",vval);
             doDialStreamCommand(vval, (uint8_t *)pulseBuf.c_str(), pulseBuf.length(), true, "");
+            pulseBuf = "";
+            lastPulseTimeMs = 0;
           }
         }
       }
