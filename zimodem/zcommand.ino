@@ -2876,7 +2876,7 @@ ZResult ZCommand::doSerialCommand()
                   {
                     int res = getStatusRegister(snum,crc8);
                     serial.printf("%d%s",res,EOLN);
-                    result = ZIGNORE;
+                    result = ZOK;
                   }
               }
           }

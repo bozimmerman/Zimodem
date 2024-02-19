@@ -38,7 +38,7 @@ class ZStream : public ZMode
     bool defaultEcho=false;
     int lastPDP = 0;
     uint8_t escBuf[ZSTREAM_ESC_BUF_MAX];
-    unsigned long nextAlarm = millis() + 5000;
+    unsigned long switchAlarm = millis() + 5000;
     
     void switchBackToCommandMode(bool pppMode);
     void socketWrite(uint8_t c);

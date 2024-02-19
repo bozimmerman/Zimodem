@@ -30,6 +30,7 @@ void ZStream::switchTo(WiFiClientNode *conn)
     lastDTR = digitalRead(pinDTR);
   if(pinSupport[pinOTH])
     lastPDP = digitalRead(pinOTH);
+  switchAlarm = millis() + 3000;
 }
 
 bool ZStream::isPETSCII()
@@ -141,6 +142,7 @@ void ZStream::serialIncoming()
 
 void ZStream::switchBackToCommandMode(bool pppMode)
 {
+  s_pinWrite(pinRI,riInactive);
   bool logout = true;
   if(pppMode)
   {
@@ -375,6 +377,13 @@ void ZStream::loop()
   }
   checkBaudChange();
   logFileLoop();
+  // if it was ringing when we came in, turn off the ringer
+  if((switchAlarm != 0)
+  &&(millis()>switchAlarm))
+  {
+    s_pinWrite(pinRI,riInactive);
+    switchAlarm = 0;
+  }
 #ifdef INCLUDE_CMDRX16
   if(!digitalRead(pinOTH))
     switchBackToCommandMode(true);

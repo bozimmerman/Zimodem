@@ -1,9 +1,7 @@
 Bugs Reported (nor reproduced):
- *. In 1670 mode, ATFx should be like ATE, but for terminal mode
  *. Test incoming network packets of various sizes at different periods
  
 New Features:
-  *. Default Echo off in phonebook creation.
   *. Add gopher client, or at least at&g type gopher command (gopher://?)
   *. SHELL wget command.
   *. SLIP support?
@@ -12,15 +10,6 @@ New Features:
   *. Baud rate test command (what good is this? how do you send cmd if baud is wrong?!)
   *. SSL/SSH server sockets? 
   *. LYNX-like browser?
-
-New hardware hopes:
- C+B 0 FLAG2+PB0	RxD	Receive Data (Must be applied to both pins!)
- D!  1 RTS	Ready To Send
- F!  3 RI	Ring Indicator (1650 ring indicator - output of modem -> input of computer )
- H!	4 DCD	Data Carrier Detect
- J!   5 1650 Pulse Dial Pin (output of computer -> input to modem)
- +K	6 CTS	Clear To Send
- M!	8 TxD	Transmit Data
 
 GPIO Pin assignments:   ESP12-E      ESP32     ESP-01    User port
  DEFAULT_PIN_AA                       16
@@ -53,18 +42,3 @@ Connects to:    TXDDSRRXD
    D          S  R     D  P  S  9       D
                                 6
  Connects to:              *5v DSR
- 
- 
-Hangup 1660: poke56579,38:poke56577,32 (drive bit 32 high)
-Pickup 1660: poke56579,38:poke56577,0  (drive bits 4 and 32 low)
-
-Hangup 1650: poke56579,38:poke56577,0 (drive bits 32 and 4 low)
-Pickup 1650: poke56579,6:poke56577,2  (drive bits 4 low and 2 high)
-
-Call Detect on 1650/1660:
-Wait for bit 8 (or 16?) to go low, then:
-1660: poke56579,38:pokeoh,4 -- (drive bit 32 low, leave bit 4 high)
-1650: poke56579,38:pokeoh,4 -- (drive bit 32 high, bit 4 low)
-After ring, SCBBS drives bits 4, 32 and 64 high, the rest low. (DTR and RTS and OTH high)
-
-
