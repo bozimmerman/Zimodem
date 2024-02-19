@@ -1788,19 +1788,15 @@ ZResult ZCommand::doDialStreamCommand(unsigned long vval, uint8_t *vbuf, int vle
   else
   if((vval >= 0)&&(isNumber))
   {
-    PhoneBookEntry *phb = phonebook;
-    while(phb != null)
+    PhoneBookEntry *phb=PhoneBookEntry::findPhonebookEntry(vval);
+    if(phb != null)
     {
-      if(phb->number == vval)
-      {
         int addrLen=strlen(phb->address);
         uint8_t *vbuf = new uint8_t[addrLen+1];
         strcpy((char *)vbuf,phb->address);
         ZResult res = doDialStreamCommand(0,vbuf,addrLen,false,phb->modifiers);
         free(vbuf);
         return res;
-      }
-      phb = phb->next;
     }
     /*
     if(vval == 5517545) // slip no login
