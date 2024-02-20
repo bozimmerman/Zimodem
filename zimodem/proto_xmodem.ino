@@ -190,8 +190,9 @@ bool XModem::receiveFrames(transfer_t transfer)
           char *fsize = 0;
           if(this->buffer[0] == 0)
           {
-            debugPrintf("Ymodem received no/last file.\r\n");
-            return false; // received no file (or last file)!
+            this->serialWrite(XModem::XMO_ACK);
+            xserial.flush();
+            return true; // received no file (or last file)!
           }
           int i=0;
           for(;i<128;i++)
@@ -207,13 +208,13 @@ bool XModem::receiveFrames(transfer_t transfer)
           if((fsize == 0)||(i>=128))
           {
             debugPrintf("Ymodem fail: no args.\r\n");
-            return false; // THIS IS AN ERROR!!!!!
+            return false;
           }
           this->fileSize = atoi(fsize);
           if((this->fileSize == 0)||(this->fileSize > fileSizeLimit))
           {
             debugPrintf("Ymodem fail: no size.\r\n");
-            return false; // THIS IS AN ERROR!!!!!
+            return false;
           }
           if(fname[0] == '/')
             fname++;
@@ -222,14 +223,16 @@ bool XModem::receiveFrames(transfer_t transfer)
             path = path.substring(0,path.length()-1);
           path += "/";
           path += fname;
-          debugPrintf("YModem opened %s for %u bytes.\r\n",path.c_str(),fsize);
-          File newFile = fileSystem->open(path, FILE_WRITE);
-          if(!newFile)
+          debugPrintf("YModem opened %s for %u bytes.\r\n",path.c_str(),this->fileSize);
+          if(fileSystem->exists(path))
+              fileSystem->remove(path);
+          yfile = fileSystem->open(path, FILE_WRITE);
+          if(!yfile)
           {
             debugPrintf("Ymodem fail: no file.\r\n");
             return false;
           }
-          this->xfile = &newFile;
+          this->xfile = &yfile;
           this->repeatedBlock = false;
         }
         else
@@ -258,6 +261,14 @@ bool XModem::receiveFrames(transfer_t transfer)
       }
       case XModem::XMO_EOT:
         this->serialWrite(XModem::XMO_ACK);
+        if(send0block)
+        {
+            this->serialWrite(XModem::XMO_CRC);
+            this->blockNo=0;
+            this->blockNoExt=0;
+            this->retries = 0;
+            break;
+        }
         return true;
       case XModem::XMO_CAN:
         //wait second CAN
@@ -411,23 +422,19 @@ bool XModem::transmitFrames(transfer_t transfer)
       {
           this->blockNo++;
           this->blockNoExt++;
-          debugPrintf("YAY!-ACK\r\n",ret);
           break;
       }
       else
       if(ret == XModem::XMO_NACK) //resend data
       {
-        debugPrintf("Fail-NAK\r\n",ret);
       }
       else
       if(ret == XModem::XMO_CAN) //abort transmision
       {
-        debugPrintf("Fail-CAN\r\n",ret);
         return false;
       }
       else
       {
-          debugPrintf("Fail-%d\r\n",ret);
       }
       if(++retries > 10)
       {
@@ -470,7 +477,12 @@ bool XModem::transmit()
             this->transmitFrame(Crc, 128);
             sym = this->serialRead(XModem::receiveFrameDelay);
             if(sym == XModem::XMO_ACK) //data is ok - go to next chunk)
-              break;
+            {
+              sym = this->serialRead(XModem::receiveByteDelay); // this should be the unnecc CRC
+              if(sym == XModem::XMO_CRC)
+                break;
+              retry++;
+            }
             else
             if((sym == XModem::XMO_CRC)&&(test))
             {

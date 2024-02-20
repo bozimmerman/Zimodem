@@ -65,6 +65,7 @@ class XModem
 
   protected:
     FS *fileSystem = null;
+    File yfile;
     File *xfile = null;
     File *dfile = null;
     size_t fileSize = 0;
