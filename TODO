@@ -2,8 +2,10 @@ Bugs Reported (nor reproduced):
  *. Test incoming network packets of various sizes at different periods
  
 New Features:
+  *. Add DCD checks to all the BASIC programs.
+  *. Add Y-Modem support.
+  *. Create a Better LOAD and SAVEr (like CometMode), but base it on YModem Batch.
   *. Add gopher client, or at least at&g type gopher command (gopher://?)
-  *. SHELL wget command.
   *. SLIP support?
   *. PPP support?
   *. @19200, on C64 modem, extend start bit by 30 cycles

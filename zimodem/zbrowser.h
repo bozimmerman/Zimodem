@@ -45,7 +45,30 @@ class ZBrowser : public ZMode
     void showDirectory(String path, String mask, String prefix, bool recurse);
     bool copyFiles(String source, String mask, String target, bool recurse, bool overwrite);
     
+    bool doHelpCommand(String &line, bool showShellOutput);
+    bool doDirCommand(String &line, bool showShellOutput);
+    bool doMkDirCommand(String &line, bool showShellOutput);
+    bool doRmDirCommand(String &line, bool showShellOutput);
+    bool doCdDirCommand(String &line, bool showShellOutput);
+    bool doCatCommand(String &line, bool showShellOutput);
+    bool doXGetCommand(String &line, bool showShellOutput);
+    bool doXPutCommand(String &line, bool showShellOutput);
+    bool doYGetCommand(String &line, bool showShellOutput);
+    bool doYPutCommand(String &line, bool showShellOutput);
+    bool doKGetCommand(String &line, bool showShellOutput);
+    bool doKPutCommand(String &line, bool showShellOutput);
+    bool doZGetCommand(String &line, bool showShellOutput);
+    bool doZPutCommand(String &line, bool showShellOutput);
+    bool doRmCommand(String &line, bool showShellOutput);
+    bool doCpCommand(String &line, bool showShellOutput);
+    bool doRenCommand(String &line, bool showShellOutput);
+    bool doMoveCommand(String &line, bool showShellOutput);
+    bool doWGetCommand(String &line, bool showShellOutput);
+
 #ifdef INCLUDE_FTP
+    bool doFGetCommand(String &line, bool showShellOutput);
+    bool doFPutCommand(String &line, bool showShellOutput);
+    bool doFDirCommand(String &line, bool showShellOutput);
     FTPHost *ftpHost = 0;
 #endif
     bool showMenu;
