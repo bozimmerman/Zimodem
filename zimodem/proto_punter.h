@@ -66,8 +66,8 @@ class Punter
     File *pfile = null;
 
   public:
-    static const int receiveFrameDelay=3000;
-    static const int receiveByteDelay=1000;
+    static const int receiveFrameDelay=4000;
+    static const int receiveByteDelay=2000;
     static const int retryLimit = 10;
 
 
