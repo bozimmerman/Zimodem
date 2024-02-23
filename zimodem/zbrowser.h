@@ -59,6 +59,8 @@ class ZBrowser : public ZMode
     bool doKPutCommand(String &line, bool showShellOutput);
     bool doZGetCommand(String &line, bool showShellOutput);
     bool doZPutCommand(String &line, bool showShellOutput);
+    bool doPGetCommand(String &line, bool showShellOutput);
+    bool doPPutCommand(String &line, bool showShellOutput);
     bool doRmCommand(String &line, bool showShellOutput);
     bool doCpCommand(String &line, bool showShellOutput);
     bool doRenCommand(String &line, bool showShellOutput);

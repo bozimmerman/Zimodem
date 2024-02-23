@@ -171,6 +171,7 @@ class ZMode
 #  endif
 #  include "proto_xmodem.h"
 #  include "proto_zmodem.h"
+#  include "proto_punter.h"
 #  include "proto_kermit.h"
 #  include "zbrowser.h"
 #endif

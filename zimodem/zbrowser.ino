@@ -1043,6 +1043,105 @@ bool ZBrowser::doZPutCommand(String &line, bool showShellOutput)
   return success;
 }
 
+bool ZBrowser::doPGetCommand(String &line, bool showShellOutput)
+{
+  bool success=true;
+  String p = makePath(cleanOneArg(line));
+  debugPrintf("pget:%s\r\n",p.c_str());
+  File root = SD.open(p);
+  if(!root)
+  {
+    if(!quiet)
+      serial.printf("Unknown path: %s%s",p.c_str(),EOLNC);
+    success = false;
+  }
+  else
+  if(root.isDirectory())
+  {
+    if(!quiet)
+      serial.printf("Is a directory: %s%s",p.c_str(),EOLNC);
+    root.close();
+    success = false;
+  }
+  else
+  {
+    root.close();
+    File rfile = SD.open(p, FILE_READ);
+    String errors="";
+    if(!quiet)
+      serial.printf("Go to Punter download.%s",EOLNC);
+    serial.flushAlways();
+    if(pDownload(commandMode.getFlowControlType(), rfile,errors))
+    {
+      rfile.close();
+      delay(2000);
+      if(!quiet)
+        serial.printf("Download completed successfully.%s",EOLNC);
+    }
+    else
+    {
+      rfile.close();
+      delay(2000);
+      if(!quiet)
+        serial.printf("Download failed (%s).%s",errors.c_str(),EOLNC);
+      success = false;
+    }
+  }
+  return success;
+}
+
+bool ZBrowser::doPPutCommand(String &line, bool showShellOutput)
+{
+  bool success=true;
+  String p = makePath(cleanOneArg(line));
+  debugPrintf("pput:%s\r\n",p.c_str());
+  File root = SD.open(p);
+  if(root)
+  {
+    if(!quiet)
+      serial.printf("File exists: %s%s",root.name(),EOLNC);
+    root.close();
+    success = false;
+  }
+  else
+  {
+    String dirNm=stripDir(p);
+    File rootDir=SD.open(dirNm);
+    if((!rootDir)||(!rootDir.isDirectory()))
+    {
+      if(!quiet)
+        serial.printf("Path doesn't exist: %s%s",dirNm.c_str(),EOLNC);
+      if(rootDir)
+        rootDir.close();
+      success = false;
+    }
+    else
+    {
+      File rfile = SD.open(p, FILE_WRITE);
+      String errors="";
+      if(!quiet)
+        serial.printf("Go to Punter upload.%s",EOLNC);
+      serial.flushAlways();
+      if(pUpload(commandMode.getFlowControlType(), rfile,errors))
+      {
+        rfile.close();
+        delay(2000);
+        if(!quiet)
+          serial.printf("Upload completed successfully.%s",EOLNC);
+      }
+      else
+      {
+        rfile.close();
+        delay(2000);
+        if(!quiet)
+          serial.printf("Upload failed (%s).%s",errors.c_str(),EOLNC);
+        success = false;
+      }
+    }
+  }
+  return success;
+}
+
 bool ZBrowser::doRmCommand(String &line, bool showShellOutput)
 {
   bool success=true;
@@ -1398,8 +1497,8 @@ bool ZBrowser::doHelpCommand(String &line, bool showShellOutput)
     serial.printf("mv/move [-f] [/][path]file [/][path]file       - Move file(s)%s",EOLNC);
     serial.printf("cat/type [/][path]filename                     - View a file(s)%s",EOLNC);
     serial.printf("df/free/info                                   - Show space remaining%s",EOLNC);
-    serial.printf("xget/zget/kget [/][path]filename               - Download a file%s",EOLNC);
-    serial.printf("xput/zput/kput [/][path]filename               - Upload a file%s",EOLNC);
+    serial.printf("xget/zget/kget/pget [/][path]filename          - Download a file%s",EOLNC);
+    serial.printf("xput/zput/kput/pput [/][path]filename          - Upload a file%s",EOLNC);
     serial.printf("wget [http://url] [/][path]filename            - Download url to file%s",EOLNC);
 #ifdef INCLUDE_FTP
     serial.printf("fget [ftp://user:pass@url/file] [/][path]file  - FTP get file%s",EOLNC);
@@ -1509,6 +1608,12 @@ bool ZBrowser::doModeCommand(String &line, bool showShellOutput)
       else
       if(cmd.equalsIgnoreCase("kput")||cmd.equalsIgnoreCase("sk"))
         success = doKPutCommand(line,showShellOutput);
+      else
+      if(cmd.equalsIgnoreCase("pget"))
+        success = doPGetCommand(line,showShellOutput);
+      else
+      if(cmd.equalsIgnoreCase("pput"))
+        success = doPPutCommand(line,showShellOutput);
       else
       if(cmd.equalsIgnoreCase("wget"))
         success = doWGetCommand(line,showShellOutput);
