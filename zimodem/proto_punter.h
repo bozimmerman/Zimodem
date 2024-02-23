@@ -53,6 +53,7 @@ class Punter
     void serialWrite(char symbol);
 
     PunterCode readPunterCode(int waitTime);
+    bool readPunterCode(PunterCode code, int waitTime);
     void sendPunterCode(PunterCode code);
     bool exchangePunterCodes(PunterCode sendCode, PunterCode expectCode, int tries);
 
