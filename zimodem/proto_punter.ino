@@ -198,10 +198,9 @@ bool Punter::transmit()
         return false;
       this->bufSize += bytesToRead;
     }
+    int sendBlockNo = ((bytesRemain <= 248)?65280:0) + blockNum;
     bytesRemain -= bytesToRead;
     nextBlockSize = (bytesRemain > 248) ? 255 : bytesRemain + PUNTER_HDR_SIZE;
-    int sendBlockNo = ((bytesRemain <= 248)?65280:0) + blockNum;
-//TODO: add debugging here to figure out the last block issue
     if(!this->sendBufBlock(sendBlockNo,nextBlockSize,Punter::retryLimit))
       return false;
     blockNum++;
