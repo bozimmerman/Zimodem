@@ -112,13 +112,9 @@ static bool pDDataHandler(File *pfile, unsigned long number, char *buf, int sz)
   {
     int c=pfile->read();
     if(c<0)
-    {
-      if(i==0)
-        return false;
-      buf[i] = (char)26;
-    }
+      return false;
     else
-      buf[i] = (char)c;
+      buf[i] = (uint8_t)c;
   }
   return true;
 }

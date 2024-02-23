@@ -678,7 +678,11 @@ bool ZBrowser::doRmDirCommand(String &line, bool showShellOutput)
 
 bool ZBrowser::doCatCommand(String &line, bool showShellOutput)
 {
-  bool success=true;
+  bool success = true;
+  String argLetters = "";
+  line = stripArgs(line,argLetters);
+  argLetters.toLowerCase();
+  bool dohex=argLetters.indexOf('h')>=0;
   String p = makePath(cleanOneArg(line));
   debugPrintf("cat:%s\r\n",p.c_str());
   File root = SD.open(p);
@@ -699,8 +703,29 @@ bool ZBrowser::doCatCommand(String &line, bool showShellOutput)
   {
     root.close();
     File f=SD.open(p, FILE_READ);
+    int hexct = 0;
     for(int i=0;i<f.size();i++)
-      serial.write(f.read());
+    {
+      if(serial.available())
+      {
+        if(serial.read() == ' ')
+          break;
+      }
+      if(dohex)
+      {
+        serial.print(TOHEX(f.read()));
+        if(++hexct > 15)
+        {
+          serial.print(EOLNC);
+          hexct=0;
+        }
+        else
+          serial.write(' ');
+      }
+      else
+        serial.write(f.read());
+    }
+    serial.print(EOLNC);
     f.close();
   }
   return success;
@@ -1495,7 +1520,7 @@ bool ZBrowser::doHelpCommand(String &line, bool showShellOutput)
     serial.printf("cp/copy [-r] [-f] [/][path]file [/][path]file  - Copy file(s)%s",EOLNC);
     serial.printf("ren/rename [/][path]file [/][path]file         - Rename a file%s",EOLNC);
     serial.printf("mv/move [-f] [/][path]file [/][path]file       - Move file(s)%s",EOLNC);
-    serial.printf("cat/type [/][path]filename                     - View a file(s)%s",EOLNC);
+    serial.printf("cat/type [-h] [/][path]filename                - View a file(s)%s",EOLNC);
     serial.printf("df/free/info                                   - Show space remaining%s",EOLNC);
     serial.printf("xget/zget/kget/pget [/][path]filename          - Download a file%s",EOLNC);
     serial.printf("xput/zput/kput/pput [/][path]filename          - Upload a file%s",EOLNC);

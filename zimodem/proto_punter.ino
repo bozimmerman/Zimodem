@@ -194,7 +194,7 @@ bool Punter::transmit()
     int bytesToRead = (bytesRemain > 248) ? 248 : bytesRemain;
     if(this->dataHandler != NULL)
     {
-      if(!this->dataHandler(this->pfile, blockNum, (char *)this->buf+PUNTER_HDR_SIZE, bytesToRead))
+      if(!this->dataHandler(this->pfile, blockNum, (char *)this->buf, bytesToRead))
         return false;
       this->bufSize += bytesToRead;
     }
@@ -214,7 +214,9 @@ bool Punter::transmit()
 
 bool Punter::sendBufBlock(unsigned int blkNum, unsigned int nextBlockSize, int tries)
 {
-  memcpy(this->buf+PUNTER_HDR_SIZE,this->buf,(size_t)this->bufSize);
+  // make room for the header, safely.  Do Not Use memcpy!
+  for(int i=this->bufSize-1;i>=0;i--)
+    this->buf[i+PUNTER_HDR_SIZE] = this->buf[i];
   buf[PUNTER_HDR_NBLKSZ] = (uint8_t)nextBlockSize;
   buf[PUNTER_HDR_BLKNLB] = (uint8_t)(blkNum & 0xff);
   buf[PUNTER_HDR_BLKNHB] = (uint8_t)((blkNum & 0xffff) >> 8);
@@ -338,14 +340,6 @@ bool Punter::receive()
     if(!success)
       return false;
     unsigned long blockNum = buf[PUNTER_HDR_BLKNLB] + (256 * buf[PUNTER_HDR_BLKNHB]);
-    if(blockNum >= 65280) // are we actually done? Check for a magic number!
-    {
-      if(!exchangePunterCodes(PUNTER_SNB,PUNTER_SYN, Punter::retryLimit))
-        return false;
-      if(!exchangePunterCodes(PUNTER_SYN,PUNTER_SNB, Punter::retryLimit))
-        return false;
-      return true;
-    }
     // write the buffer data to disk
     if(this->dataHandler != NULL)
     {
@@ -353,6 +347,14 @@ bool Punter::receive()
       int dataSize = this->bufSize - PUNTER_HDR_SIZE;
       if(!this->dataHandler(this->pfile, blockNum, dataBuf, dataSize))
         return false;
+    }
+    if(blockNum >= 65280) // are we actually done? Check for a magic number!
+    {
+      if(!exchangePunterCodes(PUNTER_SNB,PUNTER_SYN, Punter::retryLimit))
+        return false;
+      if(!exchangePunterCodes(PUNTER_SYN,PUNTER_SNB, Punter::retryLimit))
+        return false;
+      return true;
     }
     // now get the size of the NEXT block and move along
     blockSize = buf[PUNTER_HDR_NBLKSZ];
