@@ -96,7 +96,6 @@ static int kReceiveSerial(ZSerial *ser, int del)
     if(ser->available() > 0)
     {
       int c=ser->read();
-      logSerialIn(c);
       return c;
     }
     yield();
