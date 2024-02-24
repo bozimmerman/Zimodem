@@ -46,7 +46,6 @@ void ZSLIPMode::switchTo()
   sserial.setXON(true);
 
   this->curBufLen = 0;
-  this->started=false;
   this->escaped=false;
   if(_pcb == 0)
   {
@@ -113,43 +112,35 @@ void ZSLIPMode::serialIncoming()
     uint8_t c = HWSerial.read();
     if(logFileOpen)
       logSerialIn(c);
+    if(this->buf == 0)
+    {
+      this->buf = (uint8_t *)malloc(4096);
+      this->maxBufSize = 4096;
+      this->curBufLen = 0;
+    }
     if (c == ZSLIPMode::SLIP_END)
     {
-      if(this->started)
+      if(this->curBufLen > 0)
       {
-        if(this->curBufLen > 0)
-        {
-          if(logFileOpen)
-            logPrintln("SLIP-out packet.");
-          struct pbuf p = { 0 };
-          p.next = NULL;
-          p.payload = (void *)this->buf;
-          p.len = curBufLen;
-          p.tot_len = curBufLen;
-          raw_send(_pcb, &p);
-          //yield();
-          //debugPrintf("\r\nWill this crash?\r\n");
-          //yield();
-          //free(this->buf); // this might crash
-          //yield();
-          //debugPrintf("\r\nWell, not yet...\r\n");
+        if(logFileOpen)
+          logPrintln("SLIP-out packet.");
+        struct pbuf *p = (struct pbuf *)malloc(sizeof(struct pbuf));
+        p->next = NULL;
+        p->payload = (void *)this->buf;
+        p->len = this->curBufLen;
+        p->tot_len = this->curBufLen;
+        p->type_internal = PBUF_RAM;
+        p->ref = 1;
+        p->flags = 0;
+        raw_send(_pcb, p);
 #ifdef ZIMODEM_ESP32
-          debugPrintf("tot=%dk heap=%dk",(ESP.getFlashChipSize()/1024),(ESP.getFreeHeap()/1024));
+        debugPrintf("tot=%dk heap=%dk",(ESP.getFlashChipSize()/1024),(ESP.getFreeHeap()/1024));
 #endif
-          this->buf = 0;
-        }
-        // else -- just keep Started
+        this->curBufLen = 0;
+        //free(this->buf); // this might crash
+        //this->buf = 0;
+        this->escaped=false;
       }
-      else
-      {
-        if(this->buf == 0)
-        {
-          this->buf = (uint8_t *)malloc(4096);
-          this->maxBufSize = 4096;
-        }
-        started=true;
-      }
-      this->curBufLen = 0;
     }
     else
     if(c == ZSLIPMode::SLIP_ESC)
@@ -186,13 +177,7 @@ void ZSLIPMode::serialIncoming()
       this->escaped=false;
     }
     else
-    if(this->started)
       this->buf[this->curBufLen++] = c;
-    else
-    {
-      this->curBufLen = 0;
-      this->escaped=false;
-    }
     if(this->curBufLen >= this->maxBufSize)
     {
       uint8_t *newBuf = (uint8_t *)malloc(this->maxBufSize*2);

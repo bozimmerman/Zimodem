@@ -21,7 +21,6 @@ class ZSLIPMode: public ZMode
 {
 private:
   void switchBackToCommandMode();
-  bool started=false;
   bool escaped=false;
   int curBufLen = 0;
   int maxBufSize = 4096;
