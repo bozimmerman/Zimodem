@@ -15,16 +15,17 @@
    limitations under the License.
 */
 #include "lwip/raw.h"
-#include "src/missing/slipif.h"
 
 static ZSerial sserial;
 class ZSLIPMode: public ZMode
 {
 private:
   void switchBackToCommandMode();
-  String inPacket;
   bool started=false;
   bool escaped=false;
+  int curBufLen = 0;
+  int maxBufSize = 4096;
+  uint8_t *buf = 0;
   raw_pcb *_pcb = 0;
 
 public:

@@ -15,10 +15,14 @@
    limitations under the License.
 */
 
+
 void ZSLIPMode::switchBackToCommandMode()
 {
   debugPrintf("\r\nMode:Command\r\n");
   currMode = &commandMode;
+  if(this->buf != 0)
+    free(this->buf);
+  this->buf = 0;
   //TODO: UNDO THIS:   raw_recv(_pcb, &_raw_recv, (void *) _pcb);
 }
 
@@ -33,7 +37,7 @@ void ZSLIPMode::switchTo()
   //LWIP_PORT_INIT_SLIP1_NETMASK(&netmask_slip1);
   //printf("Starting lwIP slipif, local interface IP is %s\r\n", ip4addr_ntoa(&ipaddr_slip1));
 
-  netif_add(&slipif1, &ipaddr_slip1, &netmask_slip1, &gw_slip1, &num_slip1, slipif_init, ip_input);
+  //netif_add(&slipif1, &ipaddr_slip1, &netmask_slip1, &gw_slip1, &num_slip1, slipif_init, ip_input);
 
   sserial.setFlowControlType(FCT_DISABLED);
   if(commandMode.getFlowControlType()==FCT_RTSCTS)
@@ -41,9 +45,9 @@ void ZSLIPMode::switchTo()
   sserial.setPetsciiMode(false);
   sserial.setXON(true);
 
-  inPacket="";
-  started=false;
-  escaped=false;
+  this->curBufLen = 0;
+  this->started=false;
+  this->escaped=false;
   if(_pcb == 0)
   {
     _pcb = raw_new(IP_PROTO_TCP);
@@ -57,23 +61,6 @@ void ZSLIPMode::switchTo()
   debugPrintf("Switched to SLIP mode\n\r");
 }
 
-static String encodeSLIP(uint8_t *ipPacket, int ipLen)
-{
-  String slip;
-  slip += ZSLIPMode::SLIP_END;
-  for(int i=0;i<ipLen;i++)
-  {
-    if(ipPacket[i] == ZSLIPMode::SLIP_END)
-        slip += ZSLIPMode::SLIP_ESC + ZSLIPMode::SLIP_ESC_END;
-    else
-    if(ipPacket[i] == ZSLIPMode::SLIP_ESC)
-        slip += ZSLIPMode::SLIP_ESC + ZSLIPMode::SLIP_ESC_ESC;
-    else
-      slip += ipPacket[i];
-  }
-  slip += ZSLIPMode::SLIP_END;
-  return slip;
-}
 
 static uint8_t _raw_recv(void *arg, raw_pcb *pcb, pbuf *pb, const ip_addr_t *addr)
 {
@@ -82,26 +69,37 @@ static uint8_t _raw_recv(void *arg, raw_pcb *pcb, pbuf *pb, const ip_addr_t *add
     pbuf * this_pb = pb;
     pb = pb->next;
     this_pb->next = NULL;
-    for(int i=0;i<this_pb->len;i+=4)
+    int plen = this_pb->len;
+    if(plen > 0)
     {
-      String pkt = encodeSLIP((uint8_t *)this_pb->payload, this_pb->len);
-      int plen = pkt.length();
-      if(plen > 0)
+      uint8_t* payload = (uint8_t *)this_pb->payload;
+      //if(logFileOpen)
+      //  logPrintln("SLIP-in packet:");
+      sserial.printb(ZSLIPMode::SLIP_END);
+      if(sserial.isSerialOut())
+        serialOutDeque();
+      for(int p=0;p<plen;p++)
       {
-        if(logFileOpen)
-          logPrintln("SLIP-in packet:");
-        uint8_t *buf = (uint8_t *)pkt.c_str();
-        for(int p=0;p<plen;p++)
+        //sserial.printb(buf[p]); //TODO:RESTORE ME
+        if(payload[p] == ZSLIPMode::SLIP_END)
         {
-          if(logFileOpen)
-            logSocketIn(buf[p]);
-          sserial.printb(buf[p]);
-          if(sserial.isSerialOut())
-            serialOutDeque();
+          sserial.printb(ZSLIPMode::SLIP_ESC);
+          sserial.printb(ZSLIPMode::SLIP_END);
         }
+        else
+        if(payload[p] == ZSLIPMode::SLIP_ESC)
+        {
+          sserial.printb(ZSLIPMode::SLIP_ESC);
+          sserial.printb(ZSLIPMode::SLIP_ESC_ESC);
+        }
+        else
+          sserial.printb(payload[p]);
         if(sserial.isSerialOut())
           serialOutDeque();
       }
+      sserial.printb(ZSLIPMode::SLIP_END);
+      if(sserial.isSerialOut())
+        serialOutDeque();
     }
     //pbuf_free(this_pb); // at this point, there are no refs, so errs out.
   }
@@ -115,64 +113,93 @@ void ZSLIPMode::serialIncoming()
     uint8_t c = HWSerial.read();
     if(logFileOpen)
       logSerialIn(c);
-    if (c == SLIP_END)
+    if (c == ZSLIPMode::SLIP_END)
     {
-      if(started)
+      if(this->started)
       {
-        if(inPacket.length()>0)
+        if(this->curBufLen > 0)
         {
           if(logFileOpen)
             logPrintln("SLIP-out packet.");
           struct pbuf p = { 0 };
           p.next = NULL;
-          p.payload = (void *)inPacket.c_str();
-          p.len = inPacket.length();
-          p.tot_len = inPacket.length();
+          p.payload = (void *)this->buf;
+          p.len = curBufLen;
+          p.tot_len = curBufLen;
           raw_send(_pcb, &p);
+          //yield();
+          //debugPrintf("\r\nWill this crash?\r\n");
+          //yield();
+          //free(this->buf); // this might crash
+          //yield();
+          //debugPrintf("\r\nWell, not yet...\r\n");
+#ifdef ZIMODEM_ESP32
+          debugPrintf("tot=%dk heap=%dk",(ESP.getFlashChipSize()/1024),(ESP.getFreeHeap()/1024));
+#endif
+          this->buf = 0;
         }
+        // else -- just keep Started
       }
       else
+      {
+        if(this->buf == 0)
+        {
+          this->buf = (uint8_t *)malloc(4096);
+          this->maxBufSize = 4096;
+        }
         started=true;
-      inPacket="";
+      }
+      this->curBufLen = 0;
     }
     else
-    if(c == SLIP_ESC)
-      escaped=true;
+    if(c == ZSLIPMode::SLIP_ESC)
+      this->escaped=true;
     else
-    if(c == SLIP_ESC_END)
+    if(c == ZSLIPMode::SLIP_ESC_END)
     {
-      if(escaped)
+      if(this->escaped)
       {
-        inPacket += SLIP_END;
-        escaped = false;
+        this->buf[this->curBufLen++] = ZSLIPMode::SLIP_END;
+        this->escaped = false;
       }
       else
-        inPacket += c;
+        this->buf[this->curBufLen++] = c;
     }
     else
-    if(c == SLIP_ESC_ESC)
+    if(c == ZSLIPMode::SLIP_ESC_ESC)
     {
-      if(escaped)
+      if(this->escaped)
       {
-        inPacket += SLIP_ESC;
-        escaped=false;
+        this->buf[this->curBufLen++] = ZSLIPMode::SLIP_ESC;
+        this->escaped=false;
       }
       else
-        inPacket += c;
+        this->buf[this->curBufLen++] = c;
     }
     else
-    if(escaped)
+    if(this->escaped)
     {
       debugPrintf("SLIP Protocol Error\n");
       if(logFileOpen)
         logPrintln("SLIP error.");
-      inPacket="";
-      escaped=false;
+      this->curBufLen = 0;
+      this->escaped=false;
     }
     else
+    if(this->started)
+      this->buf[this->curBufLen++] = c;
+    else
     {
-      inPacket += c;
-      started=true;
+      this->curBufLen = 0;
+      this->escaped=false;
+    }
+    if(this->curBufLen >= this->maxBufSize)
+    {
+      uint8_t *newBuf = (uint8_t *)malloc(this->maxBufSize*2);
+      memcpy(newBuf,this->buf,this->curBufLen);
+      maxBufSize *= 2;
+      free(this->buf);
+      this->buf = newBuf;
     }
   }
 }

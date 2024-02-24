@@ -102,6 +102,7 @@ const char compile_date[] = __DATE__ " " __TIME__;
 # define INCLUDE_FTP true
 # define INCLUDE_CBMMODEM true  // 1650, 1660, 1670, and Pulse Dialing support
 # define INCLUDE_COMET64 true
+# define INCLUDE_SLIP true  // Disable this before checkin, until it works
 #else  // ESP-8266, e.g. ESP-01, ESP-12E, for old-style C64Net WiFi Modem
 # define DEFAULT_PIN_DSR 13
 # define DEFAULT_PIN_DTR 12
@@ -115,7 +116,6 @@ const char compile_date[] = __DATE__ " " __TIME__;
 # define preEOLN(...)
 # define echoEOLN(...) serial.prints(EOLN)
 #endif
-//#define INCLUDE_SLIP true
 
 # define DEFAULT_DCD_ACTIVE  LOW
 # define DEFAULT_DCD_INACTIVE  HIGH
