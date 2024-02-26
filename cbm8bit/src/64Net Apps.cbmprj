@@ -86,8 +86,8 @@
             <FileOpen>True</FileOpen>
         </SourceFile>
         <SourceFile>
-            <Name>cometserver64.bas</Name>
-            <PrgName>cometmode64.prg</PrgName>
+            <Name>cometserve64.bas</Name>
+            <PrgName>cometserve64.prg</PrgName>
             <FileType>1</FileType>
             <IncludeInBuild>True</IncludeInBuild>
             <Regions />
