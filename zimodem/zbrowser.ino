@@ -239,6 +239,21 @@ String ZBrowser::cleanRemainArg(String line)
   return "";
 }
 
+int ZBrowser::argNum(String argLetters, char argLetter, int def)
+{
+  int num = 0;
+  int x = argLetters.indexOf(argLetter);
+  if(x >= 0)
+  {
+    x++;
+    String cnStr = "";
+    while((x < argLetters.length())&&(strchr("0123456789",argLetters[x])!=null))
+      cnStr += argLetters[x++];
+    num = atoi(argLetters.c_str());
+  }
+  return num;
+}
+
 String ZBrowser::cleanOneArg(String line)
 {
   int state=0;
@@ -1167,6 +1182,155 @@ bool ZBrowser::doPPutCommand(String &line, bool showShellOutput)
   return success;
 }
 
+/*
+bool ZBrowser::doPMLPutCommand(String &line, bool showShellOutput)
+{
+
+}
+
+bool ZBrowser::doPMLGetCommand(String &line, bool showShellOutput)
+{
+  bool success = true;
+  String argLetters = "";
+  line = stripArgs(line,argLetters);
+  argLetters.toLowerCase();
+  int startByte = argNum(argLetters, 's', 0);
+  int length = argNum(argLetters, 'n', 0);
+  int channelId = argNum(argLetters, 'i', 0);
+  int newFlowControl = argNum(argLetters, 'l', (int)commandMode.serial.getFlowControlType());
+  String p = makePath(cleanOneArg(line));
+  debugPrintf("pmlget:%s\r\n",p.c_str());
+  File root = SD.open(p);
+  if(!root)
+  {
+    if(!quiet)
+      serial.printf("Unknown path: %s%s",p.c_str(),EOLNC);
+    success = false;
+  }
+  else
+  if(root.isDirectory())
+  {
+    if(!quiet)
+      serial.printf("Is a directory: %s%s",p.c_str(),EOLNC);
+    root.close();
+    success = false;
+  }
+  else
+  {
+    root.close();
+    File rfile = SD.open(p, FILE_READ);
+    if((length <= 0)||(length>rfile.size()-startByte))
+      length = rfile.size()-startByte;
+    if((startByte<0)||(startByte > rfile.size()))
+    {
+      serial.printf("Bad start byte: %d.%s",startByte,EOLNC);
+      rfile.close();
+      return false;
+    }
+    String errors="";
+    if(!quiet)
+      serial.printf("Go to PML download.%s",EOLNC);
+    serial.flushAlways();
+    if(startByte > 0)
+      rfile.seek(startByte);
+    int oldFlowControl = commandMode.serial.getFlowControlType();
+    if(oldFlowControl != newFlowControl)
+    {
+      commandMode.serial.setXON(true);
+      commandMode.serial.setFlowControlType((FlowControlType)newFlowControl);
+      commandMode.packetXOn = (serial.getFlowControlType() != FCT_MANUAL);
+    }
+    uint8_t fbuf[512]; // because of state machines, over-size it
+    uint16_t fbuflen = 0;
+    // use commandModes serial port for everything -- it actually works
+    int packetNum = 1;
+    bool skipLastPacket=false;
+    while(length > 0)
+    {
+      yield();
+      if(HWSerial.available()>0)
+      {
+        bool eoln = commandMode.readSerialStream();
+        commandMode.clearPlusProgress();
+        if((commandMode.eon > 0)
+        &&(commandMode.nbuf[commandMode.eon-1]==25))
+        {
+          commandMode.eon--;
+          commandMode.packetOut(channelId, fbuf, fbuflen, packetNum);
+        }
+      }
+      else
+      if(commandMode.checkPlusEscape())
+      {
+        skipLastPacket = true;
+        break;
+      }
+      if(!serial.isXON() || (!commandMode.packetXOn))
+        continue;
+      uint16_t maxfbuflen = length;
+      if(maxfbuflen > commandMode.packetSize)
+        maxfbuflen = commandMode.packetSize;
+      for(fbuflen=0;fbuflen<maxfbuflen;)
+      {
+          int c = rfile.read();
+          if(c < 0)
+            break;
+          if((commandMode.delimiters[0] != 0)
+          &&(strchr(commandMode.delimiters,(char)c)!=0))
+            break;
+          fbuf[fbuflen++] = (uint8_t)c;
+          length--; // one char down!
+      }
+      uint8_t *buf = (uint8_t *)malloc(fbuflen);
+      memcpy(buf,fbuf,fbuflen);
+      buf = commandMode.doMaskOuts(buf,&fbuflen,commandMode.maskOuts);
+      buf = commandMode.doStateMachine(buf,&fbuflen,&commandMode.machineState,&commandMode.machineQue,commandMode.stateMachine);
+      if(fbuflen > 512)
+        fbuflen = 512;
+      memcpy(fbuf,buf,fbuflen);
+      free(buf);
+      if((newFlowControl == FCT_AUTOOFF)||(newFlowControl == FCT_MANUAL))
+        commandMode.packetXOn = false;
+      commandMode.packetOut(channelId, fbuf, fbuflen, packetNum++);
+    }
+    rfile.close();
+    if(!skipLastPacket)
+    {
+      while(!serial.isXON() || (!commandMode.packetXOn))
+      {
+        yield();
+        if(HWSerial.available()>0)
+        {
+          bool eoln = commandMode.readSerialStream();
+          commandMode.clearPlusProgress();
+          if((commandMode.eon > 0)
+          &&(commandMode.nbuf[commandMode.eon-1]==25))
+          {
+            commandMode.eon--;
+            commandMode.packetOut(channelId, fbuf, fbuflen, packetNum);
+          }
+        }
+        else
+        if(commandMode.checkPlusEscape())
+        {
+          skipLastPacket = true;
+          break;
+        }
+      }
+      if(!skipLastPacket)
+        commandMode.headerOut(channelId, packetNum, 0, 0); // send last packet
+    }
+    if(oldFlowControl != newFlowControl)
+    {
+      commandMode.serial.setXON(true);
+      commandMode.serial.setFlowControlType((FlowControlType)oldFlowControl);
+      commandMode.packetXOn = (serial.getFlowControlType() != FCT_MANUAL);
+    }
+  }
+  return success;
+}
+*/
+
 bool ZBrowser::doRmCommand(String &line, bool showShellOutput)
 {
   bool success=true;
@@ -1633,6 +1797,12 @@ bool ZBrowser::doModeCommand(String &line, bool showShellOutput)
       else
       if(cmd.equalsIgnoreCase("kput")||cmd.equalsIgnoreCase("sk"))
         success = doKPutCommand(line,showShellOutput);
+      else
+      if(cmd.equalsIgnoreCase("pmlget"))
+        success = doPMLGetCommand(line,showShellOutput);
+      else
+      if(cmd.equalsIgnoreCase("pmlput"))
+        success = doPMLPutCommand(line,showShellOutput);
       else
       if(cmd.equalsIgnoreCase("pget"))
         success = doPGetCommand(line,showShellOutput);

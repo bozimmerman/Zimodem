@@ -35,6 +35,7 @@ class ZBrowser : public ZMode
     String stripDir(String path);
     String stripFilename(String path);
     String stripArgs(String line, String &argLetters);
+    int argNum(String argLetters, char argLetter, int def);
     String cleanOneArg(String line);
     String cleanFirstArg(String line);
     String cleanRemainArg(String line);
@@ -51,6 +52,10 @@ class ZBrowser : public ZMode
     bool doRmDirCommand(String &line, bool showShellOutput);
     bool doCdDirCommand(String &line, bool showShellOutput);
     bool doCatCommand(String &line, bool showShellOutput);
+    bool doRmCommand(String &line, bool showShellOutput);
+    bool doCpCommand(String &line, bool showShellOutput);
+    bool doRenCommand(String &line, bool showShellOutput);
+    bool doMoveCommand(String &line, bool showShellOutput);
     bool doXGetCommand(String &line, bool showShellOutput);
     bool doXPutCommand(String &line, bool showShellOutput);
     bool doYGetCommand(String &line, bool showShellOutput);
@@ -61,10 +66,8 @@ class ZBrowser : public ZMode
     bool doZPutCommand(String &line, bool showShellOutput);
     bool doPGetCommand(String &line, bool showShellOutput);
     bool doPPutCommand(String &line, bool showShellOutput);
-    bool doRmCommand(String &line, bool showShellOutput);
-    bool doCpCommand(String &line, bool showShellOutput);
-    bool doRenCommand(String &line, bool showShellOutput);
-    bool doMoveCommand(String &line, bool showShellOutput);
+    bool doPMLPutCommand(String &line, bool showShellOutput);
+    bool doPMLGetCommand(String &line, bool showShellOutput);
     bool doWGetCommand(String &line, bool showShellOutput);
 
 #ifdef INCLUDE_FTP
