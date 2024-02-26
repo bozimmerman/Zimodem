@@ -174,6 +174,7 @@ class ZCommand : public ZMode
     int pinStatusDecoder(int pinActive, int pinInactive);
     int getStatusRegister(const int snum, int crc8);
     ZResult setStatusRegister(const int snum, const int sval, int *crc8, const ZResult oldRes);
+    void packetOut(uint8_t id, uint8_t *cbuf, uint16_t bufLen, uint8_t num);
     void reSendLastPacket(WiFiClientNode *conn, uint8_t which);
     bool acceptNewConnection();
     void headerOut(const int channel, const int num, const int sz, const int crc8);

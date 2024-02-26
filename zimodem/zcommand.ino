@@ -3681,6 +3681,57 @@ uint8_t *ZCommand::doMaskOuts(uint8_t *buf, uint16_t *bufLen, char *maskOuts)
   return buf;
 }
 
+void ZCommand::packetOut(uint8_t id, uint8_t *buf, uint16_t bufLen, uint8_t num)
+{
+  uint8_t crc=CRC8(buf,bufLen);
+  headerOut(id,num,bufLen,(int)crc);
+  int bct=0;
+  int i=0;
+  while(i < bufLen)
+  {
+    uint8_t c=buf[i++];
+    switch(binType)
+    {
+      case BTYPE_NORMAL:
+      case BTYPE_NORMAL_NOCHK:
+      case BTYPE_NORMAL_PLUS:
+        serial.write(c);
+        break;
+      case BTYPE_HEX:
+      case BTYPE_HEX_PLUS:
+      {
+        const char *hbuf = TOHEX(c);
+        serial.printb(hbuf[0]); // prevents petscii
+        serial.printb(hbuf[1]);
+        if((++bct)>=39)
+        {
+          serial.prints(EOLN);
+          bct=0;
+        }
+        break;
+      }
+      case BTYPE_DEC:
+      case BTYPE_DEC_PLUS:
+        serial.printf("%d%s",c,EOLN.c_str());
+        break;
+    }
+    while(serial.availableForWrite()<5)
+    {
+      if(serial.isSerialOut())
+      {
+        serialOutDeque();
+        hwSerialFlush();
+      }
+      serial.drainForXonXoff();
+      delay(1);
+      yield();
+    }
+    yield();
+  }
+  if(bct > 0)
+    serial.prints(EOLN);
+  free(buf);
+}
 
 void ZCommand::reSendLastPacket(WiFiClientNode *conn, uint8_t which)
 {
@@ -3702,10 +3753,10 @@ void ZCommand::reSendLastPacket(WiFiClientNode *conn, uint8_t which)
   else
   {
     uint16_t bufLen = conn->lastPacket[which].len;
-    uint8_t *buf = (uint8_t *)malloc(bufLen);
+    uint8_t *cbuf = conn->lastPacket[which].buf;
     uint8_t num = conn->lastPacket[which].num;
-    memcpy(buf,conn->lastPacket[which].buf,bufLen);
-
+    uint8_t *buf = (uint8_t *)malloc(bufLen);
+    memcpy(buf,cbuf,bufLen);
     buf = doMaskOuts(buf,&bufLen,maskOuts);
     buf = doMaskOuts(buf,&bufLen,conn->maskOuts);
     buf = doStateMachine(buf,&bufLen,&machineState,&machineQue,stateMachine);
@@ -3723,55 +3774,7 @@ void ZCommand::reSendLastPacket(WiFiClientNode *conn, uint8_t which)
         }
       }
     }
-    
-    uint8_t crc=CRC8(buf,bufLen);
-    headerOut(conn->id,num,bufLen,(int)crc);
-    int bct=0;
-    int i=0;
-    while(i < bufLen)
-    {
-      uint8_t c=buf[i++];
-      switch(binType)
-      {
-        case BTYPE_NORMAL:
-        case BTYPE_NORMAL_NOCHK:
-        case BTYPE_NORMAL_PLUS:
-          serial.write(c);
-          break;
-        case BTYPE_HEX:
-        case BTYPE_HEX_PLUS:
-        {
-          const char *hbuf = TOHEX(c);
-          serial.printb(hbuf[0]); // prevents petscii
-          serial.printb(hbuf[1]);
-          if((++bct)>=39)
-          {
-            serial.prints(EOLN);
-            bct=0;
-          }
-          break;
-        }
-        case BTYPE_DEC:
-        case BTYPE_DEC_PLUS:
-          serial.printf("%d%s",c,EOLN.c_str());
-          break;
-      }
-      while(serial.availableForWrite()<5)
-      {
-        if(serial.isSerialOut())
-        {
-          serialOutDeque();
-          hwSerialFlush();
-        }
-        serial.drainForXonXoff();
-        delay(1);
-        yield();
-      }
-      yield();
-    }
-    if(bct > 0)
-      serial.prints(EOLN);
-    free(buf);
+    packetOut(conn->id,buf,bufLen,num);
   }
 }
 
@@ -3814,10 +3817,10 @@ bool ZCommand::checkPlusEscape()
         current = conns;
         nextConn = conns;
       }
-      memset(nbuf,0,MAX_COMMAND_SIZE);
-      eon=0;
-      return true;
     }
+    memset(nbuf,0,MAX_COMMAND_SIZE);
+    eon=0;
+    return true;
   }
   return false;
 }
