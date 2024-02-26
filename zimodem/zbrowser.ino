@@ -1196,6 +1196,7 @@ bool ZBrowser::doPMLGetCommand(String &line, bool showShellOutput)
   argLetters.toLowerCase();
   int startByte = argNum(argLetters, 's', 0);
   int length = argNum(argLetters, 'n', 0);
+  int newBinType = argNum(argLetters, 'b', (int)commandMode.binType);
   int channelId = argNum(argLetters, 'i', 0);
   int newFlowControl = argNum(argLetters, 'l', (int)commandMode.serial.getFlowControlType());
   String p = makePath(cleanOneArg(line));
@@ -1240,6 +1241,9 @@ bool ZBrowser::doPMLGetCommand(String &line, bool showShellOutput)
       commandMode.serial.setFlowControlType((FlowControlType)newFlowControl);
       commandMode.packetXOn = (serial.getFlowControlType() != FCT_MANUAL);
     }
+    int oldBinType = commandMode.serial.getBinType();
+    if(oldBinType != newBinType)
+      commandMode.binType = (BinType)newBinType;
     uint8_t fbuf[512]; // because of state machines, over-size it
     uint16_t fbuflen = 0;
     // use commandModes serial port for everything -- it actually works
@@ -1326,6 +1330,8 @@ bool ZBrowser::doPMLGetCommand(String &line, bool showShellOutput)
       commandMode.serial.setFlowControlType((FlowControlType)oldFlowControl);
       commandMode.packetXOn = (serial.getFlowControlType() != FCT_MANUAL);
     }
+    if(oldBinType != newBinType)
+      commandMode.binType = (BinType)oldBinType;
   }
   return success;
 }
