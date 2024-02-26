@@ -1797,12 +1797,13 @@ bool ZBrowser::doModeCommand(String &line, bool showShellOutput)
       else
       if(cmd.equalsIgnoreCase("kput")||cmd.equalsIgnoreCase("sk"))
         success = doKPutCommand(line,showShellOutput);
-      else
+      /*else
       if(cmd.equalsIgnoreCase("pmlget"))
         success = doPMLGetCommand(line,showShellOutput);
       else
       if(cmd.equalsIgnoreCase("pmlput"))
         success = doPMLPutCommand(line,showShellOutput);
+      */
       else
       if(cmd.equalsIgnoreCase("pget"))
         success = doPGetCommand(line,showShellOutput);
