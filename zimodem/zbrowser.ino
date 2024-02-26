@@ -1157,6 +1157,8 @@ bool ZBrowser::doPPutCommand(String &line, bool showShellOutput)
     }
     else
     {
+      root.close();
+      rootDir.close();
       File rfile = SD.open(p, FILE_WRITE);
       String errors="";
       if(!quiet)
@@ -1182,10 +1184,116 @@ bool ZBrowser::doPPutCommand(String &line, bool showShellOutput)
   return success;
 }
 
-/*
 bool ZBrowser::doPMLPutCommand(String &line, bool showShellOutput)
 {
+  bool success = true;
+  String argLetters = "";
+  line = stripArgs(line,argLetters);
+  argLetters.toLowerCase();
+  int newBinType = argNum(argLetters, 'b', (int)commandMode.binType);
+  int channelId = argNum(argLetters, 'i', 0);
+  int newFlowControl = argNum(argLetters, 'l', (int)commandMode.serial.getFlowControlType());
+  String p = makePath(cleanOneArg(line));
+  debugPrintf("pmlput:%s\r\n",p.c_str());
+  File root = SD.open(p);
+  if(root)
+  {
+    if(!quiet)
+      serial.printf("File exists: %s%s",root.name(),EOLNC);
+    root.close();
+    success = false;
+  }
+  else
+  {
+    String dirNm=stripDir(p);
+    File rootDir=SD.open(dirNm);
+    if((!rootDir)||(!rootDir.isDirectory()))
+    {
+      if(!quiet)
+        serial.printf("Path doesn't exist: %s%s",dirNm.c_str(),EOLNC);
+      if(rootDir)
+        rootDir.close();
+      success = false;
+    }
+    else
+    {
+      root.close();
+      rootDir.close();
+      File rfile = SD.open(p, FILE_WRITE);
+      String errors="";
+      bool skipLastPacket = false;
+      if(!quiet)
+        serial.printf("Go to PML upload.%s",EOLNC);
+      serial.flushAlways();
+      int oldBinType = (int)commandMode.binType;
+      if(oldBinType != newBinType)
+        commandMode.binType = (BinType)newBinType;
+      //start receiving stuff and write it to a file
+      while(true)
+      {
+        if(commandMode.serial.isSerialOut())
+          serialOutDeque();
+        yield();
+        bool eoln = false;
+        if(HWSerial.available()>0)
+        {
+          eoln = commandMode.readSerialStream();
+          commandMode.clearPlusProgress();
+        }
+        else
+        if(commandMode.checkPlusEscape())
+        {
+          skipLastPacket = true;
+          success = false;
+          break;
+        }
+        if(!eoln)
+          continue;
+        char *headerStart = strchr((const char *)commandMode.nbuf,'[');
+        if(headerStart == NULL)
+          continue;
+        char *headerEnd = strchr(headerStart,']');
+        if(headerEnd == NULL)
+          continue;
 
+        *headerEnd = 0;
+        int hnums[4];
+        int hnum = 0;
+        char *hstrt = headerStart+1;
+        char *hend =strchr(hstrt,' ');
+        while((hstrt != NULL)&&(*hstrt != 0))
+        {
+          if(hend == NULL)
+          {
+            hnums[hnum++]  = atoi(hstrt);
+            break;
+          }
+          else
+          {
+            *hend = 0;
+            hnums[hnum++]  = atoi(hstrt);
+            hstrt = hend + 1;
+          }
+        }
+        int channelId = hnums[0];
+        // too many damn header and bin types.. its just too nuts
+        //TODO: if header == 0, done
+        //TODO: read the block
+        //TODO: parse the block using commandMode
+        //TODO: write block data to file
+      }
+      if(oldBinType != newBinType)
+        commandMode.binType = (BinType)oldBinType;
+      if(!quiet)
+      {
+        if(!success)
+          serial.printf("Upload failed.%s",EOLNC);
+        else
+          serial.printf("Upload successfully completed.%s",EOLNC);
+      }
+    }
+  }
+  return success;
 }
 
 bool ZBrowser::doPMLGetCommand(String &line, bool showShellOutput)
@@ -1241,7 +1349,7 @@ bool ZBrowser::doPMLGetCommand(String &line, bool showShellOutput)
       commandMode.serial.setFlowControlType((FlowControlType)newFlowControl);
       commandMode.packetXOn = (serial.getFlowControlType() != FCT_MANUAL);
     }
-    int oldBinType = commandMode.serial.getBinType();
+    int oldBinType = (int)commandMode.binType;
     if(oldBinType != newBinType)
       commandMode.binType = (BinType)newBinType;
     uint8_t fbuf[512]; // because of state machines, over-size it
@@ -1249,8 +1357,11 @@ bool ZBrowser::doPMLGetCommand(String &line, bool showShellOutput)
     // use commandModes serial port for everything -- it actually works
     int packetNum = 1;
     bool skipLastPacket=false;
+    unsigned long lastTime = millis();
     while(length > 0)
     {
+      if(commandMode.serial.isSerialOut())
+        serialOutDeque();
       yield();
       if(HWSerial.available()>0)
       {
@@ -1267,6 +1378,7 @@ bool ZBrowser::doPMLGetCommand(String &line, bool showShellOutput)
       if(commandMode.checkPlusEscape())
       {
         skipLastPacket = true;
+        success = false;
         break;
       }
       if(!serial.isXON() || (!commandMode.packetXOn))
@@ -1302,6 +1414,8 @@ bool ZBrowser::doPMLGetCommand(String &line, bool showShellOutput)
     {
       while(!serial.isXON() || (!commandMode.packetXOn))
       {
+        if(commandMode.serial.isSerialOut())
+          serialOutDeque();
         yield();
         if(HWSerial.available()>0)
         {
@@ -1318,6 +1432,7 @@ bool ZBrowser::doPMLGetCommand(String &line, bool showShellOutput)
         if(commandMode.checkPlusEscape())
         {
           skipLastPacket = true;
+          success = false;
           break;
         }
       }
@@ -1332,10 +1447,16 @@ bool ZBrowser::doPMLGetCommand(String &line, bool showShellOutput)
     }
     if(oldBinType != newBinType)
       commandMode.binType = (BinType)oldBinType;
+    if(!quiet)
+    {
+      if(!success)
+        serial.printf("Download failed.%s",EOLNC);
+      else
+        serial.printf("Download successfully completed.%s",EOLNC);
+    }
   }
   return success;
 }
-*/
 
 bool ZBrowser::doRmCommand(String &line, bool showShellOutput)
 {
@@ -1803,13 +1924,12 @@ bool ZBrowser::doModeCommand(String &line, bool showShellOutput)
       else
       if(cmd.equalsIgnoreCase("kput")||cmd.equalsIgnoreCase("sk"))
         success = doKPutCommand(line,showShellOutput);
-      /*else
+      else
       if(cmd.equalsIgnoreCase("pmlget"))
         success = doPMLGetCommand(line,showShellOutput);
       else
       if(cmd.equalsIgnoreCase("pmlput"))
         success = doPMLPutCommand(line,showShellOutput);
-      */
       else
       if(cmd.equalsIgnoreCase("pget"))
         success = doPGetCommand(line,showShellOutput);
