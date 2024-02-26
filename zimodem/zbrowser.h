@@ -66,8 +66,6 @@ class ZBrowser : public ZMode
     bool doZPutCommand(String &line, bool showShellOutput);
     bool doPGetCommand(String &line, bool showShellOutput);
     bool doPPutCommand(String &line, bool showShellOutput);
-    bool doPMLPutCommand(String &line, bool showShellOutput);
-    bool doPMLGetCommand(String &line, bool showShellOutput);
     bool doWGetCommand(String &line, bool showShellOutput);
 
 #ifdef INCLUDE_FTP
