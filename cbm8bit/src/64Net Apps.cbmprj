@@ -9,8 +9,8 @@
     <FilesGlobal>False</FilesGlobal>
     <BatchMode>True</BatchMode>
     <AppendToDisk>False</AppendToDisk>
-    <GenToDisk>False</GenToDisk>
-    <BuildToPrgFile>True</BuildToPrgFile>
+    <GenToDisk>True</GenToDisk>
+    <BuildToPrgFile>False</BuildToPrgFile>
     <d64Name>disk.d64</d64Name>
     <Comments />
     <Author />
@@ -23,7 +23,7 @@
     <UsingKickAssembler>False</UsingKickAssembler>
     <KickOutputFile />
     <KickConfigFile />
-    <KickGenDebugInfo>True</KickGenDebugInfo>
+    <KickGenDebugInfo>False</KickGenDebugInfo>
     <Cartridge>
         <CrtBuildingCartridge>False</CrtBuildingCartridge>
         <CrtSignature>C64 CARTRIDGE</CrtSignature>
@@ -86,7 +86,7 @@
             <FileOpen>True</FileOpen>
         </SourceFile>
         <SourceFile>
-            <Name>cometmode64.bas</Name>
+            <Name>cometserver64.bas</Name>
             <PrgName>cometmode64.prg</PrgName>
             <FileType>1</FileType>
             <IncludeInBuild>True</IncludeInBuild>
@@ -137,7 +137,7 @@
             <Regions />
             <Breakpoints />
             <Bookmarks />
-            <Topmost>True</Topmost>
+            <Topmost>False</Topmost>
             <FileOpen>True</FileOpen>
         </SourceFile>
         <SourceFile>
@@ -182,6 +182,17 @@
             <Breakpoints />
             <Bookmarks />
             <Topmost>False</Topmost>
+            <FileOpen>True</FileOpen>
+        </SourceFile>
+        <SourceFile>
+            <Name>loader64.bas</Name>
+            <PrgName>loader64.prg</PrgName>
+            <FileType>1</FileType>
+            <IncludeInBuild>True</IncludeInBuild>
+            <Regions />
+            <Breakpoints />
+            <Bookmarks />
+            <Topmost>True</Topmost>
             <FileOpen>True</FileOpen>
         </SourceFile>
         <SourceFile>
