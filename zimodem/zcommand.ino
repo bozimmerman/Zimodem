@@ -3956,7 +3956,8 @@ void ZCommand::sendNextPacket()
           }
           if(serial.getFlowControlType() == FCT_MANUAL)
           {
-            return;
+            checkOpenConnections();
+            return; // don't handle more than one socket!
           }
         }
         checkOpenConnections();
