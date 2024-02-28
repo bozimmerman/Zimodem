@@ -4,8 +4,6 @@ Bugs Reported (nor reproduced):
 New Features:
   *. Add Multi-Punter support
   *. Allow protocols to work with ranges
-  *. Add gopher client, or at least at&g type gopher command (gopher://?)
-  *. Shell: Get/put file to SD card using Packets, including Range
   *. Create a Better LOAD and SAVEr (like CometMode), but base it on ... something else.
   *. SLIP support?
   *. PPP support?
