@@ -200,6 +200,29 @@ When you start the program, it will initialize your C64Net modem with certain co
 
 After initialization, you will be given a menu where you can enter the url of the disk image file to download and write, and the unit number of the disk drive containing the *formatted* blank disk to write the image to.  When all options are correct, hit RETURN and answer Y to the confirmation to connect and begin the download and disk write.  When the download completes, which could take awhile, the program will exit.
 
+GOPHER
+*************************************
+
+GOPHER program is a client for browsing gopher servers and their text resources.  It is written in BASIC, but uses the PML64.BIN, PMLVIC.BIN, or PML128.BIN libraries for speed (see below).  This program requires a C64, C128 in either 64 or 128 mode, or a VIC-20 with 16K expansion or better, and your C64Net WiFi Modem configured for 1200 baud, which is the default factory configuration. To run the program, enter LOAD"GOPHER",8  and then RUN.
+
+When you start the program, it will initialize your C64Net modem with certain commands.  If you receive an error at this point, or if the program hangs for longer than a minute, try turning your computer off and on again to clear memory and reset the modem, and then load and run it again.
+
+After initialization, you will be asked to enter the host name and port of the GOPHER Server to connect to.  The program will then attempt to connect to the host and port, and then read the main index page of the site.  This may take several minutes before it displays.
+
+Once the main index is displayed, you may use the following keys to navigate:
+
+Cursor Right/Left:
+Each page is formatted for an 80 column screen.  If you are using a C128 in 80 column mode, this will be fine, but for C64 and VIC-20 users, it means a portion of the page will not be visible.  Use the Cursor Right key on your keyboard to see more of the page, and Cursor Left to go back. If you press Cursor Left while you are already on the left-hand side of the page, nothing will happen.  But if you have navigated to a Sub-Menu of the gopher site, then Cursor-Left may prompt you to return to the previous page.
+
+Cursor Down/Up:
+If the page you are looking at has Links, then Cursor Down will highlight the next Link on the page, and Cursor Up the previous.  If you are on the last link on the screen, and the GOPHER page is several screen pages long, Cursor Down will load next screen of data for the page.  Cursor Up from the top Link on a page will return to the previous screen in the page.
+
+RETURN/Enter:
+If you have a Link highlighted, then pressing RETURN will prompt you to Load that new link.  It may be a readable text file, or a gopher sub-menu.  Cursor Left can be used to return to a previous gopher menu page.
+
+Q)uit:
+Exit the GOPHER program
+
 TELNETD64
 *************************************
 TELNETD program is for controlling your C64 remotely over the internet.  It is written mostly in machine language which is contained in the file "RDS64.BIN", with the source code in "RDS64.BAS".  The program TELNETD64 is written in BASIC, and is for configuring and launching your server.   To run the program, enter LOAD"TELNETD64",8  and then RUN.
@@ -217,6 +240,20 @@ You should be careful with what disk drives you leave connected and which disks 
 To connect to your server from the internet, you should set your ISP router to forward connections to the TELNETD64 port (default 6400) to the ip address of your modem.
 
 The only way to shut down your server is either to reset the computer, or turn it off and back on again.
+
+LOADER64
+*************************************
+If your WiFi Modem has an SD-Card interface, then this C64-only wedge program can be used to load and save files to and from the SD-Card.  The program is a small BASIC loader that initializes your modem and puts it into 'COMET64' mode using the V-1541 driver by CommodoreServer.com.  You can read more about it here:
+https://commodoreserver.com/BlogEntryView.asp?EID=F953E71737CB49458E983685EE3128E4
+
+The COMET64 mode supports LOAD and SAVE, as well as $ viewing the directory and CD changing subdirectories, as well as the commands: FIND, SCRATCH, MF, and CF.  It does not support disk images, but only writing directly to the SD card filesystem.
+
+COMETSERVE64
+*************************************
+Previously known as COMET64, this C64-only wedge program allows you to load and save software directly from the internet, specifically from commodoreserver.com.  To use this service, you will need to create an account at that site.
+
+The program is a small BASIC loader that initializes your modem, connects to cometserver.com, and then loads the V-1541 wedge driver and exits.  You can read more about how to use LOAD and SAVE to access your online disks here:
+https://commodoreserver.com/BlogEntryView.asp?EID=F953E71737CB49458E983685EE3128E4
 
 WEATHER64
 *************************************
