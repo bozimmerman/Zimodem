@@ -2890,7 +2890,7 @@ ZResult ZCommand::doSerialCommand()
                   else
                   {
                     int res = getStatusRegister(snum,crc8);
-                    serial.printf("%d%s",res,EOLN);
+                    serial.printf("%d%s",res,EOLN.c_str());
                     result = ZOK;
                   }
               }
