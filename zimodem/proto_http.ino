@@ -19,6 +19,15 @@ bool parseWebUrl(uint8_t *vbuf, char **hostIp, char **req, int *port, bool *doSS
   if(strstr((char *)vbuf,"http:")==(char *)vbuf)
     vbuf = vbuf + 5;
   else
+  if(strstr((char *)vbuf,"gopher:")==(char *)vbuf)
+    vbuf = vbuf + 7;
+  else
+  if(strstr((char *)vbuf,"gophers:")==(char *)vbuf)
+  {
+    vbuf = vbuf + 8;
+    *doSSL = true;
+  }
+  else
   if(strstr((char *)vbuf,"https:")==(char *)vbuf)
   {
     vbuf = vbuf + 6;
@@ -277,6 +286,69 @@ public:
 };
 #endif
 
+WiFiClient *doGopherGetStream(const char *hostIp, int port, const char *req, bool doSSL, uint32_t *responseSize)
+{
+  *responseSize = 0;
+  if(WiFi.status() != WL_CONNECTED)
+    return null;
+
+  WiFiClient *c = createWiFiClient(doSSL);
+  if(port == 0)
+    port = 70;
+  if(!c->connect(hostIp, port))
+  {
+    c->stop();
+    delete c;
+    return null;
+  }
+  c->setNoDelay(DEFAULT_NO_DELAY);
+  const char *root = "";
+  if(req == NULL)
+    req=root;
+  c->printf("%s\r\n",req);
+  c->flush();
+  *responseSize = 0;
+# ifdef INCLUDE_SD_SHELL
+  if(SD.cardType() != CARD_NONE)
+  {
+    char tempWebName[20];
+    sprintf(tempWebName,"/.tmp_web_%u",random(9999));
+    if(SD.exists(tempWebName))
+      SD.remove(tempWebName);
+    File tempF = SD.open(tempWebName,FILE_WRITE);
+    if(!tempF)
+    {
+      *responseSize = 0;
+      return c;
+    }
+    size_t written = 0;
+    int b = c->read();
+    int errors = 0;
+    while((b < 0)&&(++errors<2000))
+    {
+      delay(1);
+      b = c->read();
+    }
+    while((b >= 0)&&(c->connected()||(c->available()>0)))
+    {
+      written++;
+      tempF.write(b);
+      b = c->read();
+      while((b < 0)&&(++errors<2000)&&(c->connected()||(c->available()>0)))
+      {
+        delay(1);
+        b = c->read();
+      }
+    }
+    delete c;
+    tempF.close();
+    *responseSize = written;
+    return new FileWiFiStream(tempWebName);
+  }
+# endif
+  return c;
+}
+
 WiFiClient *doWebGetStream(const char *hostIp, int port, const char *req, bool doSSL, uint32_t *responseSize)
 {
   *responseSize = 0;
@@ -449,12 +521,8 @@ WiFiClient *doWebGetStream(const char *hostIp, int port, const char *req, bool d
   return c;
 }
 
-bool doWebGet(const char *hostIp, int port, FS *fs, const char *filename, const char *req, const bool doSSL)
+bool doStreamGet(WiFiClient *c, uint32_t respLength, FS *fs, const char *filename)
 {
-  uint32_t respLength=0;
-  WiFiClient *c = doWebGetStream(hostIp, port, req, doSSL, &respLength);
-  if(c==null)
-    return false;
   uint32_t bytesRead = 0;
   File f = fs->open(filename, "w");
   unsigned long now = millis();
@@ -480,13 +548,27 @@ bool doWebGet(const char *hostIp, int port, FS *fs, const char *filename, const 
   return (respLength == 0) || (bytesRead == respLength);
 }
 
-bool doWebGetBytes(const char *hostIp, int port, const char *req, const bool doSSL, uint8_t *buf, int *bufSize)
+bool doWebGet(const char *hostIp, int port, FS *fs, const char *filename, const char *req, const bool doSSL)
+{
+  uint32_t respLength = 0;
+  WiFiClient *c = doWebGetStream(hostIp, port, req, doSSL, &respLength);
+  if(c == NULL)
+    return false;
+  return doStreamGet(c,respLength,fs,filename);
+}
+
+bool doGopherGet(const char *hostIp, int port, FS *fs, const char *filename, const char *req, const bool doSSL)
+{
+  uint32_t respLength = 0;
+  WiFiClient *c = doGopherGetStream(hostIp, port, req, doSSL, &respLength);
+  if(c == NULL)
+    return false;
+  return doStreamGet(c,respLength,fs,filename);
+}
+
+bool doStreamGetBytes(WiFiClient *c, uint32_t respLength, uint8_t *buf, int *bufSize)
 {
   *bufSize = -1;
-  uint32_t respLength=0;
-  WiFiClient *c = doWebGetStream(hostIp, port, req, doSSL, &respLength);
-  if(c==null)
-    return false;
   if(((!c->connected())&&(c->available()==0))
   ||(respLength > *bufSize))
   {
@@ -515,4 +597,24 @@ bool doWebGetBytes(const char *hostIp, int port, const char *req, const bool doS
   c->stop();
   delete c;
   return (respLength == 0) || (index == respLength);
+}
+
+bool doWebGetBytes(const char *hostIp, int port, const char *req, const bool doSSL, uint8_t *buf, int *bufSize)
+{
+  *bufSize = -1;
+  uint32_t respLength=0;
+  WiFiClient *c = doWebGetStream(hostIp, port, req, doSSL, &respLength);
+  if(c==null)
+    return false;
+  return doStreamGetBytes(c,respLength,buf,bufSize);
+}
+
+bool doGopherGetBytes(const char *hostIp, int port, const char *req, const bool doSSL, uint8_t *buf, int *bufSize)
+{
+  *bufSize = -1;
+  uint32_t respLength=0;
+  WiFiClient *c = doGopherGetStream(hostIp, port, req, doSSL, &respLength);
+  if(c==null)
+    return false;
+  return doStreamGetBytes(c,respLength,buf,bufSize);
 }

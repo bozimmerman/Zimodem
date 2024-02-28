@@ -1231,6 +1231,7 @@ ZResult ZCommand::doWebStream(int vval, uint8_t *vbuf, int vlen, bool isNumber, 
   char *req;
   int port;
   bool doSSL;
+  bool gopher = false;
 #ifdef INCLUDE_FTP
   FTPHost *ftpHost = 0;
   if((strstr((char *)vbuf,"ftp:")==(char *)vbuf)
@@ -1242,6 +1243,9 @@ ZResult ZCommand::doWebStream(int vval, uint8_t *vbuf, int vlen, bool isNumber, 
   }
   else
 #endif
+  if((strstr((char *)vbuf,"gopher:")==(char *)vbuf)
+  ||(strstr((char *)vbuf,"gophers:")==(char *)vbuf))
+    gopher=true;
   if(!parseWebUrl(vbuf,&hostIp,&req,&port,&doSSL))
     return ZERROR;
 
@@ -1260,6 +1264,12 @@ ZResult ZCommand::doWebStream(int vval, uint8_t *vbuf, int vlen, bool isNumber, 
       }
       else
 #endif
+      if(gopher)
+      {
+        if(!doGopherGet(hostIp, port, &SPIFFS, filename, req, doSSL))
+          return ZERROR;
+      }
+      else
       if(!doWebGet(hostIp, port, &SPIFFS, filename, req, doSSL))
         return ZERROR;
     }
@@ -1280,7 +1290,10 @@ ZResult ZCommand::doWebStream(int vval, uint8_t *vbuf, int vlen, bool isNumber, 
     }
     else
 #endif
-    c = doWebGetStream(hostIp, port, req, doSSL, &respLength); 
+    if(gopher)
+      c = doGopherGetStream(hostIp, port, req, doSSL, &respLength);
+    else
+      c = doWebGetStream(hostIp, port, req, doSSL, &respLength);
     if(c==null)
     {
       serial.prints(EOLN);
@@ -1316,6 +1329,12 @@ ZResult ZCommand::doWebStream(int vval, uint8_t *vbuf, int vlen, bool isNumber, 
     }
     else
 #endif
+    if(gopher)
+    {
+      if(!doGopherGet(hostIp, port, &SPIFFS, filename, req, doSSL))
+        return ZERROR;
+    }
+    else
     if(!doWebGet(hostIp, port, &SPIFFS, filename, req, doSSL))
       return ZERROR;
   }

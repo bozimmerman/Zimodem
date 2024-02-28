@@ -1264,7 +1264,9 @@ bool ZBrowser::doWGetCommand(String &line, bool showShellOutput)
   debugPrintf("wget:%s -> %s\r\n",p1.c_str(), p2.c_str());
   if((p1.length()<8)
   || ((strcmp(p1.substring(0,7).c_str(),"http://") != 0)
-     && (strcmp(p1.substring(0,9).c_str(),"https://") != 0)))
+    && (strcmp(p1.substring(0,9).c_str(),"https://") != 0)
+    && (strcmp(p1.substring(0,11).c_str(),"gophers://") != 0)
+    && (strcmp(p1.substring(0,10).c_str(),"gopher://") != 0)))
   {
     if(!quiet)
       serial.printf("Not a url: %s%s",p1.c_str(),EOLNC);
@@ -1281,6 +1283,7 @@ bool ZBrowser::doWGetCommand(String &line, bool showShellOutput)
   {
     char buf[p1.length()+1];
     strcpy(buf,p1.c_str());
+    bool gopher = p1.startsWith("gopher");
     char *hostIp;
     char *req;
     int port;
@@ -1290,6 +1293,16 @@ bool ZBrowser::doWGetCommand(String &line, bool showShellOutput)
       if(!quiet)
         serial.printf("Invalid url: %s",p1.c_str());
       success = false;
+    }
+    else
+    if(gopher)
+    {
+      if(!doGopherGet(hostIp, port, &SD, p2.c_str(), req, doSSL))
+      {
+        if(!quiet)
+          serial.printf("Wget failed: %s to file %s",p1.c_str(),p2.c_str());
+        success = false;
+      }
     }
     else
     if(!doWebGet(hostIp, port, &SD, p2.c_str(), req, doSSL))
