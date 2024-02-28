@@ -15,6 +15,7 @@
    limitations under the License.
 */
 #include "lwip/raw.h"
+#include "esp_netif_net_stack.h"
 
 static ZSerial sserial;
 class ZSLIPMode: public ZMode
