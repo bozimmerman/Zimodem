@@ -15,6 +15,8 @@
    limitations under the License.
 */
 
+static const char *NICK_FILE       = "/znick.txt";
+
 class ZIRCMode: public ZMode
 {
 private:
@@ -24,10 +26,12 @@ private:
   String EOLN;
   const char *EOLNC;
   WiFiClientNode *current = null;
+  bool debugRaw;
   unsigned long lastNumber;
   unsigned long timeout=0;
   String buf;
   String nick;
+  String listFilter = "";
   String lastAddress;
   String lastOptions;
   String lastNotes;

@@ -9,6 +9,7 @@ New Features:
   *. Create a Better LOAD and SAVEr (like CometMode), but base it on ... something else.
   *. SLIP support?
   *. PPP support?
+  *. Support SSH interactive
   *. @19200, on C64 modem, extend start bit by 30 cycles
   *. Baud rate test command (what good is this? how do you send cmd if baud is wrong?!)
   *. SSL/SSH server sockets? 

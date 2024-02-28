@@ -532,6 +532,7 @@ void checkFactoryReset()
           SPIFFS.remove(CONFIG_FILE_OLD);
           SPIFFS.remove("/zphonebook.txt");
           SPIFFS.remove("/zlisteners.txt");
+          SPIFFS.remove("/znick.txt");
           PhoneBookEntry::clearPhonebook();
           SPIFFS.end();
           SPIFFS.format();
