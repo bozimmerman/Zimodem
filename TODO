@@ -2,8 +2,8 @@ Bugs Reported (nor reproduced):
  *. Test incoming network packets of various sizes at different periods
  
 New Features:
-  *. WebGet of chunked encoding with SD card present should cache first, then normal!
   *. Add Multi-Punter support
+  *. Allow protocols to work with ranges
   *. Add gopher client, or at least at&g type gopher command (gopher://?)
   *. Shell: Get/put file to SD card using Packets, including Range
   *. Create a Better LOAD and SAVEr (like CometMode), but base it on ... something else.

@@ -60,6 +60,7 @@ private:
   int chunkCount = 0;
   int chunkSize = 0;
   uint8_t state = 0; //0
+  bool eof = false;
 
 public:
 
@@ -81,6 +82,7 @@ public:
   {
     if(available()==0)
       return -1;
+    int returnC = -1;
     char c=wifi->read();
     bool gotC = false;
     int errors = 0;
@@ -90,7 +92,10 @@ public:
       {
         case 0:
           if(c=='0')
-            return '\0';
+          {
+            eof=true;
+            return -1;
+          }
           if((c>='0')&&(c<='9'))
           {
             chunkSize = (c - '0');
@@ -119,6 +124,7 @@ public:
           if(c == '\n')
           {
             state = 3;
+            errors = 0;
             chunkCount=0;
           }
           else
@@ -129,6 +135,7 @@ public:
           {
             gotC = true;
             chunkCount++;
+            returnC = c;
           }
           else
           if(c == '\r')
@@ -143,21 +150,22 @@ public:
             state = 0; // what else is there to do?!
           break;
       }
-      while((!gotC) && (errors < 5000))
+      while((!gotC)
+      && (errors < 5000))
       {
-          if(available()>0)
-          {
-            c=wifi->read();
-            break;
-          }
-          else
-          if(++errors > 5000)
-            break;
-          else
-            delay(1);
+        if(available()>0)
+        {
+          c=wifi->read();
+          break;
+        }
+        else
+        if(++errors > 5000)
+          break;
+        else
+          delay(1);
       }
     }
-    return c;
+    return returnC;
   }
   virtual int peek()
   {
@@ -196,7 +204,7 @@ public:
   }
   virtual uint8_t connected()
   {
-    return wifi->connected();
+    return wifi->connected() || (!eof);
   }
 };
 
@@ -205,6 +213,18 @@ class FileWiFiStream : public WiFiClient
 private:
   File f;
   uint8_t state = 0; //0
+
+  void closeFile()
+  {
+    if(state == 0)
+    {
+      String name = "/";
+      name += f.name();
+      f.close();
+      SD.remove(name.c_str());
+      state=1;
+    }
+  }
 
 public:
 
@@ -215,8 +235,7 @@ public:
 
   ~FileWiFiStream()
   {
-    f.close();
-    SD.remove(f.name());
+    closeFile();
   }
 
   virtual int read()
@@ -249,11 +268,11 @@ public:
 
   virtual void stop()
   {
-    f.close();
+    closeFile();
   }
   virtual uint8_t connected()
   {
-    return 0;
+    return (state == 0);
   }
 };
 #endif
@@ -370,6 +389,11 @@ WiFiClient *doWebGetStream(const char *hostIp, int port, const char *req, bool d
     }
   }
   
+# ifdef INCLUDE_SD_SHELL
+  if((chunked)
+  &&(SD.cardType() != CARD_NONE))
+    respLength = 1;
+#endif
   *responseSize = respLength;
   if(((!c->connected())&&(c->available()==0))
   ||(respCode != 200)
@@ -384,7 +408,7 @@ WiFiClient *doWebGetStream(const char *hostIp, int port, const char *req, bool d
   &&(SD.cardType() != CARD_NONE))
   {
     ChunkedStream *ch = new ChunkedStream(c);
-    char tempWebName[125];
+    char tempWebName[20];
     sprintf(tempWebName,"/.tmp_web_%u",random(9999));
     if(SD.exists(tempWebName))
       SD.remove(tempWebName);
@@ -392,15 +416,27 @@ WiFiClient *doWebGetStream(const char *hostIp, int port, const char *req, bool d
     if(!tempF)
     {
       delete ch;
+      *responseSize = 0;
       return c;
     }
     size_t written = 0;
     int b = ch->read();
-    while(b >= 0)
+    int errors = 0;
+    while((b < 0)&&(++errors<2000))
+    {
+      delay(1);
+      b = ch->read();
+    }
+    while((b >= 0)&&(ch->connected()))
     {
       written++;
       tempF.write(b);
       b = ch->read();
+      while((b < 0)&&(++errors<2000)&&(ch->connected()))
+      {
+        delay(1);
+        b = ch->read();
+      }
     }
     delete ch;
     tempF.close();
