@@ -68,7 +68,6 @@ class XModem
     File yfile;
     File *xfile = null;
     File *dfile = null;
-    size_t fileSize = 0;
     int blockSize = 128;
     bool send0block = false;
     
@@ -86,7 +85,8 @@ class XModem
     static const int receiveByteDelay=3000;
     static const int rcvRetryLimit = 10;
 
-  
+    size_t fileSize = 0;
+
     XModem(File &f, FlowControlType commandFlow, RecvChar recvChar, SendChar sendChar, DataHandler dataHandler);
     bool receive();
     bool transmit();
@@ -161,6 +161,7 @@ static bool xUpload(FlowControlType commandFlow, File &f, String &errors)
 static bool yDownload(FS *fileSystem, FlowControlType commandFlow, File &f, String &errors)
 {
   YModem ymo(fileSystem, f, commandFlow, xReceiveSerial, xSendSerial, xDDataHandler);
+  ymo.fileSize = f.size();  // multi-upload will need this
   bool result = ymo.transmit();
   return result;
 }

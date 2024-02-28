@@ -467,7 +467,7 @@ bool XModem::transmit()
         {
           strcpy((char *)this->buffer,this->xfile->name());
           int ct = strlen((char *)buffer);
-          sprintf((char *)(buffer + ct + 1),"%u",(unsigned int)this->xfile->size());
+          sprintf((char *)(buffer + ct + 1),"%u",(unsigned int)this->fileSize);
           ct = ct + strlen((char *)(buffer + ct + 1)) + 1;
           for(;ct<128;ct++)
             this->buffer[ct]=0;
