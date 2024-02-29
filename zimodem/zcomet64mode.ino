@@ -23,6 +23,8 @@ void ZComet64Mode::switchBackToCommandMode()
     delete proto;
   proto = 0;
   currMode = &commandMode;
+  if(baudState == BS_SWITCHED_TEMP)
+    baudState = BS_SWITCH_NORMAL_NEXT;
 }
 
 void ZComet64Mode::switchTo()
@@ -31,6 +33,9 @@ void ZComet64Mode::switchTo()
   currMode=&comet64Mode;
   if(proto == 0)
     proto = new Comet64(&SD,commandMode.serial.getFlowControlType());
+  if((tempBaud > 0) && (baudState == BS_NORMAL))
+    baudState = BS_SWITCH_TEMP_NEXT;
+  checkBaudChange();
 }
 
 void ZComet64Mode::serialIncoming()
@@ -45,6 +50,7 @@ void ZComet64Mode::loop()
   if((proto != 0) && (proto->isAborted()))
     switchBackToCommandMode();
   logFileLoop();
+  checkBaudChange();
 }
 
 #endif

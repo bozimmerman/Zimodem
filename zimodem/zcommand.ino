@@ -2741,6 +2741,7 @@ ZResult ZCommand::doSerialCommand()
         &&(!((lc(sbuf[index])>='a')&&(lc(sbuf[index])<='z')))
         &&(sbuf[index]!='&')
         &&(sbuf[index]!='%')
+        &&(sbuf[index]!='+')
         &&(sbuf[index]!=' '))
         {
           char c=sbuf[index];
@@ -2952,11 +2953,6 @@ ZResult ZCommand::doSerialCommand()
         &&(SD.cardType() != CARD_NONE))
         {
             result = ZOK;
-            if(baudRate != 2400)
-            {
-              baudRate=2400;
-              changeBaudRate(baudRate);
-            }
             comet64Mode.switchTo();
         }
 #  endif

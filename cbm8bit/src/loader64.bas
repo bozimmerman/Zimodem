@@ -8,12 +8,12 @@
 30 PRINT#5,"at&p0r0e0f0":TT=TI+100:GOSUB900:PRINT"...";
 40 GOSUB920:PRINT".";:T1=T1+1:IFT1>20THENPRINT"fail.":CLOSE5:END
 50 PRINT#5,"at":TT=TI+100:GOSUB900
-60 INPUT#5,A$:IFLEFT$(A$,2)<>"ok"ANDLEFT$(A$,2)<>"OK"THEN40
+60 GET#5,A$:GET#5,B$:A$=A$+B$:IFLEFT$(A$,2)<>"ok"ANDLEFT$(A$,2)<>"OK"THEN40
 80 GOSUB920
-90 PRINT#5,"at+comet64":TT=TI+400:GOSUB900
+90 PRINT#5,"ats43=2400 +comet64":TT=TI+100:GOSUB900:GOSUB920
 100 GET#5,A$:IFA$="E"orA$="e"THENprint"fail.":CLOSE5:END
 130 PRINT"you can now load from device#2."
-210 PRINT"* reset modem to exit vi1541 loader  mode."
+210 PRINT"* reset modem to use other wifi programs."
 220 CLOSE5:SYS49152
 230 END
 900 IFTI<TTTHEN900

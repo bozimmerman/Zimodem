@@ -444,14 +444,12 @@ void Comet64::receiveLoop()
         }
         file = root.openNextFile();
       }
-      uint64_t free = cFS->totalBytes() - cFS->usedBytes();
-      uint64_t adjFree= round(ceil(free/254.0));
-      int blksFree = (adjFree < 65535) ? adjFree : 65535;
-      cserial.printf("%u",blksFree);
-      printPetscii(" blocks free.\r\n");
     }
-    else
-      cserial.printf("?500 - operation failed\r\n");
+    uint64_t free = cFS->totalBytes() - cFS->usedBytes();
+    uint64_t adjFree= round(ceil(free/254.0));
+    int blksFree = (adjFree < 65535) ? adjFree : 65535;
+    cserial.printf("%u",blksFree);
+    printPetscii(" blocks free.\r\n");
     cserial.write(4);
   }
   idex=0; // we are ready for the next packet!
