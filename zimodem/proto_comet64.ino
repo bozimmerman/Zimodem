@@ -452,6 +452,11 @@ void Comet64::receiveLoop()
     printPetscii(" blocks free.\r\n");
     cserial.write(4);
   }
+  else
+  {
+    printPetscii("?500 - unknown command\r\n");
+    cserial.write(4);
+  }
   idex=0; // we are ready for the next packet!
   serialOutDeque();
 }
