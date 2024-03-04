@@ -15,7 +15,6 @@
    limitations under the License.
 */
 
-
 void ZSLIPMode::switchBackToCommandMode()
 {
   debugPrintf("\r\nMode:Command\r\n");
@@ -28,29 +27,58 @@ void ZSLIPMode::switchBackToCommandMode()
 
 esp_netif_t* get_esp_interface_netif(esp_interface_t interface);
 
-esp_err_t esp_netif_transmit_new(void *esp_netif, void *data, size_t len)
+static uint8_t slipmode_recv(const uint8_t *payload, const int plen)
 {
-  debugPrintf("\r\n**1:%d\r\n",len);
-  return 0;
-}
-esp_err_t esp_netif_transmit_wrap_new(void *esp_netif, void *data, size_t len, void *netstack_buf)
-{
-  debugPrintf("\r\n**2:%d\r\n",len);
+  if((plen > 20)
+  &&(payload[19]==255) // broadcast
+  &&(payload[9]==17)) // udp
+    return 0; // skip it
+
+  debugPrintf("\r\nSLIP-in packet: %d bytes\r\n",plen);
+  sserial.printb(ZSLIPMode::SLIP_END);
+  if(sserial.isSerialOut())
+    serialOutDeque();
+  for(int p=0;p<plen;p++)
+  {
+    switch(payload[p])
+    {
+      case ZSLIPMode::SLIP_END:
+      {
+        sserial.printb(ZSLIPMode::SLIP_ESC);
+        sserial.printb(ZSLIPMode::SLIP_END);
+        break;
+      }
+      case ZSLIPMode::SLIP_ESC:
+      {
+        sserial.printb(ZSLIPMode::SLIP_ESC);
+        sserial.printb(ZSLIPMode::SLIP_ESC_ESC);
+        break;
+      }
+      default:
+        sserial.printb(payload[p]);
+        break;
+    }
+    yield();
+    if(sserial.isSerialOut())
+      serialOutDeque();
+  }
+  sserial.printb(ZSLIPMode::SLIP_END);
+  if(sserial.isSerialOut())
+    serialOutDeque();
   return 0;
 }
 
-void esp_netif_free_rx_buffer_new(void *esp_netif, void *buffer)
+err_t slip_input(struct pbuf *p, struct netif *inp)
 {
-  debugPrintf("\r\n**3:%d\r\n",buffer);
+  while(p != NULL)
+  {
+    int plen = p->len;
+    if((plen > 0)&&(p->payload != 0))
+      slipmode_recv((uint8_t *)p->payload, plen);
+    p=p->next;
+  }
+  return 0;
 }
-
-esp_netif_driver_ifconfig_t driver_ifconfig =
-{
-    .handle = &slipMode,
-    .transmit = esp_netif_transmit_new,
-    .transmit_wrap = esp_netif_transmit_wrap_new,
-    .driver_free_rx_buffer = esp_netif_free_rx_buffer_new
-};
 
 void ZSLIPMode::switchTo()
 {
@@ -63,95 +91,47 @@ void ZSLIPMode::switchTo()
   sserial.setXON(true);
   this->curBufLen = 0;
   this->escaped=false;
-
   //WiFi.disconnect(false,false);  disconnects too much. :(
   // this is the 'raw' way, that appears to rx all packets, but
   // so does the existing wifi, so Crap.
-  if(_pcb == 0)
+  if(_pcb[0] == 0)
   {
-    _pcb = raw_new(IP_PROTO_TCP);
-    if(!_pcb){
-        return;
-    }
+    _pcb[0] = raw_new(IP_PROTO_TCP);
+    _pcb[1] = raw_new(IP_PROTO_UDP);
+    _pcb[2] = raw_new(IP_PROTO_ICMP);
+    _pcb[3] = raw_new(IP_PROTO_IGMP);
+    _pcb[4] = raw_new(IP_PROTO_UDPLITE);
   }
-  raw_recv(_pcb, &_raw_recv, (void *) _pcb);
+  for(int i=0;i<5;i++)
+  {
+    if(_pcb[i] != 0)
+      raw_recv(_pcb[i], &_raw_recv, (void *)_pcb[i]);
+  }
   esp_netif_t* esp_netif = get_esp_interface_netif(ESP_IF_WIFI_STA);
-  driver_ifconfig.handle = &driver_ifconfig;
-  debugPrintf("\r\nHere we go: \r\n");
-  esp_err_t err = esp_netif_attach(esp_netif, &driver_ifconfig);
-  debugPrintf("\r\nHere we went: \r\n");
-  /*
-   *  Figure out a way to temporarily disable the driver handlers
-   *  for the existing wifi connection, as 'raw' doesn't seem
-   *  to give a shit.
-      esp_err_t esp_netif_set_driver_config(esp_netif_t *esp_netif, const esp_netif_driver_ifconfig_t *driver_config)
-      {
-          if (esp_netif == NULL || driver_config == NULL) {
-              return ESP_ERR_ESP_NETIF_INVALID_PARAMS;
-          }
-          esp_netif->driver_handle = driver_config->handle;
-          esp_netif->driver_transmit = driver_config->transmit;
-          esp_netif->driver_transmit_wrap = driver_config->transmit_wrap;
-          esp_netif->driver_free_rx_buffer = driver_config->driver_free_rx_buffer;
-          return ESP_OK;
-      }
-      Where the driver config is: CODE: SELECT ALL
-
-      const esp_netif_driver_ifconfig_t driver_ifconfig =
-      {
-          .driver_free_rx_buffer = NULL,
-          .transmit = esp_modem_dte_transmit,
-          .handle = dte
-      };
-      esp_err_t err = esp_netif_attach(esp_netif, driver);
-   */
-
-
+  struct netif *n = netif_list;
+  while(n != 0)
+  {
+    //n->input = slip_input;
+    n=n->next;
+  }
   currMode=&slipMode;
   debugPrintf("Switched to SLIP mode\n\r");
 }
-
 
 static uint8_t _raw_recv(void *arg, raw_pcb *pcb, pbuf *pb, const ip_addr_t *addr)
 {
   while(pb != NULL)
   {
     pbuf * this_pb = pb;
-    pb = pb->next;
-    this_pb->next = NULL; //TODO: i wonder if I need to free something here? check refs?
     int plen = this_pb->len;
     if(plen > 0)
     {
       uint8_t* payload = (uint8_t *)this_pb->payload;
-      if(logFileOpen)
-        logPrintln("SLIP-in packet:");
-      sserial.printb(ZSLIPMode::SLIP_END);
-      if(sserial.isSerialOut())
-        serialOutDeque();
-      for(int p=0;p<plen;p++)
-      {
-        //sserial.printb(buf[p]); //TODO:RESTORE ME
-        if(payload[p] == ZSLIPMode::SLIP_END)
-        {
-          sserial.printb(ZSLIPMode::SLIP_ESC);
-          sserial.printb(ZSLIPMode::SLIP_END);
-        }
-        else
-        if(payload[p] == ZSLIPMode::SLIP_ESC)
-        {
-          sserial.printb(ZSLIPMode::SLIP_ESC);
-          sserial.printb(ZSLIPMode::SLIP_ESC_ESC);
-        }
-        else
-          sserial.printb(payload[p]);
-        if(sserial.isSerialOut())
-          serialOutDeque();
-      }
-      sserial.printb(ZSLIPMode::SLIP_END);
-      if(sserial.isSerialOut())
-        serialOutDeque();
+      //pbuf_free(this_pb); // at this point, there are no refs, so errs out.
+      slipmode_recv(payload, plen);
     }
-    //pbuf_free(this_pb); // at this point, there are no refs, so errs out.
+    pb = pb->next;
+    this_pb->next = NULL; //TODO: i wonder if I need to free something here? check refs?
   }
   return 0;
 }
@@ -175,17 +155,20 @@ void ZSLIPMode::serialIncoming()
       {
         if(logFileOpen)
           logPrintln("SLIP-out packet.");
-        struct pbuf *p = (struct pbuf *)malloc(sizeof(struct pbuf));
+        //TODO: this probably eats memory
+        struct pbuf *p = pbuf_alloc(PBUF_RAW,this->curBufLen,PBUF_RAM);
+        //struct pbuf *p = (struct pbuf *)malloc(sizeof(struct pbuf));
         p->next = NULL;
-        p->payload = (void *)this->buf;
+        memcpy(p->payload,this->buf,this->curBufLen);
         p->len = this->curBufLen;
         p->tot_len = this->curBufLen;
-        p->type_internal = PBUF_RAM;
-        p->ref = 1;
-        p->flags = 0;
-        raw_send(_pcb, p);
+        //p->type_internal = PBUF_RAM;
+        //p->ref = 1;
+        //p->flags = 0;
+        raw_send(_pcb[0], p); // not sure this is working
 #ifdef ZIMODEM_ESP32
         debugPrintf("tot=%dk heap=%dk",(ESP.getFlashChipSize()/1024),(ESP.getFreeHeap()/1024));
+        struct netif *n = ip_current_netif(); // keep this forever
 #endif
         this->curBufLen = 0;
         //free(this->buf); // this might crash

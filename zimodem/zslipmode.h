@@ -15,6 +15,7 @@
    limitations under the License.
 */
 #include "lwip/raw.h"
+#include "esp_netif_types.h"
 #include "esp_netif_net_stack.h"
 
 static ZSerial sserial;
@@ -26,7 +27,7 @@ private:
   int curBufLen = 0;
   int maxBufSize = 4096;
   uint8_t *buf = 0;
-  raw_pcb *_pcb = 0;
+  raw_pcb *_pcb[5];
 
 public:
   static const char SLIP_END = '\xc0';
