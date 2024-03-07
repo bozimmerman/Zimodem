@@ -96,19 +96,20 @@ const char compile_date[] = __DATE__ " " __TIME__;
 //# define echoEOLN serial.write
 //# define HARD_DCD_HIGH 1
 //# define HARD_DCD_LOW 1
-# define INCLUDE_HOSTCM true // safe to remove if you need space
-# define INCLUDE_PING true
 # define INCLUDE_SSH true
-# define INCLUDE_FTP true
-# define INCLUDE_CBMMODEM true  // 1650, 1660, 1670, and Pulse Dialing support
-# define INCLUDE_COMET64 true
 # define INCLUDE_SLIP true  // Disable this before checkin, until it works
-#else  // ESP-8266, e.g. ESP-01, ESP-12E, for old-style C64Net WiFi Modem
+# ifdef INCLUDE_SD_SHELL
+#  define INCLUDE_HOSTCM true // safe to remove if you need space
+#  define INCLUDE_FTP true
+#  define INCLUDE_CBMMODEM true  // 1650, 1660, 1670, and Pulse Dialing support
+#  define INCLUDE_COMET64 true
+# endif
+#else  // ESP-8266, e.g. ESP-01, ESP-12E
 # define DEFAULT_PIN_DSR 13
 # define DEFAULT_PIN_DTR 12
 # define DEFAULT_PIN_RI 14
 # define DEFAULT_PIN_RTS 4
-# define DEFAULT_PIN_CTS 5 // is 0 for ESP-01, see getDefaultCtsPin() below.
+# define DEFAULT_PIN_CTS 5 // is 0 for ESP-01
 # define DEFAULT_PIN_DCD 2
 # define DEFAULT_PIN_OTH MAX_PIN_NO // pulse pin
 # define DEFAULT_FCT FCT_DISABLED
@@ -116,6 +117,8 @@ const char compile_date[] = __DATE__ " " __TIME__;
 # define preEOLN(...)
 # define echoEOLN(...) serial.prints(EOLN)
 #endif
+
+# define INCLUDE_PING true
 
 # define DEFAULT_DCD_ACTIVE  LOW
 # define DEFAULT_DCD_INACTIVE  HIGH
@@ -263,14 +266,7 @@ static int othInactive = DEFAULT_OTH_INACTIVE;
 
 static int getDefaultCtsPin()
 {
-#ifdef ZIMODEM_ESP32
   return DEFAULT_PIN_CTS;
-#else
-  if((ESP.getFlashChipRealSize()/1024)>=4096) // assume this is a striketerm/esp12e
-    return DEFAULT_PIN_CTS;
-  else
-    return 0;
-#endif 
 }
 
 static void doNothing(const char* format, ...) 

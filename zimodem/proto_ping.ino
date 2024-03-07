@@ -21,13 +21,24 @@
 #include "lwip/inet_chksum.h"
 #include "lwip/inet.h"
 
+
+#ifndef ZIMODEM_ESP32
+# include "lwip/raw.h"
+  static uint8_t ping_recv(void *pingtm, struct raw_pcb *pcb, pbuf *packet, const ip_addr_t *addr)
+  {
+    unsigned long *tm = (unsigned long *)pingtm;
+    *tm = millis();
+    return false;
+  }
+#endif
+
 static int ping(char *host)
 {
   IPAddress hostIp((uint32_t)0);
+#ifdef ZIMODEM_ESP32
   if(!WiFiGenericClass::hostByName(host, hostIp)){
-      return 1;
+    return 1;
   }
-
   const int socketfd = socket(AF_INET, SOCK_RAW, IP_PROTO_ICMP);
   if(socketfd < 0)
     return socketfd;
@@ -85,5 +96,42 @@ static int ping(char *host)
   }
   closesocket(socketfd);
   return (int)time;
+#else
+  if(!WiFi.hostByName(host, hostIp))
+    return -1;
+  int icmp_len = sizeof(struct icmp_echo_hdr);
+  struct pbuf * packet = pbuf_alloc(PBUF_IP, 32 + icmp_len, PBUF_RAM);
+  if(packet == nullptr)
+    return 1;
+  struct icmp_echo_hdr * pingRequest = (struct icmp_echo_hdr *)packet->payload;
+  ICMPH_TYPE_SET(pingRequest, ICMP_ECHO);
+  ICMPH_CODE_SET(pingRequest, 0);
+  pingRequest->chksum = 0;
+  pingRequest->id = 0x0100;
+  pingRequest->seqno = htons(0);
+  char dataByte = 'a';
+  for(size_t i=0; i<32; i++)
+  {
+    ((char*)pingRequest)[icmp_len + i] = dataByte;
+    if(++dataByte > 'w')
+      dataByte = 'a';
+  }
+  pingRequest->chksum = inet_chksum(pingRequest,32+icmp_len);
+  ip_addr_t dest_addr;
+  dest_addr.addr = hostIp;
+  struct raw_pcb *ping_pcb = raw_new(IP_PROTO_ICMP);
+
+  unsigned long startTm = millis();
+  unsigned long tm = 0;
+  raw_recv(ping_pcb, ping_recv, (void *)&tm);
+  raw_bind(ping_pcb, IP_ADDR_ANY);
+
+  raw_sendto(ping_pcb, packet, &dest_addr);
+  while((millis()-startTm < 1500) && (tm == 0))
+    delay(1);
+  pbuf_free(packet);
+  raw_remove(ping_pcb);
+  return (tm > 0)? (int)(millis()-tm) : -1;
+#endif
 }
 #endif

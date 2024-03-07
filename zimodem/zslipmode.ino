@@ -77,7 +77,7 @@ err_t slip_input(struct pbuf *p, struct netif *inp)
       slipmode_recv((uint8_t *)p->payload, plen);
     p=p->next;
   }
-  return 0;
+  return false; // maybe this cancels?
 }
 
 void ZSLIPMode::switchTo()
@@ -131,9 +131,9 @@ static uint8_t _raw_recv(void *arg, raw_pcb *pcb, pbuf *pb, const ip_addr_t *add
       slipmode_recv(payload, plen);
     }
     pb = pb->next;
-    this_pb->next = NULL; //TODO: i wonder if I need to free something here? check refs?
+    //this_pb->next = NULL; //TODO: i wonder if I need to free something here? check refs?
   }
-  return 0;
+  return false;// maybe this cancels?
 }
 
 void ZSLIPMode::serialIncoming()

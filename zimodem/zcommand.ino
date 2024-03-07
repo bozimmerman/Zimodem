@@ -161,7 +161,7 @@ void ZCommand::setConfigDefaults()
   othActive = DEFAULT_OTH_ACTIVE;
   othInactive = DEFAULT_OTH_INACTIVE;
   pinDCD = DEFAULT_PIN_DCD;
-  pinCTS = getDefaultCtsPin();
+  pinCTS = DEFAULT_PIN_CTS;
   pinRTS = DEFAULT_PIN_RTS;
   pinDTR = DEFAULT_PIN_DTR;
   pinOTH = DEFAULT_PIN_OTH;
@@ -855,7 +855,7 @@ ZResult ZCommand::doInfoCommand(int vval, uint8_t *vbuf, int vlen, bool isNumber
       serial.printf("S47=%d",pinDCD);
     if((ctsActive != DEFAULT_CTS_ACTIVE)||(ctsInactive == DEFAULT_CTS_ACTIVE)||(showAll))
       serial.printf("S48=%d",pinModeCoder(ctsActive,ctsInactive,DEFAULT_CTS_ACTIVE));
-    if((pinCTS != getDefaultCtsPin())||(showAll))
+    if((pinCTS != DEFAULT_PIN_CTS)||(showAll))
       serial.printf("S49=%d",pinCTS);
     if((rtsActive != DEFAULT_RTS_ACTIVE)||(rtsInactive == DEFAULT_RTS_ACTIVE)||(showAll))
       serial.printf("S50=%d",pinModeCoder(rtsActive,rtsInactive,DEFAULT_RTS_ACTIVE));
@@ -3546,10 +3546,7 @@ void ZCommand::showInitMessage()
 #ifdef ZIMODEM_ESP32
   serial.prints("ESP32 ");
 #else
-  if (getDefaultCtsPin() == 0)
-    serial.prints("ESP01 ");
-  else
-    serial.prints("ESP8266 ");
+  serial.prints("ESP8266 ");
 #endif
   serial.prints("Firmware v");
   HWSerial.setTimeout(60000);
