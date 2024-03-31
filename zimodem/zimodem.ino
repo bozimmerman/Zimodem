@@ -69,12 +69,12 @@ const char compile_date[] = __DATE__ " " __TIME__;
 # define PIN_FACTORY_RESET GPIO_NUM_0
 # define DEFAULT_PIN_DCD GPIO_NUM_14
 # ifdef ARDUINO_ESP32S3_DEV
-#  define DEFAULT_PIN_CTS GPIO_NUM_16 //  maybe 20
-#  define DEFAULT_PIN_RTS GPIO_NUM_15 // unused? maybe 19
+#  define DEFAULT_PIN_CTS GPIO_NUM_19 // espdev rts pin
+#  define DEFAULT_PIN_RTS GPIO_NUM_20 // espdev cts pin
 #  define DEFAULT_PIN_RI GPIO_NUM_10
 #  define DEFAULT_PIN_DSR GPIO_NUM_12
 #  define DEFAULT_PIN_SND GPIO_NUM_11
-#  define DEFAULT_PIN_OTH GPIO_NUM_14 // pulse pin
+#  define DEFAULT_PIN_OTH GPIO_NUM_46 // pulse pin
 #  define DEFAULT_PIN_DTR GPIO_NUM_13
 # else
 #  define DEFAULT_PIN_CTS GPIO_NUM_13

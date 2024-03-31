@@ -115,11 +115,11 @@ void ZSerial::setFlowControlType(FlowControlType type)
 #ifdef ZIMODEM_ESP32
   if(flowControlType == FCT_RTSCTS)
   {
-    uart_set_hw_flow_ctrl(UART_NUM_2,UART_HW_FLOWCTRL_DISABLE,0);
+    uart_set_hw_flow_ctrl(MAIN_UART_NUM,UART_HW_FLOWCTRL_DISABLE,0);
     uint32_t invertMask = 0;
     if(pinSupport[pinCTS])
     {
-      uart_set_pin(UART_NUM_2, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE, /*cts_io_num*/pinCTS);
+      uart_set_pin(MAIN_UART_NUM, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE, /*cts_io_num*/pinCTS);
       // cts is input to me, output to true RS232
       if(ctsActive == HIGH)
 #       ifdef UART_INVERSE_CTS
@@ -130,7 +130,7 @@ void ZSerial::setFlowControlType(FlowControlType type)
     }
     if(pinSupport[pinRTS])
     {
-      uart_set_pin(UART_NUM_2, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE, /*rts_io_num*/ pinRTS, UART_PIN_NO_CHANGE);
+      uart_set_pin(MAIN_UART_NUM, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE, /*rts_io_num*/ pinRTS, UART_PIN_NO_CHANGE);
       s_pinWrite(pinRTS, rtsActive);
       // rts is output to me, input to true RS232
       if(rtsActive == HIGH)
@@ -143,21 +143,21 @@ void ZSerial::setFlowControlType(FlowControlType type)
     //debugPrintf("invert = %d magic values = %d %d, RTS_HIGH=%d, RTS_LOW=%d HIGHHIGH=%d LOWLOW=%d\r\n",
     //            invertMask,ctsActive,rtsActive, DEFAULT_RTS_ACTIVE, DEFAULT_RTS_INACTIVE, HIGH, LOW);
     if(invertMask != 0)
-      uart_set_line_inverse(UART_NUM_2, invertMask);
+      uart_set_line_inverse(MAIN_UART_NUM, invertMask);
     const int CUTOFF = 100;
     if(pinSupport[pinRTS])
     {
       if(pinSupport[pinCTS])
-        uart_set_hw_flow_ctrl(UART_NUM_2,UART_HW_FLOWCTRL_CTS_RTS,CUTOFF);
+        uart_set_hw_flow_ctrl(MAIN_UART_NUM,UART_HW_FLOWCTRL_CTS_RTS,CUTOFF);
       else
-        uart_set_hw_flow_ctrl(UART_NUM_2,UART_HW_FLOWCTRL_CTS_RTS,CUTOFF);
+        uart_set_hw_flow_ctrl(MAIN_UART_NUM,UART_HW_FLOWCTRL_CTS_RTS,CUTOFF);
     }
     else
     if(pinSupport[pinCTS])
-      uart_set_hw_flow_ctrl(UART_NUM_2,UART_HW_FLOWCTRL_CTS_RTS,CUTOFF);
+      uart_set_hw_flow_ctrl(MAIN_UART_NUM,UART_HW_FLOWCTRL_CTS_RTS,CUTOFF);
   }
   else
-    uart_set_hw_flow_ctrl(UART_NUM_2,UART_HW_FLOWCTRL_DISABLE,0);
+    uart_set_hw_flow_ctrl(MAIN_UART_NUM,UART_HW_FLOWCTRL_DISABLE,0);
 #endif
 }
 
