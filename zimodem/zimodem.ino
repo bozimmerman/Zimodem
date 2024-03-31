@@ -24,6 +24,8 @@ const char compile_date[] = __DATE__ " " __TIME__;
 
 #ifdef ARDUINO_ESP32_DEV
 # define ZIMODEM_ESP32
+#elif ARDUINO_ESP32S3_DEV
+# define ZIMODEM_ESP32
 #elif defined(ESP32)
 # define ZIMODEM_ESP32
 #elif defined(ARDUINO_ESP320)
@@ -66,13 +68,23 @@ const char compile_date[] = __DATE__ " " __TIME__;
 #ifdef ZIMODEM_ESP32
 # define PIN_FACTORY_RESET GPIO_NUM_0
 # define DEFAULT_PIN_DCD GPIO_NUM_14
-# define DEFAULT_PIN_CTS GPIO_NUM_13
-# define DEFAULT_PIN_RTS GPIO_NUM_15 // unused?
-# define DEFAULT_PIN_RI GPIO_NUM_32
-# define DEFAULT_PIN_DSR GPIO_NUM_12
-# define DEFAULT_PIN_SND GPIO_NUM_25
-# define DEFAULT_PIN_OTH GPIO_NUM_4 // pulse pin
-# define DEFAULT_PIN_DTR GPIO_NUM_27
+# ifdef ARDUINO_ESP32S3_DEV
+#  define DEFAULT_PIN_CTS GPIO_NUM_16 //  maybe 20
+#  define DEFAULT_PIN_RTS GPIO_NUM_15 // unused? maybe 19
+#  define DEFAULT_PIN_RI GPIO_NUM_10
+#  define DEFAULT_PIN_DSR GPIO_NUM_12
+#  define DEFAULT_PIN_SND GPIO_NUM_11
+#  define DEFAULT_PIN_OTH GPIO_NUM_14 // pulse pin
+#  define DEFAULT_PIN_DTR GPIO_NUM_13
+# else
+#  define DEFAULT_PIN_CTS GPIO_NUM_13
+#  define DEFAULT_PIN_RTS GPIO_NUM_15 // unused?
+#  define DEFAULT_PIN_RI GPIO_NUM_32
+#  define DEFAULT_PIN_DSR GPIO_NUM_12
+#  define DEFAULT_PIN_SND GPIO_NUM_25
+#  define DEFAULT_PIN_OTH GPIO_NUM_4 // pulse pin
+#  define DEFAULT_PIN_DTR GPIO_NUM_27
+# endif
 # define debugPrintf DBSerial.printf
 # define INCLUDE_SD_SHELL true            /* ****** Delete this line if you do not have an external SD card interface *****/
 # define DEFAULT_FCT FCT_DISABLED
@@ -439,16 +451,28 @@ void setup()
 #ifdef ZIMODEM_ESP32
   DBSerial.begin(115200); //the debug port
   DBSerial.setDebugOutput(true);
-  pinSupport[2]=true;
-  pinSupport[4]=true;
-  pinSupport[5]=true;
-  for(int i=12;i<=23;i++)
+# ifdef ARDUINO_ESP32S3_DEV
+  pinSupport[1]=true;
+  for(int i=5;i<=17;i++)
     pinSupport[i]=true;
-  for(int i=25;i<=27;i++)
+  for(int i=19;i<=21;i++)
     pinSupport[i]=true;
-  for(int i=32;i<=36;i++)
+  for(int i=36;i<=38;i++)
     pinSupport[i]=true;
-  pinSupport[39]=true;
+  pinSupport[47]=true;
+  pinSupport[48]=true;
+# else
+   pinSupport[2]=true;
+   pinSupport[4]=true;
+   pinSupport[5]=true;
+   for(int i=12;i<=23;i++)
+     pinSupport[i]=true;
+   for(int i=25;i<=27;i++)
+     pinSupport[i]=true;
+   for(int i=32;i<=36;i++)
+     pinSupport[i]=true;
+   pinSupport[39]=true;
+# endif
 #else
   pinSupport[0]=true;
   pinSupport[2]=true;
