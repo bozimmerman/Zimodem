@@ -2,6 +2,7 @@ Bugs Reported (nor reproduced):
  *. Test incoming network packets of various sizes at different periods
  
 New Features:
+  *. UART-compliant signals to switch to command mode, and to reset modem to Saved settings
   *. Add Multi-Punter support
   *. Allow protocols to work with ranges
   *. Create a Better LOAD and SAVEr (like CometMode), but base it on ... something else.
