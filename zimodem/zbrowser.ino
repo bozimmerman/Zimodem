@@ -1682,8 +1682,8 @@ bool ZBrowser::doModeCommand(String &line, bool showShellOutput)
       else
       if(cmd.equalsIgnoreCase("fls") || cmd.equalsIgnoreCase("fdir"))
         success = doFDirCommand(line,showShellOutput);
-#endif
       else
+#endif
       if(!quiet)
         serial.printf("Unknown command: '%s'.  Try '?'.%s",cmd.c_str(),EOLNC);
       showMenu=true;
