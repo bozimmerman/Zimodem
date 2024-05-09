@@ -2879,21 +2879,20 @@ ZResult ZCommand::doSerialCommand()
           char *eq=strchr((char *)vbuf,'=');
           if(eq == null)
           {
+              int snum = vval;
               eq=strchr((char *)vbuf,'?');
-              if(eq == null)
+              if((eq != null) && (!isNumber))
+              {
+                *eq = 0;
+                snum = atoi((char *)vbuf);
+              }
+              if((snum == 0)&&(vbuf[0]!='0'))
                 result=ZERROR;
               else
               {
-                  *eq=0;
-                  int snum = atoi((char *)vbuf);
-                  if((snum == 0)&&(vbuf[0]!='0'))
-                    result=ZERROR;
-                  else
-                  {
-                    int res = getStatusRegister(snum,crc8);
-                    serial.printf("%d%s",res,EOLN.c_str());
-                    result = ZOK;
-                  }
+                int res = getStatusRegister(snum,crc8);
+                serial.printf("%d%s",res,EOLN.c_str());
+                result = ZOK;
               }
           }
           else

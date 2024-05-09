@@ -60,6 +60,9 @@ const char compile_date[] = __DATE__ " " __TIME__;
 # define DEFAULT_WIFI_ACTIVE LOW
 # define DEFAULT_WIFI_INACTIVE HIGH
 #endif
+
+#define DEFAULT_BAUD_RATE 1200
+#define DEFAULT_SERIAL_CONFIG SERIAL_8N1
 /*
  * Unused pins on WROOM32:
  * 2, 20, 21, 22.   36,39 (sensor)
@@ -67,8 +70,25 @@ const char compile_date[] = __DATE__ " " __TIME__;
 
 #ifdef ZIMODEM_ESP32
 # define PIN_FACTORY_RESET GPIO_NUM_0
-# define DEFAULT_PIN_DCD GPIO_NUM_14
-# ifdef ARDUINO_ESP32S3_DEV
+# define INCLUDE_SD_SHELL true            /* ****** Delete this line if you do not have an external SD card interface *****/
+# define DEFAULT_FCT FCT_DISABLED
+# ifdef INCLUDE_CMDRX16                   /* Configuration for the Commander X16 I/O Card */
+#  undef INCLUDE_SD_SHELL
+#  undef DEFAULT_FCT
+#  define DEFAULT_FCT FCT_RTSCTS
+#  undef DEFAULT_BAUD_RATE
+#  define DEFAULT_BAUD_RATE 115200
+#  define DEFAULT_PIN_DCD GPIO_NUM_22
+#  define DEFAULT_PIN_CTS GPIO_NUM_19
+#  define DEFAULT_PIN_RTS GPIO_NUM_21
+#  define DEFAULT_PIN_RI GPIO_NUM_18
+#  define DEFAULT_PIN_DSR GPIO_NUM_23
+#  define DEFAULT_PIN_DTR GPIO_NUM_25
+#  define DEFAULT_PIN_OTH MAX_PIN_NO
+#  define DEFAULT_PIN_OPA 26
+#  define DEFAULT_PIN_OPB 27
+# elif defined(ARDUINO_ESP32S3_DEV)       /* Configuration for the Esp32S3 16MB Dev Board */
+#  define DEFAULT_PIN_DCD GPIO_NUM_14
 #  define DEFAULT_PIN_CTS GPIO_NUM_19 // espdev rts pin
 #  define DEFAULT_PIN_RTS GPIO_NUM_20 // espdev cts pin
 #  define DEFAULT_PIN_RI GPIO_NUM_10
@@ -76,7 +96,8 @@ const char compile_date[] = __DATE__ " " __TIME__;
 #  define DEFAULT_PIN_SND GPIO_NUM_11
 #  define DEFAULT_PIN_OTH GPIO_NUM_46 // pulse pin
 #  define DEFAULT_PIN_DTR GPIO_NUM_13
-# else
+# else                                    /* Configuration for standard ESP32 4 & 8MB boards */
+#  define DEFAULT_PIN_DCD GPIO_NUM_14
 #  define DEFAULT_PIN_CTS GPIO_NUM_13
 #  define DEFAULT_PIN_RTS GPIO_NUM_15 // unused?
 #  define DEFAULT_PIN_RI GPIO_NUM_32
@@ -86,8 +107,6 @@ const char compile_date[] = __DATE__ " " __TIME__;
 #  define DEFAULT_PIN_DTR GPIO_NUM_27
 # endif
 # define debugPrintf DBSerial.printf
-# define INCLUDE_SD_SHELL true            /* ****** Delete this line if you do not have an external SD card interface *****/
-# define DEFAULT_FCT FCT_DISABLED
 # define SerialConfig uint32_t
 # define UART_CONFIG_MASK 0x8000000
 # define UART_NB_BIT_MASK      0B00001100 | UART_CONFIG_MASK
@@ -147,8 +166,6 @@ const char compile_date[] = __DATE__ " " __TIME__;
 # define DEFAULT_OTH_ACTIVE  LOW
 # define DEFAULT_OTH_INACTIVE  HIGH
 
-#define DEFAULT_BAUD_RATE 1200
-#define DEFAULT_SERIAL_CONFIG SERIAL_8N1
 #define MAX_PIN_NO 50
 #define INTERNAL_FLOW_CONTROL_DIV 380
 #define DEFAULT_RECONNECT_DELAY 60000
@@ -410,7 +427,11 @@ static void changeSerialConfig(SerialConfig conf)
   debugPrintf("Config changing to %d.\r\n",(int)conf);
   dequeSize=1+(baudRate/INTERNAL_FLOW_CONTROL_DIV);
   debugPrintf("Deque constant now: %d\r\n",dequeSize);
-  HWSerial.begin(baudRate, conf);  //Change baud rate
+# ifdef DEFAULT_PIN_RXD
+    HWSerial.begin(baudRate, conf, DEFAULT_PIN_RXD, DEFAULT_PIN_TXD);
+# else
+    HWSerial.begin(baudRate, conf);  //Change baud rate
+# endif
   debugPrintf("Config changed.\r\n");
 }
 
@@ -484,7 +505,16 @@ void setup()
       pinSupport[i]=true;
     pinSupport[11]=false;
   }
-#endif    
+#endif
+#ifdef DEFAULT_PIN_OPA
+  static bool OPA_stat=0;
+  static bool OPB_stat=0;
+  pinMode(DEFAULT_PIN_OPA, INPUT);
+  pinMode(DEFAULT_PIN_OPB, INPUT);
+  OPA_stat=digitalRead(DEFAULT_PIN_OPA);
+  OPB_stat=digitalRead(DEFAULT_PIN_OPA);
+#endif
+
   debugPrintf("Zimodem %s firmware starting initialization\r\n",ZIMODEM_VERSION);
   initSDShell();
   currMode = &commandMode;
@@ -494,7 +524,11 @@ void setup()
     SPIFFS.begin();
     debugPrintf("SPIFFS Formatted.\r\n");
   }
-  HWSerial.begin(DEFAULT_BAUD_RATE, DEFAULT_SERIAL_CONFIG);  //Start Serial
+# ifdef DEFAULT_PIN_RXD
+    HWSerial.begin(DEFAULT_BAUD_RATE, DEFAULT_SERIAL_CONFIG, DEFAULT_PIN_RXD, DEFAULT_PIN_TXD);
+# else
+    HWSerial.begin(DEFAULT_BAUD_RATE, DEFAULT_SERIAL_CONFIG);  //Start Serial
+# endif
 #ifdef ZIMODEM_ESP8266
   HWSerial.setRxBufferSize(1024);
 #endif
