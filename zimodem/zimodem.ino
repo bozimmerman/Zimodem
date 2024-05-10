@@ -86,10 +86,10 @@ const char compile_date[] = __DATE__ " " __TIME__;
 #  define DEFAULT_PIN_DTR GPIO_NUM_25
 #  define DEFAULT_PIN_OPA 26
 #  define DEFAULT_PIN_OPB 27
+#  define DEFAULT_PIN_OTH 26 // stream/command mode flag
 #  define DEFAULT_PIN_TXD GPIO_NUM_32
 #  define DEFAULT_PIN_RXD GPIO_NUM_33
 #  define DEFAULT_PIN_SND GPIO_NUM_4
-#  define DEFAULT_PIN_OTH GPIO_NUM_14// pulse pin
 # elif defined(ARDUINO_ESP32S3_DEV)       /* Configuration for the Esp32S3 16MB Dev Board */
 #  define DEFAULT_PIN_DCD GPIO_NUM_14
 #  define DEFAULT_PIN_CTS GPIO_NUM_19 // espdev rts pin
