@@ -385,7 +385,7 @@ void ZStream::loop()
     switchAlarm = 0;
   }
 #ifdef INCLUDE_CMDRX16
-  if(!digitalRead(pinOTH))
+  if(digitalRead(pinOTH)==othInactive)
     switchBackToCommandMode(true);
 #endif
 }
