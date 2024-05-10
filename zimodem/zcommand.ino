@@ -4309,7 +4309,8 @@ void ZCommand::loop()
 #ifdef INCLUDE_CMDRX16
   if((digitalRead(pinOTH)==othActive)
   &&(current != null)
-  &&(current->isConnected()))
+  &&(current->isConnected())
+  &&(currMode!=&streamMode))
     streamMode.switchTo(current);
 #endif
 }
