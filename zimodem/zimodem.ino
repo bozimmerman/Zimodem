@@ -84,9 +84,9 @@ const char compile_date[] = __DATE__ " " __TIME__;
 #  define DEFAULT_PIN_RI GPIO_NUM_18
 #  define DEFAULT_PIN_DSR GPIO_NUM_23
 #  define DEFAULT_PIN_DTR GPIO_NUM_25
-#  define DEFAULT_PIN_OPA 26
-#  define DEFAULT_PIN_OPB 27
-#  define DEFAULT_PIN_OTH 26 // stream/command mode flag
+//#  define DEFAULT_PIN_OPA 26
+#  define DEFAULT_PIN_OPB GPIO_NUM_27
+#  define DEFAULT_PIN_OTH GPIO_NUM_26 // stream/command mode flag
 #  define DEFAULT_PIN_TXD GPIO_NUM_32
 #  define DEFAULT_PIN_RXD GPIO_NUM_33
 #  define DEFAULT_PIN_SND GPIO_NUM_4
@@ -509,13 +509,10 @@ void setup()
     pinSupport[11]=false;
   }
 #endif
-#ifdef DEFAULT_PIN_OPA
-  static bool OPA_stat=0;
+#ifdef DEFAULT_PIN_OPB
   static bool OPB_stat=0;
-  pinMode(DEFAULT_PIN_OPA, INPUT);
   pinMode(DEFAULT_PIN_OPB, INPUT);
-  OPA_stat=digitalRead(DEFAULT_PIN_OPA);
-  OPB_stat=digitalRead(DEFAULT_PIN_OPA);
+  OPB_stat=digitalRead(DEFAULT_PIN_OPB);
 #endif
 
   debugPrintf("Zimodem %s firmware starting initialization\r\n",ZIMODEM_VERSION);
