@@ -384,9 +384,5 @@ void ZStream::loop()
     s_pinWrite(pinRI,riInactive);
     switchAlarm = 0;
   }
-#ifdef INCLUDE_CMDRX16
-  if(digitalRead(pinOTH)==othInactive)
-    switchBackToCommandMode(true);
-#endif
 }
 

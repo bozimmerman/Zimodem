@@ -4306,11 +4306,4 @@ void ZCommand::loop()
 #endif
   checkBaudChange();
   logFileLoop();
-#ifdef INCLUDE_CMDRX16
-  if((digitalRead(pinOTH)==othActive)
-  &&(current != null)
-  &&(current->isConnected())
-  &&(currMode!=&streamMode))
-    streamMode.switchTo(current);
-#endif
 }
