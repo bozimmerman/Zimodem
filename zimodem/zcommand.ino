@@ -1040,7 +1040,7 @@ ZResult ZCommand::doBaudCommand(int vval, uint8_t *vbuf, int vlen)
   hwSerialFlush();
   if(baudChk != baudRate)
   {
-    if((baudChk<128)||(baudChk>230400))
+    if((baudChk<128)||(baudChk>921600))
       return ZERROR;
     baudRate = baudChk;
     changeBaudRate(baudRate);
