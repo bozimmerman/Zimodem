@@ -143,6 +143,9 @@ void ZCommand::setConfigDefaults()
   serial.setFlowControlType(DEFAULT_FCT);
   serial.setXON(true);
   packetXOn = true;
+# ifdef INCLUDE_CMDRX16
+    packetXOn = false;
+# endif
   serial.setPetsciiMode(false);
   binType=BTYPE_NORMAL;
   serialDelayMs=0;
@@ -259,6 +262,9 @@ ZResult ZCommand::doResetCommand(bool resetOpMode)
   eon=0;
   serial.setXON(true);
   packetXOn = true;
+# ifdef INCLUDE_CMDRX16
+    packetXOn = false;
+# endif
   serial.setPetsciiMode(false);
   serialDelayMs=0;
   binType=BTYPE_NORMAL;
@@ -439,7 +445,9 @@ void ZCommand::setOptionsFromSavedConfig(String configArguments[])
     else
       serial.setFlowControlType(FCT_DISABLED);
     serial.setXON(true);
+#ifndef INCLUDE_CMDRX16
     packetXOn = true;
+#endif
     if(serial.getFlowControlType() == FCT_MANUAL)
       packetXOn = false;
   }
@@ -2814,7 +2822,9 @@ ZResult ZCommand::doSerialCommand()
           result=ZERROR;
         else
         {
+#ifndef INCLUDE_CMDRX16
             packetXOn = true;
+#endif
             serial.setXON(true);
             serial.setFlowControlType((FlowControlType)vval);
             if(serial.getFlowControlType() == FCT_MANUAL)
@@ -3085,7 +3095,7 @@ ZResult ZCommand::doSerialCommand()
             result=ZERROR;
           else
           {
-              packetXOn = true;
+              packetXOn = true; // left for x16
               serial.setXON(true);
               switch(vval)
               {
@@ -3854,9 +3864,6 @@ void ZCommand::sendNextPacket()
   if((serial.availableForWrite()<packetSize)
   ||(altOpMode != OPMODE_NONE))
     return;
-# ifdef INCLUDE_CMDRX16
-    return;
-# endif
 
   WiFiClientNode *firstConn = nextConn;
   if((nextConn == null)||(nextConn->next == null))
