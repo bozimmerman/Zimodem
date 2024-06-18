@@ -3838,8 +3838,12 @@ bool ZCommand::checkPlusEscape()
 
 void ZCommand::sendNextPacket()
 {
-  if(serial.availableForWrite()<packetSize)
+  if((serial.availableForWrite()<packetSize)
+  ||(altOpMode != OPMODE_NONE))
     return;
+# ifdef INCLUDE_CMDRX16
+    return;
+# endif
 
   WiFiClientNode *firstConn = nextConn;
   if((nextConn == null)||(nextConn->next == null))
