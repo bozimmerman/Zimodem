@@ -77,8 +77,13 @@ static bool validateHostInfo(uint8_t *vbuf)
   if(!fail)
   {
     for(int i=colonDex+1;i<cmd.length();i++)
-      if(strchr("0123456789",cmd[i])<0)
+    {
+      if(strchr("0123456789",cmd[i]) == 0)
+      {
         fail=true;
+        break;
+      }
+    }
   }
   return !fail;
 }
@@ -1505,13 +1510,21 @@ ZResult ZCommand::doUpdateFirmware(int vval, uint8_t *vbuf, int vlen, bool isNum
   char *updaterHost = "192.168.1.10";
   int updaterPort = 8080;
 #else
-  char *updaterHost = "www.zimmers.net";
+# ifdef INCLUDE_CMDRX16
+   char *updaterHost = "www.zimmers.net"; // changeme!
+# else
+   char *updaterHost = "www.zimmers.net";
+# endif
   int updaterPort = 80;
 #endif
-#ifdef ZIMODEM_ESP32
-  char *updaterPrefix = "/otherprojs/guru2";
+#ifdef INCLUDE_CMDRX16
+  char *updaterPrefix = "/otherprojs/x16";
 #else
+# ifdef ZIMODEM_ESP32
+   char *updaterPrefix = "/otherprojs/guru2";
+# else
   char *updaterPrefix = "/otherprojs/c64net2";
+# endif
 #endif
   sprintf(firmwareName,"%s-latest-version.txt",updaterPrefix);
   if((!doWebGetBytes(updaterHost, updaterPort, firmwareName, false, buf, &bufSize))||(bufSize<=0))
@@ -1637,12 +1650,12 @@ ZResult ZCommand::doWiFiCommand(int vval, uint8_t *vbuf, int vlen, bool isNumber
     IPAddress *ip[4];
     for(int i=0;i<4;i++)
       ip[i]=null;
-    if(x > 0)
+    if(x != 0)
     {
       *x=0;
       pw=x+1;
       x=strstr(pw,",");
-      if(x > 0)
+      if(x != 0)
       {
         int numCommasFound=0;
         int numDotsFound=0;

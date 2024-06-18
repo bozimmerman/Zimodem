@@ -202,8 +202,13 @@ void ZIRCMode::doIRCCommand()
         if(!fail)
         {
           for(int i=colonDex+1;i<cmd.length();i++)
-            if(strchr("0123456789",cmd[i])<0)
+          {
+            if(strchr("0123456789",cmd[i]) == 0)
+            {
               fail=true;
+              break;
+            }
+          }
         }
         if(fail)
         {

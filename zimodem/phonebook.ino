@@ -105,9 +105,10 @@ bool PhoneBookEntry::checkPhonebookEntry(String cmd)
     bool error = false;
     for(char *cptr=(char *)vbuf;*cptr!=0;cptr++)
     {
-      if(strchr("0123456789",*cptr) < 0)
+      if(strchr("0123456789",*cptr) == 0)
       {
-        error =true;
+        error = true;
+        break;
       }
     }
     if(error || (strlen((char *)vbuf)>9))

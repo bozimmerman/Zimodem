@@ -72,7 +72,7 @@ void FTPHost::fixPath(const char *remotepath)
   if(remotepath[0] == '/')
   {
     strcpy(fbuf, remotepath);
-    if(end > 0)
+    if(end != 0)
     {
       *end = 0;
       sprintf(pbuf,"%s/",remotepath);
@@ -83,7 +83,7 @@ void FTPHost::fixPath(const char *remotepath)
   else
   {
     sprintf(fbuf,"%s%s",path,remotepath);
-    if(end > 0)
+    if(end != 0)
     {
       *end = 0;
       sprintf(pbuf,"%s%s/",path,remotepath);
@@ -183,7 +183,7 @@ bool parseFTPUrl(uint8_t *vbuf, char **hostIp, char **req, int *port, bool *doSS
      *portB = 0;
      portB++;
      *port = atoi(portB);
-     if(port <= 0)
+     if(*port <= 0)
        return ZERROR;
   }
   return true;

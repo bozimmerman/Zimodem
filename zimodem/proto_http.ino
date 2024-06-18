@@ -55,7 +55,7 @@ bool parseWebUrl(uint8_t *vbuf, char **hostIp, char **req, int *port, bool *doSS
      *portB = 0;
      portB++;
      *port = atoi(portB);
-     if(port <= 0)
+     if(*port <= 0)
        return false;
   }
   return true;
