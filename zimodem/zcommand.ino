@@ -2329,10 +2329,7 @@ ZResult ZCommand::setStatusRegister(const int snum, const int sval, int *crc8, c
  case 52:
    pinModeDecoder(sval,&riActive,&riInactive,DEFAULT_RI_ACTIVE,DEFAULT_RI_INACTIVE);
    if(pinSupport[pinRI])
-   {
-     serial.setFlowControlType(serial.getFlowControlType());
      s_pinWrite(pinRI,riInactive);
-   }
    result=ZOK;
    break;
  case 53:
@@ -2340,7 +2337,7 @@ ZResult ZCommand::setStatusRegister(const int snum, const int sval, int *crc8, c
    {
      pinRI=sval;
      pinMode(pinRI,OUTPUT);
-     s_pinWrite(pinRTS,riInactive);
+     s_pinWrite(pinRI,riInactive);
      result=ZOK;
    }
    else
