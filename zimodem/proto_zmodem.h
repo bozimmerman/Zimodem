@@ -402,7 +402,7 @@ static ZModem *initZSerial(FS &fs, FlowControlType commandFlow)
   return modem;
 }
 
-static boolean zDownload(FlowControlType flow, FS &fs, String filePath, String &errors)
+static bool zDownload(FlowControlType flow, FS &fs, String filePath, String &errors)
 {
   time_t starttime = 0;
   uint64_t bytes_sent=0;
@@ -427,7 +427,7 @@ static boolean zDownload(FlowControlType flow, FS &fs, String filePath, String &
   return (success==ZTRUE) && (modem->zm->cancelled==ZFALSE);
 }
 
-static boolean zUpload(FlowControlType flow, FS &fs, String dirPath, String &errors)
+static bool zUpload(FlowControlType flow, FS &fs, String dirPath, String &errors)
 {
   BOOL success=ZFALSE;
   int   i;

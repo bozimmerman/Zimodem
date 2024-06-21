@@ -125,14 +125,14 @@ static bool xDDataHandler(File *xfile, unsigned long number, char *buf, int sz)
   return true;  
 }
 
-static boolean xDownload(FlowControlType commandFlow, File &f, String &errors)
+static bool xDownload(FlowControlType commandFlow, File &f, String &errors)
 {
   XModem xmo(f,commandFlow, xReceiveSerial, xSendSerial, xDDataHandler);
   bool result = xmo.transmit();
   return result;
 }
 
-static boolean xUpload(FlowControlType commandFlow, File &f, String &errors)
+static bool xUpload(FlowControlType commandFlow, File &f, String &errors)
 {
   XModem xmo(f,commandFlow, xReceiveSerial, xSendSerial, xUDataHandler);
   bool result = xmo.receive();

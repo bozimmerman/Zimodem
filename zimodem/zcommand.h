@@ -111,8 +111,8 @@ class ZCommand : public ZMode
     
     WiFiClientNode *current              = null;
     WiFiClientNode *nextConn             = null;
-    boolean         packetXOn            = true;
-    boolean         busyMode             = false;
+    bool            packetXOn            = true;
+    bool            busyMode             = false;
     char            ringCounter          = 1;
     BinType         binType              = BTYPE_NORMAL;
     unsigned long   lastNonPlusTimeMs    = 0;
@@ -121,9 +121,9 @@ class ZCommand : public ZMode
     char            hbuf[MAX_COMMAND_SIZE];
     int             eon                  = 0;
     int             lastServerClientId   = 0;
-    boolean         autoStreamMode       = false;
-    boolean         telnetSupport        = false;
-    boolean         preserveListeners    = false;
+    bool            autoStreamMode       = false;
+    bool            telnetSupport        = false;
+    bool            preserveListeners    = false;
     char           *tempDelimiters       = NULL;
     char           *delimiters           = NULL;
     char           *tempMaskOuts         = NULL;
@@ -182,7 +182,7 @@ class ZCommand : public ZMode
     bool suppressResponses;
     bool numericResponses;
     bool longResponses;
-    boolean doEcho;
+    bool doEcho;
     String EOLN;
     char EC='+';
     char ECS[32];

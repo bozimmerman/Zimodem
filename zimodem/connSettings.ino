@@ -77,7 +77,7 @@ String ConnSettings::getFlagString()
   return lastOptions;
 }
 
-void ConnSettings::setFlag(ConnFlag flagMask, boolean newVal)
+void ConnSettings::setFlag(ConnFlag flagMask, bool newVal)
 {
   switch(flagMask)
   {

@@ -25,7 +25,7 @@ enum LogOutputState
 
 static unsigned long expectedSerialTime = 1000;
 
-static boolean logFileOpen = false;
+static bool logFileOpen = false;
 static bool logFileDebug= false;
 static File logFile; 
 
