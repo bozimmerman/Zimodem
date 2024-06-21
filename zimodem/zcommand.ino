@@ -2102,21 +2102,6 @@ ZResult ZCommand::doHangupCommand(int vval, uint8_t *vbuf, int vlen, bool isNumb
   return ZERROR;
 }
 
-int ZCommand::pinStatusDecoder(int pinActive, int pinInactive)
-{
-  if(pinActive==HIGH)
-  {
-      if(pinInactive==HIGH)
-        return 2;
-      return 0;
-  }
-  else
-  if(pinInactive==LOW)
-    return 3;
-  else
-    return 1;
-}
-
 int ZCommand::getStatusRegister(const int snum, int crc8)
 {
   switch(snum)
@@ -2144,27 +2129,27 @@ int ZCommand::getStatusRegister(const int snum, int crc8)
  case 45:
    return binType;
  case 46:
-   return pinStatusDecoder(dcdActive,dcdInactive);
+   return pinModeCoder(dcdActive,dcdInactive,DEFAULT_DCD_ACTIVE);
  case 47:
    return pinDCD;
  case 48:
-   return pinStatusDecoder(ctsActive,ctsInactive);
+   return pinModeCoder(ctsActive,ctsInactive,DEFAULT_CTS_ACTIVE);
  case 49:
    return pinCTS;
  case 50:
-   return pinStatusDecoder(rtsActive,rtsInactive);
+   return pinModeCoder(rtsActive,rtsInactive,DEFAULT_RTS_ACTIVE);
  case 51:
    return pinRTS;
  case 52:
-   return pinStatusDecoder(riActive,riInactive);
+   return pinModeCoder(riActive,riInactive,DEFAULT_RI_ACTIVE);
  case 53:
    return pinRI;
  case 54:
-   return pinStatusDecoder(dtrActive,dtrInactive);
+   return pinModeCoder(dtrActive,dtrInactive,DEFAULT_DTR_ACTIVE);
  case 55:
    return pinDTR;
  case 56:
-   return pinStatusDecoder(dsrActive,dsrInactive);
+   return pinModeCoder(dsrActive,dsrInactive,DEFAULT_DSR_ACTIVE);
  case 57:
    return pinDSR;
  case 60:
