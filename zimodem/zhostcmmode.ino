@@ -1,5 +1,5 @@
 /*
-   Copyright 2016-2019 Bo Zimmerman
+   Copyright 2016-2024 Bo Zimmerman
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -17,6 +17,7 @@
 #ifdef INCLUDE_HOSTCM
 void ZHostCMMode::switchBackToCommandMode()
 {
+  debugPrintf("\r\nMode:Command\r\n");
   if(proto != 0)
     delete proto;
   proto = 0;
@@ -25,6 +26,7 @@ void ZHostCMMode::switchBackToCommandMode()
 
 void ZHostCMMode::switchTo()
 {
+  debugPrintf("\r\nMode:HostCM\r\n");
   currMode=&hostcmMode;
   if(proto == 0)
     proto = new HostCM(&SD);

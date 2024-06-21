@@ -1,5 +1,5 @@
 /*
-   Copyright 2016-2019 Bo Zimmerman
+   Copyright 2016-2024 Bo Zimmerman
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -261,7 +261,7 @@ void WiFiServerNode::RestoreWiFiServers()
       WiFiServerSpec snode;
       if(!ReadWiFiServer(f,snode))
       {
-        debugPrintf("Server: FAIL\n");
+        debugPrintf("Server: Read: FAIL\r\n");
         fail=true;
         break;
       }
@@ -278,10 +278,10 @@ void WiFiServerNode::RestoreWiFiServers()
         setCharArray(&node->delimiters,snode.delimiters);
         setCharArray(&node->maskOuts,snode.maskOuts);
         setCharArray(&node->stateMachine,snode.stateMachine);
-        debugPrintf("Server: %d, %d: '%s' '%s'\n",node->port,node->flagsBitmap,node->delimiters,node->maskOuts);
+        debugPrintf("Server: %d, %d: '%s' '%s'\r\n",node->port,node->flagsBitmap,node->delimiters,node->maskOuts);
       }
       else
-        debugPrintf("Server: DUP %d\n",snode.port);
+        debugPrintf("Server: DUP %d\r\n",snode.port);
     }
     f.close();
   }

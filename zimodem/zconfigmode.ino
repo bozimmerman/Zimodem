@@ -1,5 +1,5 @@
 /*
-   Copyright 2016-2019 Bo Zimmerman
+   Copyright 2016-2024 Bo Zimmerman
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -16,6 +16,7 @@
 
 void ZConfig::switchTo()
 {
+  debugPrintf("\r\nMode:Config\r\n");
   currMode=&configMode;
   serial.setFlowControlType(commandMode.serial.getFlowControlType());
   serial.setPetsciiMode(commandMode.serial.isPetsciiMode());
@@ -50,6 +51,7 @@ void ZConfig::serialIncoming()
 
 void ZConfig::switchBackToCommandMode()
 {
+  debugPrintf("\r\nMode:Command\r\n");
   commandMode.doEcho=savedEcho;
   currMode = &commandMode;
 }
@@ -214,7 +216,9 @@ void ZConfig::doModeCommand()
             commandMode.updateAutoAnswer();
           }
         }
-        commandMode.reSaveConfig();
+        if(!commandMode.reSaveConfig(3))
+          serial.printf("%sFailed to save Settings.%s",EOLNC,EOLNC);
+        else
         serial.printf("%sSettings saved.%s",EOLNC,EOLNC);
         commandMode.showInitMessage();
         WiFiServerNode::SaveWiFiServers();
@@ -223,6 +227,7 @@ void ZConfig::doModeCommand()
       }
       else
         showMenu=true;
+      break;
     }
     case ZCFGMENU_NUM:
     {
@@ -243,7 +248,9 @@ void ZConfig::doModeCommand()
       {
         lastNumber = atol((char *)cmd.c_str());
         lastAddress = "";
-        ConnSettings flags(commandMode.getConfigFlagBitmap());
+        int flagsBitmap = commandMode.getConfigFlagBitmap();
+        flagsBitmap = flagsBitmap & (~FLAG_ECHO);
+        ConnSettings flags(flagsBitmap);
         lastOptions = flags.getFlagString();
         lastNotes = "";
         currState=ZCFGMENU_ADDRESS;
@@ -725,7 +732,7 @@ void ZConfig::loop()
         if(lastEntry == null)
           serial.printf("%sEnter a new hostname:port%s: ",EOLNC,EOLNC);
         else
-          serial.printf("%sModify hostname:port, or enter DELETE (%s)%s: ",EOLNC,lastAddress.c_str(),EOLNC);
+          serial.printf("%sModify address, or enter DELETE (%s)%s: ",EOLNC,lastAddress.c_str(),EOLNC);
         break;
       }
       case ZCFGMENU_OPTIONS:
@@ -859,7 +866,7 @@ void ZConfig::loop()
       }
       case ZCFGMENU_WICONFIRM:
       {
-        serial.printf("%sYour setting changed. Save (y/N)?",EOLNC);
+        serial.printf("%sYour settings changed. Save (y/N)?",EOLNC);
         break;
       }
     }

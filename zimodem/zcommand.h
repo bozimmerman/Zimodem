@@ -101,38 +101,40 @@ class ZCommand : public ZMode
 #endif
 
   private:
-    char CRLF[4];
-    char LFCR[4];
-    char LF[2];
-    char CR[2];
-    char BS=8;
-    char ringCounter = 1;
+    char            CRLF[4];
+    char            LFCR[4];
+    char            LF[2];
+    char            CR[2];
+    char            BS                   = 8;
 
-    ZSerial serial;
-    bool packetXOn = true;
-    bool busyMode = false;
-    BinType binType = BTYPE_NORMAL;
-    uint8_t nbuf[MAX_COMMAND_SIZE];
-    char hbuf[MAX_COMMAND_SIZE];
-    int eon=0;
-    int lastServerClientId = 0;
-    WiFiClientNode *current = null;
-    bool autoStreamMode=false;
-    bool telnetSupport=true;
-    bool preserveListeners=false;
-    unsigned long lastNonPlusTimeMs = 0;
-    unsigned long currentExpiresTimeMs = 0;
-    char *tempDelimiters = NULL;
-    char *tempMaskOuts = NULL;
-    char *tempStateMachine = NULL;
-    char *delimiters = NULL;
-    char *maskOuts = NULL;
-    char *stateMachine = NULL;
-    char *machineState = NULL;
-    String machineQue = "";
-    String previousCommand = "";
-    WiFiClientNode *nextConn=null;
-    int lastPacketId = -1;
+    ZSerial         serial;
+    
+    WiFiClientNode *current              = null;
+    WiFiClientNode *nextConn             = null;
+    boolean         packetXOn            = true;
+    boolean         busyMode             = false;
+    char            ringCounter          = 1;
+    BinType         binType              = BTYPE_NORMAL;
+    unsigned long   lastNonPlusTimeMs    = 0;
+    unsigned long   currentExpiresTimeMs = 0;
+    uint8_t         nbuf[MAX_COMMAND_SIZE];
+    char            hbuf[MAX_COMMAND_SIZE];
+    int             eon                  = 0;
+    int             lastServerClientId   = 0;
+    boolean         autoStreamMode       = false;
+    boolean         telnetSupport        = false;
+    boolean         preserveListeners    = false;
+    char           *tempDelimiters       = NULL;
+    char           *delimiters           = NULL;
+    char           *tempMaskOuts         = NULL;
+    char           *maskOuts             = NULL;
+    char           *tempStateMachine     = NULL;
+    char           *stateMachine         = NULL;
+    char           *machineState         = NULL;
+    String          machineQue           = "";
+    String          previousCommand      = "";
+    int             lastPacketId         = -1;
+
 
     byte CRC8(const byte *data, byte len);
 
@@ -145,7 +147,7 @@ class ZCommand : public ZMode
     void setConfigDefaults();
     void parseConfigOptions(String configArguments[]);
     void setOptionsFromSavedConfig(String configArguments[]);
-    void reSaveConfig();
+    bool reSaveConfig(int retries);
     void reSendLastPacket(WiFiClientNode *conn, uint8_t which);
     bool acceptNewConnection();
     void headerOut(const int channel, const int num, const int sz, const int crc8);

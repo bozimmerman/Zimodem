@@ -63,6 +63,7 @@ private:
   int chunkCount = 0;
   int chunkSize = 0;
   uint8_t state = 0; //0
+  bool eof = false;
 
 public:
 
@@ -84,6 +85,7 @@ public:
     {
       if(available()==0)
         return -1;
+    int returnC = -1;
       char c=wifi->read();
       bool gotC = false;
       int errors = 0;
@@ -93,7 +95,10 @@ public:
         {
           case 0:
             if(c=='0')
-              return '\0';
+          {
+            eof=true;
+            return -1;
+          }
             if((c>='0')&&(c<='9'))
             {
               chunkSize = (c - '0');
@@ -122,6 +127,7 @@ public:
             if(c == '\n')
             {
               state = 3;
+            errors = 0;
               chunkCount=0;
             }
             else
@@ -132,6 +138,7 @@ public:
             {
               gotC = true;
               chunkCount++;
+            returnC = c;
             }
             else
             if(c == '\r')
@@ -146,7 +153,8 @@ public:
               state = 0; // what else is there to do?!
             break;
         }
-        while((!gotC) && (errors < 5000))
+      while((!gotC)
+      && (errors < 5000))
         {
             if(available()>0)
             {
@@ -160,7 +168,7 @@ public:
               delay(1);
         }
       }
-      return c;
+    return returnC;
     }
     virtual int peek()
     {
@@ -199,7 +207,7 @@ public:
     }
     virtual uint8_t connected()
     {
-      return wifi->connected();
+      return wifi->connected() || (!eof);
     }
 };
  */

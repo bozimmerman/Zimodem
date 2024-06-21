@@ -1,5 +1,5 @@
 /*
-   Copyright 2016-2019 Bo Zimmerman
+   Copyright 2016-2024 Bo Zimmerman
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -115,11 +115,11 @@ void ZSerial::setFlowControlType(FlowControlType type)
 #ifdef ZIMODEM_ESP32
   if(flowControlType == FCT_RTSCTS)
   {
-    uart_set_hw_flow_ctrl(UART_NUM_2,UART_HW_FLOWCTRL_DISABLE,0);
+    uart_set_hw_flow_ctrl(MAIN_UART_NUM,UART_HW_FLOWCTRL_DISABLE,0);
     uint32_t invertMask = 0;
     if(pinSupport[pinCTS])
     {
-      uart_set_pin(UART_NUM_2, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE, /*cts_io_num*/pinCTS);
+      uart_set_pin(MAIN_UART_NUM, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE, /*cts_io_num*/pinCTS);
       // cts is input to me, output to true RS232
       if(ctsActive == HIGH)
 #       ifdef UART_INVERSE_CTS
@@ -130,7 +130,7 @@ void ZSerial::setFlowControlType(FlowControlType type)
     }
     if(pinSupport[pinRTS])
     {
-      uart_set_pin(UART_NUM_2, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE, /*rts_io_num*/ pinRTS, UART_PIN_NO_CHANGE);
+      uart_set_pin(MAIN_UART_NUM, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE, /*rts_io_num*/ pinRTS, UART_PIN_NO_CHANGE);
       s_pinWrite(pinRTS, rtsActive);
       // rts is output to me, input to true RS232
       if(rtsActive == HIGH)
@@ -140,23 +140,24 @@ void ZSerial::setFlowControlType(FlowControlType type)
           invertMask = invertMask | UART_SIGNAL_RTS_INV;
 #       endif
     }
-    //debugPrintf("invert = %d magic values = %d %d, RTS_HIGH=%d, RTS_LOW=%d HIGHHIGH=%d LOWLOW=%d\n",invertMask,ctsActive,rtsActive, DEFAULT_RTS_ACTIVE, DEFAULT_RTS_INACTIVE, HIGH, LOW);
+    //debugPrintf("invert = %d magic values = %d %d, RTS_HIGH=%d, RTS_LOW=%d HIGHHIGH=%d LOWLOW=%d\r\n",
+    //            invertMask,ctsActive,rtsActive, DEFAULT_RTS_ACTIVE, DEFAULT_RTS_INACTIVE, HIGH, LOW);
     if(invertMask != 0)
-      uart_set_line_inverse(UART_NUM_2, invertMask);
+      uart_set_line_inverse(MAIN_UART_NUM, invertMask);
     const int CUTOFF = 100;
     if(pinSupport[pinRTS])
     {
       if(pinSupport[pinCTS])
-        uart_set_hw_flow_ctrl(UART_NUM_2,UART_HW_FLOWCTRL_CTS_RTS,CUTOFF);
+        uart_set_hw_flow_ctrl(MAIN_UART_NUM,UART_HW_FLOWCTRL_CTS_RTS,CUTOFF);
       else
-        uart_set_hw_flow_ctrl(UART_NUM_2,UART_HW_FLOWCTRL_CTS_RTS,CUTOFF);
+        uart_set_hw_flow_ctrl(MAIN_UART_NUM,UART_HW_FLOWCTRL_CTS_RTS,CUTOFF);
     }
     else
     if(pinSupport[pinCTS])
-      uart_set_hw_flow_ctrl(UART_NUM_2,UART_HW_FLOWCTRL_CTS_RTS,CUTOFF);
+      uart_set_hw_flow_ctrl(MAIN_UART_NUM,UART_HW_FLOWCTRL_CTS_RTS,CUTOFF);
   }
   else
-    uart_set_hw_flow_ctrl(UART_NUM_2,UART_HW_FLOWCTRL_DISABLE,0);
+    uart_set_hw_flow_ctrl(MAIN_UART_NUM,UART_HW_FLOWCTRL_DISABLE,0);
 #endif
 }
 
@@ -192,7 +193,7 @@ bool ZSerial::isSerialOut()
   case FCT_RTSCTS:
     if(pinSupport[pinCTS])
     {
-      //debugPrintf("CTS: pin %d (%d == %d)\n",pinCTS,digitalRead(pinCTS),ctsActive);
+      //debugPrintf("CTS: pin %d (%d == %d)\r\n",pinCTS,digitalRead(pinCTS),ctsActive);
       return (digitalRead(pinCTS) == ctsActive);
     }
     return true;
@@ -214,7 +215,7 @@ bool ZSerial::isSerialCancelled()
   {
     if(pinSupport[pinCTS])
     {
-      //debugPrintf("CTS: pin %d (%d == %d)\n",pinCTS,digitalRead(pinCTS),ctsActive);
+      //debugPrintf("CTS: pin %d (%d == %d)\r\n",pinCTS,digitalRead(pinCTS),ctsActive);
       return (digitalRead(pinCTS) == ctsInactive);
     }
   }
@@ -269,7 +270,7 @@ void ZSerial::enqueByte(uint8_t c)
     }
   }
   // the car jam of blocked bytes stops HERE
-  //debugPrintf("%d\n",serialOutBufferBytesRemaining());
+  //debugPrintf("%d\r\n",serialOutBufferBytesRemaining());
   while(serialOutBufferBytesRemaining()<1)
   {
     if(!isSerialOut())
@@ -353,7 +354,6 @@ void ZSerial::prints(String str)
 
 void ZSerial::printf(const char* format, ...) 
 {
-  int ret;
   va_list arglist;
   va_start(arglist, format);
   vsnprintf(FBUF, sizeof(FBUF), format, arglist);

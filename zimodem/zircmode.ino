@@ -1,13 +1,23 @@
-/*
- * zircmode.ino
- *
- *  Created on: May 18, 2022
- *      Author: Bo Zimmerman
- */
 #ifdef INCLUDE_IRCC
+/*
+   Copyright 2022-2024 Bo Zimmerman, Steve Gibson
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+     http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+ */
 //https://github.com/bl4de/irc-client/blob/master/irc_client.py
 void ZIRCMode::switchBackToCommandMode()
 {
+  debugPrintf("\r\nMode:Command\r\n");
   serial.println("Back in command mode.");
   if(current != null)
   {
@@ -19,6 +29,7 @@ void ZIRCMode::switchBackToCommandMode()
 
 void ZIRCMode::switchTo()
 {
+  debugPrintf("\r\nMode:IRC\r\n");
   currMode=&ircMode;
   savedEcho=commandMode.doEcho;
   commandMode.doEcho=true;
@@ -32,13 +43,27 @@ void ZIRCMode::switchTo()
   lastAddress="";
   lastOptions="";
   channelName="";
+  debugRaw = false;
   joinReceived=false;
   if(nick.length()==0)
   {
-    randomSeed(millis());
-    char tempNick[50];
-    sprintf(tempNick,"ChangeMe#%ld",random(1,999));
-    nick = tempNick;
+    if(SPIFFS.exists(NICK_FILE))
+    {
+      File f = SPIFFS.open(NICK_FILE, "r");
+      while(f.available()>0)
+      {
+        char c=f.read();
+        if((c != '\n') && (c>0))
+          nick += c;
+      }
+    }
+    if(nick.length()==0)
+    {
+      randomSeed(millis());
+      char tempNick[50];
+      sprintf(tempNick,"ChangeMe#%ld",random(1,999));
+      nick = tempNick;
+    }
   }
 }
 
@@ -90,7 +115,7 @@ void ZIRCMode::doIRCCommand()
           char vbuf[address.length()+1];
           strcpy(vbuf,pb->address);
           char *colon=strstr((char *)vbuf,":");
-          int port=6666;
+          int port=6667;
           if(colon != null)
           {
             (*colon)=0;
@@ -170,15 +195,20 @@ void ZIRCMode::doIRCCommand()
           currState=ZIRCMENU_NOTES; // just keep old values
       else
       {
-        boolean fail = cmd.indexOf(',') >= 0;
+        bool fail = cmd.indexOf(',') >= 0;
         int colonDex=cmd.indexOf(':');
         fail = fail || (colonDex <= 0) || (colonDex == cmd.length()-1);
         fail = fail || (colonDex != cmd.lastIndexOf(':'));
         if(!fail)
         {
           for(int i=colonDex+1;i<cmd.length();i++)
-            if(strchr("0123456789",cmd[i])<0)
+          {
+            if(strchr("0123456789",cmd[i]) == 0)
+            {
               fail=true;
+              break;
+            }
+          }
         }
         if(fail)
         {
@@ -204,7 +234,12 @@ void ZIRCMode::doIRCCommand()
     case ZIRCMENU_NICK:
     {
       if(cmd.length()>0)
+      {
         nick=cmd;
+        File f = SPIFFS.open(NICK_FILE, "w");
+        f.printf("%s",nick.c_str());
+        f.close();
+      }
       currState=ZIRCMENU_MAIN;
       showMenu=true; // re-show the menu
       break;
@@ -262,28 +297,124 @@ void ZIRCMode::doIRCCommand()
       {
         String lccmd = cmd;
         lccmd.toLowerCase();
+        // index the first and second arguments, space/tab delimited
+        int firstArgStart=0;
+        while((cmd.length()>firstArgStart)&&(cmd[firstArgStart]!=' ')&&(cmd[firstArgStart]!=9))
+          firstArgStart++;
+        while((cmd.length()>firstArgStart)
+        &&((cmd[firstArgStart]==' ')||(cmd[firstArgStart]==9)))
+          firstArgStart++;
+        int nextArgStart = firstArgStart;
+        while((cmd.length()>nextArgStart)&&(cmd[nextArgStart]!=' ')&&(cmd[nextArgStart]!=9))
+          nextArgStart++;
+        int firstArgEnd=nextArgStart;
+        while((cmd.length()>nextArgStart)
+        &&((cmd[nextArgStart]==' ')||(cmd[nextArgStart]==9)))
+          nextArgStart++;
         if(lccmd.startsWith("/join "))
         {
-          int cs=5;
-          while((cmd.length()>cs)
-          &&((cmd[cs]==' ')||(cmd[cs]==7)))
-            cs++;
-          if(cs < cmd.length())
+          if(firstArgStart < cmd.length())
           {
-            if(channelName.length()>0 && joinReceived)
-            {
-              serial.println("* Already in "+channelName+": Not Yet Implemented");
-              // we are already joined somewhere
-            }
-            else
-            {
-              channelName = cmd.substring(cs);
-              if(current != null)
-                current->print("JOIN :"+channelName+"\r\n");
-            }
+            channelName = cmd.substring(firstArgStart);
+            if(current != null)
+              current->print("JOIN :"+channelName+"\r\n");
+            serial.println("* Now talking in: " + channelName);
           }
           else
             serial.println("* A channel name is required *");
+        }
+        else
+        if(lccmd.startsWith("/list"))
+        {
+          if(firstArgStart < cmd.length())
+          {
+            listFilter = cmd.substring(firstArgStart);
+            listFilter.toLowerCase();
+            if(current != null)
+              current->print("LIST\r\n");
+          }
+          else
+            serial.println("* A channel name filter is required.  Trust me. *");
+        }
+        else
+        if (lccmd.startsWith("/part "))
+        {
+          String reasonToLeave = "Leaving...";
+          String channelToLeave = "";
+          if(nextArgStart < cmd.length())
+            {
+            channelToLeave = cmd.substring(firstArgStart,firstArgEnd);
+            reasonToLeave = cmd.substring(nextArgStart);
+            }
+            else
+          if(firstArgStart < cmd.length())
+            channelToLeave = cmd.substring(firstArgStart);
+          if(firstArgStart < cmd.length())
+            {
+              if(current != null)
+              current->print("PART " + channelToLeave + " :" + reasonToLeave + "\r\n");
+            if(channelToLeave == channelName)
+            {
+                serial.println("* You will need to /switch or /join a new channel to talk *");
+                channelName = "";
+            }
+          }
+          else
+            serial.println("* You must specify the channel to part/leave *");
+        }
+        else
+        if (lccmd.startsWith("/whois ")) // WHOIS - get user info
+        {
+          if((current != null)
+          &&(nextArgStart < cmd.length()))
+          {
+            current->print("WHOIS " + cmd.substring(firstArgStart) + "\r\n");
+          }
+          else
+            serial.println("* You must specify who to whois *");
+            }
+        else
+        if (lccmd.startsWith("/switch ")) // Switch to a new Channel to talk on
+        {
+          if(firstArgStart < cmd.length())
+          {
+            if(current != null)
+              channelName = cmd.substring(firstArgStart);
+            serial.println("* Now talking in: " + channelName);
+          }
+          else
+            serial.println("* A channel name is required *");
+        }
+        else
+        if (lccmd.startsWith("/debug")) // Toggle debug mode to receive all RAW messages
+        {
+          if (debugRaw)
+          {
+            debugRaw = false;
+            if(current != null)
+              serial.println("* Debug OFF - no longer receive RAW IRC messages");
+          }
+          else
+          {
+            debugRaw = true;
+            if(current != null)
+              serial.println("* Debug ON - receiving RAW IRC messages");
+          }
+        }
+        else
+        if(lccmd.startsWith("/msg ")) // Send "private message" to user
+        {
+          if((firstArgStart < cmd.length())
+          &&(nextArgStart < cmd.length()))
+          {
+              String sendToNick = cmd.substring(firstArgStart,firstArgEnd);
+              String msgToSend = cmd.substring(nextArgStart);
+              if(current != null)
+                current->print("PRIVMSG " + sendToNick + " :" + msgToSend + "\r\n");
+                //current->printf("PRIVMSG %s :%s\r\n",sendToNick.c_str(),msgToSend.c_str());
+          }
+          else
+            serial.println("* A nickname and message is required*");
         }
         else
         if(lccmd.startsWith("/quit"))
@@ -308,7 +439,12 @@ void ZIRCMode::doIRCCommand()
       else
       if((current != null)
       &&(joinReceived))
+      {
+        if(channelName.length() == 0)
+          serial.println("* You must /switch or /join a channel to talk. *");
+        else
         current->printf("PRIVMSG %s :%s\r\n",channelName.c_str(),cmd.c_str());
+      }
       break;
     }
   }
@@ -413,7 +549,7 @@ void ZIRCMode::loopMenuMode()
                   if(cmd.indexOf("376")>=0)
                   {
                       ircState = ZIRCSTATE_COMMAND;
-                      //TODO: say something?
+                      serial.prints("* Commands: /join #<channel>, /list <filter>, or /quit.\r\n");
                   }
                   else
                   if(cmd.indexOf("No Ident response")>=0)
@@ -453,30 +589,160 @@ void ZIRCMode::loopMenuMode()
                 }
                 case ZIRCSTATE_COMMAND:
                 {
-                  if((!joinReceived) 
-                  && (channelName.length()>0) 
-                  && (cmd.indexOf("366")>=0))
+                  // Print copy of raw IRC messages for debugging. Comment in/out as needed.
+                  if (debugRaw)
+                  {
+                    serial.prints("RAW> " + cmd);
+                    serial.prints(EOLNC);
+                  }
+                  int rawMsgStart = cmd.indexOf(":"); // raw IRC messages start with ':'
+                  // the first space occurs after the user details (which sometimes contain extra ':' chars)
+                  int firstSpace = cmd.indexOf(" ");
+                  // this is the 2nd colon, after which is the message
+                  int secondColon = (firstSpace >= 0) ? cmd.indexOf(":", firstSpace) : -1;
+                  String theMessage = (secondColon >= 0) ? cmd.substring(secondColon + 1) : "";
+                  theMessage.trim();
+                  String msgMetaData = (secondColon >= 0) ? cmd.substring(rawMsgStart + 1, secondColon) : theMessage;
+                  msgMetaData.trim();
+                  int startMsgType = cmd.indexOf("PRIVMSG ");
+                  if((startMsgType >= 0)
+                  &&(secondColon > 0))
+                  {
+                    int endOfNick = msgMetaData.indexOf("!");
+                    if (endOfNick >= 0)
+                    {
+                      String fromNick = msgMetaData.substring(0,endOfNick);
+                      int endMsgType = cmd.indexOf(' ', startMsgType);
+                      int startSentTo = endMsgType + 1;
+                      int endSentTo = cmd.indexOf(' ', startSentTo);
+                      String sentTo = cmd.substring(startSentTo, endSentTo);
+                      //serial.println("* sentTo: " + sentTo);
+                      if (sentTo.startsWith("#")) // contains channel name in msg, so it is a channel message
+                      {
+                        serial.print("[" + sentTo + "]: <" + fromNick+ "> " + theMessage);
+                      }
+                      else
+                      {
+                        serial.print("*PRIV* <" + fromNick+ "> " + theMessage);
+                      }
+                    }
+                  }
+                  else // QUIT - message when a client quits IRC
+                  if (msgMetaData.indexOf(" QUIT") > 0)
+                  {
+                    int endOfNick = msgMetaData.indexOf("!");
+                    String fromNick = msgMetaData.substring(0,endOfNick);
+                    serial.print("[" + fromNick+ ": QUIT (" + theMessage + ")");
+                  }
+                  else // JOIN - message when a client joins a channel we are in
+                  if (msgMetaData.indexOf(" JOIN") > 0)
+                  {
+                    int endOfNick = msgMetaData.indexOf("!");
+                    int startOfChanName = msgMetaData.indexOf("#");
+                    String chanName="";
+                    if(startOfChanName >0)
+                      chanName = msgMetaData.substring(startOfChanName, msgMetaData.length());
+                    else
+                    {
+                      startOfChanName = theMessage.indexOf("#");
+                      if(startOfChanName >= 0)
+                        chanName = theMessage.substring(startOfChanName, theMessage.length());
+                    }
+                    if((chanName.length()>0)&&(endOfNick>0))
+                    {
+                      String fromNick = msgMetaData.substring(0,endOfNick);
+                      serial.print("[" + fromNick+ " --> JOIN (" + chanName + ")");
+                    }
+                  }
+                  else // PART - message when a client leaves a channel we are in
+                  if (msgMetaData.indexOf(" PART ") > 0)
+                  {
+                    int endOfNick = msgMetaData.indexOf("!");
+                    String chanName="";
+                    int startOfChanName = msgMetaData.indexOf("#");
+                    if(startOfChanName >0)
+                      chanName = msgMetaData.substring(startOfChanName, msgMetaData.length());
+                    else
+                    {
+                      startOfChanName = theMessage.indexOf("#");
+                      if(startOfChanName >= 0)
+                        chanName = theMessage.substring(startOfChanName, theMessage.length());
+                    }
+                    if((chanName.length()>0)&&(endOfNick>0))
+                    {
+                      String fromNick = msgMetaData.substring(0,endOfNick);
+                      serial.print("[" + fromNick+ " <-- PART (" + chanName + ")");
+                    }
+                  }
+                  else // 353 = Names (lists all nicknames on channel) -- ignore this to prevent nickname spam on channel join
+                  if (msgMetaData.indexOf(" 353 ") >= 0)
+                  {
+                      break;
+                  }
+                  else // 332 = TOPIC
+                  if (cmd.indexOf("332") >= 0)
+                  {
+                    serial.prints("TOPIC: " + theMessage);
+                  }
+                  else // 322 = LIST
+                  if (cmd.indexOf("322") >= 0)
+                  {
+                    int channelStart = cmd.indexOf("#",cmd.indexOf("322"));
+                    int channelEnd = channelStart>0?cmd.indexOf(" ",channelStart):-1;
+                    if(channelEnd > 0)
+                    {
+                      String channelName = cmd.substring(channelStart,channelEnd);
+                      channelName.toLowerCase();
+                      if((listFilter.length()==0)||(channelName.indexOf(listFilter)>=0))
+                        serial.prints(cmd.substring(channelStart));
+                      else
+                        break; // no EOLN PLZ
+                    }
+                    else
+                      break; // no EOLN PLZ
+                  }
+                  else
+                  if (cmd.indexOf("333") >= 0) // 333 = Who set TOPIC & Time set
+                  {
+                      break;
+                  }
+                  else // 366 = End of Names (channel joined)
+                  if(msgMetaData.indexOf(" 366 ")>=0)
                   {
                     joinReceived=true;
-                    serial.prints("Channel joined.  Enter a message to send, or /quit.");
+                    serial.prints("Channel joined.  Enter a message to send to channel.");
+                    serial.prints(EOLNC);
+                    serial.prints("/msg <nick> <message>, /part #<channel>, /switch #<channel>, /list, or /quit.");
                     serial.prints(EOLNC);
                   }
-                  int x0 = cmd.indexOf(":");
-                  int x1 = (x0>=0)?cmd.indexOf(" PRIVMSG ", x0+1):-1;
-                  x1 = (x1>0)?cmd.indexOf(":", x1+1):(x0>=0)?cmd.indexOf(":", x0+1):-1;
-                  if(x1>0)
+                  else // Handle message types from WHOIS lookups 319 = WHOIS (Channel)
+                  if (msgMetaData.indexOf(" 319 ") > 0)
                   {
-                    String msg2=cmd.substring(x1+1);
-                    msg2.trim();
-                    String msg1=cmd.substring(x0+1,x1);
-                    msg1.trim();
-                    int x2=msg1.indexOf("!");
-                    if(x2>=0)
-                      serial.print("< "+msg1.substring(0,x2)+"> "+msg2);
-                    else
-                      serial.prints(msg2);
-                    serial.prints(EOLNC);
+                    serial.prints("W| " + cmd.substring(cmd.indexOf(" 319 ")));
                   }
+                  else // 312 = WHOIS (server)
+                  if (msgMetaData.indexOf(" 312 ") > 0)
+                  {
+                    serial.prints("W| " + cmd.substring(cmd.indexOf(" 312 ")));
+                  }
+                  else // 311 = WHOIS (hostmask)
+                  if (msgMetaData.indexOf(" 311 ") > 0)
+                  {
+                    serial.prints("W| " + cmd.substring(cmd.indexOf(" 311 ")));
+                  }
+                  else // 330 = WHOIS (hostmask)
+                  if (msgMetaData.indexOf(" 330 ") > 0)
+                  {
+                    serial.prints("W| " + cmd.substring(cmd.indexOf(" 330 ")));
+                  }
+                  else // 671 = WHOIS (hostmask)
+                  if (msgMetaData.indexOf(" 671 ") > 0)
+                  {
+                    serial.prints("W| " + cmd.substring(cmd.indexOf(" 671 ")));
+                  }
+                    else
+                    serial.prints(theMessage);
+                    serial.prints(EOLNC);
                   break;
                 }
                 default:

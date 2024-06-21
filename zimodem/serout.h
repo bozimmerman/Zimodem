@@ -37,10 +37,10 @@ static bool enableRtsCts = true;
 #  define SER_BUFSIZE 128
 #endif
 static uint8_t TBUF[SER_WRITE_BUFSIZE];
-static char FBUF[256];
 static int TBUFhead=0;
 static int TBUFtail=0;
 static int serialDelayMs = 0;
+static char FBUF[256];
 
 static void serialDirectWrite(uint8_t c);
 static void serialOutDeque();

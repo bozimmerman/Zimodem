@@ -1,5 +1,5 @@
 /*
-   Copyright 2016-2019 Bo Zimmerman
+   Copyright 2016-2024 Bo Zimmerman
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -14,13 +14,15 @@
    limitations under the License. 
 */
 //#define TCP_SND_BUF                     4 * TCP_MSS
-#define ZIMODEM_VERSION "3.7.3"
+#define ZIMODEM_VERSION "3.7.2"
 const char compile_date[] = __DATE__ " " __TIME__;
 #define DEFAULT_NO_DELAY true
 #define null 0
 //# define USE_DEVUPDATER true // only enable this if your name is Bo
 
 #ifdef ARDUINO_ESP32_DEV
+# define ZIMODEM_ESP32
+#elif ARDUINO_ESP32S3_DEV
 # define ZIMODEM_ESP32
 #elif defined(ESP32)
 # define ZIMODEM_ESP32
@@ -40,13 +42,13 @@ const char compile_date[] = __DATE__ " " __TIME__;
 
 #ifdef SUPPORT_LED_PINS
 # ifdef GPIO_NUM_0
-#   define DEFAULT_PIN_AA GPIO_NUM_16
-#   define DEFAULT_PIN_HS GPIO_NUM_15
-#   define DEFAULT_PIN_WIFI GPIO_NUM_0
+#   define DEFAULT_PIN_AA GPIO_NUM_35
+#   define DEFAULT_PIN_HS GPIO_NUM_34
+#   define DEFAULT_PIN_WIFI GPIO_NUM_26
 # else
-#   define DEFAULT_PIN_AA 16
-#   define DEFAULT_PIN_HS 15
-#   define DEFAULT_PIN_WIFI 0
+#   define DEFAULT_PIN_AA 35
+#   define DEFAULT_PIN_HS 34
+#   define DEFAULT_PIN_WIFI 26
 # endif
 # define DEFAULT_HS_BAUD 38400
 # define DEFAULT_AA_ACTIVE LOW
@@ -105,31 +107,31 @@ const char compile_date[] = __DATE__ " " __TIME__;
 #endif
 
 #ifdef RS232_INVERTED
-# define DEFAULT_DCD_HIGH  HIGH
-# define DEFAULT_DCD_LOW  LOW
-# define DEFAULT_CTS_HIGH  HIGH
-# define DEFAULT_CTS_LOW  LOW
-# define DEFAULT_RTS_HIGH  HIGH
-# define DEFAULT_RTS_LOW  LOW
-# define DEFAULT_RI_HIGH  HIGH
-# define DEFAULT_RI_LOW  LOW
-# define DEFAULT_DSR_HIGH  HIGH
-# define DEFAULT_DSR_LOW  LOW
-# define DEFAULT_DTR_HIGH  HIGH
-# define DEFAULT_DTR_LOW  LOW
+# define DEFAULT_DCD_ACTIVE  HIGH
+# define DEFAULT_DCD_INACTIVE  LOW
+# define DEFAULT_CTS_ACTIVE  HIGH
+# define DEFAULT_CTS_INACTIVE  LOW
+# define DEFAULT_RTS_ACTIVE  HIGH
+# define DEFAULT_RTS_INACTIVE  LOW
+# define DEFAULT_RI_ACTIVE  HIGH
+# define DEFAULT_RI_INACTIVE  LOW
+# define DEFAULT_DSR_ACTIVE  HIGH
+# define DEFAULT_DSR_INACTIVE  LOW
+# define DEFAULT_DTR_ACTIVE  HIGH
+# define DEFAULT_DTR_INACTIVE  LOW
 #else
-# define DEFAULT_DCD_HIGH  LOW
-# define DEFAULT_DCD_LOW  HIGH
-# define DEFAULT_CTS_HIGH  LOW
-# define DEFAULT_CTS_LOW  HIGH
-# define DEFAULT_RTS_HIGH  LOW
-# define DEFAULT_RTS_LOW  HIGH
-# define DEFAULT_RI_HIGH  LOW
-# define DEFAULT_RI_LOW  HIGH
-# define DEFAULT_DSR_HIGH  LOW
-# define DEFAULT_DSR_LOW  HIGH
-# define DEFAULT_DTR_HIGH  LOW
-# define DEFAULT_DTR_LOW  HIGH
+# define DEFAULT_DCD_ACTIVE  LOW
+# define DEFAULT_DCD_INACTIVE  HIGH
+# define DEFAULT_CTS_ACTIVE  LOW
+# define DEFAULT_CTS_INACTIVE  HIGH
+# define DEFAULT_RTS_ACTIVE  LOW
+# define DEFAULT_RTS_INACTIVE  HIGH
+# define DEFAULT_RI_ACTIVE  LOW
+# define DEFAULT_RI_INACTIVE  HIGH
+# define DEFAULT_DSR_ACTIVE  LOW
+# define DEFAULT_DSR_INACTIVE  HIGH
+# define DEFAULT_DTR_ACTIVE  LOW
+# define DEFAULT_DTR_INACTIVE  HIGH
 #endif
 
 #define DEFAULT_BAUD_RATE 1200
@@ -229,25 +231,25 @@ static int dequeSize=1+(DEFAULT_BAUD_RATE/INTERNAL_FLOW_CONTROL_DIV);
 static BaudState baudState = BS_NORMAL; 
 static unsigned long resetPushTimer=0;
 static int tempBaud = -1; // -1 do nothing
-static int dcdStatus = DEFAULT_DCD_LOW;
+static int dcdStatus = DEFAULT_DCD_INACTIVE;
 static int pinDCD = DEFAULT_PIN_DCD;
 static int pinCTS = DEFAULT_PIN_CTS;
 static int pinRTS = DEFAULT_PIN_RTS;
 static int pinDSR = DEFAULT_PIN_DSR;
 static int pinDTR = DEFAULT_PIN_DTR;
 static int pinRI = DEFAULT_PIN_RI;
-static int dcdActive = DEFAULT_DCD_HIGH;
-static int dcdInactive = DEFAULT_DCD_LOW;
-static int ctsActive = DEFAULT_CTS_HIGH;
-static int ctsInactive = DEFAULT_CTS_LOW;
-static int rtsActive = DEFAULT_RTS_HIGH;
-static int rtsInactive = DEFAULT_RTS_LOW;
-static int riActive = DEFAULT_RI_HIGH;
-static int riInactive = DEFAULT_RI_LOW;
-static int dtrActive = DEFAULT_DTR_HIGH;
-static int dtrInactive = DEFAULT_DTR_LOW;
-static int dsrActive = DEFAULT_DSR_HIGH;
-static int dsrInactive = DEFAULT_DSR_LOW;
+static int dcdActive = DEFAULT_DCD_ACTIVE;
+static int dcdInactive = DEFAULT_DCD_INACTIVE;
+static int ctsActive = DEFAULT_CTS_ACTIVE;
+static int ctsInactive = DEFAULT_CTS_INACTIVE;
+static int rtsActive = DEFAULT_RTS_ACTIVE;
+static int rtsInactive = DEFAULT_RTS_INACTIVE;
+static int riActive = DEFAULT_RI_ACTIVE;
+static int riInactive = DEFAULT_RI_INACTIVE;
+static int dtrActive = DEFAULT_DTR_ACTIVE;
+static int dtrInactive = DEFAULT_DTR_INACTIVE;
+static int dsrActive = DEFAULT_DSR_ACTIVE;
+static int dsrInactive = DEFAULT_DSR_INACTIVE;
 
 static int getDefaultCtsPin()
 {
@@ -343,6 +345,8 @@ static bool connectWifi(const char* ssid, const char* password, IPAddress *ip, I
 #ifdef SUPPORT_LED_PINS
   s_pinWrite(DEFAULT_PIN_WIFI,(WiFi.status() == WL_CONNECTED)?DEFAULT_WIFI_ACTIVE:DEFAULT_WIFI_INACTIVE);
 #endif
+  if(WiFi.status() == WL_CONNECTED)
+    debugPrintf("Connected to %s with IP %s.\r\n",ssid,WiFi.localIP().toString().c_str());
   return (WiFi.status() == WL_CONNECTED);
 }
 
@@ -367,10 +371,9 @@ static void changeBaudRate(int baudRate)
 {
   flushSerial(); // blocking, but very very necessary
   delay(500); // give the client half a sec to catch up
-  logPrintfln("Baud change to %d.\n",baudRate);
-  debugPrintf("Baud change to %d.\n",baudRate);
+  logPrintfln("Baud change to %d.",baudRate);
   dequeSize=1+(baudRate/INTERNAL_FLOW_CONTROL_DIV);
-  debugPrintf("Deque constant now: %d\n",dequeSize);
+  debugPrintf("Baud %d, Deque constant now: %d\r\n",baudRate,dequeSize);
 #ifdef ZIMODEM_ESP32
   HWSerial.changeBaudRate(baudRate);
 #else
@@ -385,7 +388,7 @@ static void changeSerialConfig(SerialConfig conf)
 {
   flushSerial(); // blocking, but very very necessary
   delay(500); // give the client half a sec to catch up
-  debugPrintf("Config changing to %d.\n",(int)conf);
+  debugPrintf("Config changing to %d.\r\n",(int)conf);
   dequeSize=1+(baudRate/INTERNAL_FLOW_CONTROL_DIV);
   debugPrintf("Deque constant now: %d\n",dequeSize);
 #ifdef ZIMODEM_ESP32
@@ -393,7 +396,7 @@ static void changeSerialConfig(SerialConfig conf)
 #else
   HWSerial.begin(baudRate, conf);  //Change baud rate
 #endif
-  debugPrintf("Config changed.\n");
+  debugPrintf("Config changed.\r\n");
 }
 
 static int checkOpenConnections()
@@ -439,9 +442,8 @@ void setup()
     pinSupport[i]=true;
   for(int i=25;i<=27;i++)
     pinSupport[i]=true;
-  for(int i=32;i<=33;i++)
+  for(int i=32;i<=36;i++)
     pinSupport[i]=true;
-  pinSupport[36] = true;
   pinSupport[39] = true;
 #else
   pinSupport[0]=true;
@@ -462,7 +464,7 @@ void setup()
   {
     SPIFFS.format();
     SPIFFS.begin();
-    debugPrintf("SPIFFS Formatted.");
+    debugPrintf("SPIFFS Formatted.\r\n");
   }
   HWSerial.begin(DEFAULT_BAUD_RATE, DEFAULT_SERIAL_CONFIG);  //Start Serial
 #ifdef ZIMODEM_ESP8266
@@ -491,10 +493,10 @@ void checkReconnect()
       lastConnectAttempt = 1;
     if (now > lastConnectAttempt + nextReconnectDelay)
     {
-      debugPrintf("Attempting Reconnect to %s\n", wifiSSI.c_str());
+        debugPrintf("Attempting Reconnect to %s\r\n",wifiSSI.c_str());
       unsigned long oldReconnectDelay = nextReconnectDelay;
       if (!connectWifi(wifiSSI.c_str(), wifiPW.c_str(), staticIP, staticDNS, staticGW, staticSN))
-        debugPrintf("%sUnable to reconnect to %s.\n", wifiSSI.c_str());
+          debugPrintf("Unable to reconnect to %s.\r\n",wifiSSI.c_str());
       nextReconnectDelay = oldReconnectDelay * 2;
       if (nextReconnectDelay > MAX_RECONNECT_DELAY)
         nextReconnectDelay = DEFAULT_RECONNECT_DELAY;
@@ -522,6 +524,7 @@ void checkFactoryReset()
         SPIFFS.remove(CONFIG_FILE_OLD);
         SPIFFS.remove("/zphonebook.txt");
         SPIFFS.remove("/zlisteners.txt");
+          SPIFFS.remove("/znick.txt");
         PhoneBookEntry::clearPhonebook();
         SPIFFS.end();
         SPIFFS.format();

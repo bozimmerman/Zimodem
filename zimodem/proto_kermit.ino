@@ -44,7 +44,7 @@ bool KModem::receive()
   while(TRUE)
   {
     if (debug)
-      debugPrintf(" recsw state: %c\n",state);
+      debugPrintf(" recsw state: %c\r\n",state);
     switch(state)     /* Do until done */
     {
     case 'R': 
@@ -80,7 +80,7 @@ bool KModem::transmit()
   while(ZTRUE)       /* Do this as long as necessary */
   {
     if (debug) 
-      debugPrintf("sendsw state: %c\n",state);
+      debugPrintf("sendsw state: %c\r\n",state);
     switch(state)
     {
     case 'S': 
@@ -178,7 +178,7 @@ char KModem::sfile()
   if (kfpClosed)     /* If not already open, */
   { 
     if (debug) 
-      debugPrintf("   Opening %s for sending.\n",filnam);
+      debugPrintf("   Opening %s for sending.\r\n",filnam);
     kfp = kfileSystem->open(filnam,"r");   /* open the file to be sent */
     if (!kfp)     /* If bad file pointer, give up */
     {
@@ -291,11 +291,11 @@ char KModem::seof()
     kfp.close();     /* Close the input file */
     kfpClosed = true;      /* Set flag indicating no file open */ 
     if (debug) 
-      debugPrintf("looking for next file...\n");
+      debugPrintf("looking for next file...\r\n");
     if (gnxtfl() == FALSE)  /* No more files go? */
       return('B');    /* if not, break, EOT, all done */
     if (debug) 
-      debugPrintf("   New file is %s\n",filnam);
+      debugPrintf("   New file is %s\r\n",filnam);
     return('F');    /* More files, switch state to F */
   case 'E':     /* Error packet received */
     prerrpkt(recpkt);   /* Print it out and */
@@ -358,7 +358,7 @@ char KModem::rinit()
 
   char rs=rpack(&len,&num,packet);
   if (debug) 
-    debugPrintf(" recsw-rinit state: %c\n",rs);
+    debugPrintf(" recsw-rinit state: %c\r\n",rs);
   switch(rs) /* Get a packet */
   {
   case 'S':     /* Send-Init */
@@ -395,7 +395,7 @@ char KModem::rfile()
 
   char rs = rpack(&len,&num,packet); 
   if (debug) 
-    debugPrintf(" recsw-rfile state: %c\n",rs);
+    debugPrintf(" recsw-rfile state: %c\r\n",rs);
   switch(rs) /* Get a packet */
   {
   case 'S':     /* Send-Init, maybe our ACK lost */
@@ -448,7 +448,7 @@ char KModem::rfile()
       }
       else      /* OK, give message */
       {
-        debugPrintf("Receiving %s as %s\n",packet,filnam1);
+        debugPrintf("Receiving %s as %s\r\n",packet,filnam1);
         kfpClosed=false;
       }
     }
@@ -488,7 +488,7 @@ char KModem::rdata()
 
   char rs=rpack(&len,&num,packet);
   if (debug) 
-    debugPrintf(" recsw-rdata state: %c\n",rs);
+    debugPrintf(" recsw-rdata state: %c\r\n",rs);
   switch(rs) /* Get packet */
   {
   case 'D':     /* Got Data packet */
@@ -558,11 +558,11 @@ int KModem::spack(char type, int num, int len, char *data)
   {
     if (data != NULL)
       data[len] = '\0';   /* Null-terminate data to print it */
-    debugPrintf("\n  spack type: %c\n",type);
-    debugPrintf("   num:  %d\n",num);
-    debugPrintf("   len:  %d\n",len);
+    debugPrintf("\n  spack type: %c\r\n",type);
+    debugPrintf("   num:  %d\r\n",num);
+    debugPrintf("   len:  %d\r\n",len);
     if (data != NULL)
-      debugPrintf("      data: \"%s\"\n",data);
+      debugPrintf("      data: \"%s\"\r\n",data);
   }
   
   bufp = buffer;      /* Set up buffer pointer */
@@ -674,11 +674,11 @@ int KModem::rpack(int *len, int *num, char *data)
   {
     if (data != NULL)
       data[*len] = '\0';    /* Null-terminate data to print it */
-    debugPrintf("\n  rpack type: %c\n",type);
-    debugPrintf("   num:  %d\n",*num);
-    debugPrintf("   len:  %d\n",*len);
+    debugPrintf("\n  rpack type: %c\r\n",type);
+    debugPrintf("   num:  %d\r\n",*num);
+    debugPrintf("   len:  %d\r\n",*len);
     if (data != NULL)
-      debugPrintf("      data: \"%s\"\n",data);
+      debugPrintf("      data: \"%s\"\r\n",data);
   }
           /* Fold in bits 7,8 to compute */
   cchksum = (((cchksum&0300) >> 6)+cchksum)&077; /* final checksum */
@@ -760,7 +760,7 @@ int KModem::gnxtfl()
   filnam = (char *)filelist[filenum++]->c_str();
   filnamo = filnam;
   if (debug) 
-    debugPrintf("   gnxtfl: filelist = \"%s\"\n",filnam);
+    debugPrintf("   gnxtfl: filelist = \"%s\"\r\n",filnam);
   return TRUE;      /* else succeed */
 }
 
@@ -809,7 +809,7 @@ void KModem::prerrpkt(char *msg)
   if(errStr != 0)
   {
     (*errStr)+=msg;
-    debugPrintf("kermit: %s\n",msg);
+    debugPrintf("kermit: %s\r\n",msg);
   }
 }
 

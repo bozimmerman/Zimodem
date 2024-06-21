@@ -1,5 +1,5 @@
 /*
-   Copyright 2016-2019 Bo Zimmerman
+   Copyright 2016-2024 Bo Zimmerman
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -105,9 +105,10 @@ bool PhoneBookEntry::checkPhonebookEntry(String cmd)
     bool error = false;
     for(char *cptr=(char *)vbuf;*cptr!=0;cptr++)
     {
-      if(strchr("0123456789",*cptr) < 0)
+      if(strchr("0123456789",*cptr) == 0)
       {
         error =true;
+        break;
       }
     }
     if(error || (strlen((char *)vbuf)>9))

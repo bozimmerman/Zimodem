@@ -1,5 +1,5 @@
 /*
-   Copyright 2016-2019 Bo Zimmerman
+   Copyright 2016-2024 Bo Zimmerman
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -16,6 +16,7 @@
 
 void ZStream::switchTo(WiFiClientNode *conn)
 {
+  debugPrintf("\r\nMode:Stream\r\n");
   current = conn;
   currentExpiresTimeMs = 0;
   lastNonPlusTimeMs = 0;
@@ -148,6 +149,7 @@ void ZStream::switchBackToCommandMode(bool logout)
     }
     delete current;
   }
+  debugPrintf("\r\nMode:Command\r\n");
   current = null;
   currMode = &commandMode;
 }
@@ -267,11 +269,7 @@ void ZStream::loop()
     if(plussesInARow == 3)
     {
       plussesInARow=0;
-      if(current != 0)
-      {
-        commandMode.sendOfficialResponse(ZOK);
-        switchBackToCommandMode(false);
-      }
+      switchBackToCommandMode(false);
     }
   }
   else
