@@ -484,7 +484,6 @@ void setup()
     initSDShell();
 #  endif
   currMode = &commandMode;
-  SPIFFS.format();
   if(!SPIFFS.begin())
   {
     SPIFFS.format();
