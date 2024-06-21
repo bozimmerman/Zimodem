@@ -1,5 +1,5 @@
 /*
-   Copyright 2016-2019 Bo Zimmerman
+   Copyright 2016-2024 Bo Zimmerman
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -23,10 +23,19 @@ static unsigned long logStartTime = millis();
 static unsigned long lastLogTime = millis();
 static unsigned long logCurCount = 0;
 static LogOutputState logOutputState = LOS_NADA;
+static char LBUF[256];
+static int pinLook[8];
+
+static uint8_t lcc(uint8_t a1)
+{
+  if((a1 >= 'a')&&(a1 <= 'z'))
+    return 'A' + (a1 - 'a');
+  return a1;
+}
 
 static uint8_t FROMHEXDIGIT(uint8_t a1)
 {
-  a1 = lc(a1);
+  a1 = lcc(a1);
   if((a1 >= '0')&&(a1 <= '9'))
     return a1-'0';
   if((a1 >= 'a')&&(a1 <= 'f'))
@@ -124,17 +133,82 @@ static char *TOHEX(long a)
   return TOHEX((unsigned long)a);
 }
 
+static bool isChangedBit()
+{
+  int val;
+  bool changed=false;
+  for(int i=0;i<7;i++)
+  {
+    switch(i)
+    {
+      case 0: val = pinCache[pinDCD]; break;
+      case 1: val = digitalRead(pinCTS); break;
+      case 2: val = pinCache[pinRTS]; break;
+      case 3: val = pinCache[pinDSR]; break;
+      case 4: val = digitalRead(pinDTR); break;
+      case 5: val = digitalRead(pinOTH); break;
+      case 6: val = pinCache[pinRI]; break;
+    }
+    if(pinLook[i] != val)
+    {
+      pinLook[i] = val;
+      changed=true;
+    }
+  }
+  return changed;
+}
+
+static void logFileLoop()
+{
+  if(logFileOpen && logFile2Uart)
+  {
+    if(isChangedBit())
+    {
+      char bits[8];
+      for(int i=0;i<7;i++)
+        bits[i] = pinLook[i]?'h':'l';
+      bits[7]=0;
+      logPrintfln("Signals: DCRSTOI (%s)",bits);
+    }
+  }
+}
+
+
 static void logInternalOut(const LogOutputState m, const uint8_t c)
 {
   if(logFileOpen)
   {
+    unsigned long diff = (millis()-lastLogTime);
     if((m != logOutputState)
     ||(++logCurCount > DBG_BYT_CTR)
-    ||((millis()-lastLogTime)>expectedSerialTime))
+    ||(diff>expectedSerialTime))
     {
-      logCurCount=0;
-      
-      logOutputState = m;
+      if((diff<=expectedSerialTime)
+      &&(logCurCount<= DBG_BYT_CTR-3)
+      &&(logOutputState != LOS_NADA)
+      &&(m != LOS_NADA))
+      {
+          switch(m)
+          {
+          case LOS_NADA:
+            break;
+          case LOS_SocketIn:
+            rawLogPrintf(", SocI: ");
+            break;
+          case LOS_SocketOut:
+            rawLogPrintf(", SocO: ");
+            break;
+          case LOS_SerialIn:
+            rawLogPrintf(", SerI: ");
+            break;
+          case LOS_SerialOut:
+            rawLogPrintf(", SerO: ");
+            break;
+          }
+          logCurCount+=4;
+      }
+      else
+    {
       rawLogPrintln("");
       switch(m)
       {
@@ -153,6 +227,9 @@ static void logInternalOut(const LogOutputState m, const uint8_t c)
         rawLogPrintf("%s SerO: ",TOHEX(millis()-logStartTime));
         break;
       }
+        logCurCount=0;
+      }
+      logOutputState = m;
     }
     lastLogTime=millis();
     rawLogPrint(TOHEX(c));
@@ -191,18 +268,17 @@ static void logSocketIn(const uint8_t *c, int n)
 
 static void rawLogPrintf(const char* format, ...)
 {
-  int ret;
   va_list arglist;
   va_start(arglist, format);
-  vsnprintf(FBUF,sizeof(FBUF), format, arglist);
-  rawLogPrint(FBUF);
+  vsnprintf(LBUF,sizeof(LBUF), format, arglist);
+  rawLogPrint(LBUF);
   va_end(arglist);
   
 }
 
 static void rawLogPrint(const char* str)
 {
-  if(logFileDebug)
+  if(logFile2Uart)
     debugPrintf(str);
   else
     logFile.print(str);
@@ -210,7 +286,7 @@ static void rawLogPrint(const char* str)
 
 static void rawLogPrintln(const char* str)
 {
-  if(logFileDebug)
+  if(logFile2Uart)
   {
     debugPrintf(str);
     debugPrintf("\n");
@@ -228,11 +304,10 @@ static void logPrintfln(const char* format, ...)
       rawLogPrintln("");
       logOutputState = LOS_NADA;
     }
-    int ret;
     va_list arglist;
     va_start(arglist, format);
-    vsnprintf(FBUF,sizeof(FBUF), format, arglist);
-    rawLogPrintln(FBUF);
+    vsnprintf(LBUF,sizeof(LBUF), format, arglist);
+    rawLogPrintln(LBUF);
     va_end(arglist);
   }
 }
@@ -246,11 +321,10 @@ static void logPrintf(const char* format, ...)
       rawLogPrintln("");
       logOutputState = LOS_NADA;
     }
-    int ret;
     va_list arglist;
     va_start(arglist, format);
-    vsnprintf(FBUF, sizeof(FBUF), format, arglist);
-    rawLogPrint(FBUF);
+    vsnprintf(LBUF, sizeof(LBUF), format, arglist);
+    rawLogPrint(LBUF);
     va_end(arglist);
   }
 }

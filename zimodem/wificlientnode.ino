@@ -1,5 +1,5 @@
 /*
-   Copyright 2016-2019 Bo Zimmerman
+   Copyright 2016-2024 Bo Zimmerman
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -27,53 +27,90 @@ void WiFiClientNode::finishConnectionLink()
     last->next = this;
   }
   checkOpenConnections();
+  if(host != 0)
+    debugPrintf("\r\nConnected to %s:%d\r\n",host,port);
 }
 
-WiFiClientNode::WiFiClientNode(char *hostIp, int newport, int flagsBitmap)
+void WiFiClientNode::constructNode()
 {
-  port=newport;
-  host=new char[strlen(hostIp)+1];
-  strcpy(host,hostIp);
   id=++WiFiNextClientId;
-  this->flagsBitmap = flagsBitmap;
-  clientPtr = createWiFiClient((flagsBitmap&FLAG_SECURE)==FLAG_SECURE);
-  client = *clientPtr;
   setCharArray(&delimiters,"");
   setCharArray(&maskOuts,"");
   setCharArray(&stateMachine,"");
   machineState = stateMachine;
-  if(!client.connect(hostIp, port))
+}
+
+void WiFiClientNode::constructNode(char *hostIp, int newport, int flagsBitmap, int ringDelay)
+{
+  constructNode();
+  port=newport;
+  host=new char[strlen(hostIp)+1];
+  strcpy(host,hostIp);
+  this->flagsBitmap = flagsBitmap;
+  answered=(ringDelay == 0);
+  if(ringDelay > 0)
   {
+    ringsRemain = ringDelay;
+    nextRingMillis = millis() + 3000;
+  }
+}
+
+void WiFiClientNode::constructNode(char *hostIp, int newport, char *username, char *password, int flagsBitmap, int ringDelay)
+{
+  constructNode(hostIp, newport, flagsBitmap, ringDelay);
+# ifdef INCLUDE_SSH
+  if(((flagsBitmap&FLAG_SECURE)==FLAG_SECURE)
+  && (username != 0))
+  {
+    WiFiSSHClient *c = new WiFiSSHClient();
+    c->setLogin(username, password);
+    clientPtr = c;
+  }
+  else
+#endif
+  clientPtr = createWiFiClient((flagsBitmap&FLAG_SECURE)==FLAG_SECURE);
+  client = *clientPtr;
+  if(!clientPtr->connect(hostIp, newport))
+  {
+    debugPrintf("\r\nFailed to Connected to %s:%d\r\n",hostIp,newport);
     // deleted when it returns and is deleted
   }
   else
   {
-    client.setNoDelay(DEFAULT_NO_DELAY);
+    clientPtr->setNoDelay(DEFAULT_NO_DELAY);
     finishConnectionLink();
   }
+}
+
+WiFiClientNode::WiFiClientNode(char *hostIp, int newport, char *username, char *password, int flagsBitmap)
+{
+  constructNode(hostIp, newport, username, password, flagsBitmap, 0);
+}
+
+WiFiClientNode::WiFiClientNode(char *hostIp, int newport, int flagsBitmap)
+{
+  constructNode(hostIp, newport, 0, 0, flagsBitmap, 0);
 }
 
 void WiFiClientNode:: setNoDelay(bool tf)
 {
   if(clientPtr != 0)
     clientPtr->setNoDelay(tf);
+  else
+    client.setNoDelay(tf);
 }
 
 WiFiClientNode::WiFiClientNode(WiFiClient newClient, int flagsBitmap, int ringDelay)
 {
+  constructNode();
   this->flagsBitmap = flagsBitmap;
-  clientPtr=null;
+  clientPtr=null; // why is this so important?!
   newClient.setNoDelay(DEFAULT_NO_DELAY);
   port=newClient.localPort();
-  setCharArray(&delimiters,"");
-  setCharArray(&maskOuts,"");
-  setCharArray(&stateMachine,"");
-  machineState = stateMachine;
   String remoteIPStr = newClient.remoteIP().toString();
   const char *remoteIP=remoteIPStr.c_str();
   host=new char[remoteIPStr.length()+1];
   strcpy(host,remoteIP);
-  id=++WiFiNextClientId;
   client = newClient;
   answered=(ringDelay == 0);
   if(ringDelay > 0)
@@ -91,6 +128,10 @@ WiFiClientNode::~WiFiClientNode()
   lastPacket[1].len=0;
   if(host!=null)
   {
+    debugPrintf("\r\nDisconnected from %s:%d\r\n",host,port);
+    if(clientPtr != null)
+      clientPtr->stop();
+    else
     client.stop();
     delete host;
     host=null;
@@ -125,7 +166,14 @@ WiFiClientNode::~WiFiClientNode()
 
 bool WiFiClientNode::isConnected()
 {
-  return (host != null) && client.connected();
+  if(host != null)
+  {
+    if(clientPtr != null)
+      return clientPtr->connected();
+    else
+      return client.connected();
+  }
+  return false;
 }
 
 bool WiFiClientNode::isPETSCII()
@@ -194,7 +242,11 @@ int WiFiClientNode::read()
     return b;
   }
    */
-  int c = client.read();
+  int c;
+  if(clientPtr != null)
+    c = clientPtr->read();
+  else
+    c= client.read();
   //fillUnderflowBuf();
   return c;
 }
@@ -208,13 +260,25 @@ int WiFiClientNode::peek()
   if(underflowBuf.len > 0)
     return underflowBuf.buf[0];
   */
-  return client.peek();
+  if(clientPtr != null)
+    return clientPtr->peek();
+  else
+    return client.peek();
 }
 
 void WiFiClientNode::flush()
 {
-  if((host != null)&&(client.available()==0))
-    flushAlways();
+  if(host != null)
+  {
+    if(clientPtr != null)
+    {
+      if(clientPtr->available()==0)
+        flushAlways();
+    }
+    else
+    if(client.available()==0)
+      flushAlways();
+  }
 }
 
 void WiFiClientNode::flushAlways()
@@ -222,7 +286,10 @@ void WiFiClientNode::flushAlways()
   if(host != null)
   {
     flushOverflowBuffer();
-    client.flush();
+    if(clientPtr != null)
+      clientPtr->flush();
+    else
+      client.flush();
   }
 }
 
@@ -230,7 +297,10 @@ int WiFiClientNode::available()
 {
   if((host == null)||(!answered))
     return 0;
-  return client.available(); // +underflowBuf.len;
+  if(clientPtr != null)
+    return clientPtr->available();
+  else
+    return client.available(); // +underflowBuf.len;
 }
 
 int WiFiClientNode::read(uint8_t *buf, size_t size)
@@ -265,7 +335,11 @@ int WiFiClientNode::read(uint8_t *buf, size_t size)
     return previouslyRead;
    */
 
-  int bytesRead = client.read(buf,size);
+  int bytesRead;
+  if(clientPtr != null)
+    bytesRead = clientPtr->read(buf,size);
+  else
+    bytesRead = client.read(buf,size);
   //fillUnderflowBuf();
   return bytesRead;// + previouslyRead;
 }
@@ -328,7 +402,10 @@ size_t WiFiClientNode::write(const uint8_t *buf, size_t size)
     return written;
   }
   */
-  written += client.write(buf, size);
+  if(clientPtr != null)
+    written += clientPtr->write(buf, size);
+  else
+    written += client.write(buf, size);
   /*
   if(written < size)
   {

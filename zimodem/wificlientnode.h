@@ -1,5 +1,5 @@
 /*
-   Copyright 2016-2019 Bo Zimmerman
+   Copyright 2016-2024 Bo Zimmerman
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -52,6 +52,9 @@ class WiFiClientNode : public Stream
     int ringsRemain=0;
     unsigned long nextRingMillis = 0;
     unsigned long nextDisconnect = 0;
+    void constructNode();
+    void constructNode(char *hostIp, int newport, int flagsBitmap, int ringDelay);
+    void constructNode(char *hostIp, int newport, char *username, char *password, int flagsBitmap, int ringDelay);
 
   public:
     int id=0;
@@ -73,6 +76,7 @@ class WiFiClientNode : public Stream
     WiFiClientNode *next = null;
 
     WiFiClientNode(char *hostIp, int newport, int flagsBitmap);
+    WiFiClientNode(char *hostIp, int newport, char *username, char *password, int flagsBitmap);
     WiFiClientNode(WiFiClient newClient, int flagsBitmap, int ringDelay);
     ~WiFiClientNode();
     bool isConnected();

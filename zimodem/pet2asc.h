@@ -22,7 +22,14 @@
 # include "SD.h"
 # include "SPI.h"
 # include "driver/uart.h"
-  static HardwareSerial HWSerial(UART_NUM_2);
+# ifdef ARDUINO_ESP32S3_DEV
+#   define MAIN_UART_NUM UART_NUM_1
+# else
+#   define MAIN_UART_NUM UART_NUM_2
+# endif
+# define DEBUG_UART_NUM UART_NUM_0
+  static HardwareSerial HWSerial(MAIN_UART_NUM);
+  static HardwareSerial DBSerial(DEBUG_UART_NUM);
 #else
 # include "ESP8266WiFi.h"
 # define HWSerial Serial

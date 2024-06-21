@@ -28,6 +28,9 @@ void ZStream::switchTo(WiFiClientNode *conn)
   checkBaudChange();
   if(pinSupport[pinDTR])
     lastDTR = digitalRead(pinDTR);
+  if(pinSupport[pinOTH])
+    lastPDP = digitalRead(pinOTH);
+  switchAlarm = millis() + 3000;
 }
 
 bool ZStream::isPETSCII()
@@ -37,7 +40,17 @@ bool ZStream::isPETSCII()
 
 bool ZStream::isEcho()
 {
-  return (current != null) && (current->isEcho());
+  return defaultEcho || ((current != null) && (current->isEcho()));
+}
+
+void ZStream::setDefaultEcho(bool tf)
+{
+  defaultEcho = tf;
+}
+
+bool ZStream::isDefaultEcho()
+{
+  return defaultEcho;
 }
 
 FlowControlType ZStream::getFlowControl()
@@ -127,8 +140,23 @@ void ZStream::serialIncoming()
     currentExpiresTimeMs=millis()+800;
 }
 
-void ZStream::switchBackToCommandMode(bool logout)
+void ZStream::switchBackToCommandMode(bool pppMode)
 {
+  s_pinWrite(pinRI,riInactive);
+  bool logout = true;
+  if(pppMode)
+  {
+    if(current != NULL)
+    {
+      commandMode.sendOfficialResponse(ZOK);
+      if(hangupType != HANGUP_NONE)
+      {
+        current->flushAlways();
+        current->markForDisconnect();
+      }
+      logout = false;
+    }
+  }
   if(logout && (current != null) && isDisconnectedOnStreamExit())
   {
     if(!commandMode.suppressResponses)
@@ -193,6 +221,60 @@ void ZStream::socketWrite(uint8_t c)
   }
 }
 
+void ZStream::setHangupType(HangupType type)
+{
+  hangupType = type;
+}
+
+HangupType ZStream::getHangupType()
+{
+  return hangupType;
+}
+
+void ZStream::doHangupChecks()
+{
+  if(hangupType == HANGUP_DTR)
+  {
+    if(pinSupport[pinDTR])
+    {
+      if(lastDTR==dtrActive)
+      {
+        lastDTR = digitalRead(pinDTR);
+        if((lastDTR==dtrInactive)
+        &&(dtrInactive != dtrActive))
+        {
+          logPrintln("Hangup: DTR");
+          if(current != null)
+            current->setDisconnectOnStreamExit(true);
+          switchBackToCommandMode(false);
+        }
+      }
+      lastDTR = digitalRead(pinDTR);
+    }
+  }
+  else
+  if(hangupType == HANGUP_PDP)
+  {
+    if(pinSupport[pinOTH])
+    {
+      if(lastPDP==othActive)
+      {
+        lastPDP = digitalRead(pinOTH);
+        if((lastPDP==othInactive)
+        &&(othInactive != othActive))
+        {
+          logPrintln("Hangup: PDP");
+          if(current != null)
+            current->setDisconnectOnStreamExit(true);
+          switchBackToCommandMode(false);
+        }
+      }
+      lastPDP = digitalRead(pinOTH);
+    }
+  }
+
+}
+
 void ZStream::loop()
 {
   WiFiServerNode *serv = servs;
@@ -242,26 +324,10 @@ void ZStream::loop()
   }
   
   WiFiClientNode::checkForAutoDisconnections();
+  doHangupChecks();
   
-  if(pinSupport[pinDTR])
-  {
-    if(lastDTR==dtrActive)
-    {
-      lastDTR = digitalRead(pinDTR);
-      if((lastDTR==dtrInactive)
-      &&(dtrInactive != dtrActive))
-      {
-        if(current != null)
-          current->setDisconnectOnStreamExit(true);
-        switchBackToCommandMode(true);
-      }
-    }
-    lastDTR = digitalRead(pinDTR);
-  }
   if((current==null)||(!current->isConnected()))
-  {
-    switchBackToCommandMode(true);
-  }
+    switchBackToCommandMode(false);
   else
   if((currentExpiresTimeMs > 0) && (millis() > currentExpiresTimeMs))
   {
@@ -269,7 +335,7 @@ void ZStream::loop()
     if(plussesInARow == 3)
     {
       plussesInARow=0;
-      switchBackToCommandMode(false);
+      switchBackToCommandMode(true);
     }
   }
   else
@@ -310,5 +376,13 @@ void ZStream::loop()
     }
   }
   checkBaudChange();
+  logFileLoop();
+  // if it was ringing when we came in, turn off the ringer
+  if((switchAlarm != 0)
+  &&(millis()>switchAlarm))
+  {
+    s_pinWrite(pinRI,riInactive);
+    switchAlarm = 0;
+  }
 }
 

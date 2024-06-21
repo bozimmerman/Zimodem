@@ -283,24 +283,20 @@ void ZConfig::doModeCommand()
           currState=ZCFGMENU_NOTES; // just keep old values
       else
       {
-        bool fail = cmd.indexOf(',') >= 0;
-        int colonDex=cmd.indexOf(':');
-        fail = fail || (colonDex <= 0) || (colonDex == cmd.length()-1);
-        fail = fail || (colonDex != cmd.lastIndexOf(':'));
-        if(!fail)
-        {
-          for(int i=colonDex+1;i<cmd.length();i++)
-            if(strchr("0123456789",cmd[i])<0)
-              fail=true;
-        }
-        if(fail)
-        {
-          serial.printf("%sInvalid address format (hostname:port) for '%s'.%s%s",EOLNC,cmd.c_str(),EOLNC,EOLNC);
-        }
+        if(!validateHostInfo((uint8_t *)cmd.c_str()))
+          serial.printf("%sInvalid address format (hostname:port) or (user:pass@hostname:port) for '%s'.%s%s",EOLNC,cmd.c_str(),EOLNC,EOLNC);
         else
         {
           lastAddress = cmd;
           currState=ZCFGMENU_NOTES;
+          if(lastAddress.indexOf("@")>0)
+          {
+            int x = lastOptions.indexOf("S"); 
+            if(x<0)
+              lastOptions += "S";
+            else
+              lastOptions = lastOptions.substring(0,x) + lastOptions.substring(x+1);
+          }
         }
       }
       showMenu=true; // re-show the menu
@@ -880,5 +876,6 @@ void ZConfig::loop()
   {
     serialOutDeque();
   }
+  logFileLoop();
 }
 

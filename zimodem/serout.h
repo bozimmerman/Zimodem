@@ -1,5 +1,5 @@
 /*
-   Copyright 2016-2019 Bo Zimmerman
+   Copyright 2016-2024 Bo Zimmerman
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -46,6 +46,7 @@ static void serialDirectWrite(uint8_t c);
 static void serialOutDeque();
 static int serialOutBufferBytesRemaining();
 static void clearSerialOutBuffer();
+static void flushSerial();
 
 class ZSerial : public Stream
 {

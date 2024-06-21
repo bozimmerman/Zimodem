@@ -1,5 +1,5 @@
 /*
-   Copyright 2016-2019 Bo Zimmerman
+   Copyright 2016-2024 Bo Zimmerman
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -20,6 +20,9 @@ static const char *CONFIG_FILE     = "/zconfig_v2.txt";
 #define ZI_STATE_MACHINE_LEN 7
 #define DEFAULT_TERMTYPE "Zimodem"
 #define DEFAULT_BUSYMSG "\r\nBUSY\r\n7\r\n"
+
+static void parseHostInfo(uint8_t *vbuf, char **hostIp, int *port, char **username, char **password);
+static bool validateHostInfo(uint8_t *vbuf);
 
 enum ZResult
 {
@@ -73,11 +76,14 @@ enum ConfigOptions
   CFG_STATIC_SN=36,
   CFG_BUSYMSG=37,
   CFG_S62_TELNET=38,
-  CFG_LAST=38
+  CFG_S63_HANGUP=39,
+  CFG_LAST=39
 };
 
-const ConfigOptions v2HexCfgs[] = { CFG_WIFISSI, CFG_WIFIPW, CFG_TIMEZONE, CFG_TIMEFMT, CFG_TIMEURL,
-    CFG_PRINTSPEC, CFG_BUSYMSG, CFG_HOSTNAME, CFG_TERMTYPE, (ConfigOptions)255 };
+const ConfigOptions v2HexCfgs[] = {
+  CFG_WIFISSI, CFG_WIFIPW, CFG_TIMEZONE, CFG_TIMEFMT, CFG_TIMEURL,
+  CFG_PRINTSPEC, CFG_BUSYMSG, CFG_HOSTNAME, CFG_TERMTYPE, (ConfigOptions)255
+};
 
 enum BinType
 {
@@ -148,6 +154,10 @@ class ZCommand : public ZMode
     void parseConfigOptions(String configArguments[]);
     void setOptionsFromSavedConfig(String configArguments[]);
     bool reSaveConfig(int retries);
+    int pinStatusDecoder(int pinActive, int pinInactive);
+    int getStatusRegister(const int snum, int crc8);
+    ZResult setStatusRegister(const int snum, const int sval, int *crc8, const ZResult oldRes);
+    void packetOut(uint8_t id, uint8_t *cbuf, uint16_t bufLen, uint8_t num);
     void reSendLastPacket(WiFiClientNode *conn, uint8_t which);
     bool acceptNewConnection();
     void headerOut(const int channel, const int num, const int sz, const int crc8);
@@ -160,7 +170,7 @@ class ZCommand : public ZMode
     ZResult doWebDump(Stream *in, int len, const bool cacheFlag);
     ZResult doWebDump(const char *filename, const bool cache);
 
-    ZResult doResetCommand();
+    ZResult doResetCommand(bool resetOpMode);
     ZResult doNoListenCommand(int vval, uint8_t *vbuf, int vlen, bool isNumber);
     ZResult doBaudCommand(int vval, uint8_t *vbuf, int vlen);
     ZResult doTransmitCommand(int vval, uint8_t *vbuf, int vlen, bool isNumber, const char *dmodifiers, int *crc8);

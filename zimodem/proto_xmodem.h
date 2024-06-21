@@ -15,6 +15,10 @@
 */
 #include <FS.h>
 
+typedef int (*RecvChar)(ZSerial *ser, int);
+typedef void (*SendChar)(ZSerial *ser, char);
+typedef bool (*DataHandler)(File *xfile, unsigned long, char*, int);
+
 class XModem 
 {
   typedef enum
@@ -24,6 +28,7 @@ class XModem
   } transfer_t;
   
   private:
+    size_t fileSizeLimit = 10000000;
     //holds readed byte (due to dataAvail())
     int byte;
     //expected block number
@@ -33,49 +38,64 @@ class XModem
     //retry counter for NACK
     int retries;
     //buffer
-    char buffer[128];
+    char buffer[1024];
     //repeated block flag
     bool repeatedBlock;
-    File *xfile = null;
+
     ZSerial xserial;
 
     int  (*recvChar)(ZSerial *ser, int);
     void (*sendChar)(ZSerial *ser, char);
     bool (*dataHandler)(File *xfile, unsigned long number, char *buffer, int len);
     unsigned short crc16_ccitt(char *buf, int size);
-    bool dataAvail(int delay);
-    int dataRead(int delay);
-    void dataWrite(char symbol);
+    bool serialAvail(int delay);
+    int serialRead(int delay);
+    void serialWrite(char symbol);
     bool receiveFrameNo(void);
-    bool receiveData(void);
-    bool checkCrc(void);
+    bool receiveData(int blkSize);
+    bool checkCrc(int blkSize);
     bool checkChkSum(void);
     bool receiveFrames(transfer_t transfer);
     bool sendNack(void);
     void init(void);
     
+    bool transmitFrame(transfer_t transfer, int blkSize);
     bool transmitFrames(transfer_t);
     unsigned char generateChkSum(void);
+    
+  protected:
+    FS *fileSystem = null;
+    File yfile;
+    File *xfile = null;
+    File *dfile = null;
+    int blockSize = 128;
+    bool send0block = false;
     
   public:
     static const unsigned char XMO_NACK = 21;
     static const unsigned char XMO_ACK =  6;
+    static const unsigned char XMO_CRC = 'C';
 
     static const unsigned char XMO_SOH =  1;
+    static const unsigned char XMO_STX =  2;
     static const unsigned char XMO_EOT =  4;
     static const unsigned char XMO_CAN =  0x18;
 
-    static const int receiveDelay=7000;
+    static const int receiveFrameDelay=7000;
+    static const int receiveByteDelay=3000;
     static const int rcvRetryLimit = 10;
 
+    size_t fileSize = 0;
   
-    XModem(File &f,
-           FlowControlType commandFlow,
-           int (*recvChar)(ZSerial *ser, int),
-           void (*sendChar)(ZSerial *ser, char),
-           bool (*dataHandler)(File *xfile, unsigned long, char*, int));
+    XModem(File &f, FlowControlType commandFlow, RecvChar recvChar, SendChar sendChar, DataHandler dataHandler);
     bool receive();
     bool transmit();
+};
+
+class YModem : public XModem
+{
+  public:
+    YModem(FS *fileSystem, File &f, FlowControlType commandFlow, RecvChar recvChar, SendChar sendChar, DataHandler dataHandler);
 };
 
 static int xReceiveSerial(ZSerial *ser, int del)
@@ -87,7 +107,6 @@ static int xReceiveSerial(ZSerial *ser, int del)
     if(ser->available() > 0)
     {
       int c=ser->read();
-      logSerialIn(c);
       return c;
     }
     yield();
@@ -136,5 +155,20 @@ static bool xUpload(FlowControlType commandFlow, File &f, String &errors)
 {
   XModem xmo(f,commandFlow, xReceiveSerial, xSendSerial, xUDataHandler);
   bool result = xmo.receive();
+  return result;
+}
+
+static bool yDownload(FS *fileSystem, FlowControlType commandFlow, File &f, String &errors)
+{
+  YModem ymo(fileSystem, f, commandFlow, xReceiveSerial, xSendSerial, xDDataHandler);
+  ymo.fileSize = f.size();  // multi-upload will need this
+  bool result = ymo.transmit();
+  return result;
+}
+
+static bool yUpload(FS *fileSystem, FlowControlType commandFlow, File &dirF, String &errors)
+{
+  YModem ymo(fileSystem, dirF, commandFlow, xReceiveSerial, xSendSerial, xUDataHandler);
+  bool result = ymo.receive();
   return result;
 }

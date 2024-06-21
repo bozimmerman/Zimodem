@@ -799,6 +799,7 @@ void ZIRCMode::loop()
   {
     serialOutDeque();
   }
+  logFileLoop();
 }
 
 #endif /* INCLUDE_IRCC */

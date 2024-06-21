@@ -1,5 +1,5 @@
 /*
-   Copyright 2016-2019 Bo Zimmerman
+   Copyright 2016-2024 Bo Zimmerman
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -15,6 +15,9 @@
 */
 
 #ifdef INCLUDE_SD_SHELL
+
+static void initSDShell();
+
 class ZBrowser : public ZMode
 {
   private:
@@ -31,6 +34,7 @@ class ZBrowser : public ZMode
     String stripDir(String path);
     String stripFilename(String path);
     String stripArgs(String line, String &argLetters);
+    int argNum(String argLetters, char argLetter, int def);
     String cleanOneArg(String line);
     String cleanFirstArg(String line);
     String cleanRemainArg(String line);

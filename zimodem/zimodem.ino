@@ -18,6 +18,7 @@
 const char compile_date[] = __DATE__ " " __TIME__;
 #define DEFAULT_NO_DELAY true
 #define null 0
+#define INCLUDE_IRCC true
 //# define USE_DEVUPDATER true // only enable this if your name is Bo
 
 #ifdef ARDUINO_ESP32_DEV
@@ -59,17 +60,26 @@ const char compile_date[] = __DATE__ " " __TIME__;
 # define DEFAULT_WIFI_INACTIVE HIGH
 #endif
 
+#define DEFAULT_BAUD_RATE 1200
+#define DEFAULT_SERIAL_CONFIG SERIAL_8N1
+/*
+ * Unused pins on WROOM32:
+ * 2, 20, 21, 22.   36,39 (sensor)
+ */
+
 #ifdef ZIMODEM_ESP32
 # define PIN_FACTORY_RESET GPIO_NUM_0
+# define INCLUDE_SD_SHELL true            /* ****** Delete this line if you do not have an external SD card interface *****/
+# define DEFAULT_FCT FCT_DISABLED
 # define DEFAULT_PIN_DCD GPIO_NUM_14
 # define DEFAULT_PIN_CTS GPIO_NUM_13
-# define DEFAULT_PIN_RTS GPIO_NUM_15 // unused
+# define DEFAULT_PIN_RTS GPIO_NUM_15 // unused?
 # define DEFAULT_PIN_RI GPIO_NUM_32
 # define DEFAULT_PIN_DSR GPIO_NUM_12
+# define DEFAULT_PIN_SND GPIO_NUM_25
+# define DEFAULT_PIN_OTH GPIO_NUM_4 // pulse pin
 # define DEFAULT_PIN_DTR GPIO_NUM_27
-# define debugPrintf Serial.printf
-# define INCLUDE_SD_SHELL true
-# define DEFAULT_FCT FCT_DISABLED
+# define debugPrintf DBSerial.printf
 # define SerialConfig uint32_t
 # define UART_CONFIG_MASK 0x8000000
 # define UART_NB_BIT_MASK      0B00001100 | UART_CONFIG_MASK
@@ -84,21 +94,26 @@ const char compile_date[] = __DATE__ " " __TIME__;
 # define UART_NB_STOP_BIT_1    0B00010000
 # define UART_NB_STOP_BIT_15   0B00100000
 # define UART_NB_STOP_BIT_2    0B00110000
-# define preEOLN serial.prints
-# define echoEOLN serial.write
+# define preEOLN(...)
+//# define preEOLN serial.prints
+# define echoEOLN(...) serial.prints(EOLN)
+//# define echoEOLN serial.write
 //# define HARD_DCD_HIGH 1
 //# define HARD_DCD_LOW 1
-# define INCLUDE_HOSTCM true // do this for special SP9000 modems only
-# define INCLUDE_FTP true
-# define INCLUDE_IRCC true
-//#define INCLUDE_SLIP true
-#else  // ESP-8266, e.g. ESP-01, ESP-12E, inverted for C64Net WiFi Modem
+# define INCLUDE_SSH true
+# define INCLUDE_SLIP true  // Disable this before checkin, until it works
+# ifdef INCLUDE_SD_SHELL
+#  define INCLUDE_HOSTCM true // safe to remove if you need space
+#  define INCLUDE_FTP true
+# endif
+#else  // ESP-8266, e.g. ESP-01, ESP-12E
 # define DEFAULT_PIN_DSR 13
 # define DEFAULT_PIN_DTR 12
 # define DEFAULT_PIN_RI 14
 # define DEFAULT_PIN_RTS 4
 # define DEFAULT_PIN_CTS 5 // is 0 for ESP-01, see getDefaultCtsPin() below.
 # define DEFAULT_PIN_DCD 2
+# define DEFAULT_PIN_OTH MAX_PIN_NO // pulse pin
 # define DEFAULT_FCT FCT_DISABLED
 # define RS232_INVERTED 1
 # define debugPrintf doNothing
@@ -119,6 +134,8 @@ const char compile_date[] = __DATE__ " " __TIME__;
 # define DEFAULT_DSR_INACTIVE  LOW
 # define DEFAULT_DTR_ACTIVE  HIGH
 # define DEFAULT_DTR_INACTIVE  LOW
+# define DEFAULT_OTH_ACTIVE  HIGH
+# define DEFAULT_OTH_INACTIVE  LOW
 #else
 # define DEFAULT_DCD_ACTIVE  LOW
 # define DEFAULT_DCD_INACTIVE  HIGH
@@ -132,10 +149,10 @@ const char compile_date[] = __DATE__ " " __TIME__;
 # define DEFAULT_DSR_INACTIVE  HIGH
 # define DEFAULT_DTR_ACTIVE  LOW
 # define DEFAULT_DTR_INACTIVE  HIGH
+# define DEFAULT_OTH_ACTIVE  LOW
+# define DEFAULT_OTH_INACTIVE  HIGH
 #endif
 
-#define DEFAULT_BAUD_RATE 1200
-#define DEFAULT_SERIAL_CONFIG SERIAL_8N1
 #define MAX_PIN_NO 50
 #define INTERNAL_FLOW_CONTROL_DIV 380
 #define DEFAULT_RECONNECT_DELAY 60000
@@ -184,9 +201,10 @@ static WiFiClientNode *conns = null;
 static WiFiServerNode *servs = null;
 static PhoneBookEntry *phonebook = null;
 static bool pinSupport[MAX_PIN_NO];
-static bool browseEnabled = false;
+static int pinCache[MAX_PIN_NO];
 static String termType = DEFAULT_TERMTYPE;
 static String busyMsg = DEFAULT_BUSYMSG;
+static bool debugUart = false;
 
 static ZMode *currMode = null;
 static ZStream streamMode;
@@ -237,6 +255,7 @@ static int pinCTS = DEFAULT_PIN_CTS;
 static int pinRTS = DEFAULT_PIN_RTS;
 static int pinDSR = DEFAULT_PIN_DSR;
 static int pinDTR = DEFAULT_PIN_DTR;
+static int pinOTH = DEFAULT_PIN_OTH;
 static int pinRI = DEFAULT_PIN_RI;
 static int dcdActive = DEFAULT_DCD_ACTIVE;
 static int dcdInactive = DEFAULT_DCD_INACTIVE;
@@ -250,6 +269,8 @@ static int dtrActive = DEFAULT_DTR_ACTIVE;
 static int dtrInactive = DEFAULT_DTR_INACTIVE;
 static int dsrActive = DEFAULT_DSR_ACTIVE;
 static int dsrInactive = DEFAULT_DSR_INACTIVE;
+static int othActive = DEFAULT_OTH_ACTIVE;
+static int othInactive = DEFAULT_OTH_INACTIVE;
 
 static int getDefaultCtsPin()
 {
@@ -271,6 +292,7 @@ static void s_pinWrite(uint8_t pinNo, uint8_t value)
 {
   if(pinSupport[pinNo])
   {
+    pinCache[pinNo] = value;
     digitalWrite(pinNo, value);
   }
 }
@@ -390,7 +412,7 @@ static void changeSerialConfig(SerialConfig conf)
   delay(500); // give the client half a sec to catch up
   debugPrintf("Config changing to %d.\r\n",(int)conf);
   dequeSize=1+(baudRate/INTERNAL_FLOW_CONTROL_DIV);
-  debugPrintf("Deque constant now: %d\n",dequeSize);
+  debugPrintf("Deque constant now: %d\r\n",dequeSize);
 #ifdef ZIMODEM_ESP32
   HWSerial.changeConfig(conf);
 #else
@@ -457,9 +479,12 @@ void setup()
     pinSupport[11]=false;
   }
 #endif    
-  debugPrintf("Zimodem %s firmware starting initialization\n",ZIMODEM_VERSION);
-  initSDShell();
+  debugPrintf("Zimodem %s firmware starting initialization\r\n",ZIMODEM_VERSION);
+#  ifdef INCLUDE_SD_SHELL
+    initSDShell();
+#  endif
   currMode = &commandMode;
+  SPIFFS.format();
   if(!SPIFFS.begin())
   {
     SPIFFS.format();
@@ -467,18 +492,18 @@ void setup()
     debugPrintf("SPIFFS Formatted.\r\n");
   }
   HWSerial.begin(DEFAULT_BAUD_RATE, DEFAULT_SERIAL_CONFIG);  //Start Serial
-#ifdef ZIMODEM_ESP8266
-  HWSerial.setRxBufferSize(1024);
-#endif
+#  ifdef ZIMODEM_ESP8266
+    HWSerial.setRxBufferSize(1024);
+#  endif
   commandMode.loadConfig();
   PhoneBookEntry::loadPhonebook();
   dcdStatus = dcdInactive;
   s_pinWrite(pinDCD,dcdStatus);
   flushSerial();
-#ifdef SUPPORT_LED_PINS
-  s_pinWrite(DEFAULT_PIN_WIFI,(WiFi.status() == WL_CONNECTED)?DEFAULT_WIFI_ACTIVE:DEFAULT_WIFI_INACTIVE);
-  s_pinWrite(DEFAULT_PIN_HS,(baudRate>=DEFAULT_HS_BAUD)?DEFAULT_HS_ACTIVE:DEFAULT_HS_INACTIVE);
-#endif
+#  ifdef SUPPORT_LED_PINS
+    s_pinWrite(DEFAULT_PIN_WIFI,(WiFi.status() == WL_CONNECTED)?DEFAULT_WIFI_ACTIVE:DEFAULT_WIFI_INACTIVE);
+    s_pinWrite(DEFAULT_PIN_HS,(baudRate>=DEFAULT_HS_BAUD)?DEFAULT_HS_ACTIVE:DEFAULT_HS_INACTIVE);
+#  endif
 }
 
 void checkReconnect()
