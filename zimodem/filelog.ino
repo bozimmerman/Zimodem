@@ -28,8 +28,8 @@ static int pinLook[8];
 
 static uint8_t lcc(uint8_t a1)
 {
-  if((a1 >= 'a')&&(a1 <= 'z'))
-    return 'A' + (a1 - 'a');
+  if((a1 >= 'A')&&(a1 <= 'Z'))
+    return 'a' + (a1 - 'A');
   return a1;
 }
 
