@@ -413,18 +413,9 @@ bool ZCommand::reSaveConfig(int retries)
           argn++;
       }
     }
-    if(argn!=CFG_LAST)
-    {
-      if(retries<=0)
-        return false;
-      debugPrintf("Error saving config: Trying again.\r\n");
-      delay(100);
-      yield();
-      return reSaveConfig(retries-1);
-    }
-    return true;
+    if(argn==CFG_LAST)
+      return true;
   }
-  else
   if(retries>0)
   {
     debugPrintf("Error saving config: Trying again.\r\n");
