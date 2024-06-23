@@ -100,7 +100,6 @@ const char compile_date[] = __DATE__ " " __TIME__;
 //# define echoEOLN serial.write
 //# define HARD_DCD_HIGH 1
 //# define HARD_DCD_LOW 1
-# define INCLUDE_SSH true
 # define INCLUDE_SLIP true  // Disable this before checkin, until it works
 # ifdef INCLUDE_SD_SHELL
 #  define INCLUDE_HOSTCM true // safe to remove if you need space

@@ -58,16 +58,6 @@ void WiFiClientNode::constructNode(char *hostIp, int newport, int flagsBitmap, i
 void WiFiClientNode::constructNode(char *hostIp, int newport, char *username, char *password, int flagsBitmap, int ringDelay)
 {
   constructNode(hostIp, newport, flagsBitmap, ringDelay);
-# ifdef INCLUDE_SSH
-  if(((flagsBitmap&FLAG_SECURE)==FLAG_SECURE)
-  && (username != 0))
-  {
-    WiFiSSHClient *c = new WiFiSSHClient();
-    c->setLogin(username, password);
-    clientPtr = c;
-  }
-  else
-#endif
   clientPtr = createWiFiClient((flagsBitmap&FLAG_SECURE)==FLAG_SECURE);
   client = *clientPtr;
   if(!clientPtr->connect(hostIp, newport))
