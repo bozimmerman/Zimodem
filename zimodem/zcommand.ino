@@ -424,6 +424,7 @@ bool ZCommand::reSaveConfig(int retries)
     }
     return true;
   }
+  return false;
 }
 
 int ZCommand::getConfigFlagBitmap()
