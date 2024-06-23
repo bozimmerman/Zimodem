@@ -409,6 +409,15 @@ bool ZCommand::reSaveConfig(int retries)
     }
     return true;
   }
+  else
+  {
+    if(retries<=0)
+      return false;
+    debugPrintf("Error saving config: Trying again.\r\n");
+    delay(100);
+    yield();
+    return reSaveConfig(retries-1);
+  }
 }
 
 int ZCommand::getConfigFlagBitmap()
