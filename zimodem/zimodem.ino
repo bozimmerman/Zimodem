@@ -100,7 +100,6 @@ const char compile_date[] = __DATE__ " " __TIME__;
 //# define echoEOLN serial.write
 //# define HARD_DCD_HIGH 1
 //# define HARD_DCD_LOW 1
-# define INCLUDE_SLIP true  // Disable this before checkin, until it works
 # ifdef INCLUDE_SD_SHELL
 #  define INCLUDE_HOSTCM true // safe to remove if you need space
 #  define INCLUDE_FTP true
@@ -189,9 +188,6 @@ class ZMode
 #  include "proto_kermit.h"
 #  include "zbrowser.h"
 #endif
-#ifdef INCLUDE_SLIP
-#  include "zslipmode.h"
-#endif
 #ifdef INCLUDE_IRCC
 #  include "zircmode.h"
 #endif
@@ -217,9 +213,6 @@ static RealTimeClock zclock(0);
      static ZHostCMMode hostcmMode;
 #  endif
    static ZBrowser browseMode;
-#endif
-#ifdef INCLUDE_SLIP
-   static ZSLIPMode slipMode;
 #endif
 #ifdef INCLUDE_IRCC
    static ZIRCMode ircMode;
