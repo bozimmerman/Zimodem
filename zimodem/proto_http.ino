@@ -19,6 +19,15 @@ bool parseWebUrl(uint8_t *vbuf, char **hostIp, char **req, int *port, bool *doSS
   if(strstr((char *)vbuf,"http:")==(char *)vbuf)
     vbuf = vbuf + 5;
   else
+  if(strstr((char *)vbuf,"gopher:")==(char *)vbuf)
+    vbuf = vbuf + 7;
+  else
+  if(strstr((char *)vbuf,"gophers:")==(char *)vbuf)
+  {
+    vbuf = vbuf + 8;
+    *doSSL = true;
+  }
+  else
   if(strstr((char *)vbuf,"https:")==(char *)vbuf)
   {
     vbuf = vbuf + 6;
@@ -548,6 +557,15 @@ bool doWebGet(const char *hostIp, int port, FS *fs, const char *filename, const 
   return doStreamGet(c,respLength,fs,filename);
 }
 
+bool doGopherGet(const char *hostIp, int port, FS *fs, const char *filename, const char *req, const bool doSSL)
+{
+  uint32_t respLength = 0;
+  WiFiClient *c = doGopherGetStream(hostIp, port, req, doSSL, &respLength);
+  if(c == NULL)
+    return false;
+  return doStreamGet(c,respLength,fs,filename);
+}
+
 bool doStreamGetBytes(WiFiClient *c, uint32_t respLength, uint8_t *buf, int *bufSize)
 {
   *bufSize = -1;
@@ -586,6 +604,16 @@ bool doWebGetBytes(const char *hostIp, int port, const char *req, const bool doS
   *bufSize = -1;
   uint32_t respLength=0;
   WiFiClient *c = doWebGetStream(hostIp, port, req, doSSL, &respLength);
+  if(c==null)
+    return false;
+  return doStreamGetBytes(c,respLength,buf,bufSize);
+}
+
+bool doGopherGetBytes(const char *hostIp, int port, const char *req, const bool doSSL, uint8_t *buf, int *bufSize)
+{
+  *bufSize = -1;
+  uint32_t respLength=0;
+  WiFiClient *c = doGopherGetStream(hostIp, port, req, doSSL, &respLength);
   if(c==null)
     return false;
   return doStreamGetBytes(c,respLength,buf,bufSize);
