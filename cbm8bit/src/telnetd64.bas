@@ -9,7 +9,7 @@
 5 POKE254,8:IFPEEK(186)>7THENPOKE254,PEEK(186)
 6 IFPEEK(49153)<>43THENLOAD"rds64.bin",PEEK(254),1:RUN
 8 POKE53280,14:POKE53281,6
-10 PRINTCHR$(14);"telnetd64 v1.0":PRINT"Requires C64Net WiFi firmware 2.7+"
+10 PRINTCHR$(14);"telnetd64 v1.0":PRINT"Requires Zimodem firmware 2.7+"
 20 PRINT"1200 baud version"
 30 PRINT"By Bo Zimmerman (bo@zimmers.net)":PRINT:PRINT
 1000 PRINT"Configure Server:":PRINT

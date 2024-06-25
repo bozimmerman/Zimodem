@@ -1,8 +1,5 @@
 !--------------------------------------------------
-!- Tuesday, August 17, 2021 9:46:11 AM
-!- Import of : 
-!- z:\lost+found\wget.prg
-!- Commodore 64
+!- 2/2024
 !--------------------------------------------------
 1 REM WGET4SW  19200B 2.0+
 2 REM UPDATED 10/13/2021 12:54A
@@ -36,11 +33,12 @@
 201 PH=0:PT=0:MV=ML+18
 202 PRINT "Initializing modem...":CR$=CHR$(13)+CHR$(10)
 203 GET#5,A$:IFA$<>""THEN203
-205 PRINT#5,CR$;CR$;"athz0&p0f0e0";CR$;:GOSUB900:IFP$<>"ok"THEN203
+205 PRINT#5,CR$;CR$;"athz0&p0f4e0";CR$;:GOSUB900:IFP$<>"ok"THEN203
 208 GET#5,A$:IFA$<>""THEN208
 210 PRINT#5,CR$;"ate0n0r0v1q0";CR$;
 220 GOSUB900:IFP$<>"ok"THEN208
-225 GET#5,A$:IFA$<>""THEN225
+225 FORI=1TO100:NEXT
+228 GET#5,A$:IFA$>""THEN228
 230 PRINT#5,"ate0v1x1f3q0s40=248i4";CR$;CHR$(19);
 235 GOSUB900:VR=VAL(P$):IFVR<2.0THENPRINT"Zimodem init failed: ";P$:STOP
 240 GOSUB900:IFP$<>"ok"THEN203

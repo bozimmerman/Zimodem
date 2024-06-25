@@ -1,8 +1,5 @@
 !--------------------------------------------------
-!- Tuesday, July 18, 2017 2:54:14 AM
-!- Import of : 
-!- c:\src\zimodem\cbm8bit\src\d64wget64-128.prg
-!- Commodore 64
+!- 2/2024
 !--------------------------------------------------
 1 REM D64WGET4/128  1200B 2.0+
 2 REM UPDATED 10/13/2021 12:54A
@@ -25,14 +22,14 @@
 101 REM
 102 REM
 110 P$="a"
-120 PRINTCO$;"{clear}{down*2}D64WGET v1.5":PRINT"Requires C64Net WiFi firmware 2.0+"
+120 PRINTCO$;"{clear}{down*2}D64WGET v1.5":PRINT"Requires Zimodem firmware 2.0+"
 140 PRINT"By Bo Zimmerman (bo@zimmers.net)":PRINT:PRINT
 198 REM --- MODEM INIT
 200 UN=PEEK(254)
 201 PH=0:PT=0:MV=ML+18
 202 PRINT "Initializing modem...":CR$=CHR$(13)+CHR$(10)
 203 GET#5,A$:IFA$<>""THEN203
-205 PRINT#5,CR$;"athz0&p0f0e0";CR$;:GOSUB900:IFP$<>"ok"THEN203
+205 PRINT#5,CR$;"athz0&p0f4e0";CR$;:GOSUB900:IFP$<>"ok"THEN203
 208 GET#5,A$:IFA$<>""THEN208
 210 PRINT#5,CR$;"ate0n0r0v1q0";CR$;
 220 GOSUB900:IFP$<>"ok"THEN208

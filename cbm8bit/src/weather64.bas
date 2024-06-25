@@ -242,7 +242,7 @@
 62500 PRINT#5,"ati2"
 62510 INPUT#5,P$:IFP$=""ORP$="ok"THEN62500
 62520 IP$=P$:IFLEN(P$)<8THEN62500
-62530 PRINT#5,"at&m10&m13&d13a6502":INPUT#5,P$:IFP$<>"ok"THEN62530
+62530 PRINT#5,"at&m10&m13&d13s41=1s0=1a6502":INPUT#5,P$:IFP$<>"ok"THEN62530
 62540 PRINT"your ip address is ";IP$
 62550 PRINT"please set your router to forward"
 62560 PRINT"port 6502 to the above ip address."

@@ -27,7 +27,7 @@
 101 REM
 102 REM
 110 P$="a"
-120 PRINTCO$;"{clear}{down*2}TELNET v1.6":PRINT"Requires C64Net WiFi firmware 1.8+"
+120 PRINTCO$;"{clear}{down*2}TELNET v1.6":PRINT"Requires Zimodem firmware 1.8+"
 130 PRINT"1200 baud version"
 140 PRINT"By Bo Zimmerman (bo@zimmers.net)":PRINT:PRINT
 197 REM --------------------------------
@@ -37,7 +37,7 @@
 201 PH=0:PT=0:MV=ML+18:CR$=CHR$(13)+CHR$(10):QU$=CHR$(34)
 202 PRINT "Initializing modem...";:GOSUB6000
 203 GET#5,A$:IFA$<>""THEN203
-205 PRINT#5,CR$;"athz0&p0f0e0";CR$;
+205 PRINT#5,CR$;"athz0&p0f0e0s62=1";CR$;
 206 GOSUB900:IFP$<>"ok"THEN203
 208 GET#5,A$:IFA$<>""THEN208
 210 PRINT".";:PRINT#5,CR$;"ate0n0r0v1f0";CR$;
@@ -87,7 +87,7 @@
 2110 HO$=HO$(X-1):PO=PO(X-1)
 2300 PRINT"{reverse on}{light green}Connecting to ";HO$;":";MID$(STR$(PO),2);"...{reverse off}";CO$
 2310 GET#5,A$:IFA$<>""THEN2310
-2320 PRINT#5,CR$;"atf3hctep";QU$;HO$;":";MID$(STR$(PO),2);QU$;CR$;
+2320 PRINT#5,CR$;"ats62=1f3hctep";QU$;HO$;":";MID$(STR$(PO),2);QU$;CR$;
 2330 GOSUB900:IFLEN(P$)>7ANDLEFT$(P$,7)="connect"THEN2400
 2340 PRINT"{reverse on}{red}Unable to connect to ";HO$;":";MID$(STR$(PO),2)
 2350 RETURN

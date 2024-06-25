@@ -36,7 +36,7 @@
 101 REM
 102 REM
 110 P$="a"
-120 PRINTCO$;"{clear}{down*2}C= TERM v1.5":PRINT"Requires C64Net WiFi firmware 1.8+"
+120 PRINTCO$;"{clear}{down*2}C= TERM v1.5":PRINT"Requires Zimodem firmware 1.8+"
 130 PRINT"1200 baud version"
 140 PRINT"By Bo Zimmerman (bo@zimmers.net)":PRINT:PRINT
 197 REM --------------------------------
