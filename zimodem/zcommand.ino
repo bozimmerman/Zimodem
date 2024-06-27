@@ -1362,7 +1362,7 @@ ZResult ZCommand::doWebDump(Stream *in, int len, const bool cacheFlag)
   uint16_t bufLen = 1;
   int bct=0;
   unsigned long now = millis();
-  while((len>0)
+  while(((len>0)||(in->available()>0))
   && ((millis()-now)<10000))
   {
     if(((!flowControl) || serial.isSerialOut())

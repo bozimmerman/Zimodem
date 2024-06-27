@@ -526,7 +526,7 @@ bool doStreamGet(WiFiClient *c, uint32_t respLength, FS *fs, const char *filenam
   uint32_t bytesRead = 0;
   File f = fs->open(filename, "w");
   unsigned long now = millis();
-  while((bytesRead < respLength) // this can be removed for chunked encoding support 
+  while(((bytesRead < respLength) || (respLength==0))
   && (c->connected()||(c->available()>0)) 
   && ((millis()-now)<10000))
   {
