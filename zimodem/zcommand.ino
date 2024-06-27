@@ -1167,7 +1167,7 @@ ZResult ZCommand::doWebStream(int vval, uint8_t *vbuf, int vlen, bool isNumber, 
     if(gopher)
       c = doGopherGetStream(hostIp, port, req, doSSL, &respLength);
     else
-    c = doWebGetStream(hostIp, port, req, doSSL, &respLength); 
+      c = doWebGetStream(hostIp, port, req, doSSL, &respLength); 
     if(c==null)
     {
       serial.prints(EOLN);
@@ -1223,7 +1223,7 @@ ZResult ZCommand::doWebDump(Stream *in, int len, const bool cacheFlag)
   uint16_t bufLen = 1;
   int bct=0;
   unsigned long now = millis();
-  while((len>0)
+  while(((len>0)||(in->available()>0))
   && ((millis()-now)<10000))
   {
     if(((!flowControl) || serial.isSerialOut())
