@@ -234,7 +234,6 @@ def test_atd():
     connum = s[8:]
     if sock_conn[0] is None:
         return errprint("ATD","No Connection")
-    '''
     b = bytearray(os.urandom(1024))
     # send from socket->modem, this will be slow to receive all.
     sock_write(b)
@@ -248,7 +247,6 @@ def test_atd():
     rb = sock_in()
     if not compare_bytearrays(b, rb):
         return errprint("ATD","ser->sock "+str(len(b)))
-    '''
     flush_serial()
     flush_sock()
     # upload test 
