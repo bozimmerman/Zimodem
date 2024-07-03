@@ -6,14 +6,34 @@ from pynput.keyboard import Key, Listener
 from pynput import keyboard
 import threading
 import socket
+import argparse
 
+verbosity = 0
 s = ['']
 tmps = ['']
+ser = [None]
+serin = ['']
+sock_conn = [None]
+sockin = [[]]
+socklock = [threading.Lock()]
 
+py_print = print
+def my_print(s):
+    py_print(s)
+    sys.stdout.flush()
+print = my_print
+
+def errprint(test, s):
+    print(test+": Failed: "+s)
+    return False
+
+def vprint(s, lvl=0):
+    if verbosity > lvl:
+        print(s)
 def keypressed(key):
     if hasattr(key, 'char'):
         tmps[0] += key.char
-        print(key.char, end='')
+        py_print(key.char, end='')
         sys.stdout.flush()
     elif key == keyboard.Key.enter:
         s[0] = tmps[0]
@@ -23,24 +43,13 @@ def keypressed(key):
 def keyreleased(key):
     pass
 
-# configure the serial connections (the parameters differs on the device you are connecting to)
-ser = serial.Serial(
-    port='COM4',
-    baudrate=1200,
-    parity=serial.PARITY_NONE,
-    stopbits=serial.STOPBITS_ONE,
-    bytesize=serial.EIGHTBITS
-)
-
-ser.isOpen()
-
 def terminal():
     listener = Listener(on_press=keypressed, on_release=keyreleased)
     listener.start()
     print('Enter your commands below.\r\nInsert "exit" to leave the application.')
 
-    print(">>", end='')
-    while 1 :
+    py_print(">>", end='')
+    while True :
         # get keyboard input
         cmd = s[0]
         if len(cmd)==0:
@@ -49,88 +58,330 @@ def terminal():
         else:
             s[0] = ''
             if cmd == 'exit':
-                ser.close()
-                exit()
+                ser[0].close()
+                return True
             else:
-                ser.write(bytes(cmd + '\r\n','utf-8'))
+                ser[0].write(bytes(cmd + '\r\n','utf-8'))
                 out = ''
                 time.sleep(0.1)
-                while ser.inWaiting() > 0:
-                    while ser.inWaiting() > 0:
-                        out += ser.read(1).decode('utf-8')
+                while ser[0].inWaiting() > 0:
+                    while ser[0].inWaiting() > 0:
+                        out += ser[0].read(1).decode('utf-8')
                     time.sleep(0.1)
                 if out != '':
                     print(out)
-                    print("\n\r>>", end='')
+                    py_print("\n\r>>", end='')
 
+def sock_write(b):
+    vprint("sockout: "+str(len(b))+" bytes",0)
+    if verbosity > 1:
+        print("sockout buffer:")
+        print_buf(b)
+    sock_conn[0].sendall(b)
 
-serin = ['']
+def serial_write(b):
+    if isinstance(b, int):
+        vprint("serout: "+str(b),0)
+        ser[0].write(b)
+    elif isinstance(b, str):
+        vprint("serout: "+b,0)
+        ser[0].write(bytes(b, 'utf-8'))
+    else:
+        global verbosity
+        vprint("serout: "+str(len(b))+" bytes",0)
+        if verbosity > 1:
+            print("serout buffer:")
+            print_buf(b)
+        ser[0].write(b)
+
 def serial_writeln(s):
-    ser.write(bytes(s + "\r\n", 'utf-8'))
+    vprint("serout: "+s,0)
+    global verbosity
+    v = verbosity
+    verbosity = 0
+    ser[0].write(bytes(s + "\r\n", 'utf-8'))
+    verbosity = v
 
-def serial_transact(cmd, sec=1):
+def serial_transact(cmd, sec=0.3):
+    flush_serial()
+    global verbosity
+    v = verbosity
+    verbosity = 0
     serial_writeln(cmd)
     time.sleep(sec)
-    return serial_in()   
+    res = serial_inln()
+    verbosity = v
+    vprint("sercmd: "+cmd+": "+str(res),0)
+    return res
 
-def serial_in():
+# waits for a line of text.  if none arrives in time, preserve what it has gotten so far
+def serial_inln():
     time.sleep(0.1)
-    while ser.inWaiting() > 0:
-        while ser.inWaiting() > 0:
-            c = ser.read(1).decode('utf-8')
+    while ser[0].inWaiting() > 0:
+        while ser[0].inWaiting() > 0:
+            c = ser[0].read(1).decode('utf-8')
             if c == '\n' or c == '\r':
                 s = serin[0]
                 serin[0] = ''
+                vprint("serin: "+s,0)
                 return s
             else:
                 serin[0] += c
         time.sleep(0.1)
     return None
 
+# returns all bytes it can reasonably wait for from the serial port
+def serial_in():
+    global verbosity
+    time.sleep(0.5)
+    bin = []
+    while ser[0].inWaiting() > 0:
+        while ser[0].inWaiting() > 0:
+            c = ser[0].read(1)
+            bin.extend(c)
+        time.sleep(0.5)
+    vprint("serin: "+str(len(bin))+" bytes",0)
+    ba = bytearray(bin)
+    if verbosity > 1:
+        print("serin buffer:")
+        print_buf(ba)
+    return ba
+    
 def flush_serial():
     time.sleep(0.1)
     serin[0] = ''
-    while ser.inWaiting() > 0:
-        while ser.inWaiting() > 0:
-            ser.read(1)
+    while ser[0].inWaiting() > 0:
+        while ser[0].inWaiting() > 0:
+            ser[0].read(1)
         time.sleep(0.1)
 
-sock_conn = [False]
+def flush_sock():
+    time.sleep(0.1)
+    while len(sockin[0]) >0:
+        sockin[0] = [] # reset sockin buff
+        time.sleep(0.1)
+
+def sock_in():
+    global verbosity
+    time.sleep(0.5)
+    sin = []
+    # print("sock_in: "+str(len(sockin[0])))
+    while len(sockin[0]) >0:
+        socklock[0].acquire()
+        sin.extend(sockin[0])
+        # print("sin: "+str(len(sin))+"/"+str(ord(sockin[0][0])))
+        sockin[0] = [] # reset sockin buff
+        socklock[0].release()
+        time.sleep(0.5)
+    vprint("sockin: "+str(len(sin))+" bytes",0)
+    ba = bytearray(sin)
+    if verbosity > 1:
+        print("sockin buffer:")
+        print_buf(ba)
+    return ba
 
 def tester_socket_listener():
-    sock_conn[0] = False
-    serversocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    serversocket.bind(('localhost', 8089))
-    serversocket.listen(1)
-    connection, address = serversocket.accept()
-    sock_conn[0] = True
-    while True:
-        buf = connection.recv(64)
-        if len(buf) > 0:
-            print(str(len(buf))+": "+str(buf))
+    try:
+        hostname = socket.gethostname()
+        ipaddr = socket.gethostbyname(hostname)
+        serversocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        serversocket.bind((str(ipaddr), 8089))
+        serversocket.listen(5)
+        print("Listener ("+str(ipaddr)+") started")
+        while True:
+            sock_conn[0] = None
+            connection, address = serversocket.accept()
+            sock_conn[0] = connection
+            try:
+                while True:
+                    time.sleep(0.1)
+                    buf = connection.recv(64)
+                    if len(buf) > 0:
+                        socklock[0].acquire()
+                        sockin[0].extend(buf)
+                        socklock[0].release()
+            except BaseException as e:
+                pass
+    finally:
+        print("Listener closed")
+
+def compare_bytearrays(a, b):
+    la = list(a)
+    lb = list(b)
+    if len(la) != len(lb):
+        return False
+    for i in range(0,len(la)):
+        if la[i] != lb[i]:
+            return False
+    return True
+
+def print_buf(b):
+    for i in range(0,len(b)):
+        py_print(str(b[i])+" ",end="")
+        if (i+1) % 8 == 0:
+            print("")
+    if (len(b) + 1) & 8 != 0:
+        print("")
+
+def test_atd():
+    global verbosity
+    if sock_conn[0] != None:
+        return errprint("ATD","Previous socked connected")
+    ipaddr = socket.gethostbyname(socket.gethostname())
+    s = serial_transact('atd"'+str(ipaddr)+':8089"', sec=10)
+    if s is None or s[0:8] != 'CONNECT ':
+        return errprint("ATD","ATD ("+s+")")
+    connum = s[8:]
+    if sock_conn[0] is None:
+        return errprint("ATD","No Connection")
+    '''
+    b = bytearray(os.urandom(1024))
+    # send from socket->modem, this will be slow to receive all.
+    sock_write(b)
+    sb = serial_in()
+    if not compare_bytearrays(b, sb):
+        return errprint("ATD","sock->ser "+str(len(b)))
+    # send from modem->socket, this will be slow to send.
+    flush_serial()
+    flush_sock()
+    serial_write(b)
+    rb = sock_in()
+    if not compare_bytearrays(b, rb):
+        return errprint("ATD","ser->sock "+str(len(b)))
+    '''
+    flush_serial()
+    flush_sock()
+    # upload test 
+    for rnd in range(0,100):
+        b = bytearray(os.urandom(128))
+        serial_write(b)
+        rb = sock_in()
+        if not compare_bytearrays(b, rb):
+            return errprint("ATD","ser->sock "+str(len(b)))
+        serial_write(13)
+        flush_serial()
+    print("ATD   : Passed")
+    sock_conn[0].close()
+    sock_conn[0] = None
+    return True
+
+def test_atc():
+    if sock_conn[0] != None:
+        return errprint("ATC","Previous socked connected")
+    ipaddr = socket.gethostbyname(socket.gethostname())
+    s = serial_transact('atc"'+str(ipaddr)+':8089"', sec=10)
+    if s is None or s[0:8] != 'CONNECT ':
+        return errprint("ATC","ATC")
+    connum = s[8:]
+    if sock_conn[0] is None:
+        return errprint("ATC","No Connection")
+    if serial_transact('att"testing!"') != 'OK':
+        return errprint("ATC","ATT 1")
+    if sock_in().decode() != 'testing!\r\n':
+        return errprint("ATC","ATT2 "+str(s))
+    # should return a conn message, and THEN ok
+    if serial_transact('atc0') == 'OK':
+        return errprint("ATC","ATC0:MSG")
+    if serial_inln() != 'OK':
+        return errprint("ATC","ATC0:OK")
+    if serial_transact('ath'+connum) != 'OK':
+        return errprint("ATC","ATHx")
+    if serial_transact('atc0') != 'OK':
+        return errprint("ATC","ATC0 #2" )
+    print("ATC   : Passed")
+    sock_conn[0].close()
+    sock_conn[0] = None
+    return True
+    
 
 def tester():
-    serial_writeln('ath0z0r0e0&p0')
+    print("Starting Zimodem test")
+    # if not test_atc():
+    #     return False
+    if not test_atd():
+        return False
+    # TODO
+    return True
+    
+def initialize(port, baud):
+    global verbosity
+    ser[0] = serial.Serial(
+        port=port,
+        baudrate=1200,
+        parity=serial.PARITY_NONE,
+        stopbits=serial.STOPBITS_ONE,
+        bytesize=serial.EIGHTBITS
+    )
+    
+    if not ser[0].isOpen():
+        print("Unable to open serial port")
+        return None
+    serial_writeln('ath0z0r0e0&p0b'+str(baud))
     time.sleep(1)
     flush_serial()
-    print("Starting Zimodem test")
-    s = serial_transact('ati4')
-    if s is None or s[0:3] != '3.7':
-        print("Unable to initialize ("+s+")")
-        sys.exit(-1)
+    if baud != 1200:
+        ser[0].close()
+        ser[0] = serial.Serial(
+            port=port,
+            baudrate=baud,
+            parity=serial.PARITY_NONE,
+            stopbits=serial.STOPBITS_ONE,
+            bytesize=serial.EIGHTBITS
+        )
+    cmd = "i4"
+    if verbosity > 1:
+        cmd = "&o1i4"
+    s = serial_transact("at"+cmd)
+    if s is None or s[0:2] != '3.':
+        print("Unable to initialize")
+        return None
+    flush_serial()
     print("Modem Initialized "+s)
     server_thread = threading.Thread(target=tester_socket_listener, daemon=True)
     server_thread.start()
-    s = serial_transact('atc"localhost:8089"', sec=5)
-    if s is None:
-        print("Connection Failure: Transaction")
-        sys.exit(-1)
-    print(s)
-    if not sock_conn[0]:
-        print("Connection Failure: No Connection detected")
+    time.sleep(3) # wait for listener to kick off
+    return ser[0]
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(
+                        prog='Zimodem Tester',
+                        description='Runs various tests on a Zimodem.  Must always start at 1200bps!')
+    parser.add_argument('port')
+    parser.add_argument('baud', default=1200)
+    parser.add_argument('-t', '--term', default=False)
+    parser.add_argument('-v', '--verbosity', default=0)
+    args = parser.parse_args()
+    verbosity = int(args.verbosity)
+    
+    ser[0] = initialize(args.port, int(args.baud))
+    if ser[0] is None:
         sys.exit(-1)
     
-    
-        
-tester()
-     
+    result = False
+    try:
+        if args.term:
+            terminal()
+            sys.exit(0)
+        # configure the serial connections (the parameters differs on the device you are connecting to)
+        result = tester()
+    finally:
+        if ser[0].isOpen():
+            time.sleep(1);
+            serial_write('+++')
+            time.sleep(1)
+            if verbosity > 1:
+                flush_serial()
+                serial_writeln("at&o0")
+                time.sleep(1)
+                v=verbosity
+                verbosity=0
+                buf = serial_in()
+                print("Log:")
+                print(buf.decode('utf-8'))
+                verbosity=v
+            serial_writeln('atb1200')
+            ser[0].close()
+    if result:
+        print("Test Completed Successfully")
+    else:
+        print("Test Failed.")
