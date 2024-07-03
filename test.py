@@ -294,8 +294,8 @@ def test_atc():
 
 def tester():
     print("Starting Zimodem test")
-    # if not test_atc():
-    #     return False
+    if not test_atc():
+        return False
     if not test_atd():
         return False
     # TODO
