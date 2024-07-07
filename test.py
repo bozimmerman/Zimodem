@@ -73,16 +73,23 @@ def terminal():
                     py_print("\n\r>>", end='')
 
 def sock_write(b):
-    vprint("sockout: "+str(len(b))+" bytes",0)
-    if verbosity > 1:
-        print("sockout buffer:")
-        print_buf(b)
-    sock_conn[0].sendall(b)
+    if isinstance(b, int):
+        vprint("sockout: "+str(b),0)
+        sock_conn[0].sendall(bytes([b]))
+    elif isinstance(b, str):
+        vprint("sockout: "+b,0)
+        sock_conn[0].sendall(bytes(b, 'utf-8'))
+    else:
+        vprint("sockout: "+str(len(b))+" bytes",0)
+        if verbosity > 1:
+            print("sockout buffer:")
+            print_buf(b)
+        sock_conn[0].sendall(b)
 
 def serial_write(b):
     if isinstance(b, int):
         vprint("serout: "+str(b),0)
-        ser[0].write(b)
+        ser[0].write(bytes([b]))
     elif isinstance(b, str):
         vprint("serout: "+b,0)
         ser[0].write(bytes(b, 'utf-8'))
@@ -108,15 +115,21 @@ def serial_transact(cmd, sec=0.3):
     v = verbosity
     verbosity = 0
     serial_writeln(cmd)
-    time.sleep(sec)
+    serial_wait(sec / 0.08)
     res = serial_inln()
     verbosity = v
     vprint("sercmd: "+cmd+": "+str(res),0)
     return res
 
+def serial_wait(max_ct=10):
+    ct = 0
+    while ser[0].inWaiting() == 0 and ct < max_ct:
+        time.sleep(0.1)
+        ct = ct + 1
+
 # waits for a line of text.  if none arrives in time, preserve what it has gotten so far
 def serial_inln():
-    time.sleep(0.1)
+    serial_wait(10)
     while ser[0].inWaiting() > 0:
         while ser[0].inWaiting() > 0:
             c = ser[0].read(1).decode('utf-8')
@@ -127,19 +140,19 @@ def serial_inln():
                 return s
             else:
                 serin[0] += c
-        time.sleep(0.1)
+        serial_wait(3)
     return None
 
 # returns all bytes it can reasonably wait for from the serial port
 def serial_in():
     global verbosity
-    time.sleep(0.5)
+    serial_wait(10)
     bin = []
     while ser[0].inWaiting() > 0:
         while ser[0].inWaiting() > 0:
             c = ser[0].read(1)
             bin.extend(c)
-        time.sleep(0.5)
+        serial_wait(3)
     vprint("serin: "+str(len(bin))+" bytes",0)
     ba = bytearray(bin)
     if verbosity > 1:
@@ -148,22 +161,28 @@ def serial_in():
     return ba
     
 def flush_serial():
-    time.sleep(0.1)
     serin[0] = ''
+    serial_wait(1)
     while ser[0].inWaiting() > 0:
         while ser[0].inWaiting() > 0:
             ser[0].read(1)
+        serial_wait(1)
+
+def sock_wait(max_ct=10):
+    ct = 0
+    while len(sockin[0]) == 0 and ct < max_ct:
         time.sleep(0.1)
+        ct = ct + 1
 
 def flush_sock():
-    time.sleep(0.1)
+    sock_wait(1)
     while len(sockin[0]) >0:
         sockin[0] = [] # reset sockin buff
-        time.sleep(0.1)
+        sock_wait(1)
 
 def sock_in():
     global verbosity
-    time.sleep(0.5)
+    sock_wait(8)
     sin = []
     # print("sock_in: "+str(len(sockin[0])))
     while len(sockin[0]) >0:
@@ -172,7 +191,7 @@ def sock_in():
         # print("sin: "+str(len(sin))+"/"+str(ord(sockin[0][0])))
         sockin[0] = [] # reset sockin buff
         socklock[0].release()
-        time.sleep(0.5)
+        sock_wait(2)
     vprint("sockin: "+str(len(sin))+" bytes",0)
     ba = bytearray(sin)
     if verbosity > 1:
@@ -180,7 +199,7 @@ def sock_in():
         print_buf(ba)
     return ba
 
-def tester_socket_listener():
+def thread_socket_listener():
     try:
         hostname = socket.gethostname()
         ipaddr = socket.gethostbyname(hostname)
@@ -249,15 +268,29 @@ def test_atd():
         return errprint("ATD","ser->sock "+str(len(b)))
     flush_serial()
     flush_sock()
-    # upload test 
-    for rnd in range(0,100):
-        b = bytearray(os.urandom(128))
-        serial_write(b)
-        rb = sock_in()
-        if not compare_bytearrays(b, rb):
-            return errprint("ATD","ser->sock "+str(len(b)))
-        serial_write(13)
-        flush_serial()
+    for packet_size in [128, 256, 1024]:
+        # download test 
+        for rnd in range(0,100):
+            b = bytearray(os.urandom(packet_size))
+            sock_write(b)
+            rb = serial_in()
+            if not compare_bytearrays(b, rb):
+                return errprint("ATD","sock->ser "+str(len(b))+" round "+str(rnd))
+            serial_write(13)
+            rb = sock_in()
+            if not compare_bytearrays(bytes([13]), rb):
+                return errprint("ATD","sock->ser  ack round "+str(rnd))
+        # upload test 
+        for rnd in range(0,100):
+            b = bytearray(os.urandom(packet_size))
+            serial_write(b)
+            rb = sock_in()
+            if not compare_bytearrays(b, rb):
+                return errprint("ATD","ser->sock "+str(len(b))+" round "+str(rnd))
+            sock_write(13)
+            rb = serial_in()
+            if not compare_bytearrays(bytes([13]), rb):
+                return errprint("ATD","sock->ser  ack round "+str(rnd))
     print("ATD   : Passed")
     sock_conn[0].close()
     sock_conn[0] = None
@@ -335,7 +368,7 @@ def initialize(port, baud):
         return None
     flush_serial()
     print("Modem Initialized "+s)
-    server_thread = threading.Thread(target=tester_socket_listener, daemon=True)
+    server_thread = threading.Thread(target=thread_socket_listener, daemon=True)
     server_thread.start()
     time.sleep(3) # wait for listener to kick off
     return ser[0]
