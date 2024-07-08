@@ -372,7 +372,7 @@ def initialize(port, baud):
     if verbosity > 1:
         cmd = "&o1i4"
     s = serial_transact("at"+cmd)
-    if s is None or s[0:2] != '3.':
+    if s is None or (s[0:2] != '3.' and s[0:2] != '4.'):
         print("Unable to initialize")
         return None
     flush_serial()
