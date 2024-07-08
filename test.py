@@ -144,7 +144,7 @@ def serial_inln():
     return None
 
 # returns all bytes it can reasonably wait for from the serial port
-def serial_in():
+def serial_in(expect=0):
     global verbosity
     serial_wait(10)
     bin = []
@@ -152,7 +152,9 @@ def serial_in():
         while ser[0].inWaiting() > 0:
             c = ser[0].read(1)
             bin.extend(c)
-        serial_wait(3)
+        if expect > 0 and len(bin) >= expect:
+            break
+        serial_wait(10)
     vprint("serin: "+str(len(bin))+" bytes",0)
     ba = bytearray(bin)
     if verbosity > 1:
@@ -180,7 +182,7 @@ def flush_sock():
         sockin[0] = [] # reset sockin buff
         sock_wait(1)
 
-def sock_in():
+def sock_in(expect=0):
     global verbosity
     sock_wait(8)
     sin = []
@@ -191,7 +193,9 @@ def sock_in():
         # print("sin: "+str(len(sin))+"/"+str(ord(sockin[0][0])))
         sockin[0] = [] # reset sockin buff
         socklock[0].release()
-        sock_wait(2)
+        if expect > 0 and len(sin) >= expect:
+            break
+        sock_wait(10)
     vprint("sockin: "+str(len(sin))+" bytes",0)
     ba = bytearray(sin)
     if verbosity > 1:
@@ -242,7 +246,7 @@ def print_buf(b):
     if (len(b) + 1) & 8 != 0:
         print("")
 
-def test_atd():
+def test_atd(baud=1200):
     global verbosity
     if sock_conn[0] != None:
         return errprint("ATD","Previous socked connected")
@@ -263,40 +267,45 @@ def test_atd():
     flush_serial()
     flush_sock()
     serial_write(b)
-    rb = sock_in()
+    rb = sock_in(len(b))
     if not compare_bytearrays(b, rb):
         return errprint("ATD","ser->sock "+str(len(b)))
     flush_serial()
     flush_sock()
-    for packet_size in [128, 256, 1024]:
+    
+    ud_tests = [[128, 50], [256, 50], [1024, 15 * (baud / 1200)], [baud * 200, 1]]
+    for ud_test in ud_tests:
+        packet_size = round(ud_test[0])
+        rounds = round(ud_test[1])
         # download test 
-        for rnd in range(0,100):
+        for rnd in range(0,rounds):
             b = bytearray(os.urandom(packet_size))
             sock_write(b)
-            rb = serial_in()
+            rb = serial_in(len(b))
             if not compare_bytearrays(b, rb):
                 return errprint("ATD","sock->ser "+str(len(b))+" round "+str(rnd))
             serial_write(13)
-            rb = sock_in()
+            rb = sock_in(1)
             if not compare_bytearrays(bytes([13]), rb):
                 return errprint("ATD","sock->ser  ack round "+str(rnd))
         # upload test 
-        for rnd in range(0,100):
+        for rnd in range(0,rounds):
             b = bytearray(os.urandom(packet_size))
             serial_write(b)
-            rb = sock_in()
+            rb = sock_in(len(b))
             if not compare_bytearrays(b, rb):
                 return errprint("ATD","ser->sock "+str(len(b))+" round "+str(rnd))
             sock_write(13)
-            rb = serial_in()
+            rb = serial_in(1)
             if not compare_bytearrays(bytes([13]), rb):
                 return errprint("ATD","sock->ser  ack round "+str(rnd))
+    
     print("ATD   : Passed")
     sock_conn[0].close()
     sock_conn[0] = None
     return True
 
-def test_atc():
+def test_atc(baud=1200):
     if sock_conn[0] != None:
         return errprint("ATC","Previous socked connected")
     ipaddr = socket.gethostbyname(socket.gethostname())
@@ -325,11 +334,11 @@ def test_atc():
     return True
     
 
-def tester():
+def tester(baud):
     print("Starting Zimodem test")
-    if not test_atc():
+    if not test_atc(baud):
         return False
-    if not test_atd():
+    if not test_atd(baud):
         return False
     # TODO
     return True
@@ -383,8 +392,8 @@ if __name__ == '__main__':
     parser.add_argument('-v', '--verbosity', default=0)
     args = parser.parse_args()
     verbosity = int(args.verbosity)
-    
-    ser[0] = initialize(args.port, int(args.baud))
+    baud = int(args.baud)
+    ser[0] = initialize(args.port, baud)
     if ser[0] is None:
         sys.exit(-1)
     
@@ -394,7 +403,7 @@ if __name__ == '__main__':
             terminal()
             sys.exit(0)
         # configure the serial connections (the parameters differs on the device you are connecting to)
-        result = tester()
+        result = tester(baud)
     finally:
         if ser[0].isOpen():
             time.sleep(1);
