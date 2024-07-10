@@ -74,15 +74,15 @@ def terminal():
 
 def sock_write(b):
     if isinstance(b, int):
-        vprint("sockout: "+str(b),0)
+        vprint("socout: "+str(b),0)
         sock_conn[0].sendall(bytes([b]))
     elif isinstance(b, str):
-        vprint("sockout: "+b,0)
+        vprint("socout: "+b,0)
         sock_conn[0].sendall(bytes(b, 'utf-8'))
     else:
-        vprint("sockout: "+str(len(b))+" bytes",0)
-        if verbosity > 1:
-            print("sockout buffer:")
+        vprint("socout: "+str(len(b))+" bytes",0)
+        if verbosity > 3:
+            print("socout buffer:")
             print_buf(b)
         sock_conn[0].sendall(b)
 
@@ -96,10 +96,11 @@ def serial_write(b):
     else:
         global verbosity
         vprint("serout: "+str(len(b))+" bytes",0)
-        if verbosity > 1:
+        if verbosity > 3:
             print("serout buffer:")
             print_buf(b)
         ser[0].write(b)
+    ser[0].flush()
 
 def serial_writeln(s):
     vprint("serout: "+s,0)
@@ -136,7 +137,7 @@ def serial_inln():
             if c == '\n' or c == '\r':
                 s = serin[0]
                 serin[0] = ''
-                vprint("serin: "+s,0)
+                vprint("ser_in: "+s,0)
                 return s
             else:
                 serin[0] += c
@@ -155,9 +156,9 @@ def serial_in(expect=0):
         if expect > 0 and len(bin) >= expect:
             break
         serial_wait(10)
-    vprint("serin: "+str(len(bin))+" bytes",0)
+    vprint("ser_in: "+str(len(bin))+" bytes",0)
     ba = bytearray(bin)
-    if verbosity > 1:
+    if verbosity > 3:
         print("serin buffer:")
         print_buf(ba)
     return ba
@@ -198,7 +199,7 @@ def sock_in(expect=0):
         sock_wait(10)
     vprint("sockin: "+str(len(sin))+" bytes",0)
     ba = bytearray(sin)
-    if verbosity > 1:
+    if verbosity > 3:
         print("sockin buffer:")
         print_buf(ba)
     return ba
@@ -228,12 +229,15 @@ def thread_socket_listener():
     finally:
         print("Listener closed")
 
-def compare_bytearrays(a, b):
+def compare_bytearrays(a, b, startswith=False):
     la = list(a)
     lb = list(b)
-    if len(la) != len(lb):
+    if(len(la) < len(lb)):
         return False
-    for i in range(0,len(la)):
+    if not startswith:
+        if len(la) != len(lb):
+            return False
+    for i in range(0,len(lb)):
         if la[i] != lb[i]:
             return False
     return True
@@ -269,10 +273,11 @@ def test_atd(baud=1200):
     serial_write(b)
     rb = sock_in(len(b))
     if not compare_bytearrays(b, rb):
+        if compare_bytearrays(b, rb, startswith=True):
+            print("startswith!")
         return errprint("ATD","ser->sock "+str(len(b)))
     flush_serial()
     flush_sock()
-    
     ud_tests = [[128, 50], [256, 50], [1024, 15 * (baud / 1200)], [baud * 20, 1]]
     for ud_test in ud_tests:
         packet_size = round(ud_test[0])
@@ -317,7 +322,7 @@ def test_atc(baud=1200):
         return errprint("ATC","No Connection")
     if serial_transact('att"testing!"') != 'OK':
         return errprint("ATC","ATT 1")
-    if sock_in().decode() != 'testing!\r\n':
+    if sock_in(10).decode() != 'testing!\r\n':
         return errprint("ATC","ATT2 "+str(s))
     # should return a conn message, and THEN ok
     if serial_transact('atc0') == 'OK':
@@ -356,7 +361,7 @@ def initialize(port, baud):
     if not ser[0].isOpen():
         print("Unable to open serial port")
         return None
-    serial_writeln('ath0z0r0e0&p0b'+str(baud))
+    serial_writeln('ath0z0r0f4e0&p0b'+str(baud))
     time.sleep(1)
     flush_serial()
     if baud != 1200:
