@@ -786,7 +786,7 @@ void ZBrowser::doModeCommand(String &line)
           String errors="";
           serial.printf("Go to YModem download.%s",EOLNC);
           serial.flushAlways();
-          if(yDownload(commandMode.getFlowControlType(), rfile,errors))
+          if(yDownload(&SD,commandMode.getFlowControlType(), rfile,errors))
           {
             rfile.close();
             delay(2000);
@@ -827,7 +827,7 @@ void ZBrowser::doModeCommand(String &line)
             String errors="";
             serial.printf("Go to YModem upload.%s",EOLNC);
             serial.flushAlways();
-            if(yUpload(commandMode.getFlowControlType(), rfile,errors))
+            if(yUpload(&SD,commandMode.getFlowControlType(), rfile,errors))
             {
               rfile.close();
               delay(2000);
