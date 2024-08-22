@@ -47,7 +47,7 @@ void ZBrowser::init()
   serial.setFlowControlType(commandMode.serial.getFlowControlType());
   serial.setPetsciiMode(commandMode.serial.isPetsciiMode());
   savedEcho=commandMode.doEcho;
-  commandMode.doEcho=true;
+  //commandMode.doEcho=true;      // **SCM LOCALECHO OFF on SHELL
   serial.setXON(true);
   showMenu=true;
   EOLN=commandMode.EOLN;

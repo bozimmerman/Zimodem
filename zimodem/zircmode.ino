@@ -32,7 +32,7 @@ void ZIRCMode::switchTo()
   debugPrintf("\r\nMode:IRC\r\n");
   currMode=&ircMode;
   savedEcho=commandMode.doEcho;
-  commandMode.doEcho=true;
+  //commandMode.doEcho=true;      // **SCM LOCALECHO OFF ON IRC
   serial.setFlowControlType(commandMode.serial.getFlowControlType());
   serial.setPetsciiMode(commandMode.serial.isPetsciiMode());
   showMenu=true;

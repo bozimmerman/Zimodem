@@ -628,8 +628,9 @@ void ZCommand::loadConfig()
   }
   debugPrintf("Resetting...\r\n");
   doResetCommand(true);
-  if(altOpMode == OPMODE_NONE)
+  if(altOpMode == OPMODE_NONE) {
     showInitMessage();
+  }
   debugPrintf("Init complete.\r\n");
 }
 
@@ -1250,30 +1251,43 @@ ZResult ZCommand::doWebStream(int vval, uint8_t *vbuf, int vlen, bool isNumber, 
   if((strstr((char *)vbuf,"ftp:")==(char *)vbuf)
   ||(strstr((char *)vbuf,"ftps:")==(char *)vbuf))
   {
+    debugPrintf("Vai chamar makeFTPHost\n");
     ftpHost = makeFTPHost(true,ftpHost,vbuf,&req);
+    debugPrintf("FTPHost %s\n",ftpHost);
+    debugPrintf("req %s\n",req);
     if((req == 0)||(ftpHost==0))
       return ZERROR;
+    else
+      debugPrintf("Seguiu\n");   
   }
   else
 #endif
   if((strstr((char *)vbuf,"gopher:")==(char *)vbuf)
   ||(strstr((char *)vbuf,"gophers:")==(char *)vbuf))
     gopher=true;
+  else  
+  //debugPrintf("if parseweburl\n");  
   if(!parseWebUrl(vbuf,&hostIp,&req,&port,&doSSL))
     return ZERROR;
-
+  debugPrintf("if cache\n");
   if(cache)
   {
+    debugPrintf("sim cache\n");
     if(!SPIFFS.exists(filename))
     {
 #ifdef INCLUDE_FTP
       if(ftpHost != 0)
       {
-        if(!ftpHost->doGet(&SPIFFS,filename,req))
+        if(!ftpHost->doLS(&serial, req))
         {
-          delete ftpHost;
-          return ZERROR;
+          debugPrintf("LS FALHOU\n");
         }
+        debugPrintf("LS terminou\n");
+        //if(!ftpHost->doGet(&SPIFFS,filename,req))
+        //{
+        //  delete ftpHost;
+        //  return ZERROR;
+        //}
       }
       else
 #endif
@@ -1297,6 +1311,7 @@ ZResult ZCommand::doWebStream(int vval, uint8_t *vbuf, int vlen, bool isNumber, 
 #ifdef INCLUDE_FTP
     if(ftpHost != 0)
     {
+      debugPrintf("entrou por aqui\n");
       c=ftpHost->doGetStream(req, &respLength);
       if(c==null)
         delete ftpHost;
@@ -1334,6 +1349,12 @@ ZResult ZCommand::doWebStream(int vval, uint8_t *vbuf, int vlen, bool isNumber, 
 #ifdef INCLUDE_FTP
     if(ftpHost != 0)
     {
+      debugPrintf("por aqui\n");  // PAREI AQUI
+      //if(!ftpHost->doLS(&serial, req))
+      //{
+      //  debugPrintf("LS FALHOU\n");
+      //}
+      //debugPrintf("LS terminou\n");
       if(!ftpHost->doGet(&SPIFFS,filename,req))
       {
         delete ftpHost;

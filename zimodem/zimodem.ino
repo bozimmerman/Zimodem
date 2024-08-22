@@ -14,7 +14,8 @@
    limitations under the License. 
 */
 //#define TCP_SND_BUF                     4 * TCP_MSS
-#define ZIMODEM_VERSION "4.0.2"
+//#define ARDUINO_LOOP_STACK_SIZE (1024 * 1024)
+#define ZIMODEM_VERSION "4.0.3"
 const char compile_date[] = __DATE__ " " __TIME__;
 #define DEFAULT_NO_DELAY true
 #define null 0
@@ -52,7 +53,7 @@ const char compile_date[] = __DATE__ " " __TIME__;
 #   define DEFAULT_PIN_HS 34
 #   define DEFAULT_PIN_WIFI 26
 # endif
-# define DEFAULT_HS_BAUD 38400
+# define DEFAULT_HS_BAUD 9600  //38400
 # define DEFAULT_AA_ACTIVE LOW
 # define DEFAULT_AA_INACTIVE HIGH
 # define DEFAULT_HS_ACTIVE LOW
@@ -61,7 +62,7 @@ const char compile_date[] = __DATE__ " " __TIME__;
 # define DEFAULT_WIFI_INACTIVE HIGH
 #endif
 
-#define DEFAULT_BAUD_RATE 1200
+#define DEFAULT_BAUD_RATE 9600
 #define DEFAULT_SERIAL_CONFIG SERIAL_8N1
 /*
  * Unused pins on WROOM32:
@@ -77,7 +78,7 @@ const char compile_date[] = __DATE__ " " __TIME__;
 #  undef DEFAULT_FCT
 #  define DEFAULT_FCT FCT_RTSCTS
 #  undef DEFAULT_BAUD_RATE
-#  define DEFAULT_BAUD_RATE 115200
+#  define DEFAULT_BAUD_RATE 9600      // TROCAR 115200
 #  define DEFAULT_PIN_DCD GPIO_NUM_22
 #  define DEFAULT_PIN_CTS GPIO_NUM_19
 #  define DEFAULT_PIN_RTS GPIO_NUM_21
@@ -100,14 +101,14 @@ const char compile_date[] = __DATE__ " " __TIME__;
 #  define DEFAULT_PIN_OTH GPIO_NUM_46 // pulse pin
 #  define DEFAULT_PIN_DTR GPIO_NUM_13
 # else                                    /* Configuration for standard ESP32 4 & 8MB boards */
-#  define DEFAULT_PIN_DCD GPIO_NUM_14
-#  define DEFAULT_PIN_CTS GPIO_NUM_13
+#  define DEFAULT_PIN_DCD GPIO_NUM_14 // SCK - SDCARD
+#  define DEFAULT_PIN_CTS GPIO_NUM_13 // MISO - SDCARD
 #  define DEFAULT_PIN_RTS GPIO_NUM_15 // unused?
 #  define DEFAULT_PIN_RI GPIO_NUM_32
-#  define DEFAULT_PIN_DSR GPIO_NUM_12
+#  define DEFAULT_PIN_DSR GPIO_NUM_12 // MOSI - SDCARD
 #  define DEFAULT_PIN_SND GPIO_NUM_25
 #  define DEFAULT_PIN_OTH GPIO_NUM_4 // pulse pin
-#  define DEFAULT_PIN_DTR GPIO_NUM_27
+#  define DEFAULT_PIN_DTR GPIO_NUM_27 // CS - SDCARD
 # endif
 # define debugPrintf DBSerial.printf
 # define SerialConfig uint32_t
@@ -317,8 +318,8 @@ static void s_pinWrite(uint8_t pinNo, uint8_t value)
 static void setHostName(const char *hname)
 {
 #ifdef ZIMODEM_ESP32
-      tcpip_adapter_set_hostname(TCPIP_ADAPTER_IF_STA, hname);
-#else
+      //tcpip_adapter_set_hostname(TCPIP_ADAPTER_IF_STA, hname);  // TROCA
+//#else
       WiFi.hostname(hname);
 #endif
 }

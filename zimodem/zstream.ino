@@ -82,6 +82,7 @@ void ZStream::baudDelay()
 
 void ZStream::serialIncoming()
 {
+  debugPrintf("Incoming");
   int bytesAvailable = HWSerial.available();
   if(bytesAvailable == 0)
     return;
@@ -108,6 +109,20 @@ void ZStream::serialIncoming()
       }
     }
     logSerialIn(c);
+    //debugPrintf("@");
+    if (isTelnet()) {
+       debugPrintf("#"); 
+       if (int(c) > 19)
+          serial.print(char(8)); serial.print(' '); serial.print(char(8));
+       if (int(c) == 8)   
+          Serial.print(" ");
+    } else {
+       debugPrintf("$"); 
+       if (int(c) > 19)
+          serial.print(char(8)); serial.print(' '); serial.print(char(8));
+       if (int(c) == 8)   
+          Serial.print(" ");             
+    } 
     if((c==commandMode.EC)
     &&((plussesInARow>0)||((millis()-lastNonPlusTimeMs)>800)))
       plussesInARow++;
@@ -124,7 +139,8 @@ void ZStream::serialIncoming()
       serial.setXON(true);
     else
     {
-      if(isEcho())
+      //debugPrintf("*");
+      if(isEcho()) 
         serial.printb(c);
       if(isPETSCII())
         c = petToAsc(c);
@@ -359,8 +375,11 @@ void ZStream::loop()
             uint8_t c=current->read();
             logSocketIn(c);
             if((!isTelnet() || handleAsciiIAC((char *)&c,current))
-            && (!isPETSCII() || ascToPet((char *)&c,current)))
+            && (!isPETSCII() || ascToPet((char *)&c,current))) {
+              //if (getStatusRegister(snum,crc8)==1) Serial.print(char(8)); Serial.print(' '); Serial.print(char(8));
+              //debugPrintf("&");
               serial.printb(c);
+            }
           }
         }
       }
