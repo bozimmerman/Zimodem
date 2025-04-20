@@ -766,7 +766,7 @@ void ZIRCMode::loopMenuMode()
       }
     }
   }
-  if(commandMode.checkPlusEscape())
+  if(checkPlusPlusPlusEscape())
   {
     switchBackToCommandMode();
   }
@@ -780,17 +780,14 @@ void ZIRCMode::loopMenuMode()
 void ZIRCMode::serialIncoming()
 {
   bool crReceived=commandMode.readSerialStream();
-  commandMode.clearPlusProgress(); // re-check the plus-escape mode
   if(crReceived)
-  {
     doIRCCommand();
-  }
 }
 
 void ZIRCMode::loop()
 {
   loopMenuMode();
-  if(commandMode.checkPlusEscape())
+  if(checkPlusPlusPlusEscape())
   {
     switchBackToCommandMode();
   }

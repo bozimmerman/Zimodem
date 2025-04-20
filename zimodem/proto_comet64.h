@@ -28,14 +28,10 @@ private:
   int idex = 0;
 
   bool aborted = false;
-  unsigned long lastNonPlusTm = 0;
-  unsigned int plussesInARow = 0;
-  unsigned long plusTimeExpire = 0;
   SDFS *cFS = &SD;
   bool browsePetscii = false;
 
-  void checkDoPlusPlusPlus(const int c, const unsigned long tm);
-  bool checkPlusPlusPlusExpire(const unsigned long tm);
+  bool checkPlusPlusPlusExpire();
   void printFilename(const char* name);
   void printDiskHeader(const char* name);
   void printPetscii(const char* name);

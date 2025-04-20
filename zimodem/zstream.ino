@@ -18,9 +18,6 @@ void ZStream::switchTo(WiFiClientNode *conn)
 {
   debugPrintf("\r\nMode:Stream\r\n");
   current = conn;
-  currentExpiresTimeMs = 0;
-  lastNonPlusTimeMs = 0;
-  plussesInARow=0;
   serial.setXON(true);
   serial.setPetsciiMode(isPETSCII());
   serial.setFlowControlType(getFlowControl());
@@ -107,16 +104,8 @@ void ZStream::serialIncoming()
         bytesAvailable=HWSerial.available();
       }
     }
+    processPlusPlusPlus(c);
     logSerialIn(c);
-    if((c==commandMode.EC)
-    &&((plussesInARow>0)||((millis()-lastNonPlusTimeMs)>800)))
-      plussesInARow++;
-    else
-    if(c!=commandMode.EC)
-    {
-      plussesInARow=0;
-      lastNonPlusTimeMs=millis();
-    }
     if((c==19)&&(getFlowControl()==FCT_NORMAL))
       serial.setXON(false);
     else
@@ -135,9 +124,6 @@ void ZStream::serialIncoming()
 
   if(escBufDex>0)
     socketWrite(escBuf,escBufDex);
-  currentExpiresTimeMs = 0;
-  if(plussesInARow==3)
-    currentExpiresTimeMs=millis()+800;
 }
 
 void ZStream::switchBackToCommandMode(bool pppMode)
@@ -329,15 +315,8 @@ void ZStream::loop()
   if((current==null)||(!current->isConnected()))
     switchBackToCommandMode(false);
   else
-  if((currentExpiresTimeMs > 0) && (millis() > currentExpiresTimeMs))
-  {
-    currentExpiresTimeMs = 0;
-    if(plussesInARow == 3)
-    {
-      plussesInARow=0;
-      switchBackToCommandMode(true);
-    }
-  }
+  if(checkPlusPlusPlusEscape())
+    switchBackToCommandMode(true);
   else
   if(serial.isSerialOut())
   {

@@ -133,8 +133,6 @@ class ZCommand : public ZMode
     bool            busyMode             = false;
     char            ringCounter          = 1;
     BinType         binType              = BTYPE_NORMAL;
-    unsigned long   lastNonPlusTimeMs    = 0;
-    unsigned long   currentExpiresTimeMs = 0;
     uint8_t         nbuf[MAX_COMMAND_SIZE];
     char            hbuf[MAX_COMMAND_SIZE];
     int             eon                  = 0;
@@ -162,8 +160,7 @@ class ZCommand : public ZMode
 
     void showInitMessage();
     bool readSerialStream();
-    void clearPlusProgress();
-    bool checkPlusEscape();
+    bool checkPlusPlusPlusDisconnect();
     String getNextSerialCommand();
     ZResult doSerialCommand();
     void setConfigDefaults();
@@ -202,8 +199,10 @@ class ZCommand : public ZMode
     ZResult doEOLNCommand(int vval, uint8_t *vbuf, int vlen, bool isNumber);
     ZResult doInfoCommand(int vval, uint8_t *vbuf, int vlen, bool isNumber);
     ZResult doWebStream(int vval, uint8_t *vbuf, int vlen, bool isNumber, const char *filename, bool cache);
-    ZResult doUpdateFirmware(int vval, uint8_t *vbuf, int vlen, bool isNumber);
     ZResult doTimeZoneSetupCommand(int vval, uint8_t *vbuf, int vlen, bool isNumber);
+#ifdef INCLUDE_OTH_UPDATES
+    ZResult doUpdateFirmware(int vval, uint8_t *vbuf, int vlen, bool isNumber);
+#endif
 
   public:
     int     packetSize          = 127;

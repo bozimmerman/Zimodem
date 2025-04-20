@@ -101,35 +101,13 @@ int HostCM::numOpenFiles()
   return n;
 }
 
-void HostCM::checkDoPlusPlusPlus(const int c, const unsigned long tm)
-{
-  if(c == '+')
-  {
-      if((plussesInARow>0)||((tm-lastNonPlusTm)>800))
-      {
-        plussesInARow++;
-        if(plussesInARow > 2)
-          plusTimeExpire = tm + 800;
-      }
-  }
-  else
-  {
-    plusTimeExpire = 0;
-    lastNonPlusTm = tm;
-    plussesInARow = 0;
-  }
-}
-
-bool HostCM::checkPlusPlusPlusExpire(const unsigned long tm)
+bool HostCM::checkPlusPlusPlusExpire()
 {
   if(aborted)
     return true;
-  if((plusTimeExpire>0)&&(tm>plusTimeExpire)&&(plussesInARow>2))
+  if(checkPlusPlusPlusEscape())
   {
     aborted = true;
-    plusTimeExpire = 0;
-    lastNonPlusTm = tm;
-    plussesInARow = 0;
     return true;
   }
   return false;
@@ -626,8 +604,7 @@ void HostCM::sendACK()
 void HostCM::receiveLoop()
 {
   serialOutDeque();
-  unsigned long tm = millis();
-  if(checkPlusPlusPlusExpire(tm))
+  if(checkPlusPlusPlusExpire())
     return;
   int c;
   while(hserial.available() > 0)
@@ -635,9 +612,7 @@ void HostCM::receiveLoop()
     c=hserial.read();
     if(idex<HCM_BUFSIZ)
       inbuf[idex++]=c;
-    checkDoPlusPlusPlus(c, tm);
-    if(checkPlusPlusPlusExpire(tm))
-      return;
+    processPlusPlusPlus(c);
     yield();
     if(c==opt.lineend)
     {

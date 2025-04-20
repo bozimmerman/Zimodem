@@ -42,17 +42,13 @@ private:
   int idex = 0;
 
   bool aborted = false;
-  unsigned long lastNonPlusTm = 0;
-  unsigned int plussesInARow = 0;
-  unsigned long plusTimeExpire = 0;
   HCMFile files[HCM_MAXFN];
   FS *hFS = &SD;
   File openDirF = (File)0;
   File renameF = (File)0;
 
   char checksum(uint8_t *b, int n);
-  void checkDoPlusPlusPlus(const int c, const unsigned long tm);
-  bool checkPlusPlusPlusExpire(const unsigned long tm);
+  bool checkPlusPlusPlusExpire();
   void sendNAK();
   void sendACK();
   void sendError(const char* format, ...);

@@ -35,35 +35,13 @@ Comet64::~Comet64()
   //closeAllFiles();
 }
 
-void Comet64::checkDoPlusPlusPlus(const int c, const unsigned long tm)
-{
-  if(c == '+')
-  {
-      if((plussesInARow>0)||((tm-lastNonPlusTm)>800))
-      {
-        plussesInARow++;
-        if(plussesInARow > 2)
-          plusTimeExpire = tm + 800;
-      }
-  }
-  else
-  {
-    plusTimeExpire = 0;
-    lastNonPlusTm = tm;
-    plussesInARow = 0;
-  }
-}
-
-bool Comet64::checkPlusPlusPlusExpire(const unsigned long tm)
+bool Comet64::checkPlusPlusPlusExpire()
 {
   if(aborted)
     return true;
-  if((plusTimeExpire>0)&&(tm>plusTimeExpire)&&(plussesInARow>2))
+  if(checkPlusPlusPlusEscape())
   {
     aborted = true;
-    plusTimeExpire = 0;
-    lastNonPlusTm = tm;
-    plussesInARow = 0;
     return true;
   }
   return false;
@@ -138,8 +116,7 @@ void Comet64::printPetscii(const char* name)
 void Comet64::receiveLoop()
 {
   serialOutDeque();
-  unsigned long tm = millis();
-  if(checkPlusPlusPlusExpire(tm))
+  if(checkPlusPlusPlusExpire())
     return;
   int c;
   while(cserial.available() > 0)
@@ -150,9 +127,7 @@ void Comet64::receiveLoop()
       if((idex>0)||(c!=' '))
         inbuf[idex++]=c;
     }
-    checkDoPlusPlusPlus(c, tm);
-    if(checkPlusPlusPlusExpire(tm))
-      return;
+    processPlusPlusPlus(c);
     yield();
     if(c==13)
     {

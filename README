@@ -14,7 +14,7 @@ To build this firmware for the ESP-01 or ESP-12, I used the Arduino IDE rev1.8.1
 
 To build this firmware for the ESP-32, I also used the Arduino IDE rev 1.8.10 with the Arduino ESP32 Dev Module installed from the board manager * , with the following settings: QIO, 8MB, 80MHZ, 921600, NONE, Avrisp Mk II **.*, and 3MB App space.  Currently on library version 2.07.
 
-** Before you build, you'll want to go through the file zimodem.ino and configure the various #defines to reflect hardware pin assignments and features.   These especially include: INCLUDE_IRCC, SUPPORT_LED_PINS, INCLUDE_SD_SHELL, DEFAULT_BAUD_RATE, PIN_FACTORY_RESET, all the various DEFAULT_PIN_* assignments for your hardware, INCLUDE_SSH, and MAX_PIN_NO.   In addition, at the top of pet2asc.h is where the default main and debug uarts are assigned (MAIN_UART_NUM).  Make sure those reflect your wiring as well. 
+** Before you build, you'll want to go through the file zimodem.ino and configure the various #defines to reflect hardware pin assignments and features.   These especially include: INCLUDE_IRCC, SUPPORT_LED_PINS, INCLUDE_SD_SHELL, INCLUDE_OTH_UPDATES, DEFAULT_BAUD_RATE, PIN_FACTORY_RESET, all the various DEFAULT_PIN_* assignments for your hardware, INCLUDE_SSH, and MAX_PIN_NO.   In addition, at the top of pet2asc.h is where the default main and debug uarts are assigned (MAIN_UART_NUM).  Make sure those reflect your wiring as well. 
 
 Using:
 ------

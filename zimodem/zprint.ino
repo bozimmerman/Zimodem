@@ -291,8 +291,6 @@ ZResult ZPrint::finishSwitchTo(char *hostIp, char *req, int port, bool doSSL)
   checkBaudChange();
   pdex=0;
   coldex=0;
-  lastNonPlusTimeMs = 0;
-  plussesInARow=0;
   currentExpiresTimeMs = millis()+5000;
   currMode=&printMode;
   return ZIGNORE;
@@ -306,22 +304,11 @@ void ZPrint::serialIncoming()
     {
       uint8_t c=HWSerial.read();
       logSerialIn(c);
-      if((c==commandMode.EC)
-      &&(plussesInARow<3)
-      &&((plussesInARow>0)||((millis()-lastNonPlusTimeMs)>900)))
+      int plusOut = processPlusPlusPlus(c);
+      if(plusOut > 0)
       {
-        plussesInARow++;
-        continue;
-      }
-      else
-      {
-        if(plussesInARow > 0)
-        {
-          for(int i=0;i<plussesInARow;i++)
-            pbuf[pdex++]=commandMode.EC;
-          plussesInARow=0;
-        }
-        lastNonPlusTimeMs=millis();
+        for(int i=0;i<plusOut;i++)
+          pbuf[pdex++]=commandMode.EC;
       }
       
       if(payloadType == PETSCII)
@@ -369,10 +356,7 @@ void ZPrint::serialIncoming()
         pdex=0;
       }
     }
-    if(plussesInARow == 3)
-      currentExpiresTimeMs = millis()+900;
-    else
-      currentExpiresTimeMs = millis()+timeoutDelayMs;
+    currentExpiresTimeMs = millis()+timeoutDelayMs;
   }
 }
 
@@ -402,7 +386,8 @@ void ZPrint::loop()
     switchBackToCommandMode(true);
   }
   else
-  if(millis()>currentExpiresTimeMs)
+  if((checkPlusPlusPlusEscape())
+  ||(millis()>currentExpiresTimeMs))
   {
     debugPrintf("Time-out in printing\r\n");
     if(pdex > 0)

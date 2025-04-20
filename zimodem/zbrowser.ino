@@ -60,7 +60,6 @@ void ZBrowser::init()
 void ZBrowser::serialIncoming()
 {
   bool crReceived=commandMode.readSerialStream();
-  commandMode.clearPlusProgress(); // re-check the plus-escape mode
   if(crReceived)
   {
     if(commandMode.doEcho)
@@ -1709,7 +1708,7 @@ void ZBrowser::loop()
       }
     }
   }
-  if(commandMode.checkPlusEscape())
+  if(checkPlusPlusPlusEscape())
   {
     switchBackToCommandMode();
   }

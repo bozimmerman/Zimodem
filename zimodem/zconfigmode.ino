@@ -42,7 +42,6 @@ void ZConfig::switchTo()
 void ZConfig::serialIncoming()
 {
   bool crReceived=commandMode.readSerialStream();
-  commandMode.clearPlusProgress(); // re-check the plus-escape mode
   if(crReceived)
   {
     doModeCommand();
@@ -868,7 +867,7 @@ void ZConfig::loop()
       }
     }
   }
-  if(commandMode.checkPlusEscape())
+  if(checkPlusPlusPlusEscape())
   {
     switchBackToCommandMode();
   }

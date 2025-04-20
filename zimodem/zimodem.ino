@@ -18,11 +18,21 @@
 const char compile_date[] = __DATE__ " " __TIME__;
 #define DEFAULT_NO_DELAY true
 #define null 0
+
+
 #define INCLUDE_IRCC true
+#define INCLUDE_SD_SHELL true  /* ESP32 only, requires SPI SD card interface */
+#define INCLUDE_CBMMODEM true  // ESP32 only, 1650, 1660, 1670, and Pulse Dialing support
+#define INCLUDE_PING true
+#define INCLUDE_SSH true   // ESP32 only, adds SSH client
+#define INCLUDE_HOSTCM true // requires sd shell
+#define INCLUDE_FTP true
+#define INCLUDE_COMET64 true // requires sd shell
+#define INCLUDE_OTH_UPDATES true // comment out if you make incompatible firmware
+//#define INCLUDE_SLIP true  // enable this when it is working.  it is not working.
 //#define SUPPORT_LED_PINS true // enable if you have the spare gpio pins and leds
 //#define INCLUDE_CMDRX16 true // enable this if you are David or Kevin
-//# define USE_DEVUPDATER true // only enable this if your name is Bo
-#define INCLUDE_SD_SHELL true  /* ****** Delete this line if you do not have an external SD card interface *****/
+//#define USE_DEVUPDATER true // only enable this if your name is Bo
 
 // Figure out whether we are building for ESP8266 or ESP32
 #ifdef ARDUINO_ESP32S3_DEV || ARDUINO_ESP32C3_DEV
@@ -43,7 +53,9 @@ const char compile_date[] = __DATE__ " " __TIME__;
 # define ZIMODEM_ESP32
 #else
 # define ZIMODEM_ESP8266
+# undef INCLUDE_SSH
 # undef INCLUDE_SD_SHELL
+# undef INCLUDE_CBMMODEM
 #endif
 
 #ifdef SUPPORT_LED_PINS
@@ -146,14 +158,6 @@ const char compile_date[] = __DATE__ " " __TIME__;
 //# define echoEOLN serial.write
 //# define HARD_DCD_HIGH 1
 //# define HARD_DCD_LOW 1
-# define INCLUDE_SSH true
-//# define INCLUDE_SLIP true  // Disable this before checkin, until it works
-# ifdef INCLUDE_SD_SHELL
-#  define INCLUDE_HOSTCM true // safe to remove if you need space
-#  define INCLUDE_FTP true
-#  define INCLUDE_CBMMODEM true  // 1650, 1660, 1670, and Pulse Dialing support
-#  define INCLUDE_COMET64 true
-# endif
 #else  // ESP-8266, e.g. ESP-01, ESP-12E
 # define DEFAULT_PIN_DSR 13
 # define DEFAULT_PIN_DTR 12
@@ -161,14 +165,12 @@ const char compile_date[] = __DATE__ " " __TIME__;
 # define DEFAULT_PIN_RTS 4
 # define DEFAULT_PIN_CTS 5 // is 0 for ESP-01
 # define DEFAULT_PIN_DCD 2
-# define DEFAULT_PIN_OTH MAX_PIN_NO // pulse pin
+# define DEFAULT_PIN_OTH -1 // pulse pin
 # define DEFAULT_FCT FCT_DISABLED
 # define debugPrintf doNothing
 # define preEOLN(...)
 # define echoEOLN(...) serial.prints(EOLN)
 #endif
-
-# define INCLUDE_PING true
 
 # define DEFAULT_DCD_ACTIVE  LOW
 # define DEFAULT_DCD_INACTIVE  HIGH
@@ -289,6 +291,8 @@ static int dequeSize=1+(DEFAULT_BAUD_RATE/INTERNAL_FLOW_CONTROL_DIV);
 static BaudState baudState = BS_NORMAL; 
 static unsigned long resetPushTimer=0;
 static int tempBaud = -1; // -1 do nothing
+static unsigned int plussesInARow = 0;
+static unsigned long lastInputTimeMs = 0;
 static int dcdStatus = DEFAULT_DCD_INACTIVE;
 static int pinDCD = DEFAULT_PIN_DCD;
 static int pinCTS = DEFAULT_PIN_CTS;
@@ -482,6 +486,57 @@ static int checkOpenConnections()
     }
   }
   return num;
+}
+
+static int processPlusPlusPlus(uint8_t c)
+{
+  if(c<0)
+    return 0;
+  int plusOut = 0;
+  if(c == commandMode.EC)
+  {
+    bool timeout = (millis()-lastInputTimeMs)>900;
+    if(plussesInARow==0)
+    {
+      if(timeout)
+         plussesInARow=1; // it begins!
+      // else got a +, but too quick after last char, so keep at 0
+    }
+    else
+    if(!timeout) // quick PLUS
+    {
+      if(plussesInARow<3)
+        plussesInARow++;
+      else
+      {
+        plusOut = plussesInARow; // sur-plus, so reject
+        plussesInARow=0; // spamming plusses clears!
+      }
+    }
+    else // plus long after timeout
+    {
+      plusOut = plussesInARow;
+      plussesInARow=1;
+    }
+  }
+  else
+  if(plussesInARow>0)
+  {
+      plusOut = plussesInARow;
+      plussesInARow=0;
+  }
+  lastInputTimeMs = millis();
+  return plusOut;
+}
+
+static bool checkPlusPlusPlusEscape()
+{
+  if((plussesInARow == 3) && ((millis()-lastInputTimeMs)>900))
+  {
+    plussesInARow = 0;
+    return true;
+  }
+  return false;
 }
 
 void setup() 

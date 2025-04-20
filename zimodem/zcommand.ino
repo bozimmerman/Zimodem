@@ -1504,6 +1504,7 @@ ZResult ZCommand::doWebDump(const char *filename, const bool cache)
   return res;
 }
 
+#ifdef INCLUDE_OTH_UPDATES
 ZResult ZCommand::doUpdateFirmware(int vval, uint8_t *vbuf, int vlen, bool isNumber)
 {
   serial.prints("Local firmware version ");
@@ -1621,6 +1622,7 @@ ZResult ZCommand::doUpdateFirmware(int vval, uint8_t *vbuf, int vlen, bool isNum
   ESP.restart();
   return ZOK;
 }
+#endif
 
 ZResult ZCommand::doWiFiCommand(int vval, uint8_t *vbuf, int vlen, bool isNumber, const char *dmodifiers)
 {
@@ -2488,13 +2490,10 @@ bool ZCommand::readSerialStream()
     
     if(c>0)
     {
-      if(c!=EC)
-        lastNonPlusTimeMs=millis();
+      processPlusPlusPlus(c);
       
       if((c==19)&&(serial.getFlowControlType() == FCT_NORMAL))
-      {
         serial.setXON(false);
-      }
       else
       if((c==19)
       &&((serial.getFlowControlType() == FCT_AUTOOFF)
@@ -3449,9 +3448,11 @@ ZResult ZCommand::doSerialCommand()
           else
             result = doTimeZoneSetupCommand(vval, vbuf, vlen, isNumber);
           break;
+#       ifdef INCLUDE_OTH_UPDATES
         case 'u':
           result=doUpdateFirmware(vval,vbuf,vlen,isNumber);
           break;
+#       endif
         default:
           result=ZERROR;
           break;
@@ -3794,19 +3795,10 @@ void ZCommand::reSendLastPacket(WiFiClientNode *conn, uint8_t which)
   }
 }
 
-void ZCommand::clearPlusProgress()
+bool ZCommand::checkPlusPlusPlusDisconnect()
 {
-  if(currentExpiresTimeMs > 0)
-    currentExpiresTimeMs = 0;
-  if((strcmp((char *)nbuf,ECS)==0)&&((millis()-lastNonPlusTimeMs)>1000))
-    currentExpiresTimeMs = millis() + 1000;
-}
-
-bool ZCommand::checkPlusEscape()
-{
-  if((currentExpiresTimeMs > 0) && (millis() > currentExpiresTimeMs))
+  if(checkPlusPlusPlusEscape())
   {
-    currentExpiresTimeMs = 0;
     if(strcmp((char *)nbuf,ECS)==0)
     {
       if(current != null)
@@ -4286,7 +4278,6 @@ void ZCommand::checkPulseDial()
 void ZCommand::serialIncoming()
 {
   bool crReceived=readSerialStream();
-  clearPlusProgress(); // every serial incoming, without a plus, breaks progress
   if((!crReceived)||(eon==0))
     return;
   //delay(200); // give a pause after receiving command before responding
@@ -4296,7 +4287,7 @@ void ZCommand::serialIncoming()
 
 void ZCommand::loop()
 {
-  checkPlusEscape();
+  checkPlusPlusPlusDisconnect();
   if(acceptNewConnection())
   {
       checkBaudChange();
