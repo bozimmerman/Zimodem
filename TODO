@@ -1,7 +1,12 @@
+TODO:
+ *. Add SuppressGoAhead support for telnet, maybe S register to enable.
+ *. See if there's a way to show DNS, and other info using ATI
+
 Bugs Reported (nor reproduced):
  *. Test incoming network packets of various sizes at different periods
  *. Greg Nacu claims that +++ does not timeout between '+' signs, or casing about pause before first '+'
  *. AT+IRC, if you are in PETSCII mode, will forward the PETSCII characters.
+ *. AT&F doesn't erase hostname or manual tcp settings in at+config.
  
 New Features:
   *. UART-compliant signals to switch to command mode, and to reset modem to Saved settings

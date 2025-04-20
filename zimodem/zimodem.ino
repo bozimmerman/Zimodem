@@ -22,9 +22,9 @@ const char compile_date[] = __DATE__ " " __TIME__;
 //#define INCLUDE_CMDRX16 true // enable this if you are David or Kevin
 //# define USE_DEVUPDATER true // only enable this if your name is Bo
 
-#ifdef ARDUINO_ESP32_DEV
+#ifdef ARDUINO_ESP32S3_DEV || ARDUINO_ESP32C3_DEV
 # define ZIMODEM_ESP32
-#elif ARDUINO_ESP32S3_DEV
+#elif ARDUINO_ESP32_DEV
 # define ZIMODEM_ESP32
 #elif defined(ESP32)
 # define ZIMODEM_ESP32
@@ -90,7 +90,17 @@ const char compile_date[] = __DATE__ " " __TIME__;
 #  define DEFAULT_PIN_TXD GPIO_NUM_32
 #  define DEFAULT_PIN_RXD GPIO_NUM_33
 #  define DEFAULT_PIN_SND GPIO_NUM_4
-# elif defined(ARDUINO_ESP32S3_DEV)       /* Configuration for the Esp32S3 16MB Dev Board */
+# elif defined(ARDUINO_ESP32C3_DEV)   /* Configuration for the Esp32C3 4MB Dev Board */
+#  undef INCLUDE_SD_SHELL            /* ****** Delete this line if you do not have an external SD card interface *****/
+#  define DEFAULT_PIN_DCD GPIO_NUM_8
+#  define DEFAULT_PIN_CTS GPIO_NUM_3 // espdev rts pin
+#  define DEFAULT_PIN_RTS GPIO_NUM_2 // espdev cts pin
+#  define DEFAULT_PIN_RI GPIO_NUM_1
+#  define DEFAULT_PIN_DSR GPIO_NUM_4
+#  define DEFAULT_PIN_SND GPIO_NUM_6
+#  define DEFAULT_PIN_OTH GPIO_NUM_7 // pulse pin
+#  define DEFAULT_PIN_DTR GPIO_NUM_5
+# elif defined(ARDUINO_ESP32S3_DEV) /* Configuration for the Esp32S3 16MB Dev Board */
 #  define DEFAULT_PIN_DCD GPIO_NUM_14
 #  define DEFAULT_PIN_CTS GPIO_NUM_19 // espdev rts pin
 #  define DEFAULT_PIN_RTS GPIO_NUM_20 // espdev cts pin
@@ -99,6 +109,8 @@ const char compile_date[] = __DATE__ " " __TIME__;
 #  define DEFAULT_PIN_SND GPIO_NUM_11
 #  define DEFAULT_PIN_OTH GPIO_NUM_46 // pulse pin
 #  define DEFAULT_PIN_DTR GPIO_NUM_13
+#  define DEFAULT_PIN_TXD GPIO_NUM_21
+#  define DEFAULT_PIN_RXD GPIO_NUM_20
 # else                                    /* Configuration for standard ESP32 4 & 8MB boards */
 #  define DEFAULT_PIN_DCD GPIO_NUM_14
 #  define DEFAULT_PIN_CTS GPIO_NUM_13

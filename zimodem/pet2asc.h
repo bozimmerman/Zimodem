@@ -22,12 +22,16 @@
 # include "SD.h"
 # include "SPI.h"
 # include "driver/uart.h"
-# ifdef ARDUINO_ESP32S3_DEV
+# if defined(ARDUINO_ESP32C3_DEV)
+#   define MAIN_UART_NUM UART_NUM_0
+#   define DEBUG_UART_NUM UART_NUM_NC
+# elif defined(ARDUINO_ESP32S3_DEV) || (!defined(UART_NUM_2))
 #   define MAIN_UART_NUM UART_NUM_1
+#   define DEBUG_UART_NUM UART_NUM_0
 # else
 #   define MAIN_UART_NUM UART_NUM_2
+#   define DEBUG_UART_NUM UART_NUM_0
 # endif
-# define DEBUG_UART_NUM UART_NUM_0
   static HardwareSerial HWSerial(MAIN_UART_NUM);
   static HardwareSerial DBSerial(DEBUG_UART_NUM);
 #else
