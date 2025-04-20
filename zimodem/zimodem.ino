@@ -92,6 +92,7 @@ const char compile_date[] = __DATE__ " " __TIME__;
 #  define DEFAULT_PIN_SND GPIO_NUM_4
 # elif defined(ARDUINO_ESP32C3_DEV)   /* Configuration for the Esp32C3 4MB Dev Board */
 #  undef INCLUDE_SD_SHELL            /* ****** Delete this line if you do not have an external SD card interface *****/
+#  undef PIN_FACTORY_RESET
 #  define DEFAULT_PIN_DCD GPIO_NUM_8
 #  define DEFAULT_PIN_CTS GPIO_NUM_3 // espdev rts pin
 #  define DEFAULT_PIN_RTS GPIO_NUM_2 // espdev cts pin
@@ -580,7 +581,7 @@ void checkReconnect()
 
 void checkFactoryReset()
 {
-#ifdef ZIMODEM_ESP32
+#if defined(ZIMODEM_ESP32) && defined(PIN_FACTORY_RESET)
     if(!digitalRead(PIN_FACTORY_RESET))
     {
       if(resetPushTimer != 1)
