@@ -1,5 +1,5 @@
 /*
-   Copyright 2016-2024 Bo Zimmerman
+   Copyright 2016-2025 Bo Zimmerman
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -24,7 +24,7 @@
 # include "driver/uart.h"
 # if defined(ARDUINO_ESP32C3_DEV)
 #   define MAIN_UART_NUM UART_NUM_0
-#   define DEBUG_UART_NUM UART_NUM_NC
+#   define DEBUG_UART_NUM -1
 # elif defined(ARDUINO_ESP32S3_DEV) || (!defined(UART_NUM_2))
 #   define MAIN_UART_NUM UART_NUM_1
 #   define DEBUG_UART_NUM UART_NUM_0

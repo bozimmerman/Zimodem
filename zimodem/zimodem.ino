@@ -1,5 +1,5 @@
 /*
-   Copyright 2016-2024 Bo Zimmerman
+   Copyright 2016-2025 Bo Zimmerman
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -19,9 +19,12 @@ const char compile_date[] = __DATE__ " " __TIME__;
 #define DEFAULT_NO_DELAY true
 #define null 0
 #define INCLUDE_IRCC true
+//#define SUPPORT_LED_PINS true // enable if you have the spare gpio pins and leds
 //#define INCLUDE_CMDRX16 true // enable this if you are David or Kevin
 //# define USE_DEVUPDATER true // only enable this if your name is Bo
+#define INCLUDE_SD_SHELL true  /* ****** Delete this line if you do not have an external SD card interface *****/
 
+// Figure out whether we are building for ESP8266 or ESP32
 #ifdef ARDUINO_ESP32S3_DEV || ARDUINO_ESP32C3_DEV
 # define ZIMODEM_ESP32
 #elif ARDUINO_ESP32_DEV
@@ -40,6 +43,7 @@ const char compile_date[] = __DATE__ " " __TIME__;
 # define ZIMODEM_ESP32
 #else
 # define ZIMODEM_ESP8266
+# undef INCLUDE_SD_SHELL
 #endif
 
 #ifdef SUPPORT_LED_PINS
@@ -70,7 +74,6 @@ const char compile_date[] = __DATE__ " " __TIME__;
 
 #ifdef ZIMODEM_ESP32
 # define PIN_FACTORY_RESET GPIO_NUM_0
-# define INCLUDE_SD_SHELL true            /* ****** Delete this line if you do not have an external SD card interface *****/
 # define DEFAULT_FCT FCT_DISABLED
 # ifdef INCLUDE_CMDRX16                   /* Configuration for the Commander X16 I/O Card */
 #  undef INCLUDE_SD_SHELL
@@ -91,7 +94,7 @@ const char compile_date[] = __DATE__ " " __TIME__;
 #  define DEFAULT_PIN_RXD GPIO_NUM_33
 #  define DEFAULT_PIN_SND GPIO_NUM_4
 # elif defined(ARDUINO_ESP32C3_DEV)   /* Configuration for the Esp32C3 4MB Dev Board */
-#  undef INCLUDE_SD_SHELL            /* ****** Delete this line if you do not have an external SD card interface *****/
+#  undef INCLUDE_SD_SHELL
 #  undef PIN_FACTORY_RESET
 #  define DEFAULT_PIN_DCD GPIO_NUM_8
 #  define DEFAULT_PIN_CTS GPIO_NUM_3 // espdev rts pin
@@ -144,7 +147,7 @@ const char compile_date[] = __DATE__ " " __TIME__;
 //# define HARD_DCD_HIGH 1
 //# define HARD_DCD_LOW 1
 # define INCLUDE_SSH true
-# define INCLUDE_SLIP true  // Disable this before checkin, until it works
+//# define INCLUDE_SLIP true  // Disable this before checkin, until it works
 # ifdef INCLUDE_SD_SHELL
 #  define INCLUDE_HOSTCM true // safe to remove if you need space
 #  define INCLUDE_FTP true
