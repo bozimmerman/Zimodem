@@ -37,6 +37,10 @@ void ZConfig::switchTo()
   lastOptions="";
   settingsChanged=false;
   lastNumNetworks=0;
+  lastIP=(staticIP != null)?*staticIP:WiFi.localIP();
+  lastDNS=(staticDNS != null)?*staticDNS:IPAddress(192,168,0,1);
+  lastGW=(staticGW != null)?*staticGW:IPAddress(192,168,0,1);
+  lastSN=(staticSN != null)?*staticSN:IPAddress(255,255,255,0);
 }
 
 void ZConfig::serialIncoming()

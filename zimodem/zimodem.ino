@@ -671,6 +671,12 @@ void checkFactoryReset()
           dcdStatus = dcdInactive;
           s_pinWrite(pinDCD,dcdStatus);
           wifiSSI="";
+          wifiPW="";
+          hostname="";
+          staticIP = null;
+          staticDNS = null;
+          staticGW = null;
+          staticSN = null;
           delay(500);
           zclock.reset();
           commandMode.reset();

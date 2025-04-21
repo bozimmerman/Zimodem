@@ -110,13 +110,13 @@ def serial_writeln(s):
     ser[0].write(bytes(s + "\r\n", 'utf-8'))
     verbosity = v
 
-def serial_transact(cmd, sec=0.3):
+def serial_transact(cmd, sec=1.0):
     flush_serial()
     global verbosity
     v = verbosity
     verbosity = 0
     serial_writeln(cmd)
-    serial_wait(sec / 0.08)
+    serial_wait(sec / 0.1)
     res = serial_inln()
     verbosity = v
     vprint("sercmd: "+cmd+": "+str(res),0)
@@ -130,7 +130,7 @@ def serial_wait(max_ct=10):
 
 # waits for a line of text.  if none arrives in time, preserve what it has gotten so far
 def serial_inln():
-    serial_wait(10)
+    serial_wait(60)
     while ser[0].inWaiting() > 0:
         while ser[0].inWaiting() > 0:
             c = ser[0].read(1).decode('utf-8')
@@ -141,13 +141,13 @@ def serial_inln():
                 return s
             else:
                 serin[0] += c
-        serial_wait(3)
+        serial_wait(60)
     return None
 
 # returns all bytes it can reasonably wait for from the serial port
 def serial_in(expect=0):
     global verbosity
-    serial_wait(10)
+    serial_wait(100)
     bin = []
     while ser[0].inWaiting() > 0:
         while ser[0].inWaiting() > 0:
@@ -155,7 +155,7 @@ def serial_in(expect=0):
             bin.extend(c)
         if expect > 0 and len(bin) >= expect:
             break
-        serial_wait(10)
+        serial_wait(60)
     vprint("ser_in: "+str(len(bin))+" bytes",0)
     ba = bytearray(bin)
     if verbosity > 3:
@@ -165,11 +165,11 @@ def serial_in(expect=0):
     
 def flush_serial():
     serin[0] = ''
-    serial_wait(1)
+    serial_wait(10)
     while ser[0].inWaiting() > 0:
         while ser[0].inWaiting() > 0:
             ser[0].read(1)
-        serial_wait(1)
+        serial_wait(10)
 
 def sock_wait(max_ct=10):
     ct = 0
@@ -185,7 +185,7 @@ def flush_sock():
 
 def sock_in(expect=0):
     global verbosity
-    sock_wait(8)
+    sock_wait(50)
     sin = []
     # print("sock_in: "+str(len(sockin[0])))
     while len(sockin[0]) >0:
@@ -196,7 +196,7 @@ def sock_in(expect=0):
         socklock[0].release()
         if expect > 0 and len(sin) >= expect:
             break
-        sock_wait(10)
+        sock_wait(50)
     vprint("sockin: "+str(len(sin))+" bytes",0)
     ba = bytearray(sin)
     if verbosity > 3:
@@ -362,8 +362,8 @@ def initialize(port, baud):
         print("Unable to open serial port")
         return None
     serial_writeln('ath0z0r0f4e0&p0b'+str(baud))
-    time.sleep(1)
     flush_serial()
+    serial_wait(200) # sometimes z takes a long time
     if baud != 1200:
         ser[0].close()
         ser[0] = serial.Serial(

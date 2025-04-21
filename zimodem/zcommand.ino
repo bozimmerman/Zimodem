@@ -2471,8 +2471,7 @@ ZResult ZCommand::doEOLNCommand(int vval, uint8_t *vbuf, int vlen, bool isNumber
 bool ZCommand::readSerialStream()
 {
   bool crReceived=false;
-  while((HWSerial.available()>0)
-        &&(!crReceived))
+  while((HWSerial.available()>0) && (!crReceived))
   {
     uint8_t c=HWSerial.read();
     logSerialIn(c);
@@ -3123,6 +3122,12 @@ ZResult ZCommand::doSerialCommand()
             if(WiFi.status() == WL_CONNECTED)
               WiFi.disconnect();
             wifiSSI="";
+            wifiPW="";
+            hostname="";
+            staticIP = null;
+            staticDNS = null;
+            staticGW = null;
+            staticSN = null;
             delay(500);
             zclock.reset();
             result=doResetCommand(true);
