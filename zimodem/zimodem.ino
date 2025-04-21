@@ -79,6 +79,7 @@ const char compile_date[] = __DATE__ " " __TIME__;
 
 #define DEFAULT_BAUD_RATE 1200
 #define DEFAULT_SERIAL_CONFIG SERIAL_8N1
+#define RX_BUFFER_SIZE 4096
 /*
  * Unused pins on WROOM32:
  * 2, 20, 21, 22.   36,39 (sensor)
@@ -600,9 +601,7 @@ void setup()
 # else
     HWSerial.begin(DEFAULT_BAUD_RATE, DEFAULT_SERIAL_CONFIG);  //Start Serial
 # endif
-#ifdef ZIMODEM_ESP8266
-  HWSerial.setRxBufferSize(1024);
-#endif
+  HWSerial.setRxBufferSize(RX_BUFFER_SIZE);
   commandMode.loadConfig();
   PhoneBookEntry::loadPhonebook();
   dcdStatus = dcdInactive;
