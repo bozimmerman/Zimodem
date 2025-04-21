@@ -108,6 +108,7 @@ def serial_writeln(s):
     v = verbosity
     verbosity = 0
     ser[0].write(bytes(s + "\r\n", 'utf-8'))
+    ser[0].flush()
     verbosity = v
 
 def serial_transact(cmd, sec=1.0):
@@ -183,22 +184,26 @@ def flush_sock():
         sockin[0] = [] # reset sockin buff
         sock_wait(1)
 
-def sock_in(expect=0):
-    global verbosity
+def sock_in_silent(expect=0):
     sock_wait(50)
     sin = []
-    # print("sock_in: "+str(len(sockin[0])))
+    # print("sock_in_len: "+str(len(sockin[0])))
     while len(sockin[0]) >0:
         socklock[0].acquire()
         sin.extend(sockin[0])
-        # print("sin: "+str(len(sin))+"/"+str(ord(sockin[0][0])))
+        # print("sin: "+str(len(sin))+"/"+str(sin[0]))
         sockin[0] = [] # reset sockin buff
         socklock[0].release()
         if expect > 0 and len(sin) >= expect:
             break
-        sock_wait(50)
-    vprint("sockin: "+str(len(sin))+" bytes",0)
+        sock_wait(100)
     ba = bytearray(sin)
+    return ba
+    
+def sock_in(expect=0):
+    global verbosity
+    ba = sock_in_silent(expect)
+    vprint("sockin: "+str(len(ba))+" bytes",0)
     if verbosity > 3:
         print("sockin buffer:")
         print_buf(ba)
@@ -250,6 +255,31 @@ def print_buf(b):
     if (len(b) + 1) & 8 != 0:
         print("")
 
+def serial_sock_echo(b):
+    global verbosity
+    i=0;
+    vprint("serout: "+str(len(b))+" bytes",0)
+    if verbosity > 3:
+        print("serout buffer:")
+        print_buf(b)
+    i = 0
+    while i < len(b):
+        bl = i+256
+        if bl > len(b):
+            bl = len(b)
+        ser[0].write(b[i:bl])
+        ser[0].flush()
+        rb = sock_in_silent(bl-i)
+        if not compare_bytearrays(rb, b[i:bl]):
+            vprint("sockin: "+str(i)+" bytes",0)
+            if verbosity > 3:
+                print("sockin buffer:")
+                print_buf(b[:i])
+            return i
+        i += bl-i
+    vprint("sockin: "+str(i)+" bytes",0)
+    return i
+
 def test_atd(baud=1200):
     global verbosity
     if sock_conn[0] != None:
@@ -270,11 +300,7 @@ def test_atd(baud=1200):
     # send from modem->socket, this will be slow to send.
     flush_serial()
     flush_sock()
-    serial_write(b)
-    rb = sock_in(len(b))
-    if not compare_bytearrays(b, rb):
-        if compare_bytearrays(b, rb, startswith=True):
-            print("startswith!")
+    if serial_sock_echo(b) != len(b):
         return errprint("ATD","ser->sock "+str(len(b)))
     flush_serial()
     flush_sock()
@@ -296,9 +322,7 @@ def test_atd(baud=1200):
         # upload test 
         for rnd in range(0,rounds):
             b = bytearray(os.urandom(packet_size))
-            serial_write(b)
-            rb = sock_in(len(b))
-            if not compare_bytearrays(b, rb):
+            if serial_sock_echo(b) != len(b):
                 return errprint("ATD","ser->sock "+str(len(b))+" round "+str(rnd))
             sock_write(13)
             rb = serial_in(1)
@@ -361,7 +385,7 @@ def initialize(port, baud):
     if not ser[0].isOpen():
         print("Unable to open serial port")
         return None
-    serial_writeln('ath0z0r0f4e0&p0b'+str(baud))
+    serial_writeln('ath0z0r0f4e0&o1&p0b'+str(baud))
     flush_serial()
     serial_wait(200) # sometimes z takes a long time
     if baud != 1200:
