@@ -1,3 +1,6 @@
+# pip install pyserial
+# pip install pynput
+
 import time
 import serial
 import sys
