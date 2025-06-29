@@ -388,7 +388,7 @@ def initialize(port, baud):
     if not ser[0].isOpen():
         print("Unable to open serial port")
         return None
-    serial_writeln('ath0z0r0f4e0&o1&p0b'+str(baud))
+    serial_writeln('ath0z0r0f4e0&p0b'+str(baud))
     flush_serial()
     serial_wait(200) # sometimes z takes a long time
     if baud != 1200:
