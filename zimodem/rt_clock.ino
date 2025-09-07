@@ -13,7 +13,6 @@
    See the License for the specific language governing permissions and
    limitations under the License.
 */
-#include <math.h>
 #define htonl(x) ( ((x)<<24 & 0xFF000000UL) | \
                    ((x)<< 8 & 0x00FF0000UL) | \
                    ((x)>> 8 & 0x0000FF00UL) | \
@@ -220,7 +219,7 @@ void DateTimeClock::addMonth(uint32_t m)
 {
   m = month + m;
   if(m > 11)
-    addYear(floor(m / 12));
+    addYear(m / 12);
   setMonth(m);
 }
 
@@ -267,7 +266,7 @@ void DateTimeClock::addHour(uint32_t h)
 {
   h=hour + h;
   if(h > 23)
-    addDay(floor(h / 24));
+    addDay(h / 24);
   setHour(h);
 }
 
@@ -285,7 +284,7 @@ void DateTimeClock::addMinute(uint32_t mm)
 {
   mm = min+mm;
   if(mm > 59)
-    addHour(floor(mm / 60));
+    addHour(mm / 60);
   setMinute(mm);
 }
 
@@ -303,7 +302,7 @@ void DateTimeClock::addSecond(uint32_t s)
 {
   s = sec + s;
   if(s > 59)
-    addMinute(floor(s / 60));
+    addMinute(s / 60);
   setSecond(s);
 }
 
@@ -321,7 +320,7 @@ void DateTimeClock::addMillis(uint64_t s)
 {
   s = milsec+s;
   if(s > 999)
-    addSecond(floor(s / 1000));
+    addSecond(s / 1000);
   setMillis(s);
 }
 
@@ -567,8 +566,7 @@ String RealTimeClock::getCurrentTimeFormatted()
   if(f.indexOf("%yy")>=0)
   {
     int y=c.getYear();
-    y -= (floor(y/100)*100);
-    sprintf(str,"%02d",y);
+    sprintf(str,"%02d",y % 100);
     f.replace("%yy",str);
   }
   if(f.indexOf("%y")>=0)

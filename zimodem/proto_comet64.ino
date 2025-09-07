@@ -291,8 +291,8 @@ void Comet64::receiveLoop()
       if(p.length()>0)
       {
         File f=SD.open(p, FILE_READ);
-        unsigned char hb = round(floor(f.size()/256));
-        unsigned char lb = (f.size()-(hb*256));
+        unsigned char hb = f.size()/256;
+        unsigned char lb = f.size()%256;
         cserial.write(lb);
         cserial.write(hb);
         for(int i=0;i<f.size();i++)
