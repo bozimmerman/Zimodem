@@ -604,8 +604,7 @@ String RealTimeClock::getCurrentTimeFormatted()
   {
     String dow=c.getDoW();
     dow = dow.substring(0,3);
-    sprintf(str,"%d",dow.c_str());
-    f.replace("%e",str);
+    f.replace("%e",dow.c_str());
   }
   if(f.indexOf("%HH")>=0)
   {
