@@ -218,10 +218,13 @@ void ZCommand::setConfigDefaults()
 #ifdef SUPPORT_LED_PINS
   if(pinSupport[DEFAULT_PIN_AA])
     pinMode(DEFAULT_PIN_AA,OUTPUT);
+    digitalWrite(DEFAULT_PIN_AA, DEFAULT_AA_INACTIVE);
   if(pinSupport[DEFAULT_PIN_WIFI])
     pinMode(DEFAULT_PIN_WIFI,OUTPUT);
+    digitalWrite(DEFAULT_PIN_WIFI, DEFAULT_WIFI_INACTIVE);
   if(pinSupport[DEFAULT_PIN_HS])
     pinMode(DEFAULT_PIN_HS,OUTPUT);
+    digitalWrite(DEFAULT_PIN_HS, DEFAULT_HS_INACTIVE);
 #endif
 }
 
