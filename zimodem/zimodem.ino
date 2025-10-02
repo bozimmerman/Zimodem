@@ -547,16 +547,18 @@ void setup()
 #ifdef ZIMODEM_ESP32
   DBSerial.begin(115200); //the debug port
   DBSerial.setDebugOutput(true);
+
 # ifdef ARDUINO_ESP32S3_DEV
-  pinSupport[1]=true;
-  for(int i=5;i<=17;i++)
+  for(int i=1;i<=21;i++)
     pinSupport[i]=true;
-  for(int i=19;i<=21;i++)
+
+  // 35,36,37 are PSRAM
+
+  for(int i=38;i<=42;i++)
     pinSupport[i]=true;
-  for(int i=36;i<=38;i++)
+
+  for(int i=45;i<=48;i++)
     pinSupport[i]=true;
-  pinSupport[47]=true;
-  pinSupport[48]=true;
 # else
    pinSupport[2]=true;
    pinSupport[4]=true;
