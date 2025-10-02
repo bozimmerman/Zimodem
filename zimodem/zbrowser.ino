@@ -18,9 +18,17 @@
 
 static void initSDShell()
 {
-  if(SD.begin())
+  debugPrintf("Trying initialize SD at CS ");
+  debugPrintf(String(DEFAULT_PIN_SD_CS).c_str());
+  debugPrintf("... ");
+
+  if(SD.begin(DEFAULT_PIN_SD_CS))
   {
       debugPrintf("External SD card initialized.\r\n");
+  }
+  else
+  {
+    debugPrintf("External SD card not found.\r\n");
   }
 }
 
