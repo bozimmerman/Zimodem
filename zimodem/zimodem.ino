@@ -22,6 +22,7 @@ const char compile_date[] = __DATE__ " " __TIME__;
 
 #define INCLUDE_IRCC true
 #define INCLUDE_SD_SHELL true  /* ESP32 only, requires SPI SD card interface */
+#define DEFAULT_PIN_SD_CS SS /* Default Arduino pinout SPI SS pin for SD Card chip select*/
 #define INCLUDE_CBMMODEM true  // ESP32 only, 1650, 1660, 1670, and Pulse Dialing support
 #define INCLUDE_PING true
 #define INCLUDE_SSH true   // ESP32 only, adds SSH client
