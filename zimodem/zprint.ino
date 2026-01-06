@@ -1,5 +1,5 @@
 /*
-   Copyright 2020-2025 Bo Zimmerman
+   Copyright 2020-2026 Bo Zimmerman
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -74,6 +74,7 @@ size_t ZPrint::writeChunk(char *s, int len)
       logSocketOut(s[i]);
   }
   writeStr("\r\n");
+  yield();
   return len+strlen(buf)+4;
 }
 
@@ -109,7 +110,7 @@ ZResult ZPrint::switchToPostScript(char *prefix)
   wifiSock = new WiFiClientNode(hostIp,port,doSSL?FLAG_SECURE:0);
   wifiSock->setNoDelay(false); // we want a delay in this case
   outStream = wifiSock;
-  result = finishSwitchTo(hostIp, req, port, doSSL);
+  result = finishSwitchTo(hostIp, req, port, doSSL, payloadType);
   if(result == ZERROR)
   {
     outStream = null;
@@ -230,17 +231,36 @@ ZResult ZPrint::switchTo(char *vbuf, int vlen, bool petscii)
   wifiSock->setNoDelay(false); // we want a delay in this case
   outStream = wifiSock;
   announcePrintJob(hostIp,port,req);
-  ZResult result = finishSwitchTo(hostIp, req, port, doSSL);
+  ZResult result = finishSwitchTo(hostIp, req, port, doSSL, payloadType);
   free(workBuf);
   if(result == ZERROR)
     delete wifiSock;
   return result;
 }
 
-ZResult ZPrint::finishSwitchTo(char *hostIp, char *req, int port, bool doSSL)
+int ZPrint::buildIPPAttribute(char *buf, uint8_t tag, const char *name, const char *value, int valueLen)
+{
+  int pos = 0;
+  int nameLen = strlen(name);
+  buf[pos++] = tag;
+  buf[pos++] = (nameLen >> 8) & 0xFF;
+  buf[pos++] = nameLen & 0xFF;
+  memcpy(buf + pos, name, nameLen);
+  pos += nameLen;
+  buf[pos++] = (valueLen >> 8) & 0xFF;
+  buf[pos++] = valueLen & 0xFF;
+  memcpy(buf + pos, value, valueLen);
+  pos += valueLen;
+  return pos;
+}
+
+ZResult ZPrint::finishSwitchTo(char *hostIp, char *req, int port, bool doSSL, PrintPayloadType pType)
 {
   if((wifiSock != null) && (!wifiSock->isConnected()))
+  {
+    debugPrintf("Connection to printer lost.");
     return ZERROR;
+  }
   char portStr[10];
   sprintf(portStr,"%d",port);
   // send the request and http headers:
@@ -257,42 +277,95 @@ ZResult ZPrint::finishSwitchTo(char *hostIp, char *req, int port, bool doSSL)
   outStream->flush();
   // send the ipp header
   if((wifiSock != null)&&(!wifiSock->isConnected()))
+  {
+    debugPrintf("Connection to printer lost after request.");
     return ZERROR;
+  }
   
   char jobChar1 = '0' + (jobNum / 10);
   char jobChar2 = '0' + (jobNum % 10);
   if(++jobNum>94)
     jobNum=0;
-  //                                version  operatid  reqid------------------ attribtabid
-  sprintf(pbuf,"%c%c%c%c%c%c%c%c%c",0x01,0x01,0x00,0x02,0x00,0x00,0x00,jobNum+1,0x01);
+
+  // IPP version (1.1), operation-id (Print-Job = 0x0002), request-id (4 bytes)
+  int requestId = jobNum + 1;
+  sprintf(pbuf,"%c%c%c%c%c%c%c%c%c",
+    0x01, 0x01,                           // version 1.1
+    0x00, 0x02,                           // operation: Print-Job
+    0x00, 0x00, 0x00, (char)requestId,   // request-id (big-endian)
+    0x01);                                // operation-attributes-group tag
   writeChunk(pbuf,9);
-  sprintf(pbuf,"%c%c%cattributes-charset%c%cutf-8",0x47,0x00,0x12,0x00,0x05);
-  writeChunk(pbuf,28);
-  sprintf(pbuf,"%c%c%cattributes-natural-language%c%cen-us",0x48,0x00,0x1b,0x00,0x05);
-  writeChunk(pbuf,37);
-  
-  int urllen = strlen(hostIp) + strlen(req)+ strlen(portStr)+9;
-  sprintf(pbuf,"%c%c%cprinter-uri%c%chttp://%s:%s/%s",0x45,0x00,0x0b,0x00,urllen,hostIp,portStr,req);
-  writeChunk(pbuf,urllen+16);
-  sprintf(pbuf,"%c%c%crequesting-user-name%c%czimodem",0x42,0x00,0x14,0x00,0x07);
-  writeChunk(pbuf,32);
-  sprintf(pbuf,"%c%c%cjob-name%c%czimodem-j%c%c",0x42,0x00,0x08,0x00,0x0b,jobChar1,jobChar2);
-  writeChunk(pbuf,24);
-  sprintf(pbuf,"%c%c%c%ccopies%c%c%c%c%c%c",0x02,0x21,0x00,0x06,0x00,0x04,0x00,0x00,0x00,0x01);
-  writeChunk(pbuf,16);
-  sprintf(pbuf,"%c%c%corientation-requested%c%c%c%c%c%c",0x23,0x00,0x15,0x00,0x04,0x00,0x00,0x00,0x03);
-  writeChunk(pbuf,30);
-  sprintf(pbuf,"%c%c%coutput-mode%c%cmonochrome%c",0x44,0x00,0x0b,0x00,0x0a,     0x03);
-  writeChunk(pbuf,27);
+
+  // attributes-charset
+  int chunkLen = buildIPPAttribute(pbuf, 0x47, "attributes-charset", "utf-8", 5);
+  writeChunk(pbuf, chunkLen);
+
+  chunkLen = buildIPPAttribute(pbuf, 0x48, "attributes-natural-language", "en-us", 5);
+  writeChunk(pbuf, chunkLen);
+
+  char uriBuffer[256];
+  sprintf(uriBuffer, "http://%s:%s/%s", hostIp, portStr, req);
+  int urllen = strlen(uriBuffer);
+  chunkLen = buildIPPAttribute(pbuf, 0x45, "printer-uri", uriBuffer, urllen);
+  writeChunk(pbuf, chunkLen);
+
+  chunkLen = buildIPPAttribute(pbuf, 0x42, "requesting-user-name", "zimodem", 7);
+  writeChunk(pbuf, chunkLen);
+
+  sprintf(pbuf,"%c", 0x02);
+  writeChunk(pbuf,1);
+
+  char jobName[12];
+  sprintf(jobName, "zimodem-j%c%c", jobChar1, jobChar2);
+  chunkLen = buildIPPAttribute(pbuf, 0x42, "job-name", jobName, 11);
+  writeChunk(pbuf, chunkLen);
+
+  char intValue[4] = {0x00, 0x00, 0x00, 0x01};
+  chunkLen = buildIPPAttribute(pbuf, 0x21, "copies", intValue, 4);
+  writeChunk(pbuf, chunkLen);
+
+  char orientValue[4] = {0x00, 0x00, 0x00, 0x03};
+  chunkLen = buildIPPAttribute(pbuf, 0x23, "orientation-requested", orientValue, 4);
+  writeChunk(pbuf, chunkLen);
+
+  chunkLen = buildIPPAttribute(pbuf, 0x44, "output-mode", "monochrome", 10);
+  writeChunk(pbuf, chunkLen);
+
+  const char* mimeType;
+  int mimeTypeLen;
+  switch(pType)
+  {
+    case PETSCII:
+    case ASCII:
+      mimeType = "text/plain";
+      mimeTypeLen = 10;
+      break;
+    case RAW:
+    default:
+      mimeType = "application/octet-stream";
+      mimeTypeLen = 24;
+      break;
+  }
+  chunkLen = buildIPPAttribute(pbuf, 0x49, "document-format", mimeType, mimeTypeLen);
+  writeChunk(pbuf, chunkLen);
+
+  sprintf(pbuf,"%c", 0x03);
+  writeChunk(pbuf,1);
+
   outStream->flush();
   if((wifiSock != null)&&(!wifiSock->isConnected()))
+  {
+    debugPrintf("Connection to printer lost after job.");
     return ZERROR;
+  }
   checkOpenConnections();
   checkBaudChange();
   pdex=0;
   coldex=0;
   currentExpiresTimeMs = millis()+5000;
   currMode=&printMode;
+
+  debugPrintf("Print Server ready for data.");
   return ZIGNORE;
 }
 
@@ -382,7 +455,7 @@ void ZPrint::loop()
   if(((wifiSock==null)&&(outStream==null))
   || ((wifiSock!=null)&&(!wifiSock->isConnected())))
   {
-    debugPrintf("No printer connection\r\n");
+    debugPrintf("No printer connection: %d %d %d\r\n",(wifiSock == null),(outStream==null),((wifiSock!=null)&&(!wifiSock->isConnected())));
     switchBackToCommandMode(true);
   }
   else

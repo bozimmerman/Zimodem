@@ -1,5 +1,5 @@
 /*
-   Copyright 2016-2025 Bo Zimmerman
+   Copyright 2016-2026 Bo Zimmerman
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
    limitations under the License.
 */
 
-#ifdef INCLUDE_SD_SHELL
+#if INCLUDE_SD_SHELL
 
 static void initSDShell()
 {
@@ -26,7 +26,7 @@ static void initSDShell()
 
 ZBrowser::~ZBrowser()
 {
-#ifdef INCLUDE_FTP
+#if INCLUDE_FTP
   if(ftpHost != 0)
   {
     delete ftpHost;
@@ -1314,7 +1314,7 @@ bool ZBrowser::doWGetCommand(String &line, bool showShellOutput)
   return success;
 }
 
-#ifdef INCLUDE_FTP
+#if INCLUDE_FTP
 
 bool ZBrowser::doFGetCommand(String &line, bool showShellOutput)
 {
@@ -1554,7 +1554,7 @@ bool ZBrowser::doHelpCommand(String &line, bool showShellOutput)
     serial.printf("xget/zget/kget/pget [/][path]filename          - Download a file%s",EOLNC);
     serial.printf("xput/zput/kput/pput [/][path]filename          - Upload a file%s",EOLNC);
     serial.printf("wget [http://url] [/][path]filename            - Download url to file%s",EOLNC);
-#ifdef INCLUDE_FTP
+#if INCLUDE_FTP
     serial.printf("fget [ftp://user:pass@url/file] [/][path]file  - FTP get file%s",EOLNC);
     serial.printf("fput [/][path]file [ftp://user:pass@url/file]  - FTP put file%s",EOLNC);
     serial.printf("fdir [ftp://user:pass@url/path]                - ftp url dir%s",EOLNC);
@@ -1672,7 +1672,7 @@ bool ZBrowser::doModeCommand(String &line, bool showShellOutput)
       if(cmd.equalsIgnoreCase("wget"))
         success = doWGetCommand(line,showShellOutput);
       else
-#ifdef INCLUDE_FTP
+#if INCLUDE_FTP
       if(cmd.equalsIgnoreCase("fget"))
         success = doFGetCommand(line,showShellOutput);
       else

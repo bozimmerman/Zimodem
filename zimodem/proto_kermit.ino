@@ -1,4 +1,4 @@
-#ifdef INCLUDE_SD_SHELL
+#if INCLUDE_SD_SHELL
 /*
  *  K e r m i t  File Transfer Utility
  *

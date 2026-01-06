@@ -1,5 +1,5 @@
-#ifdef INCLUDE_SD_SHELL
-#ifdef INCLUDE_HOSTCM
+#if INCLUDE_SD_SHELL
+#if INCLUDE_HOSTCM
 /* Converted from source reverse engineered from SP9000 roms by Rob Ferguson */
 #include <FS.h>
 

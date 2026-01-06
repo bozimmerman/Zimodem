@@ -1,5 +1,5 @@
 /*
-   Copyright 2020-2025 Bo Zimmerman
+   Copyright 2020-2026 Bo Zimmerman
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -45,8 +45,9 @@ class ZPrint : public ZMode
     size_t writeStr(char *s);
     size_t writeChunk(char *s, int len);
     void switchBackToCommandMode(bool error);
-    ZResult finishSwitchTo(char *hostIp, char *req, int port, bool doSSL);
+    ZResult finishSwitchTo(char *hostIp, char *req, int port, bool doSSL, PrintPayloadType pType);
     void announcePrintJob(const char *hostIp, const int port, const char *req);
+    int buildIPPAttribute(char *buf, uint8_t tag, const char *name, const char *value, int valueLen);
 
   public:
 

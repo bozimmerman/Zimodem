@@ -1,5 +1,5 @@
-#ifdef INCLUDE_SD_SHELL
-#ifdef INCLUDE_HOSTCM
+#if INCLUDE_SD_SHELL
+#if INCLUDE_HOSTCM
 /* Converted from Rob Ferguson's code by Bo Zimmerman 
  * 
  * Copyright (c) 2013, Robert Ferguson All rights reserved.

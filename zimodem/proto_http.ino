@@ -1,5 +1,5 @@
 /*
-   Copyright 2016-2025 Bo Zimmerman
+   Copyright 2016-2026 Bo Zimmerman
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -61,7 +61,7 @@ bool parseWebUrl(uint8_t *vbuf, char **hostIp, char **req, int *port, bool *doSS
   return true;
 }
 
-# ifdef INCLUDE_SD_SHELL
+# if INCLUDE_SD_SHELL
 class ChunkedStream : public WiFiClient
 {
 private:
@@ -308,7 +308,7 @@ WiFiClient *doGopherGetStream(const char *hostIp, int port, const char *req, boo
   c->printf("%s\r\n",req);
   c->flush();
   *responseSize = 0;
-# ifdef INCLUDE_SD_SHELL
+# if INCLUDE_SD_SHELL
   if(SD.cardType() != CARD_NONE)
   {
     char tempWebName[20];
@@ -461,7 +461,7 @@ WiFiClient *doWebGetStream(const char *hostIp, int port, const char *req, bool d
     }
   }
   
-# ifdef INCLUDE_SD_SHELL
+# if INCLUDE_SD_SHELL
   if((chunked)
   &&(SD.cardType() != CARD_NONE))
     respLength = 1;
@@ -475,7 +475,7 @@ WiFiClient *doWebGetStream(const char *hostIp, int port, const char *req, bool d
     delete c;
     return null;
   }
-# ifdef INCLUDE_SD_SHELL
+# if INCLUDE_SD_SHELL
   if((chunked)
   &&(SD.cardType() != CARD_NONE))
   {

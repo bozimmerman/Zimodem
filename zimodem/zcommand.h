@@ -1,5 +1,5 @@
 /*
-   Copyright 2016-2025 Bo Zimmerman
+   Copyright 2016-2026 Bo Zimmerman
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -111,10 +111,10 @@ class ZCommand : public ZMode
   friend class WiFiClientNode;
   friend class ZConfig;
   friend class ZBrowser;
-#ifdef INCLUDE_IRCC
+#if INCLUDE_IRCC
   friend class ZIRCMode;
 #endif
-#ifdef INCLUDE_COMET64
+#if INCLUDE_FTP
   friend class ZComet64Mode;
 #endif
 
@@ -200,7 +200,7 @@ class ZCommand : public ZMode
     ZResult doInfoCommand(int vval, uint8_t *vbuf, int vlen, bool isNumber);
     ZResult doWebStream(int vval, uint8_t *vbuf, int vlen, bool isNumber, const char *filename, bool cache);
     ZResult doTimeZoneSetupCommand(int vval, uint8_t *vbuf, int vlen, bool isNumber);
-#ifdef INCLUDE_OTH_UPDATES
+#if INCLUDE_OTH_UPDATES
     ZResult doUpdateFirmware(int vval, uint8_t *vbuf, int vlen, bool isNumber);
 #endif
 

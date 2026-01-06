@@ -1,7 +1,7 @@
 #ifndef _STRING_STREAM_H_INCLUDED_
 #define _STRING_STREAM_H_INCLUDED_
 /*
-   Copyright 2016-2025 Bo Zimmerman
+   Copyright 2016-2026 Bo Zimmerman
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.

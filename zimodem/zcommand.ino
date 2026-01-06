@@ -1,5 +1,5 @@
 /*
-   Copyright 2016-2025 Bo Zimmerman
+   Copyright 2016-2026 Bo Zimmerman
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -16,7 +16,7 @@
 extern "C" void esp_schedule();
 extern "C" void esp_yield();
 
-#ifdef INCLUDE_PING
+#if INCLUDE_PING
 #  include "proto_ping.h"
 #endif
 
@@ -143,7 +143,7 @@ void ZCommand::setConfigDefaults()
   serial.setFlowControlType(DEFAULT_FCT);
   serial.setXON(true);
   packetXOn = true;
-# ifdef INCLUDE_CMDRX16
+# if INCLUDE_CMDRX16
     packetXOn = false;
 # endif
   serial.setPetsciiMode(false);
@@ -215,7 +215,7 @@ void ZCommand::setConfigDefaults()
   machineState = stateMachine;
   termType = DEFAULT_TERMTYPE;
   busyMsg = DEFAULT_BUSYMSG;
-#ifdef SUPPORT_LED_PINS
+#if SUPPORT_LED_PINS
   if(pinSupport[DEFAULT_PIN_AA])
     pinMode(DEFAULT_PIN_AA,OUTPUT);
   if(pinSupport[DEFAULT_PIN_WIFI])
@@ -262,7 +262,7 @@ ZResult ZCommand::doResetCommand(bool resetOpMode)
   eon=0;
   serial.setXON(true);
   packetXOn = true;
-# ifdef INCLUDE_CMDRX16
+# if INCLUDE_CMDRX16
     packetXOn = false;
 # endif
   serial.setPetsciiMode(false);
@@ -445,7 +445,9 @@ void ZCommand::setOptionsFromSavedConfig(String configArguments[])
     else
       serial.setFlowControlType(FCT_DISABLED);
     serial.setXON(true);
-#ifndef INCLUDE_CMDRX16
+#if INCLUDE_CMDRX16
+    // do nothing
+#else
     packetXOn = true;
 #endif
     if(serial.getFlowControlType() == FCT_MANUAL)
@@ -725,7 +727,7 @@ ZResult ZCommand::doInfoCommand(int vval, uint8_t *vbuf, int vlen, bool isNumber
   case 5:
   {
     bool showAll = (vval==5);
-#   ifdef INCLUDE_CMDRX16
+#   if INCLUDE_CMDRX16
     serial.prints("X16:");
 #   endif
     switch(altOpMode)
@@ -1245,7 +1247,7 @@ ZResult ZCommand::doWebStream(int vval, uint8_t *vbuf, int vlen, bool isNumber, 
   int port;
   bool doSSL;
   bool gopher = false;
-#ifdef INCLUDE_FTP
+#if INCLUDE_FTP
   FTPHost *ftpHost = 0;
   if((strstr((char *)vbuf,"ftp:")==(char *)vbuf)
   ||(strstr((char *)vbuf,"ftps:")==(char *)vbuf))
@@ -1266,7 +1268,7 @@ ZResult ZCommand::doWebStream(int vval, uint8_t *vbuf, int vlen, bool isNumber, 
   {
     if(!SPIFFS.exists(filename))
     {
-#ifdef INCLUDE_FTP
+#if INCLUDE_FTP
       if(ftpHost != 0)
       {
         if(!ftpHost->doGet(&SPIFFS,filename,req))
@@ -1294,7 +1296,7 @@ ZResult ZCommand::doWebStream(int vval, uint8_t *vbuf, int vlen, bool isNumber, 
     uint32_t respLength=0;
     WiFiClient *c;
     
-#ifdef INCLUDE_FTP
+#if INCLUDE_FTP
     if(ftpHost != 0)
     {
       c=ftpHost->doGetStream(req, &respLength);
@@ -1315,7 +1317,7 @@ ZResult ZCommand::doWebStream(int vval, uint8_t *vbuf, int vlen, bool isNumber, 
     headerOut(0,1,respLength,0);
     serial.flush(); // stupid important because otherwise apps that go xoff miss the header info
     ZResult res = doWebDump(c,respLength,false);
-#ifdef INCLUDE_FTP
+#if INCLUDE_FTP
     if(ftpHost != 0)
       delete ftpHost;
     else
@@ -1331,7 +1333,7 @@ ZResult ZCommand::doWebStream(int vval, uint8_t *vbuf, int vlen, bool isNumber, 
   {
     if(SPIFFS.exists(filename))
       SPIFFS.remove(filename);
-#ifdef INCLUDE_FTP
+#if INCLUDE_FTP
     if(ftpHost != 0)
     {
       if(!ftpHost->doGet(&SPIFFS,filename,req))
@@ -1504,7 +1506,7 @@ ZResult ZCommand::doWebDump(const char *filename, const bool cache)
   return res;
 }
 
-#ifdef INCLUDE_OTH_UPDATES
+#if INCLUDE_OTH_UPDATES
 ZResult ZCommand::doUpdateFirmware(int vval, uint8_t *vbuf, int vlen, bool isNumber)
 {
   serial.prints("Local firmware version ");
@@ -1515,18 +1517,18 @@ ZResult ZCommand::doUpdateFirmware(int vval, uint8_t *vbuf, int vlen, bool isNum
   uint8_t buf[255];
   int bufSize = 254;
   char firmwareName[100];
-#ifdef USE_DEVUPDATER
+#if USE_DEVUPDATER
   char *updaterHost = "192.168.1.10";
   int updaterPort = 8080;
 #else
-# ifdef INCLUDE_CMDRX16
+# if INCLUDE_CMDRX16
    char *updaterHost = "www.zimmers.net"; // changeme!
 # else
    char *updaterHost = "www.zimmers.net";
 # endif
   int updaterPort = 80;
 #endif
-#ifdef INCLUDE_CMDRX16
+#if INCLUDE_CMDRX16
   char *updaterPrefix = "/otherprojs/x16";
 #else
 # ifdef ZIMODEM_ESP32
@@ -2400,7 +2402,7 @@ ZResult ZCommand::setStatusRegister(const int snum, const int sval, int *crc8, c
 
 void ZCommand::updateAutoAnswer()
 {
-#ifdef SUPPORT_LED_PINS
+#if SUPPORT_LED_PINS
     bool setPin = (ringCounter>0) && (autoStreamMode) && (servs != NULL);
     s_pinWrite(DEFAULT_PIN_AA,setPin?DEFAULT_AA_ACTIVE:DEFAULT_AA_INACTIVE);
 #endif
@@ -2802,7 +2804,9 @@ ZResult ZCommand::doSerialCommand()
           result=ZERROR;
         else
         {
-#ifndef INCLUDE_CMDRX16
+#if INCLUDE_CMDRX16
+            // do nothing
+#else
             packetXOn = true;
 #endif
             serial.setXON(true);
@@ -2924,7 +2928,7 @@ ZResult ZCommand::doSerialCommand()
             configMode.switchTo();
             result = ZOK;
         }
-#ifdef INCLUDE_SD_SHELL
+#if INCLUDE_SD_SHELL
         else
         if((strstr((const char *)vbuf,"shell")==(char *)vbuf)
         &&(SD.cardType() != CARD_NONE))
@@ -2941,7 +2945,7 @@ ZResult ZCommand::doSerialCommand()
               browseMode.doModeCommand(line,false);
             }
         }
-#  ifdef INCLUDE_HOSTCM
+#  if INCLUDE_HOSTCM
         else
         if((strstr((const char *)vbuf,"hostcm")==(char *)vbuf))
         {
@@ -2949,7 +2953,7 @@ ZResult ZCommand::doSerialCommand()
             hostcmMode.switchTo();
         }
 #  endif
-#  ifdef INCLUDE_COMET64
+#  if INCLUDE_FTP
         else
         if((strstr((const char *)vbuf,"comet64")==(char *)vbuf)
         &&(SD.cardType() != CARD_NONE))
@@ -2959,7 +2963,7 @@ ZResult ZCommand::doSerialCommand()
         }
 #  endif
 #endif
-#  ifdef INCLUDE_CBMMODEM
+#  if INCLUDE_CBMMODEM
         else
         if(strstr((const char *)vbuf,"1650")==(char *)vbuf)
         {
@@ -2982,7 +2986,7 @@ ZResult ZCommand::doSerialCommand()
           result = ZOK;
         }
 #  endif
-#  ifdef INCLUDE_IRCC
+#  if INCLUDE_IRCC
         else
         if((strstr((const char *)vbuf,"irc")==(char *)vbuf))
         {
@@ -2990,7 +2994,7 @@ ZResult ZCommand::doSerialCommand()
             ircMode.switchTo();
         }
 #  endif
-#ifdef INCLUDE_SLIP
+#if INCLUDE_SLIP
         else
         if((strstr((const char *)vbuf,"slip")==(char *)vbuf))
         {
@@ -2998,7 +3002,7 @@ ZResult ZCommand::doSerialCommand()
             slipMode.switchTo();
         }
 #  endif
-#  ifdef INCLUDE_PING
+#  if INCLUDE_PING
         else
         if((strstr((const char *)vbuf,"ping")==(char *)vbuf))
         {
@@ -3453,7 +3457,7 @@ ZResult ZCommand::doSerialCommand()
           else
             result = doTimeZoneSetupCommand(vval, vbuf, vlen, isNumber);
           break;
-#       ifdef INCLUDE_OTH_UPDATES
+#       if INCLUDE_OTH_UPDATES
         case 'u':
           result=doUpdateFirmware(vval,vbuf,vlen,isNumber);
           break;
@@ -4173,7 +4177,7 @@ bool ZCommand::acceptNewConnection()
 
 void ZCommand::checkPulseDial()
 {
-#ifdef INCLUDE_CBMMODEM
+#if INCLUDE_CBMMODEM
   if(pinSupport[pinOTH])
   {
     /*
@@ -4303,7 +4307,7 @@ void ZCommand::loop()
     sendNextPacket();
     serialOutDeque();
   }
-#ifdef INCLUDE_CBMMODEM
+#if INCLUDE_CBMMODEM
   checkPulseDial();
 #endif
   checkBaudChange();

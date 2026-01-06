@@ -1,5 +1,5 @@
 /*
-   Copyright 2016-2025 Bo Zimmerman
+   Copyright 2016-2026 Bo Zimmerman
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -14,8 +14,8 @@
    limitations under the License.
 */
 
-#ifdef INCLUDE_SD_SHELL
-#ifdef INCLUDE_HOSTCM
+#if INCLUDE_SD_SHELL
+#if INCLUDE_HOSTCM
 #include "proto_hostcm.h"
 
 class ZHostCMMode : public ZMode

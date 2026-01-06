@@ -1,5 +1,5 @@
 /*
-   Copyright 2016-2025 Bo Zimmerman
+   Copyright 2016-2026 Bo Zimmerman
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -14,10 +14,10 @@
    limitations under the License.
 */
 
-#ifdef INCLUDE_SD_SHELL
+#if INCLUDE_SD_SHELL
 class ZBrowser : public ZMode
 {
-#  ifdef INCLUDE_COMET64
+#  if INCLUDE_FTP
      friend class Comet64;
 #  endif
 
@@ -68,7 +68,7 @@ class ZBrowser : public ZMode
     bool doPPutCommand(String &line, bool showShellOutput);
     bool doWGetCommand(String &line, bool showShellOutput);
 
-#ifdef INCLUDE_FTP
+#if INCLUDE_FTP
     bool doFGetCommand(String &line, bool showShellOutput);
     bool doFPutCommand(String &line, bool showShellOutput);
     bool doFDirCommand(String &line, bool showShellOutput);

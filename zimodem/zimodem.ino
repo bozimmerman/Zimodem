@@ -1,5 +1,5 @@
 /*
-   Copyright 2016-2025 Bo Zimmerman
+   Copyright 2016-2026 Bo Zimmerman
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -58,7 +58,7 @@ const char compile_date[] = __DATE__ " " __TIME__;
 # undef INCLUDE_CBMMODEM
 #endif
 
-#ifdef SUPPORT_LED_PINS
+#if SUPPORT_LED_PINS
 # ifdef GPIO_NUM_0
 #   define DEFAULT_PIN_AA GPIO_NUM_35
 #   define DEFAULT_PIN_HS GPIO_NUM_34
@@ -88,7 +88,7 @@ const char compile_date[] = __DATE__ " " __TIME__;
 #ifdef ZIMODEM_ESP32
 # define PIN_FACTORY_RESET GPIO_NUM_0
 # define DEFAULT_FCT FCT_DISABLED
-# ifdef INCLUDE_CMDRX16                   /* Configuration for the Commander X16 I/O Card */
+# if INCLUDE_CMDRX16                   /* Configuration for the Commander X16 I/O Card */
 #  undef INCLUDE_SD_SHELL
 #  undef DEFAULT_FCT
 #  define DEFAULT_FCT FCT_RTSCTS
@@ -168,7 +168,7 @@ const char compile_date[] = __DATE__ " " __TIME__;
 # define DEFAULT_PIN_DCD 2
 # define DEFAULT_PIN_OTH -1 // pulse pin
 # define DEFAULT_FCT FCT_DISABLED
-# define debugPrintf doNothing
+# define debugPrintf doNothing //Serial.printf
 # define preEOLN(...)
 # define echoEOLN(...) serial.prints(EOLN)
 #endif
@@ -216,11 +216,11 @@ class ZMode
 #include "zcommand.h"
 #include "zprint.h"
 
-#ifdef INCLUDE_SD_SHELL
-#  ifdef INCLUDE_HOSTCM
+#if INCLUDE_SD_SHELL
+#  if INCLUDE_HOSTCM
 #    include "zhostcmmode.h"
 #  endif
-#  ifdef INCLUDE_COMET64
+#  if INCLUDE_FTP
 #    include "zcomet64mode.h"
 #  endif
 #  include "proto_xmodem.h"
@@ -229,10 +229,10 @@ class ZMode
 #  include "proto_kermit.h"
 #  include "zbrowser.h"
 #endif
-#ifdef INCLUDE_SLIP
+#if INCLUDE_SLIP
 #  include "zslipmode.h"
 #endif
-#ifdef INCLUDE_IRCC
+#if INCLUDE_IRCC
 #  include "zircmode.h"
 #endif
 
@@ -253,19 +253,19 @@ static ZCommand commandMode;
 static ZPrint printMode;
 static ZConfig configMode;
 static RealTimeClock zclock(0);
-#ifdef INCLUDE_SD_SHELL
-#  ifdef INCLUDE_HOSTCM
+#if INCLUDE_SD_SHELL
+#  if INCLUDE_HOSTCM
      static ZHostCMMode hostcmMode;
 #  endif
-#  ifdef INCLUDE_COMET64
+#  if INCLUDE_FTP
      static ZComet64Mode comet64Mode;
 #  endif
    static ZBrowser browseMode;
 #endif
-#ifdef INCLUDE_SLIP
+#if INCLUDE_SLIP
    static ZSLIPMode slipMode;
 #endif
-#ifdef INCLUDE_IRCC
+#if INCLUDE_IRCC
    static ZIRCMode ircMode;
 #endif
 
@@ -402,7 +402,7 @@ static bool connectWifi(const char* ssid, const char* password, IPAddress *ip, I
   else
     nextReconnectDelay = DEFAULT_RECONNECT_DELAY; // if connected, we always want to try reconns in the future
 
-#ifdef SUPPORT_LED_PINS
+#if SUPPORT_LED_PINS
   s_pinWrite(DEFAULT_PIN_WIFI,(WiFi.status() == WL_CONNECTED)?DEFAULT_WIFI_ACTIVE:DEFAULT_WIFI_INACTIVE);
 #endif
   if(WiFi.status() == WL_CONNECTED)
@@ -439,7 +439,7 @@ static void changeBaudRate(int baudRate)
 #else
   HWSerial.begin(baudRate, serialConfig);  //Change baud rate
 #endif
-#ifdef SUPPORT_LED_PINS
+#if SUPPORT_LED_PINS
   s_pinWrite(DEFAULT_PIN_HS,(baudRate>=DEFAULT_HS_BAUD)?DEFAULT_HS_ACTIVE:DEFAULT_HS_INACTIVE);
 #endif  
 }
@@ -607,7 +607,7 @@ void setup()
   dcdStatus = dcdInactive;
   s_pinWrite(pinDCD,dcdStatus);
   flushSerial();
-#ifdef SUPPORT_LED_PINS
+#if SUPPORT_LED_PINS
   s_pinWrite(DEFAULT_PIN_WIFI,(WiFi.status() == WL_CONNECTED)?DEFAULT_WIFI_ACTIVE:DEFAULT_WIFI_INACTIVE);
   s_pinWrite(DEFAULT_PIN_HS,(baudRate>=DEFAULT_HS_BAUD)?DEFAULT_HS_ACTIVE:DEFAULT_HS_INACTIVE);
 #endif

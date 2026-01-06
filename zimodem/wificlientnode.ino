@@ -1,5 +1,5 @@
 /*
-   Copyright 2016-2025 Bo Zimmerman
+   Copyright 2016-2026 Bo Zimmerman
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -58,7 +58,7 @@ void WiFiClientNode::constructNode(char *hostIp, int newport, int flagsBitmap, i
 void WiFiClientNode::constructNode(char *hostIp, int newport, char *username, char *password, int flagsBitmap, int ringDelay)
 {
   constructNode(hostIp, newport, flagsBitmap, ringDelay);
-# ifdef INCLUDE_SSH
+# if INCLUDE_SSH
   if(((flagsBitmap&FLAG_SECURE)==FLAG_SECURE)
   && (username != 0))
   {

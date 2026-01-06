@@ -1,8 +1,8 @@
-#ifdef INCLUDE_FTP
+#if INCLUDE_FTP
 #ifndef ZIMODEM_PROTO_FTP
 #define ZIMODEM_PROTO_FTP
 /*
-   Copyright 2016-2025 Bo Zimmerman
+   Copyright 2016-2026 Bo Zimmerman
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
