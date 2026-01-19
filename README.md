@@ -16,9 +16,7 @@ To build this firmware for the ESP-01 or ESP-12, I used the **Arduino IDE rev1.8
 
 ## ESP-32
 
-To build this firmware for the ESP-32, I also used the **Arduino IDE rev 1.8.10** with the **Arduino ESP32 Dev Module** installed from the board manager[^1], with the following settings: QIO, 8MB, 80MHZ, 921600, NONE, Avrisp Mk II, and 3MB App space.  Currently on library version **2.07**.
-
-[^1]: Before you build, you'll want to go through the file `zimodem.ino` and configure the various `#define`s to reflect hardware pin assignments and features.   These especially include: `INCLUDE_IRCC`, `SUPPORT_LED_PINS`, `INCLUDE_SD_SHELL`, `INCLUDE_OTH_UPDATES`, `DEFAULT_BAUD_RATE`, `PIN_FACTORY_RESET`, all the various `DEFAULT_PIN_*` assignments for your hardware, `INCLUDE_SSH`, and `MAX_PIN_NO`.   In addition, at the top of `pet2asc.h` is where the default main and debug uarts are assigned (`MAIN_UART_NUM`).  Make sure those reflect your wiring as well. 
+To build this firmware for the ESP-32, I also used the **Arduino IDE rev 1.8.10** with the **Arduino ESP32 Dev Module** installed from the board manager with the following settings: QIO, 8MB, 80MHZ, 921600, NONE, Avrisp Mk II, and 3MB App space.  Currently on library version **2.07**. **NOTE:** Before you build, you'll want to go through the file `zimodem.ino` and configure the various `#define`s to reflect hardware pin assignments and features.   These especially include: `INCLUDE_IRCC`, `SUPPORT_LED_PINS`, `INCLUDE_SD_SHELL`, `INCLUDE_OTH_UPDATES`, `DEFAULT_BAUD_RATE`, `PIN_FACTORY_RESET`, all the various `DEFAULT_PIN_*` assignments for your hardware, `INCLUDE_SSH`, and `MAX_PIN_NO`.   In addition, at the top of `pet2asc.h` is where the default main and debug uarts are assigned (`MAIN_UART_NUM`).  Make sure those reflect your wiring as well. 
 
 
 # Using Zimodem
@@ -117,7 +115,7 @@ The command set is as follows (not case sensitive):
 `ATF2` : Turns on xon/xoff flow control, sets XON mode (if necessary), and, in command mode, will immediately go to XOFF when a single connection packet is received. This is very useful when the client wants to ensure it only receives one packet to process.  You can think of this as an alternative way to use xon/xoff by having XOFF automatic between packets.\
 `ATF3` : Similar to `ATF2` except that the default is XOFF, and, in command mode, a XON code from the user will immediately trigger either an empty packet response [ 0 0 0 ], or a real packet if one is available.  After this, as in `ATF2`, XOFF is automatically set.\
 `ATF4` : Turns off flow control for command mode\
-*Note:* in `AT+1670` mode, `ATF0` will instead turn on stream mode echo, and `ATF1` will turn it off.
+**NOTE:** in `AT+1670` mode, `ATF0` will instead turn on stream mode echo, and `ATF1` will turn it off.
 
 ### Quiet Mode
 `ATQ0` : Turns off quiet mode (Sends response codes)\
