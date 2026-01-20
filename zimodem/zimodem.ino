@@ -338,7 +338,11 @@ static void s_pinWrite(uint8_t pinNo, uint8_t value)
 static void setHostName(const char *hname)
 {
 #ifdef ZIMODEM_ESP32
+  #ifdef TCPIP_ADAPTER_IF_STA
       tcpip_adapter_set_hostname(TCPIP_ADAPTER_IF_STA, hname);
+  #else
+      WiFi.setHostname(hname);
+  #endif
 #else
       WiFi.hostname(hname);
 #endif

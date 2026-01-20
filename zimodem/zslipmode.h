@@ -14,9 +14,9 @@
    See the License for the specific language governing permissions and
    limitations under the License.
 */
-#include "lwip/raw.h"
-#include "esp_netif_types.h"
-#include "esp_netif_net_stack.h"
+#include "lwip/netif.h"
+#include "lwip/pbuf.h"
+#include "lwip/ip.h"
 
 static ZSerial sserial;
 class ZSLIPMode: public ZMode
@@ -27,16 +27,24 @@ private:
   int curBufLen = 0;
   int maxBufSize = 4096;
   uint8_t *buf = 0;
-  raw_pcb *_pcb[5];
+  struct netif slip_netif;
+  struct netif *wifi_netif;
+
 
 public:
   static const char SLIP_END = '\xc0';
   static const char SLIP_ESC = '\xdb';
   static const char SLIP_ESC_END = '\xdc';
   static const char SLIP_ESC_ESC = '\xdd';
+  netif_input_fn original_wifi_input;
+  netif_output_fn original_wifi_output;
+
   void switchTo();
   void serialIncoming();
   void loop();
+
+  void sendPacketToSerial(struct pbuf *p);
+  void injectPacketToNetwork(uint8_t *data, int len);
 };
 
-#endif /* INCLUDE_SLIP_ */
+#endif /* INCLUDE_SLIP */
