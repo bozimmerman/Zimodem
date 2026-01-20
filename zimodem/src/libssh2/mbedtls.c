@@ -1211,11 +1211,50 @@ _libssh2_mbedtls_ecdsa_new_private(libssh2_ecdsa_ctx **ctx,
                                    const unsigned char *pwd)
 {
     mbedtls_pk_context pkey;
-    unsigned char *data;
-    size_t data_len;
+    unsigned char *data = NULL;
+    size_t data_len = 0;
+    FILE *fp;
+    long file_size;
+    size_t bytes_read;
 
-    if(mbedtls_pk_load_file(filename, &data, &data_len) != 0)
+    /* Open and read the file */
+    fp = fopen(filename, "rb");
+    if(fp == NULL)
         goto cleanup;
+
+    /* Get file size */
+    if(fseek(fp, 0, SEEK_END) != 0) {
+        fclose(fp);
+        goto cleanup;
+    }
+
+    file_size = ftell(fp);
+    if(file_size < 0) {
+        fclose(fp);
+        goto cleanup;
+    }
+
+    if(fseek(fp, 0, SEEK_SET) != 0) {
+        fclose(fp);
+        goto cleanup;
+    }
+
+    data_len = (size_t)file_size;
+
+    /* Allocate memory for file contents */
+    data = LIBSSH2_ALLOC(session, data_len);
+    if(data == NULL) {
+        fclose(fp);
+        goto cleanup;
+    }
+
+    /* Read file contents */
+    bytes_read = fread(data, 1, data_len, fp);
+    fclose(fp);
+
+    if(bytes_read != data_len) {
+        goto cleanup;
+    }
 
     mbedtls_pk_init(&pkey);
 
@@ -1229,10 +1268,12 @@ cleanup:
 
     mbedtls_pk_free(&pkey);
 
-    _libssh2_mbedtls_safe_free(data, data_len);
+    if(data != NULL)
+        _libssh2_mbedtls_safe_free(data, data_len);
 
     return (*ctx == NULL) ? -1 : 0;
 }
+
 
 /* _libssh2_ecdsa_new_private
  *
