@@ -17,35 +17,43 @@
 
 static err_t slip_wifi_output_hook(struct netif *netif, struct pbuf *p, const ip4_addr_t *ipaddr)
 {
-  slipMode.sendPacketToSerial(p);
-  if(slipMode.original_wifi_output != NULL) {
+  if(slipMode.original_wifi_output != NULL)
     return slipMode.original_wifi_output(netif, p, ipaddr);
-  }
-
   return ERR_OK;
 }
 
 static err_t slip_wifi_input_hook(struct pbuf *p, struct netif *inp)
 {
-  if(baudRate >= 57600)
-    slipMode.sendPacketToSerial(p);
-  else
-  if((p != NULL) && (p->len >= 20))
+  if((p != NULL) && (p->len >= 34))
   {
-    uint8_t *data = (uint8_t *)p->payload;
+    uint8_t *payload = (uint8_t *)p->payload;
+    uint8_t *data = payload + 14;
     uint8_t ip_version = (data[0] >> 4) & 0x0F;
 
     if(ip_version == 4)
     {
       uint32_t dest_ip = (data[16] << 24) | (data[17] << 16) | (data[18] << 8) | data[19];
 
-      // Skip multicast (224.0.0.0/4) and broadcast
-      if((dest_ip & 0xF0000000) != 0xE0000000 && dest_ip != 0xFFFFFFFF)
-        slipMode.sendPacketToSerial(p);
+      IPAddress wifiIP = WiFi.localIP();
+      uint32_t our_ip = ((uint32_t)wifiIP[0] << 24) | ((uint32_t)wifiIP[1] << 16) |
+                        ((uint32_t)wifiIP[2] << 8) | (uint32_t)wifiIP[3];
+      if(dest_ip == our_ip)
+      {
+        pbuf_remove_header(p, 14);
+        if(baudRate >= 57600)
+          slipMode.sendPacketToSerial(p);
+        else
+        if((dest_ip & 0xF0000000) != 0xE0000000 && dest_ip != 0xFFFFFFFF)
+          slipMode.sendPacketToSerial(p);
+        pbuf_free(p);
+        return ERR_OK;
+      }
     }
   }
-  else
-    slipMode.sendPacketToSerial(p);
+
+  if(slipMode.original_wifi_input != NULL) {
+    return slipMode.original_wifi_input(p, inp);
+  }
 
   return ERR_OK;
 }
@@ -69,10 +77,12 @@ void ZSLIPMode::sendPacketToSerial(struct pbuf *p)
     serialOutDeque();
 
   struct pbuf *q = p;
+  int total = 0;
   while(q != NULL)
   {
     uint8_t *payload = (uint8_t *)q->payload;
     int len = q->len;
+    total += len;
 
     for(int i = 0; i < len; i++)
     {
@@ -105,6 +115,9 @@ void ZSLIPMode::sendPacketToSerial(struct pbuf *p)
   sserial.printb(SLIP_END);
   if(sserial.isSerialOut())
     serialOutDeque();
+  if(logFileOpen)
+    logPrintf("SLIP-RX %d bytes\n", total);
+  debugPrintf("SLIP-RX: %d bytes\n", total);
 }
 
 void ZSLIPMode::injectPacketToNetwork(uint8_t *data, int len)
@@ -240,10 +253,8 @@ void ZSLIPMode::serialIncoming()
     if(this->buf == 0)
     {
       this->buf = (uint8_t *)malloc(4096);
-      if(this->buf == 0) {
-        debugPrintf("SLIP: malloc failed\n");
+      if(this->buf == 0)
         return;
-      }
       this->maxBufSize = 4096;
       this->curBufLen = 0;
     }
@@ -253,9 +264,9 @@ void ZSLIPMode::serialIncoming()
       if(this->curBufLen > 0)
       {
         if(logFileOpen)
-          logPrintln("SLIP-RX packet.");
+          logPrintln("SLIP-TX packet.");
 
-        debugPrintf("SLIP-RX: %d bytes\n", this->curBufLen);
+        debugPrintf("SLIP-TX: %d bytes\n", this->curBufLen);
 
         injectPacketToNetwork(this->buf, this->curBufLen);
 
