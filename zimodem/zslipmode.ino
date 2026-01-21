@@ -51,9 +51,8 @@ static err_t slip_wifi_input_hook(struct pbuf *p, struct netif *inp)
     }
   }
 
-  if(slipMode.original_wifi_input != NULL) {
+  if(slipMode.original_wifi_input != NULL)
     return slipMode.original_wifi_input(p, inp);
-  }
 
   return ERR_OK;
 }
@@ -83,7 +82,17 @@ void ZSLIPMode::sendPacketToSerial(struct pbuf *p)
     uint8_t *payload = (uint8_t *)q->payload;
     int len = q->len;
     total += len;
-
+    if(len >= 20)
+    {
+      uint8_t icmp_type = (len >= 21) ? payload[20] : 0;
+      uint8_t icmp_code = (len >= 22) ? payload[21] : 0;
+      debugPrintf("SLIP-RX IP packet: ver=%d proto=%d src=%d.%d.%d.%d dst=%d.%d.%d.%d ICMP: type=%d code=%d\n",
+                  (payload[0] >> 4) & 0x0F,
+                  payload[9],
+                  payload[12], payload[13], payload[14], payload[15],
+                  payload[16], payload[17], payload[18], payload[19],
+                  icmp_type, icmp_code);
+    }
     for(int i = 0; i < len; i++)
     {
       uint8_t c = payload[i];
@@ -102,7 +111,8 @@ void ZSLIPMode::sendPacketToSerial(struct pbuf *p)
       else
         sserial.printb(c);
 
-      if((i % 64) == 0) {
+      if((i % 64) == 0)
+      {
         yield();
         if(sserial.isSerialOut())
           serialOutDeque();
@@ -125,6 +135,13 @@ void ZSLIPMode::injectPacketToNetwork(uint8_t *data, int len)
   if(len < 20)
     return;
 
+  debugPrintf("SLIP-TX IP packet: ver=%d proto=%d src=%d.%d.%d.%d dst=%d.%d.%d.%d len=%d\n",
+              (data[0] >> 4) & 0x0F,
+              data[9],
+              data[12], data[13], data[14], data[15],
+              data[16], data[17], data[18], data[19],
+              len);
+
   struct pbuf *p = pbuf_alloc(PBUF_RAW, len, PBUF_RAM);
   if(p == NULL)
     return;
@@ -134,21 +151,14 @@ void ZSLIPMode::injectPacketToNetwork(uint8_t *data, int len)
   p->tot_len = len;
 
   uint8_t ip_version = (data[0] >> 4) & 0x0F;
-  if(ip_version == 4)
+  if(ip_version == 4 && wifi_netif != NULL && original_wifi_output != NULL)
   {
-    err_t err = ip4_input(p, &slip_netif);
+    ip4_addr_t dest;
+    dest.addr = (data[16] << 24) | (data[17] << 16) | (data[18] << 8) | data[19];
+    err_t err = original_wifi_output(wifi_netif, p, &dest);
     if(err != ERR_OK)
       pbuf_free(p);
   }
-#if LWIP_IPV6
-  else
-  if(ip_version == 6)
-  {
-    err_t err = ip6_input(p, &slip_netif);
-    if(err != ERR_OK)
-      pbuf_free(p);
-  }
-#endif
   else
     pbuf_free(p);
 }
@@ -185,15 +195,19 @@ void ZSLIPMode::switchTo()
 
   this->curBufLen = 0;
   this->escaped = false;
+  yield();
+  delay(999);
+
+  while(HWSerial.available() > 0)
+    HWSerial.read();
 
   wifi_netif = netif_list;
   while(wifi_netif != NULL)
   {
     // Look for the WiFi station interface (usually "st" or "en")
-    if((wifi_netif->name[0] == 's' && wifi_netif->name[1] == 't') ||
-        (wifi_netif->name[0] == 'e' && wifi_netif->name[1] == 'n')) {
+    if((wifi_netif->name[0] == 's' && wifi_netif->name[1] == 't')
+    || (wifi_netif->name[0] == 'e' && wifi_netif->name[1] == 'n'))
       break;
-    }
     wifi_netif = wifi_netif->next;
   }
 
@@ -264,7 +278,7 @@ void ZSLIPMode::serialIncoming()
       if(this->curBufLen > 0)
       {
         if(logFileOpen)
-          logPrintln("SLIP-TX packet.");
+          logPrintf("SLIP-TX: %d bytes\n", this->curBufLen);
 
         debugPrintf("SLIP-TX: %d bytes\n", this->curBufLen);
 
@@ -282,17 +296,15 @@ void ZSLIPMode::serialIncoming()
     else
     if((c == SLIP_ESC_END) && (this->escaped))
     {
-      if(this->curBufLen < this->maxBufSize) {
+      if(this->curBufLen < this->maxBufSize)
         this->buf[this->curBufLen++] = SLIP_END;
-      }
       this->escaped = false;
     }
     else
     if((c == SLIP_ESC_ESC) && (this->escaped))
     {
-      if(this->curBufLen < this->maxBufSize) {
+      if(this->curBufLen < this->maxBufSize)
         this->buf[this->curBufLen++] = SLIP_ESC;
-      }
       this->escaped = false;
     }
     else
@@ -306,9 +318,8 @@ void ZSLIPMode::serialIncoming()
     }
     else
     {
-      if(this->curBufLen < this->maxBufSize) {
+      if(this->curBufLen < this->maxBufSize)
         this->buf[this->curBufLen++] = c;
-      }
     }
 
     if(this->curBufLen >= this->maxBufSize)
