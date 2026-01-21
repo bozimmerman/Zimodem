@@ -44,6 +44,8 @@ static err_t slip_wifi_input_hook(struct pbuf *p, struct netif *inp)
         slipMode.sendPacketToSerial(p);
     }
   }
+  else
+    slipMode.sendPacketToSerial(p);
 
   return ERR_OK;
 }
@@ -197,11 +199,26 @@ void ZSLIPMode::switchTo()
     wifi_netif->input = slip_wifi_input_hook;
   }
 
-  // Initialize SLIP netif
   ip4_addr_t ipaddr, netmask, gw;
-  IP4_ADDR(&ipaddr, 192, 168, 255, 1);   // SLIP side IP
-  IP4_ADDR(&netmask, 255, 255, 255, 0);
-  IP4_ADDR(&gw, 192, 168, 255, 1);
+  IPAddress wifiIP = WiFi.localIP();
+  IPAddress wifiGW = WiFi.gatewayIP();
+  IPAddress wifiMask = WiFi.subnetMask();
+
+  if(wifiIP[0] != 0)
+  {
+    IP4_ADDR(&ipaddr, wifiIP[0], wifiIP[1], wifiIP[2], wifiIP[3]);
+    IP4_ADDR(&gw, wifiGW[0], wifiGW[1], wifiGW[2], wifiGW[3]);
+    IP4_ADDR(&netmask, wifiMask[0], wifiMask[1], wifiMask[2], wifiMask[3]);
+  }
+  else
+  {
+    IP4_ADDR(&ipaddr, 192, 168, 1, 1);
+    IP4_ADDR(&netmask, 255, 255, 255, 0);
+    IP4_ADDR(&gw, 192, 168, 1, 1);
+  }
+  debugPrintf("SLIP: Using WiFi IP: %s\n", ip4addr_ntoa(&ipaddr));
+  debugPrintf("SLIP: Using WiFi Gateway: %s\n", ip4addr_ntoa(&gw));
+  debugPrintf("SLIP: Using WiFi Netmask: %s\n", ip4addr_ntoa(&netmask));
 
   netif_add(&slip_netif, &ipaddr, &netmask, &gw, NULL, slip_netif_init, ip_input);
   netif_set_up(&slip_netif);
