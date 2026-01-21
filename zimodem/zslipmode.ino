@@ -15,6 +15,13 @@
    limitations under the License.
 */
 
+/**
+ * Basic design: The modem in SLIP mode behaves as a network card would for its
+ * host computer.  Packets received over serial from the host are forwarded to the
+ * network by the modem, with the same ip address as the modem.  Packets received
+ * from the network FOR the modem's ip address are assumed to be for the host computer,
+ * and are thus sent over serial to the computer to deal with using its own stack.
+ */
 static err_t slip_wifi_output_hook(struct netif *netif, struct pbuf *p, const ip4_addr_t *ipaddr)
 {
   if(slipMode.original_wifi_output != NULL)
@@ -84,14 +91,28 @@ void ZSLIPMode::sendPacketToSerial(struct pbuf *p)
     total += len;
     if(len >= 20)
     {
-      uint8_t icmp_type = (len >= 21) ? payload[20] : 0;
-      uint8_t icmp_code = (len >= 22) ? payload[21] : 0;
-      debugPrintf("SLIP-RX IP packet: ver=%d proto=%d src=%d.%d.%d.%d dst=%d.%d.%d.%d ICMP: type=%d code=%d\n",
-                  (payload[0] >> 4) & 0x0F,
-                  payload[9],
-                  payload[12], payload[13], payload[14], payload[15],
-                  payload[16], payload[17], payload[18], payload[19],
-                  icmp_type, icmp_code);
+      uint8_t ihl = (payload[0] & 0x0F) * 4;
+      uint8_t protocol = payload[9];
+
+      if(protocol == 1 && len >= ihl + 2)
+      {
+        uint8_t icmp_type = payload[ihl];
+        uint8_t icmp_code = payload[ihl + 1];
+        debugPrintf("SLIP-RX IP packet: ver=%d proto=%d src=%d.%d.%d.%d dst=%d.%d.%d.%d ICMP: type=%d code=%d\n",
+                    (payload[0] >> 4) & 0x0F,
+                    protocol,
+                    payload[12], payload[13], payload[14], payload[15],
+                    payload[16], payload[17], payload[18], payload[19],
+                    icmp_type, icmp_code);
+      }
+      else
+      {
+        debugPrintf("SLIP-RX IP packet: ver=%d proto=%d src=%d.%d.%d.%d dst=%d.%d.%d.%d\n",
+                    (payload[0] >> 4) & 0x0F,
+                    protocol,
+                    payload[12], payload[13], payload[14], payload[15],
+                    payload[16], payload[17], payload[18], payload[19]);
+      }
     }
     for(int i = 0; i < len; i++)
     {
@@ -142,26 +163,22 @@ void ZSLIPMode::injectPacketToNetwork(uint8_t *data, int len)
               data[16], data[17], data[18], data[19],
               len);
 
-  struct pbuf *p = pbuf_alloc(PBUF_RAW, len, PBUF_RAM);
-  if(p == NULL)
+  if(wifi_netif == NULL || original_wifi_output == NULL)
     return;
 
+  struct pbuf *p = pbuf_alloc(PBUF_IP, len, PBUF_RAM);
+  if(p == NULL)
+    return;
   memcpy(p->payload, data, len);
-  p->len = len;
-  p->tot_len = len;
 
-  uint8_t ip_version = (data[0] >> 4) & 0x0F;
-  if(ip_version == 4 && wifi_netif != NULL && original_wifi_output != NULL)
-  {
-    ip4_addr_t dest;
-    dest.addr = (data[16] << 24) | (data[17] << 16) | (data[18] << 8) | data[19];
-    err_t err = original_wifi_output(wifi_netif, p, &dest);
-    if(err != ERR_OK)
-      pbuf_free(p);
-  }
-  else
+  ip4_addr_t dest;
+  IP4_ADDR(&dest, data[16], data[17], data[18], data[19]);
+  err_t err = original_wifi_output(wifi_netif, p, &dest);
+
+  if(err != ERR_OK)
     pbuf_free(p);
 }
+
 
 void ZSLIPMode::switchBackToCommandMode()
 {
@@ -279,7 +296,6 @@ void ZSLIPMode::serialIncoming()
       {
         if(logFileOpen)
           logPrintf("SLIP-TX: %d bytes\n", this->curBufLen);
-
         debugPrintf("SLIP-TX: %d bytes\n", this->curBufLen);
 
         injectPacketToNetwork(this->buf, this->curBufLen);
