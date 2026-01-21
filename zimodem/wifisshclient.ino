@@ -154,6 +154,22 @@ bool WiFiSSHClient::finishLogin()
   char *userauthlist;
   /* check what authentication methods are available */
   userauthlist = libssh2_userauth_list(session, _username.c_str(), strlen(_username.c_str()));
+  if(userauthlist == NULL)
+  {
+    /* Check if user is already authenticated (none auth succeeded) */
+    if(libssh2_userauth_authenticated(session))
+    {
+      debugPrintf("wifisshclient: none authentication succeeded\n\r");
+      return true;
+    }
+
+    /* Otherwise it's an error - get error details */
+    char *errmsg;
+    int errlen;
+    int err = libssh2_session_last_error(session, &errmsg, &errlen, 0);
+    debugPrintf("wifisshclient: libssh2_userauth_list failed with error %d: %s\n\r", err, errmsg);
+    return false;
+  }
   if(strstr(userauthlist, "password") != NULL)
   {
     if(libssh2_userauth_password(session, _username.c_str(), _password.c_str()))
