@@ -40,7 +40,9 @@ AT+HOSTCM: For modems with SD-cards, this puts the modem into HOSTCM protocol mo
 
 AT+1650, 1660, 1670: Puts the modem into a emulation mode for Commodore 1650, 1660, and 1670.  Changes baud rates accordingly.  Use AT&L or AT&F to clear emulation settings.
 
-AT+SLIP: Puts the modem into SLIP mode.  Baud rates under 57600 will not receive broadcast/multicast packets. 
+AT+SLIP: Puts the modem into SLIP mode.  Baud rates under 57600 will not receive broadcast/multicast packets.  Reset modem to exit.
+
+AT+PPP: Puts the modem into PPP mode.  Baud rates under 57600 will not receive broadcast/multicast packets.  Reset modem to exit.
 
 Telnet Dialing: If you want to connect to a remote telnet server, eg coffeemud.net, port 23, you'll want to enter AT&S62=1DT"coffeemud.net:23".  Don't forget to set your terminal program to the proper translation mode (ANSI, ASCII, or whatever). 
 

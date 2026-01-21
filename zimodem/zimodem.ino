@@ -14,7 +14,7 @@
    limitations under the License. 
 */
 //#define TCP_SND_BUF                     4 * TCP_MSS
-#define ZIMODEM_VERSION "4.0.2"
+#define ZIMODEM_VERSION "4.0.3"
 const char compile_date[] = __DATE__ " " __TIME__;
 #define DEFAULT_NO_DELAY true
 #define null 0
@@ -29,7 +29,8 @@ const char compile_date[] = __DATE__ " " __TIME__;
 #define INCLUDE_FTP true
 #define INCLUDE_COMET64 true // requires sd shell
 #define INCLUDE_OTH_UPDATES true // comment out if you make incompatible firmware
-#define INCLUDE_SLIP true  // enable this when it is working.  it is not working.
+#define INCLUDE_SLIP true
+#define INCLUDE_PPP true
 //#define SUPPORT_LED_PINS true // enable if you have the spare gpio pins and leds
 //#define INCLUDE_CMDRX16 true // enable this if you are David or Kevin
 //#define USE_DEVUPDATER true // only enable this if your name is Bo
@@ -232,6 +233,9 @@ class ZMode
 #if INCLUDE_SLIP
 #  include "zslipmode.h"
 #endif
+#if INCLUDE_PPP
+#  include "zpppmode.h"
+#endif
 #if INCLUDE_IRCC
 #  include "zircmode.h"
 #endif
@@ -264,6 +268,9 @@ static RealTimeClock zclock(0);
 #endif
 #if INCLUDE_SLIP
    static ZSLIPMode slipMode;
+#endif
+#if INCLUDE_PPP
+   static ZPPPMode pppMode;
 #endif
 #if INCLUDE_IRCC
    static ZIRCMode ircMode;

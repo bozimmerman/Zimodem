@@ -3002,6 +3002,14 @@ ZResult ZCommand::doSerialCommand()
             slipMode.switchTo();
         }
 #  endif
+#if INCLUDE_PPP
+        else
+        if((strstr((const char *)vbuf,"ppp")==(char *)vbuf))
+        {
+            result = ZOK;
+            pppMode.switchTo();
+        }
+#  endif
 #  if INCLUDE_PING
         else
         if((strstr((const char *)vbuf,"ping")==(char *)vbuf))
