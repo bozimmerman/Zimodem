@@ -29,7 +29,7 @@ const char compile_date[] = __DATE__ " " __TIME__;
 #define INCLUDE_FTP true
 #define INCLUDE_COMET64 true // requires sd shell
 #define INCLUDE_OTH_UPDATES true // comment out if you make incompatible firmware
-//#define INCLUDE_SLIP true  // enable this when it is working.  it is not working.
+#define INCLUDE_SLIP true  // enable this when it is working.  it is not working.
 //#define SUPPORT_LED_PINS true // enable if you have the spare gpio pins and leds
 //#define INCLUDE_CMDRX16 true // enable this if you are David or Kevin
 //#define USE_DEVUPDATER true // only enable this if your name is Bo
@@ -452,10 +452,11 @@ static void changeSerialConfig(SerialConfig conf)
 {
   flushSerial(); // blocking, but very very necessary
   delay(500); // give the client half a sec to catch up
-  debugPrintf("Config changing to %d.\r\n",(int)conf);
+  debugPrintf("Config changing to %dbps, %d.\r\n",baudRate,(int)conf);
   dequeSize=1+(baudRate/INTERNAL_FLOW_CONTROL_DIV);
   debugPrintf("Deque constant now: %d\r\n",dequeSize);
 # ifdef DEFAULT_PIN_RXD
+    debugPrintf("Using BPS %d, RXD %d, TXD %d\r\n",baudRate,DEFAULT_PIN_RXD, DEFAULT_PIN_TXD);
     HWSerial.begin(baudRate, conf, DEFAULT_PIN_RXD, DEFAULT_PIN_TXD);
 # else
     HWSerial.begin(baudRate, conf);  //Change baud rate
@@ -601,6 +602,7 @@ void setup()
     debugPrintf("SPIFFS Formatted.\r\n");
   }
 # ifdef DEFAULT_PIN_RXD
+    debugPrintf("Using BPS %d, RXD %d, TXD %d\r\n",DEFAULT_BAUD_RATE,DEFAULT_PIN_RXD, DEFAULT_PIN_TXD);
     HWSerial.begin(DEFAULT_BAUD_RATE, DEFAULT_SERIAL_CONFIG, DEFAULT_PIN_RXD, DEFAULT_PIN_TXD);
 # else
     HWSerial.begin(DEFAULT_BAUD_RATE, DEFAULT_SERIAL_CONFIG);  //Start Serial
