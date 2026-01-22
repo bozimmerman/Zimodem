@@ -199,8 +199,6 @@ void ZSLIPMode::switchBackToCommandMode()
   }
 }
 
-esp_netif_t* get_esp_interface_netif(esp_interface_t interface);
-
 void ZSLIPMode::switchTo()
 {
   debugPrintf("\r\nMode:SLIP\r\n");

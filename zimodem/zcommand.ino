@@ -1851,13 +1851,10 @@ ZResult ZCommand::doDialStreamCommand(unsigned long vval, uint8_t *vbuf, int vle
         free(vbuf);
         return res;
     }
-    /*
     if(vval == 5517545) // slip no login
     {
       slipMode.switchTo();
     }
-    */
-    
     WiFiClientNode *c=conns;
     while((c!=null)&&(c->id != vval))
       c=c->next;

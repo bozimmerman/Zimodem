@@ -253,7 +253,6 @@ static bool debugUart = false;
 static OpModes altOpMode = OPMODE_NONE;
 static ZMode *currMode = null;
 static ZStream streamMode;
-//static ZSlip slipMode; // not yet implemented
 static ZCommand commandMode;
 static ZPrint printMode;
 static ZConfig configMode;
