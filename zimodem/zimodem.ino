@@ -119,16 +119,17 @@ const char compile_date[] = __DATE__ " " __TIME__;
 #  define DEFAULT_PIN_OTH GPIO_NUM_7 // pulse pin
 #  define DEFAULT_PIN_DTR GPIO_NUM_5
 # elif defined(ARDUINO_ESP32S3_DEV) /* Configuration for the Esp32S3 16MB Dev Board */
-#  define DEFAULT_PIN_DCD GPIO_NUM_14
-#  define DEFAULT_PIN_CTS GPIO_NUM_19 // espdev rts pin
-#  define DEFAULT_PIN_RTS GPIO_NUM_20 // espdev cts pin
-#  define DEFAULT_PIN_RI GPIO_NUM_10
-#  define DEFAULT_PIN_DSR GPIO_NUM_12
-#  define DEFAULT_PIN_SND GPIO_NUM_11
-#  define DEFAULT_PIN_OTH GPIO_NUM_46 // pulse pin
-#  define DEFAULT_PIN_DTR GPIO_NUM_13
-#  define DEFAULT_PIN_TXD GPIO_NUM_21
-#  define DEFAULT_PIN_RXD GPIO_NUM_20
+#  define DEFAULT_PIN_DCD GPIO_NUM_5
+#  define DEFAULT_PIN_CTS GPIO_NUM_18 // espdev rts pin
+#  define DEFAULT_PIN_RTS GPIO_NUM_17 // espdev cts pin
+#  define DEFAULT_PIN_RI GPIO_NUM_6
+#  define DEFAULT_PIN_DSR GPIO_NUM_9
+#  define DEFAULT_PIN_SND -1
+#  define DEFAULT_PIN_OTH -1 // pulse pin
+#  define DEFAULT_PIN_DTR GPIO_NUM_4
+#  define DEFAULT_PIN_TXD GPIO_NUM_16
+#  define DEFAULT_PIN_RXD GPIO_NUM_15
+#  define DEFAULT_PIN_SD_CS GPIO_NUM_14
 # else                                    /* Configuration for standard ESP32 4 & 8MB boards */
 #  define DEFAULT_PIN_DCD GPIO_NUM_14
 #  define DEFAULT_PIN_CTS GPIO_NUM_13
