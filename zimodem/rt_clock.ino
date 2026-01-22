@@ -567,8 +567,7 @@ String RealTimeClock::getCurrentTimeFormatted()
   if(f.indexOf("%yy")>=0)
   {
     int y=c.getYear();
-    y -= (floor(y/100)*100);
-    sprintf(str,"%02d",y);
+    sprintf(str,"%02d",y % 100);
     f.replace("%yy",str);
   }
   if(f.indexOf("%y")>=0)
@@ -604,8 +603,7 @@ String RealTimeClock::getCurrentTimeFormatted()
   {
     String dow=c.getDoW();
     dow = dow.substring(0,3);
-    sprintf(str,"%d",dow.c_str());
-    f.replace("%e",str);
+    f.replace("%e",dow.c_str());
   }
   if(f.indexOf("%HH")>=0)
   {
