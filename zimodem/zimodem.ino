@@ -36,9 +36,9 @@ const char compile_date[] = __DATE__ " " __TIME__;
 //#define USE_DEVUPDATER true // only enable this if your name is Bo
 
 // Figure out whether we are building for ESP8266 or ESP32
-#ifdef ARDUINO_ESP32S3_DEV || ARDUINO_ESP32C3_DEV
+#if defined(ARDUINO_ESP32_DEV) || defined(ARDUINO_ARCH_ESP32)
 # define ZIMODEM_ESP32
-#elif ARDUINO_ESP32_DEV
+#elif defined(ARDUINO_ESP32S3_DEV) || defined(ARDUINO_ESP32C3_DEV)
 # define ZIMODEM_ESP32
 #elif defined(ESP32)
 # define ZIMODEM_ESP32
@@ -390,6 +390,9 @@ static bool connectWifi(const char* ssid, const char* password, IPAddress *ip, I
       return false;
   }
   WiFi.begin(ssid, password);
+#if defined(ARDUINO_MAKERGO_C3_SUPERMINI) || defined(ARDUINO_NOLOGO_ESP32C3_SUPER_MINI)
+  WiFi.setTxPower(WIFI_POWER_8_5dBm);
+#endif
   if(hostname.length() > 0)
     setHostName(hostname.c_str());
   bool amConnected = (WiFi.status() == WL_CONNECTED) && (strcmp(WiFi.localIP().toString().c_str(), "0.0.0.0")!=0);
