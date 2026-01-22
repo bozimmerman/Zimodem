@@ -1851,10 +1851,20 @@ ZResult ZCommand::doDialStreamCommand(unsigned long vval, uint8_t *vbuf, int vle
         free(vbuf);
         return res;
     }
+#if INCLUDE_SLIP
     if(vval == 5517545) // slip no login
     {
       slipMode.switchTo();
+      return ZCONNECT;
     }
+#endif
+#if INCLUDE_PPP
+    if(vval == 5517546) // ppp dial
+    {
+      pppMode.switchTo();
+      return ZCONNECT;
+    }
+#endif
     WiFiClientNode *c=conns;
     while((c!=null)&&(c->id != vval))
       c=c->next;
