@@ -18,7 +18,11 @@
 
 static void initSDShell()
 {
-  if(SD.begin())
+#ifdef DEFAULT_PIN_SD_CS
+  if(SD.begin(DEFAULT_PIN_SD_CS))
+#else
+    if(SD.begin())
+#endif
   {
       debugPrintf("External SD card initialized.\r\n");
   }
