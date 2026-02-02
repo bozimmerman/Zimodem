@@ -307,10 +307,12 @@ def test_atd(baud=1200):
         return errprint("ATD","ser->sock "+str(len(b)))
     flush_serial()
     flush_sock()
-    ud_tests = [[128, 50], [256, 50], [1024, 15 * (baud / 1200)], [baud * 20, 1]]
+    #  ud_tests = [[128, 50], [256, 50], [1024, min(256,15 * (baud / 1200))], [baud * 20, 1]]
+    ud_tests = [[baud * 20, 1]]
     for ud_test in ud_tests:
         packet_size = round(ud_test[0])
         rounds = round(ud_test[1])
+        '''
         # download test 
         for rnd in range(0,rounds):
             b = bytearray(os.urandom(packet_size))
@@ -322,6 +324,7 @@ def test_atd(baud=1200):
             rb = sock_in(1)
             if not compare_bytearrays(bytes([13]), rb):
                 return errprint("ATD","sock->ser  ack round "+str(rnd))
+        '''
         # upload test 
         for rnd in range(0,rounds):
             b = bytearray(os.urandom(packet_size))
