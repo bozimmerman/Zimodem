@@ -302,6 +302,8 @@ void XModem::init()
 bool XModem::receive()
 {
   this->init();
+  while(this->serialAvail(1))
+    this->serialRead(1);
   
   for (int i =0; i <  16; i++)
   {

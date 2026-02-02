@@ -37,6 +37,9 @@ void KModem::flushinput()
 
 bool KModem::receive()
 {
+  while(this->serialAvail(1))
+    this->serialRead(1);
+
   state = 'R';      /* Receive-Init is the start state */
   n = 0;        /* Initialize message number */
   numtry = 0;       /* Say no tries yet */

@@ -303,6 +303,9 @@ bool Punter::exchangePunterCodes(PunterCode sendCode, PunterCode expectCode, int
 
 bool Punter::receive()
 {
+  while(this->serialAvail(1))
+    this->serialRead(1);
+
   // first say hello -- thirty goos, thirty chances;
   bool success = exchangePunterCodes(PUNTER_GOO, PUNTER_ACK, Punter::retryLimit*3);
   if(!success) // abort!
