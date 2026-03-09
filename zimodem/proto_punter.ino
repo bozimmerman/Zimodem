@@ -114,12 +114,29 @@ bool Punter::readPunterCode(PunterCode code, int waitTime)
 
 int Punter::serialRead(int delay)
 {
+  int b;
+  if(this->byte != -1)
+  {
+    b = this->byte;
+    this->byte = -1;
+    return b;
+  }
   return this->recvChar(&pserial,delay);
 }
 
 void Punter::serialWrite(char symbol)
 {
  this->pserial.write(symbol);
+}
+
+bool Punter::serialAvail(int delay)
+{
+  if (this->byte != -1)
+    return true;
+  if ((this->byte = this->recvChar(&pserial,delay)) != -1)
+    return true;
+  else
+    return false;    
 }
 
 void Punter::sendPunterCode(PunterCode code)

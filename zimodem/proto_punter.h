@@ -44,12 +44,14 @@ class Punter
     ZSerial pserial;
     uint8_t buf[300];
     int bufSize = 0;
+    int byte;
 
     int  (*recvChar)(ZSerial *ser, int);
     void (*sendChar)(ZSerial *ser, char);
     bool (*dataHandler)(File *pfile, unsigned long number, char *buffer, int len);
 
     int serialRead(int delay);
+    bool serialAvail(int delay);
     void serialWrite(char symbol);
 
     PunterCode readPunterCode(int waitTime);
