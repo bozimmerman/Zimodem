@@ -29,8 +29,8 @@
 #   define MAIN_UART_NUM UART_NUM_1
 #   define DEBUG_UART_NUM UART_NUM_0
 # else
-#   define MAIN_UART_NUM UART_NUM_2
-#   define DEBUG_UART_NUM UART_NUM_0
+#   define MAIN_UART_NUM UART_NUM_0
+#   define DEBUG_UART_NUM -1
 # endif
   static HardwareSerial HWSerial(MAIN_UART_NUM);
   static HardwareSerial DBSerial(DEBUG_UART_NUM);
