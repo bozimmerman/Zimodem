@@ -199,7 +199,9 @@ void ZStream::socketWrite(uint8_t c)
     if(c == 0xFF && isTelnet()) 
       current->write(c);
     current->write(c);
+    oledCountTx();
     logSocketOut(c);
+    oledCountTx();
     nextFlushMs=millis()+250;
     //current->flush(); // rendered safe by available check
     //delay(0);
@@ -337,6 +339,7 @@ void ZStream::loop()
               break;
             uint8_t c=current->read();
             logSocketIn(c);
+            oledCountRx();
             if((!isTelnet() || handleAsciiIAC((char *)&c,current))
             && (!isPETSCII() || ascToPet((char *)&c,current)))
               serial.printb(c);
