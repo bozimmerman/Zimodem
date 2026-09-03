@@ -140,7 +140,6 @@ const char compile_date[] = __DATE__ " " __TIME__;
 #  define DEFAULT_PIN_OTH GPIO_NUM_4 // pulse pin
 #  define DEFAULT_PIN_DTR GPIO_NUM_27
 # endif
-# define debugPrintf DBSerial.printf
 # define SerialConfig uint32_t
 # define UART_CONFIG_MASK 0x8000000
 # define UART_NB_BIT_MASK      0B00001100 | UART_CONFIG_MASK
@@ -203,6 +202,13 @@ class ZMode
 };
 
 #include "pet2asc.h"
+#ifdef ZIMODEM_ESP32
+# if DEBUG_UART_NUM >= 0
+#  define debugPrintf DBSerial.printf
+# else
+#  define debugPrintf(...) ((void)0)
+# endif
+#endif
 #include "rt_clock.h"
 #include "filelog.h"
 #include "serout.h"
@@ -560,8 +566,10 @@ void setup()
   for(int i=0;i<MAX_PIN_NO;i++)
     pinSupport[i]=false;
 #ifdef ZIMODEM_ESP32
+# if DEBUG_UART_NUM >= 0
   DBSerial.begin(115200); //the debug port
   DBSerial.setDebugOutput(true);
+# endif
 # ifdef ARDUINO_ESP32S3_DEV
   pinSupport[1]=true;
   for(int i=5;i<=17;i++)
@@ -616,6 +624,12 @@ void setup()
     HWSerial.begin(DEFAULT_BAUD_RATE, DEFAULT_SERIAL_CONFIG, DEFAULT_PIN_RXD, DEFAULT_PIN_TXD);
 # else
     HWSerial.begin(DEFAULT_BAUD_RATE, DEFAULT_SERIAL_CONFIG);  //Start Serial
+# endif
+# ifdef ZIMODEM_ESP32
+#  if DEBUG_UART_NUM < 0
+  // UART0 is the modem data channel in this build. Never route ESP32 logs there.
+  HWSerial.setDebugOutput(false);
+#  endif
 # endif
   HWSerial.setRxBufferSize(RX_BUFFER_SIZE);
   commandMode.loadConfig();

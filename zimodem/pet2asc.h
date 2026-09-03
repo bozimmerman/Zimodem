@@ -33,7 +33,9 @@
 #   define DEBUG_UART_NUM -1
 # endif
   static HardwareSerial HWSerial(MAIN_UART_NUM);
+# if DEBUG_UART_NUM >= 0
   static HardwareSerial DBSerial(DEBUG_UART_NUM);
+# endif
 #else
 # include "ESP8266WiFi.h"
 # define HWSerial Serial
