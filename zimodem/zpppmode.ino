@@ -1,5 +1,17 @@
 #if INCLUDE_PPP
 
+#ifdef ZIMODEM_ESP32
+#include "freertos/FreeRTOS.h"
+#include "freertos/semphr.h"
+#include "freertos/queue.h"
+static SemaphoreHandle_t pppTxMutex = NULL;
+static SemaphoreHandle_t pppRxMutex = NULL;
+static QueueHandle_t pppRxQueue = NULL;
+static const int PPP_RX_QUEUE_LEN = 8;
+#endif
+
+static volatile bool pppTerminating = false;
+
 static const uint16_t fcstab[256] = {
   0x0000, 0x1189, 0x2312, 0x329b, 0x4624, 0x57ad, 0x6536, 0x74bf,
   0x8c48, 0x9dc1, 0xaf5a, 0xbed3, 0xca6c, 0xdbe5, 0xe97e, 0xf8f7,
@@ -60,12 +72,41 @@ static err_t ppp_wifi_input_hook(struct pbuf *p, struct netif *inp)
       if(dest_ip == our_ip)
       {
         pbuf_remove_header(p, 14);
+#ifdef ZIMODEM_ESP32
+        // netif->input() is called from the Wi-Fi receive path before lwIP's
+        // tcpip_input() mailbox. Do not perform slow PPP framing/UART writes
+        // in that task. Copy the IP packet to an ordinary RAM pbuf, release
+        // the Wi-Fi RX pbuf immediately, and queue only the independent copy.
+        struct pbuf *queuedPbuf = NULL;
+        if(!pppTerminating && pppRxQueue != NULL && pppRxMutex != NULL)
+        {
+          queuedPbuf = pbuf_alloc(PBUF_RAW, p->tot_len, PBUF_RAM);
+          if(queuedPbuf != NULL && pbuf_copy(queuedPbuf, p) != ERR_OK)
+          {
+            pbuf_free(queuedPbuf);
+            queuedPbuf = NULL;
+          }
+        }
+        pbuf_free(p);
+
+        if(queuedPbuf != NULL)
+        {
+          bool queued = false;
+          xSemaphoreTake(pppRxMutex, portMAX_DELAY);
+          if(!pppTerminating)
+            queued = (xQueueSend(pppRxQueue, &queuedPbuf, 0) == pdTRUE);
+          xSemaphoreGive(pppRxMutex);
+          if(!queued)
+            pbuf_free(queuedPbuf);
+        }
+#else
         if(baudRate >= 57600)
           pppMode.sendPacketToSerial(p);
         else
         if((dest_ip & 0xF0000000) != 0xE0000000 && dest_ip != 0xFFFFFFFF)
           pppMode.sendPacketToSerial(p);
         pbuf_free(p);
+#endif
         return ERR_OK;
       }
     }
@@ -96,6 +137,22 @@ uint16_t ZPPPMode::calculateFCS(uint8_t *data, int len)
 
 void ZPPPMode::sendPPPFrame(uint16_t protocol, uint8_t *data, int len)
 {
+#ifdef ZIMODEM_ESP32
+  if(pppTxMutex != NULL)
+    xSemaphoreTake(pppTxMutex, portMAX_DELAY);
+#endif
+
+  // Once LCP termination starts, no new IP frame may be queued behind the
+  // Terminate-Ack. A sender already waiting on the TX mutex must re-check
+  // this state after acquiring it.
+  if((protocol == PPP_PROTOCOL_IP) && pppTerminating)
+  {
+#ifdef ZIMODEM_ESP32
+    if(pppTxMutex != NULL)
+      xSemaphoreGive(pppTxMutex);
+#endif
+    return;
+  }
   uint8_t header[4];
   header[0] = 0xFF;
   header[1] = 0x03;
@@ -164,6 +221,11 @@ void ZPPPMode::sendPPPFrame(uint16_t protocol, uint8_t *data, int len)
     serialOutDeque();
 
   debugPrintf("PPP-TX: proto=0x%04X len=%d\n", protocol, len);
+
+#ifdef ZIMODEM_ESP32
+  if(pppTxMutex != NULL)
+    xSemaphoreGive(pppTxMutex);
+#endif
 }
 
 
@@ -222,8 +284,13 @@ void ZPPPMode::handleLCP(uint8_t *data, int len)
       sendLCPPacket(LCP_ECHO_REPLY, id, data + 4, len - 4);
       break;
     case LCP_TERM_REQ:
+      // Stop admitting new network data before queueing the final LCP frame.
+      // Any IP frame already being serialized is allowed to finish; the TX
+      // mutex then guarantees that Terminate-Ack is emitted as one intact
+      // frame rather than being interleaved with lwIP output.
+      pppTerminating = true;
+      state = PPP_TERMINATE;
       sendLCPPacket(LCP_TERM_ACK, id, NULL, 0);
-      switchBackToCommandMode();
       break;
   }
 }
@@ -242,35 +309,42 @@ void ZPPPMode::handleIPCP(uint8_t *data, int len)
   {
     case LCP_CONF_REQ:
     {
-      uint8_t response[256];
-      int respLen = 0;
+      uint8_t nakResponse[256];
+      int nakLen = 0;
       int i = 4;
       bool nak = false;
 
-      while(i < len)
+      while(i + 1 < len)
       {
         uint8_t optType = data[i];
         uint8_t optLen = data[i + 1];
+        if(optLen < 2 || i + optLen > len)
+          return;
 
-        if(optType == 3)
+        if(optType == 3 && optLen == 6)
         {
           IPAddress wifiIP = WiFi.localIP();
-          response[respLen++] = 3;
-          response[respLen++] = 6;
-          response[respLen++] = wifiIP[0];
-          response[respLen++] = wifiIP[1];
-          response[respLen++] = wifiIP[2];
-          response[respLen++] = wifiIP[3];
-        }
-        else
-        {
-          memcpy(response + respLen, data + i, optLen);
-          respLen += optLen;
+          if(data[i + 2] != wifiIP[0]
+          || data[i + 3] != wifiIP[1]
+          || data[i + 4] != wifiIP[2]
+          || data[i + 5] != wifiIP[3])
+          {
+            nak = true;
+            nakResponse[nakLen++] = 3;
+            nakResponse[nakLen++] = 6;
+            nakResponse[nakLen++] = wifiIP[0];
+            nakResponse[nakLen++] = wifiIP[1];
+            nakResponse[nakLen++] = wifiIP[2];
+            nakResponse[nakLen++] = wifiIP[3];
+          }
         }
         i += optLen;
       }
 
-      sendIPCPPacket(LCP_CONF_ACK, id, response, respLen);
+      if(nak)
+        sendIPCPPacket(LCP_CONF_NAK, id, nakResponse, nakLen);
+      else
+        sendIPCPPacket(LCP_CONF_ACK, id, data + 4, len - 4);
 
       if(!ipcpOpened)
       {
@@ -339,7 +413,7 @@ void ZPPPMode::processPPPFrame(uint8_t *data, int len)
 
 void ZPPPMode::sendPacketToSerial(struct pbuf *p)
 {
-  if(p == NULL || state != PPP_OPENED || !ipcpOpened)
+  if(pppTerminating || p == NULL || state != PPP_OPENED || !ipcpOpened)
     return;
 
   struct pbuf *q = p;
@@ -391,15 +465,31 @@ void ZPPPMode::injectPacketToNetwork(uint8_t *data, int len)
   ip4_addr_t dest;
   IP4_ADDR(&dest, data[16], data[17], data[18], data[19]);
 
-  err_t err = original_wifi_output(wifi_netif, p, &dest);
-
-  if(err != ERR_OK)
-    pbuf_free(p);
+  // netif->output() does not take ownership of the caller's pbuf.
+  // Release our PBUF_RAM allocation after the synchronous output call,
+  // regardless of whether the packet was accepted or rejected.
+  original_wifi_output(wifi_netif, p, &dest);
+  pbuf_free(p);
 }
 
 void ZPPPMode::switchBackToCommandMode()
 {
   debugPrintf("\r\nMode:Command\r\n");
+
+#ifdef ZIMODEM_ESP32
+  // pppTerminating is already true before the Terminate-Ack is sent.  Taking
+  // the short RX-queue mutex here waits for any hook that was just finishing
+  // an enqueue, then releases every packet still owned by PPP.
+  if(pppRxQueue != NULL && pppRxMutex != NULL)
+  {
+    struct pbuf *queuedPbuf = NULL;
+    xSemaphoreTake(pppRxMutex, portMAX_DELAY);
+    while(xQueueReceive(pppRxQueue, &queuedPbuf, 0) == pdTRUE)
+      if(queuedPbuf != NULL)
+        pbuf_free(queuedPbuf);
+    xSemaphoreGive(pppRxMutex);
+  }
+#endif
 
   if(wifi_netif != NULL && original_wifi_output != NULL)
     wifi_netif->output = original_wifi_output;
@@ -419,6 +509,27 @@ void ZPPPMode::switchBackToCommandMode()
 void ZPPPMode::switchTo()
 {
   debugPrintf("\r\nMode:PPP\r\n");
+#ifdef ZIMODEM_ESP32
+  if(pppTxMutex == NULL)
+    pppTxMutex = xSemaphoreCreateMutex();
+  if(pppRxMutex == NULL)
+    pppRxMutex = xSemaphoreCreateMutex();
+  if(pppRxQueue == NULL)
+    pppRxQueue = xQueueCreate(PPP_RX_QUEUE_LEN, sizeof(struct pbuf *));
+
+  // A prior session may have ended with a packet queued immediately before
+  // termination. Free any stale ownership before enabling the new session.
+  if(pppRxQueue != NULL && pppRxMutex != NULL)
+  {
+    struct pbuf *queuedPbuf = NULL;
+    xSemaphoreTake(pppRxMutex, portMAX_DELAY);
+    while(xQueueReceive(pppRxQueue, &queuedPbuf, 0) == pdTRUE)
+      if(queuedPbuf != NULL)
+        pbuf_free(queuedPbuf);
+    xSemaphoreGive(pppRxMutex);
+  }
+#endif
+  pppTerminating = false;
   sserial.setFlowControlType(FCT_DISABLED);
   if(commandMode.getFlowControlType()==FCT_RTSCTS)
     sserial.setFlowControlType(FCT_RTSCTS);
@@ -515,9 +626,23 @@ void ZPPPMode::serialIncoming()
     {
       if(this->curBufLen > 0)
       {
-        processPPPFrame(this->buf, this->curBufLen);
+        // Finish the parser state before dispatching the frame. A handler can
+        // request PPP termination, so it must not tear down this parser while
+        // processPPPFrame() is still using this->buf.
+        int frameLen = this->curBufLen;
         this->curBufLen = 0;
         this->escaped = false;
+        processPPPFrame(this->buf, frameLen);
+
+        // LCP Terminate-Request only marks termination and queues the Ack.
+        // Perform teardown here, after frame dispatch has returned, and leave
+        // the PPP receive loop immediately so command-mode bytes are not
+        // consumed by the old parser.
+        if(pppTerminating)
+        {
+          switchBackToCommandMode();
+          return;
+        }
       }
     }
     else
@@ -565,8 +690,36 @@ void ZPPPMode::serialIncoming()
 
 void ZPPPMode::loop()
 {
+#ifdef ZIMODEM_ESP32
+  // Consume at most one network packet per Arduino loop iteration. Serial RX
+  // is serviced before currMode->loop(), so an arriving LCP Terminate-Request
+  // keeps priority over queued Internet traffic even at low UART baud rates.
+  if(pppRxQueue != NULL && !pppTerminating)
+  {
+    struct pbuf *queuedPbuf = NULL;
+    if(xQueueReceive(pppRxQueue, &queuedPbuf, 0) == pdTRUE)
+    {
+      if(queuedPbuf != NULL)
+      {
+        sendPacketToSerial(queuedPbuf);
+        pbuf_free(queuedPbuf);
+      }
+    }
+  }
+
+  bool haveTxLock = (pppTxMutex == NULL)
+                 || (xSemaphoreTake(pppTxMutex, 0) == pdTRUE);
+  if(haveTxLock)
+  {
+    if(sserial.isSerialOut())
+      serialOutDeque();
+    if(pppTxMutex != NULL)
+      xSemaphoreGive(pppTxMutex);
+  }
+#else
   if(sserial.isSerialOut())
     serialOutDeque();
+#endif
   logFileLoop();
 }
 
