@@ -68,7 +68,6 @@ int ConnSettings::getBitmap(FlowControlType forceCheck)
 String ConnSettings::getFlagString()
 {
   String lastOptions =(petscii?"p":"");
-  lastOptions += (petscii?"p":"");
   lastOptions += (telnet?"t":"");
   lastOptions += (echo?"e":"");
   lastOptions += (xonxoff?"x":"");
